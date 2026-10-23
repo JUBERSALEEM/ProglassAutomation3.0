@@ -41,9 +41,16 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         /// Opt-in: mirror local workflow transitions (Prepared/Sent/
         /// Confirmed/Hold/Cancelled) to the website so its reports page
         /// can show the inquiry's status. Requires the website-side RPC
-        /// from docs/website-inquiry-status-writeback.sql.
+        /// from docs/07.Website-Integration-Contracts.md.
         /// </summary>
         [JsonPropertyName("reportStatusToWebsite")] public bool ReportStatusToWebsite { get; set; } = false;
+        /// <summary>
+        /// Opt-in: on every inbox check, pull the per-inquiry website
+        /// chat channel (inquiry_communications) into each inquiry's
+        /// local communications feed. Requires the website-side RPC
+        /// from docs/07.Website-Integration-Contracts.md.
+        /// </summary>
+        [JsonPropertyName("syncWebsiteChat")] public bool SyncWebsiteChat { get; set; } = false;
 
         /// <summary>Operational state (not user config) — last sync bookkeeping.</summary>
         [JsonPropertyName("lastSyncAtUtc")] public string? LastSyncAtUtc { get; set; }

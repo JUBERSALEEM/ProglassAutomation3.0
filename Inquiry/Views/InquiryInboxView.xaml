@@ -216,6 +216,13 @@
                                   ToolTip="{Binding ReportStatusHint}" />
                         <TextBlock Text="{Binding ReportStatusHint}" Style="{StaticResource InboxFieldLabel}"
                                    TextWrapping="Wrap" Margin="0,2,0,0" />
+                        <CheckBox Content="Sync website chat"
+                                  IsChecked="{Binding SyncWebsiteChat}"
+                                  Margin="0,4,0,0"
+                                  AutomationProperties.Name="Sync website chat"
+                                  ToolTip="{Binding ChatSyncHint}" />
+                        <TextBlock Text="{Binding ChatSyncHint}" Style="{StaticResource InboxFieldLabel}"
+                                   TextWrapping="Wrap" Margin="0,2,0,0" />
                     </StackPanel>
                 </Grid>
                 <TextBlock Grid.Row="2" Margin="{DynamicResource MarginItem}"

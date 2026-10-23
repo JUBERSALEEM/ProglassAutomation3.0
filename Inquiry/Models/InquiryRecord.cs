@@ -154,6 +154,12 @@ namespace ProGlassAutomation.Models.Inquiry
         public DateTime OccurredAt { get; set; }
         public int? ActorUserId { get; set; }
         [MaxLength(200)] public string ActorName { get; set; } = "";
+        /// <summary>
+        /// External id of a synced website chat message
+        /// (website inquiry_communications.id) — dedupe key for the
+        /// inbox chat pull. Null for locally created entries.
+        /// </summary>
+        [MaxLength(40)] public string? ExternalId { get; set; }
         public InquiryRecord Inquiry { get; set; } = null!;
     }
 }

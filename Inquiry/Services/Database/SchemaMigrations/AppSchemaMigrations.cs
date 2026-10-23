@@ -105,11 +105,35 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                         ""LocalInquiryId""         INTEGER NULL,
                         ""LocalInquiryNumber""     TEXT NOT NULL DEFAULT '',
                         ""Error""                  TEXT NOT NULL DEFAULT ''
-                    );"");
+                    );""");
                 SchemaMigrationSql.CreateIndexIfNotExists(connection,
                     "CREATE INDEX IF NOT EXISTS \"IX_InquiryInboxItems_State\" ON InquiryInboxItems(State);");
                 SchemaMigrationSql.CreateIndexIfNotExists(connection,
                     "CREATE INDEX IF NOT EXISTS \"IX_InquiryInboxItems_Reference\" ON InquiryInboxItems(Reference);");
+            }),
+            // The current EF model names its tables after the DbSet
+            // properties (EnsureCreated convention): Inquiries,
+            // Attachments, Communications, LineItems, InboxItems.
+            // Interim builds shipped the child tables as
+            // InquiryAttachments / InquiryCommunications /
+            // InquiryLineItems, and the IF NOT EXISTS creates in
+            // 1001/1003/1005 leave empty duplicate (ghost) tables when
+            // the EF-named table already exists. This step converges
+            // both cases WITHOUT ever destroying data:
+            //   * legacy table present, EF table absent  -> rename
+            //   * both present, legacy empty              -> drop legacy
+            //   * both present, EF table empty            -> drop EF table, rename legacy
+            //   * both present, both with data            -> keep both (manual review)
+            new(1006, "Inquiry: converge child table names to the current EF model", connection =>
+                ConvergeInquiryChildTableNames(connection)),
+            // Website chat pull (docs/07 phase 2): synced website chat
+            // messages are deduplicated on re-sync by the website
+            // message id stored here.
+            new(1007, "Inquiry: external id for synced website chat messages", connection =>
+            {
+                SchemaMigrationSql.AddColumnIfMissing(connection, "Communications", "ExternalId", "TEXT NULL");
+                SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                    "CREATE INDEX IF NOT EXISTS \"IX_Communications_InquiryId_ExternalId\" ON \"Communications\" (\"InquiryId\", \"ExternalId\");");
             })
         };
 
@@ -249,6 +273,87 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             }
             SchemaMigrationSql.CreateIndexIfNotExists(connection,
                 "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Inquiries_InquiryNumber\" ON \"Inquiries\" (\"InquiryNumber\");");
+        }
+
+        /// <summary>
+        /// Migration 1006: make sure the tables the current EF model
+        /// queries (Attachments / Communications / LineItems /
+        /// InboxItems) exist under those exact names. Data-preserving —
+        /// see the registry comment for the decision table. Idempotent:
+        /// once converged (or on a fresh EnsureCreated database) every
+        /// branch is a no-op and the index statements are IF NOT EXISTS.
+        /// </summary>
+        private static void ConvergeInquiryChildTableNames(SqliteConnection connection)
+        {
+            var tables = new (string Legacy, string Current, (string Index, string Columns)[] Indexes)[]
+            {
+                ("InquiryAttachments", "Attachments",
+                    new[] { ("IX_Attachments_InquiryId", "InquiryId"), ("IX_Attachments_UploadedAt", "UploadedAt") }),
+                ("InquiryCommunications", "Communications",
+                    new[] { ("IX_Communications_InquiryId_OccurredAt", "InquiryId, OccurredAt") }),
+                ("InquiryLineItems", "LineItems",
+                    new[] { ("IX_LineItems_InquiryId", "InquiryId"), ("IX_LineItems_InquiryId_SortOrder", "InquiryId, SortOrder") }),
+                ("InquiryInboxItems", "InboxItems",
+                    new[] { ("IX_InboxItems_State", "State"), ("IX_InboxItems_Reference", "Reference") }),
+            };
+
+            foreach (var (legacy, current, indexes) in tables)
+            {
+                var (hasLegacy, legacyRows) = TableRowCount(connection, legacy);
+                var (hasCurrent, currentRows) = TableRowCount(connection, current);
+
+                if (hasLegacy && !hasCurrent)
+                {
+                    // Legacy-only shape: the current app can only see the
+                    // data through the EF name, so rename it in place.
+                    SchemaMigrationSql.Execute(connection,
+                        $"ALTER TABLE \"{legacy}\" RENAME TO \"{current}\";");
+                }
+                else if (hasLegacy && hasCurrent)
+                {
+                    if (legacyRows == 0)
+                    {
+                        // Ghost table left behind by the IF NOT EXISTS
+                        // creates on a database that already had the EF
+                        // tables — safe to drop (verified empty).
+                        SchemaMigrationSql.Execute(connection, $"DROP TABLE \"{legacy}\";");
+                    }
+                    else if (currentRows == 0)
+                    {
+                        // The EF-named table exists but is empty while the
+                        // legacy table carries data: adopt the legacy data
+                        // under the name the app actually queries.
+                        SchemaMigrationSql.Execute(connection, $"DROP TABLE \"{current}\";");
+                        SchemaMigrationSql.Execute(connection,
+                            $"ALTER TABLE \"{legacy}\" RENAME TO \"{current}\";");
+                    }
+                    // Both carry data: keep both. Nothing is dropped; an
+                    // operator must inspect and merge manually.
+                }
+
+                // Re-create the EF model's indexes on the current-named
+                // table (no-op when EnsureCreated already created them;
+                // fills the gap after a rename).
+                foreach (var (index, columns) in indexes)
+                    SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                        $"CREATE INDEX IF NOT EXISTS \"{index}\" ON \"{current}\" ({columns});");
+            }
+        }
+
+        private static (bool Exists, long Rows) TableRowCount(SqliteConnection connection, string table)
+        {
+            using (var probe = connection.CreateCommand())
+            {
+                probe.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@name;";
+                probe.Parameters.AddWithValue("@name", table);
+                var exists = Convert.ToInt64(probe.ExecuteScalar() ?? 0, CultureInfo.InvariantCulture) > 0;
+                if (!exists) return (false, 0);
+            }
+            using (var count = connection.CreateCommand())
+            {
+                count.CommandText = $"SELECT COUNT(*) FROM \"{table}\";";
+                return (true, Convert.ToInt64(count.ExecuteScalar() ?? 0, CultureInfo.InvariantCulture));
+            }
         }
 
         private static void VerifyInquirySchema(SqliteConnection connection)

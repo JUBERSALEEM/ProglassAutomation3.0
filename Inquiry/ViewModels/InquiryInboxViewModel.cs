@@ -179,6 +179,21 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             ? "Workflow changes (Prepared / Sent / Confirmed / Hold / Cancelled) are mirrored to the website for its reports page. Needs the website-side update_customer_inquiry_status_v1 function."
             : "Off by default — the website only receives the download acknowledgement.";
 
+        private bool _syncWebsiteChat;
+        public bool SyncWebsiteChat
+        {
+            get => _syncWebsiteChat;
+            set
+            {
+                if (SetField(ref _syncWebsiteChat, value))
+                    OnPropertyChanged(nameof(ChatSyncHint));
+            }
+        }
+
+        public string ChatSyncHint => _syncWebsiteChat
+            ? "Each inbox check pulls the website chat channel into every ingested inquiry's communications feed. Needs the website-side list_customer_inquiry_communications_v1 function."
+            : "Off by default — website chat messages are not pulled into the app.";
+
         public bool HasSavedPassword => _service.Settings.HasPassword;
         public string SavedPasswordHint => HasSavedPassword
             ? "A password is saved on this computer — leave empty to keep it."
@@ -272,6 +287,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             NotificationsEnabled = s.NotificationsEnabled;
             NotificationSound = s.NotificationSound;
             ReportStatusToWebsite = s.ReportStatusToWebsite;
+            SyncWebsiteChat = s.SyncWebsiteChat;
             OnPropertyChanged(nameof(HasSavedPassword));
             OnPropertyChanged(nameof(SavedPasswordHint));
             IsConfigured = s.IsConfigured;
@@ -295,6 +311,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 s.NotificationsEnabled = NotificationsEnabled;
                 s.NotificationSound = NotificationSound;
                 s.ReportStatusToWebsite = ReportStatusToWebsite;
+                s.SyncWebsiteChat = SyncWebsiteChat;
 
                 var problem = InquiryInboxService.ValidateRoot(s.InboxRoot);
                 if (problem != null)

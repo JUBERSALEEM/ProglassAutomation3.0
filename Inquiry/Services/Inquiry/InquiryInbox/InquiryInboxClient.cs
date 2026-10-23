@@ -39,7 +39,14 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
     public sealed class InboxRemoteException : Exception
     {
         public InboxRemoteErrorKind Kind { get; }
-        public InboxRemoteException(InboxRemoteErrorKind kind, string message) : base(message) => Kind = kind;
+        /// <summary>HTTP status of the failing request, when there was one.</summary>
+        public int? HttpStatusCode { get; }
+        public InboxRemoteException(InboxRemoteErrorKind kind, string message, int? httpStatus = null)
+            : base(message)
+        {
+            Kind = kind;
+            HttpStatusCode = httpStatus;
+        }
     }
 
     public sealed class InboxSignInResult
@@ -137,7 +144,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         {
             var body = JsonSerializer.Serialize(new { p_limit = limit });
             var (status, payload, kind) = await PostRpcAsync("plan_customer_inquiry_deliveries_v2", body, ct).ConfigureAwait(false);
-            if (status != 200) throw new InboxRemoteException(kind, $"Inbox plan failed: {ExtractError(payload)} (HTTP {status}).");
+            if (status != 200) throw new InboxRemoteException(kind, $"Inbox plan failed: {ExtractError(payload)} (HTTP {status}).", (int?)status);
 
             var result = new List<(InboxSubmissionPlan, string)>();
             using var doc = JsonDocument.Parse(payload);
@@ -157,7 +164,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         {
             var body = JsonSerializer.Serialize(new { p_submission_id = submissionId });
             var (status, payload, kind) = await PostRpcAsync("plan_customer_inquiry_delivery_documents", body, ct).ConfigureAwait(false);
-            if (status != 200) throw new InboxRemoteException(kind, $"Document plan failed: {ExtractError(payload)} (HTTP {status}).");
+            if (status != 200) throw new InboxRemoteException(kind, $"Document plan failed: {ExtractError(payload)} (HTTP {status}).", (int?)status);
 
             var result = new List<InboxDocumentPlan>();
             using var doc = JsonDocument.Parse(payload);
@@ -181,12 +188,13 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 p_assignment_snapshot = JsonSerializer.Deserialize<object>(assignmentSnapshotJson)
             }, JsonOpts);
             var (status, payload, kind) = await PostRpcAsync("acknowledge_customer_inquiry_delivery_v2", body, ct).ConfigureAwait(false);
-            if (status != 200) throw new InboxRemoteException(kind, $"Acknowledgement failed: {ExtractError(payload)} (HTTP {status}).");
+            if (status != 200) throw new InboxRemoteException(kind, $"Acknowledgement failed: {ExtractError(payload)} (HTTP {status}).", (int?)status);
         }
 
         /// <summary>
         /// update_customer_inquiry_status_v1 — optional pipeline status
-        /// write-back (see docs/website-inquiry-status-writeback.sql).
+        /// write-back (contract + deploy SQL in
+        /// docs/07.Website-Integration-Contracts.md).
         /// </summary>
         public async Task UpdateInquiryStatusAsync(string submissionId, string status, string note, CancellationToken ct)
         {
@@ -197,7 +205,30 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 p_note = note
             }, JsonOpts);
             var (status2, payload, kind) = await PostRpcAsync("update_customer_inquiry_status_v1", body, ct).ConfigureAwait(false);
-            if (status2 != 200) throw new InboxRemoteException(kind, $"Status update failed: {ExtractError(payload)} (HTTP {status2}).");
+            if (status2 != 200) throw new InboxRemoteException(kind, $"Status update failed: {ExtractError(payload)} (HTTP {status2}).", (int?)status2);
+        }
+
+        /// <summary>
+        /// list_customer_inquiry_communications_v1 — read-only pull of
+        /// the per-inquiry website chat channel (table
+        /// public.inquiry_communications). The website-side function is
+        /// deployed from docs/07.Website-Integration-Contracts.md; a
+        /// 404 (function not deployed yet) is reported through
+        /// HttpStatusCode so the service can stay neutral.
+        /// </summary>
+        public async Task<List<InquiryWebsiteMessage>> ListInquiryCommunicationsAsync(string submissionId, CancellationToken ct)
+        {
+            var body = JsonSerializer.Serialize(new { p_submission_id = submissionId });
+            var (status, payload, kind) = await PostRpcAsync("list_customer_inquiry_communications_v1", body, ct).ConfigureAwait(false);
+            if (status != 200) throw new InboxRemoteException(kind, $"Website chat read failed: {ExtractError(payload)} (HTTP {status}).", (int?)status);
+
+            var result = new List<InquiryWebsiteMessage>();
+            using var doc = JsonDocument.Parse(payload);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return result;
+            foreach (var row in doc.RootElement.EnumerateArray())
+                result.Add(JsonSerializer.Deserialize<InquiryWebsiteMessage>(row.GetRawText(), JsonOpts)
+                    ?? throw new InboxRemoteException(InboxRemoteErrorKind.Remote, "Malformed website chat row."));
+            return result;
         }
 
         /// <summary>Storage object download (raw bytes).</summary>
@@ -214,7 +245,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 {
                     var text = await SafeReadTextAsync(response).ConfigureAwait(false);
                     throw new InboxRemoteException(InboxRemoteErrorKind.Remote,
-                        $"Download failed (HTTP {(int)response.StatusCode}): {ExtractError(text)}");
+                        $"Download failed (HTTP {(int)response.StatusCode}): {ExtractError(text)}",
+                        (int?)response.StatusCode);
                 }
                 return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
             }

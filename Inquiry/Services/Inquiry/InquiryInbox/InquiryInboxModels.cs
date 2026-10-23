@@ -296,4 +296,27 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         public static bool IsValid(string? key) =>
             string.Equals(key, "unassigned", StringComparison.Ordinal) || (key != null && Assigned.IsMatch(key));
     }
+
+    /// <summary>
+    /// One row of list_customer_inquiry_communications_v1 — the
+    /// per-inquiry chat channel on the website (table
+    /// public.inquiry_communications, Phase 9D). Read-only pull into
+    /// the local communications feed (docs/07, phase 2).
+    /// </summary>
+    public sealed class InquiryWebsiteMessage
+    {
+        /// <summary>Website message id (uuid) — dedupe key (ExternalId).</summary>
+        public string Id { get; set; } = "";
+        /// <summary>"customer" or "internal".</summary>
+        public string Visibility { get; set; } = "customer";
+        /// <summary>"message" or "missing_information_request".</summary>
+        public string MessageKind { get; set; } = "message";
+        /// <summary>"open" / "resolved" for requests, null for messages.</summary>
+        public string? RequestStatus { get; set; }
+        public string Body { get; set; } = "";
+        /// <summary>Author display name from public.user_profiles.</summary>
+        public string? AuthorDisplayName { get; set; }
+        /// <summary>Website created_at (timestamptz → UTC DateTime).</summary>
+        public DateTime? CreatedAt { get; set; }
+    }
 }

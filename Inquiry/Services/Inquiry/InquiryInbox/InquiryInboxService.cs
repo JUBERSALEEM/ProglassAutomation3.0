@@ -222,15 +222,34 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     }
                 }
 
+                // Phase 2 (docs/07): pull the per-inquiry website chat
+                // channel into the local communications feed. Best
+                // effort — a missing website function or a dropped
+                // connection only yields a neutral note, never a failed
+                // sync. Runs on the ledger (not the plan) because the
+                // plan only lists not-yet-delivered submissions while
+                // chat keeps flowing after delivery.
+                int chatAdded = 0;
+                string? chatNote = null;
+                if (_settings.SyncWebsiteChat && !outcome.Offline)
+                    (chatAdded, chatNote) = await SyncInboxChatAsync(db, ct).ConfigureAwait(false);
+
                 db.SaveChanges();
                 _settings.LastSyncAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 _settings.LastSyncStatus = outcome.Offline
                     ? "Offline (partial)"
                     : outcome.Failed == 0 ? "OK" : "OK (with failures)";
                 if (!outcome.Offline)
+                {
                     outcome.StatusText = outcome.Failed == 0
                         ? $"Checked the website — {outcome.Planned} pending, {outcome.Delivered} downloaded, {outcome.Verified} already on disk."
                         : $"Checked the website — {outcome.Failed} of {outcome.Planned} failed (details in the inbox page).";
+                    if (chatNote != null)
+                        outcome.StatusText += " " + chatNote;
+                    else if (chatAdded > 0)
+                        outcome.StatusText = outcome.StatusText.TrimEnd('.', ' ') +
+                            $", {chatAdded} new website message(s).";
+                }
                 _settings.Save();
             }
             catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.Offline)
@@ -251,6 +270,90 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
             StateChanged?.Invoke(this, EventArgs.Empty);
             return outcome;
+        }
+
+        // ── Website chat pull (docs/07 phase 2) ──────────────────────────
+
+        /// <summary>
+        /// Pulls the per-inquiry website chat channel
+        /// (list_customer_inquiry_communications_v1) into each ingested
+        /// inquiry's local communications feed. Dedupes on the website
+        /// message id (ExternalId), so re-syncs are idempotent.
+        ///
+        /// Returns (added, note). The note is a neutral, operator-facing
+        /// sentence appended to the sync status when the chat pull could
+        /// not run (offline, RPC not deployed, or a remote failure) —
+        /// the sync itself never fails because of it.
+        /// </summary>
+        private async Task<(int Added, string? Note)> SyncInboxChatAsync(InquiryDbContext db, CancellationToken ct)
+        {
+            var targets = db.InboxItems.AsNoTracking()
+                .Where(i => i.LocalInquiryId != null)
+                .OrderByDescending(i => i.IngestedAt)
+                .Take(200)
+                .Select(i => new { i.SubmissionId, i.LocalInquiryId })
+                .ToList();
+            if (targets.Count == 0) return (0, null);
+
+            int added = 0;
+            foreach (var target in targets)
+            {
+                ct.ThrowIfCancellationRequested();
+                List<InquiryWebsiteMessage> messages;
+                try
+                {
+                    messages = await _client.ListInquiryCommunicationsAsync(target.SubmissionId, ct).ConfigureAwait(false);
+                }
+                catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.Offline)
+                {
+                    return (added, "Website chat is not syncing right now (offline).");
+                }
+                catch (InboxRemoteException ex) when (ex.HttpStatusCode == 404)
+                {
+                    return (added, "Website chat is not syncing yet — the website chat function is not deployed (see docs/07).");
+                }
+                catch (Exception)
+                {
+                    return (added, "Website chat is not syncing — the website chat read failed (files and inbox are unaffected).");
+                }
+
+                var localInquiryId = target.LocalInquiryId!.Value;
+                foreach (var message in messages)
+                {
+                    if (string.IsNullOrWhiteSpace(message.Id)) continue;
+                    var existing = db.Communications.FirstOrDefault(
+                        c => c.InquiryId == localInquiryId && c.ExternalId == message.Id);
+                    if (existing != null) continue;
+
+                    var isRequest = message.MessageKind == "missing_information_request";
+                    var isInternal = message.Visibility == "internal";
+                    var author = string.IsNullOrWhiteSpace(message.AuthorDisplayName)
+                        ? "website user"
+                        : message.AuthorDisplayName!.Trim();
+                    var title = isRequest
+                        ? (isInternal ? "Internal information request (website)" : "Information request from the website")
+                        : (isInternal ? "Internal website note" : "Website message from " + author);
+                    var description = message.Body ?? "";
+                    if (isRequest)
+                        description += message.RequestStatus == "resolved" ? " (resolved)" : " (open)";
+
+                    var occurred = message.CreatedAt ?? DateTime.UtcNow;
+                    if (occurred.Kind == DateTimeKind.Utc) occurred = occurred.ToLocalTime();
+
+                    db.Communications.Add(new InquiryCommunication
+                    {
+                        InquiryId = localInquiryId,
+                        EventType = isRequest ? "Website Information Request" : "Website Chat",
+                        Title = title,
+                        Description = description,
+                        OccurredAt = occurred,
+                        ActorName = author,
+                        ExternalId = message.Id
+                    });
+                    added++;
+                }
+            }
+            return (added, null);
         }
 
         // ── One delivery (bridge apply-loop item) ────────────────────────
