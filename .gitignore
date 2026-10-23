@@ -366,3 +366,6 @@ FodyWeavers.xsd
 /clay-*.png
 /fluent-*.png
 /docs/mockups/
+# Local UI mockups & generated image candidates — never product source
+/tests/ui-mockups/
+/Unselected files/

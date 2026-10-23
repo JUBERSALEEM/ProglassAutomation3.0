@@ -1,75 +1,269 @@
-# ProGlass V3.0 — Bento Theme Studio
+# ProGlass Automation 3.0
 
-Fresh native **WPF / .NET 8** desktop implementation in the existing root project. **Phase 01 implementation is present; compilation and Windows runtime acceptance remain unverified in this environment.** Bento Grid / Modular Light and Dark are the only implemented appearances. No future themes or ERP/database workflows run.
+> **A glass-manufacturing ERP rebuilt on the V3 theme engine.**
+> Theme purity. Business honesty. No invented features.
 
-## What is implemented
+`WPF` · `.NET 8` · `EF Core 8 (SQLite)` · `9 themes` · `V3 contract tokens only`
 
-- Non-visual orchestration with 102 semantic token roles and 47 required WPF style targets, complete theme-package validation/replacement and active-selection notifications. BentoGrid (theme-owned panel) is the mosaic engine.
-- Bento-isolated native styles/templates for introduced buttons, inputs, choices, selections, panels, text, status/progress, tooltips, context menus and scrollbars.
-- Separate Theme Studio customization and Business Reference sample pages: real accent/density/shape/type controls, Light/Dark switching, live tokens, preview commands/validation and a shared-resource modeless window.
-- No additional test-framework dependency: Windows STA runtime checks and portable source/contrast/regression checks.
+---
 
-- Real typed reusable charts: vertical/horizontal/grouped/stacked bars, multi-series line/area, pie/donut and sparkline, with native point tooltips, keyboard series toggles and textual/source-value alternatives.
-- Business Reference opens first, with mixed KPI plates, asymmetric analytics, targets/activity and a themed sortable/selectable DataGrid. Studio remains separate, with chart/scenario controls and optional collapsed diagnostics instead of a large contract dump.
-- [Chart reuse/dependency guide](Theme/step1.f.Analytics/step1.f.6.Analytics-README.md) explains future module bindings, validation and distribution-license obligations.
+## Contents
 
-Only Bento is installed: the installed-theme selector truthfully has one choice. Light/Dark is the functional visual variant selector; no unavailable theme is represented as selectable. Runtime behavior is implemented but not claimed proven here.
+- [Overview](#overview)
+- [Repository map](#repository-map)
+- [Theme engine (V3)](#theme-engine-v3)
+- [The Inquiry module](#the-inquiry-module)
+  - [Pages](#pages)
+  - [Status flow](#status-flow)
+  - [Scope of supply (BOQ)](#scope-of-supply-boq)
+  - [Validation](#validation)
+  - [Persistence](#persistence)
+  - [Attachments](#attachments)
+  - [Import / export](#import--export)
+- [Shell integration](#shell-integration)
+- [Work tree — what shipped, and when](#work-tree--what-shipped-and-when)
+- [Verification status](#verification-status)
+- [Roadmap](#roadmap)
 
-## Run and verify on Windows
+---
 
-Prerequisites: supported Windows 10/11 development environment, .NET 8 SDK (or a compatible later SDK with .NET 8 targeting/runtime support), and WPF tooling. One reviewed/pinned product package: LiveChartsCore.SkiaSharpView.WPF 2.0.4 (MIT), with its native SkiaSharp/HarfBuzz dependencies. The retained `net8.0-windows7.0` TFM is an API baseline, **not** a Windows 7 runtime-support claim. The existing `.slnx` needs a toolchain that supports that solution format; project commands do not depend on it.
+## Overview
 
-```powershell
-dotnet build ProGlassAutomation.csproj --configuration Release
-dotnet run --project ProGlassAutomation.csproj --configuration Release
-dotnet run --project Theme/step1.d.tests/step1.d.ThemeTests.csproj --configuration Release
+ProGlass Automation 3.0 is a Windows desktop ERP for a glass business. It was
+rebuilt around a strict separation between **presentation** and **business**:
+
+- The **V3 theme engine** owns every visual decision. Business screens may only
+  consume the engine's contract tokens (`{DynamicResource …}`) — no hex colours,
+  no screen-local palettes, no `StaticResource` colours.
+- The **business modules** own every business decision. Each module ships a
+  register (list) page and a detail (editor) page on a shared page pattern,
+  with validation and workflow rules ported verbatim from the legacy system —
+  nothing was weakened or "fixed" to make the UI prettier.
+
+The first business module is **Inquiries**: the commercial intake register where
+a customer's glass order scope is captured, priced later, and tracked through
+the commercial chain *Inquiry → Proforma Invoice → Job Order → Delivery Note →
+Tax Invoice → Statement*.
+
+## Repository map
+
+```
+ProGlassAutomation3.0/
+├─ ProGlassAutomation.csproj      explicit item groups; WPF, net8.0-windows7.0
+├─ App.xaml(.cs)                  theme applied at startup (ThemeService.Apply)
+├─ MainWindow.xaml(.cs)           shell: sidebar + banner + workspace tabs
+├─ Theme/
+│  ├─ step1.a.ThemeEngine/        contract tokens + ThemeService (the engine)
+│  ├─ step1.g.Customization/      icon service + IconKind (navigation marks)
+│  ├─ step1.f.Analytics/          chart theming
+│  └─ Theme<Name>/                9 themes: Bento, Claymorphism, Fluent,
+│                                 Glassmorphism, Holographic, Liquid Glass,
+│                                 Neumorphism, Spatial, Swiss
+│      └─ step1.e.Components/     per-theme component styles (Card, Caption,
+│                                 StatusBadge, PrimaryButton, …)
+├─ step1.ThemeStudio/
+│  └─ step1.b.ThemeStudioScreen/  shell VM (workspaces 0–6), studio screens
+└─ Inquiry/                       first business module
+   ├─ Models/                     InquiryRecord (dimension-first BOQ), lifecycle
+   ├─ Services/
+   │  ├─ Database/                AppDataRoot, SqliteResilience, migrations
+   │  │  └─ SchemaMigrations/     runner + registry (1001–1004)
+   │  ├─ Inquiry/                 repository, workflow, attachments,
+   │  │                            import/export, lifecycle, validation
+   │  ├─ Audit/                   CurrentOperator (environment-user actor)
+   │  ├─ Reporting/               PagedResult
+   │  └─ Support/                 FileOpener, AsyncUtility, limits, errors
+   ├─ ViewModels/                 list VM, editor VM, row models
+   └─ Views/                      InquiryListView, InquiryEditorView,
+                                   InquiryWorkspaceView (list ↔ detail)
 ```
 
-These are the intended Windows commands, not successful execution evidence. In this Linux container, `dotnet` is absent; project and solution build attempts exited 127. SDK download connection failed. No WPF UI was launched or screenshot captured. See the [current foundation evidence](step1.ThemeStudio/step1.c.docs/step1.c.9.Reusable-Analytics.md) and [manual review checklist](step1.ThemeStudio/step1.c.docs/step1.c.2.Phase01-Verification.md).
+> `tests/ui-mockups/` holds local UI mockup images only. It is git-ignored and
+> is **never** part of the product source.
 
-Portable checks actually executed here:
+## Theme engine (V3)
 
-```sh
-python3 Theme/step1.d.tests/step1.d.3.verify_sources.py
-python3 Theme/step1.d.tests/step1.d.4.CheckerRegression.py
-python3 Theme/step1.d.tests/step1.d.6.verify_foundation.py
+Nine themes, one contract. Every theme ships the same component vocabulary —
+`Card`, `MetricCard`, `PageHeading`, `SectionHeading`, `Caption`, `StatusBadge`,
+`StatusText`, `PrimaryButton`, `SubtleButton`, `KeyboardFocus` — resolved from
+the same token names (`ApplicationBackground`, `SurfacePrimary/Secondary/Elevated`,
+`TextPrimary/Secondary/Muted`, `AccentPrimary/Hover/Pressed/Soft`, `TextOnAccent`,
+`BorderSubtle/Strong`, `FocusIndicator`, `StateHover/Pressed/Selected`,
+`Status*`, `Padding*`, `Margin*`).
+
+The **Texts / Colors / Icons studios are overlays, not themes** — they customize
+type, color plates and navigation marks on top of the active theme and are
+grouped under *Settings* in the shell.
+
+## The Inquiry module
+
+### Pages
+
+| Page | View | What it does |
+|---|---|---|
+| **Register (list)** | `InquiryListView` | Page heading + caption · KPI strip (filtered pipeline value, open, awaiting customer, confirmed) · filter card (search with 300 ms debounce, received-date range, salesman, prepared-by, priority, sort, files-only) · seven status chips with live counts · data grid with every column (number, customer, project, salesman, status badge, value, received, updated, **PI / JO numbers, files**) · error surface · empty state · pagination · full right-click workflow menu |
+| **Detail (editor)** | `InquiryEditorView` | Header (number, customer, status badge, dirty dot) · status actions (Prepare / Send / Confirm / Hold / Cancel) · Save · **Header fields** card (customer/project/salesman register-sourced suggestions, location auto-fill, value with inline validation, notes) · **Scope of supply (BOQ)** grid · **Attachments** card · **Communications & activity** feed · **Lifecycle** card (INQ → PI → JO → DN → TI → STMT) |
+| **Workspace** | `InquiryWorkspaceView` | Owns the single list view-model; switches list ↔ detail in place; hosts file dialogs and confirmations; initializes the local database on first open |
+
+The list ↔ detail pattern is the standing page pattern: every future module
+(PI, JO, DN, TI) reuses the same structure.
+
+### Status flow
+
+```
+            ┌────────────┐
+            │  Received  │
+            └─────┬──────┘
+        Prepare   │   Hold
+         ┌────────┼────────┐
+         ▼        │        ▼
+    ┌─────────┐   │   ┌────────┐
+    │ Prepared│   │   │  Hold  │
+    └────────┘   │   ───┬────┘
+        Send      │       │ Prepare
+         │        │       │
+         ▼        │       │
+    ┌─────────┐   │       │
+    │  Sent   │◄─────────┘
+    └────┬────┘
+      Confirm
+         ▼
+    ┌───────────┐
+    │ Confirmed │
+    └───────────┘
+
+    Any non-terminal state ──► Cancelled (terminal, alongside Confirmed)
 ```
 
-## Repository boundaries
+Transitions are enforced in **one place** — `InquiryWorkflowService.CanTransition` —
+and the UI (row menu, editor buttons) only exposes what the rule allows.
 
-The latest clean-foundation instruction explicitly authorized removal of the prior SheetStore/dashboard implementation. All 47 inspected legacy-only files are removed; App/MainWindow start only the V3.0 reference page. No database, DI or legacy navigation is used; real analytics use the single reviewed WPF chart library. The root WPF project, AssemblyInfo, solution and approved documentation/theme work remain. See the [before-cleanup inventory](step1.ThemeStudio/step1.c.docs/step1.c.4.Cleanup-Inventory.md) and [current implementation/evidence report](step1.ThemeStudio/step1.c.docs/step1.c.9.Reusable-Analytics.md).
+### Scope of supply (BOQ)
 
-## Documentation map
+Dimension-first lines, exactly as written on paper: **1200×1500, 40 nos, DGU**.
 
-Read [AGENTS.md](AGENTS.md) first, then:
-- [Naming and stable Theme directories](docs/00.Project-Rules.md)
-- [Architecture principles](docs/01.Architecture-Principles.md)
-- [Semantic contract and design policy](docs/02.UI-UX-Design-System.md)
-- [Development and testing](docs/03.Development-and-Testing.md)
-- [Exact eight-theme roadmap and acceptance gates](docs/04.Project-Roadmap.md)
-- [Decision log](docs/05.Decision-Log.md)
-- [Feature registry](docs/06.Feature-Registry.md)
-- [Theme Studio responsibilities and extension procedure](step1.ThemeStudio/step1.c.docs/step1.c.1.ThemeStudio-README.md)
-- [Bento research and concrete design specification](Theme/ThemeBento/ThemeBento.Readme.md)
-- [Bento Grid Engine correction](step1.ThemeStudio/step1.c.docs/step1.c.11.Bento-Grid-Engine.md)
+| Column | Note |
+|---|---|
+| Glass build | `SGU` · `DGU` · `LAM` · `DGU+LAM` (exact-match normalization for PI import) |
+| Item / specification | free text |
+| Outer / Inner | glass colours per pane |
+| W mm / H mm | millimetres, capped at 20 000 |
+| Qty | capped at 100 000 |
+| Rate / m² | **expected rate only — `0` means "priced later in the PI"** |
+| Notes | per-line remarks |
 
-All theme implementation is under `Theme/`, with numbered shared implementation and stable individual-theme names. Studio files follow step1 hierarchy. Root App/MainWindow/project/manifest filenames and paired XAML/code-behind basenames are documented tool-compatibility exceptions. Phase 01 is awaiting Windows verification and user review; Claymorphism and step2 remain unauthorized.
+The PI utilized sheet and the JO cutting sheet are different things; **no mix /
+cutting logic exists or belongs on an inquiry.**
 
-## Windows CI verification
+### Validation
 
-[cols/ci/windows-wpf.yml](cols/ci/windows-wpf.yml) is the Windows job (windows-2022, .NET 8, portable checks, contracts, STA smoke). Publishing it to `.github/workflows/` was rejected: the GitHub App lacks `workflows` permission, so Actions cannot run on this branch yet.
+`InquiryValidationRules` is the single shared gate (port, unmodified):
 
-Bento owns its complete visual engine in Theme/ThemeBento. The shared engine contains no XAML or persistent visual dictionary. Future themes supply independent implementations through the same contract without screen rewrites; no future theme or placeholder is registered.
+| Rule | Limit |
+|---|---|
+| Dimension (W / H) | ≤ 20 000 mm |
+| Quantity per line | ≤ 100 000 |
+| Rate per m² | ≤ 100 000 |
+| Inquiry value (AED) | ≤ 999 999 999 |
+| Header | Customer **and** Project required |
+| PI-ready lines | exact normalized build required |
 
+The editor validates inline (value hint, red error surface) **and** `SaveAsync`
+re-runs the full gate before any write — the button state can never be bypassed.
 
-## Seeing the actual Theme Studio
+### Persistence
 
-Theme Studio is the root application's startup content, not hidden behind navigation. On Windows, open this branch's `ProGlassAutomation.csproj` as the startup project or run the `dotnet run` command above. No SheetStore service or database is needed. The browser preview here cannot execute WPF; there is no genuine rendered screenshot or remote Windows session available in this environment. Do not confuse the unchanged remote master branch with these local, uncommitted changes.
+- **Local EF Core 8 + SQLite** (`inquiries.db` under the app data root) — the
+  same store engine the legacy system used; only the Inquiry tables exist.
+- **Schema migrations 1001–1004** converge an existing database: create tables,
+  drop legacy columns, add the `InquiryLineItems` table, add the `RowVersion`
+  concurrency token.
+- **Numbering**: `INQ-{yyyy}-####` (max+1) with up to 20 jittered uniqueness
+  attempts; `BUSY`/`LOCKED` writes retry with back-off (`SqliteResilience`).
+- **Concurrency**: `RowVersion` optimistic token on every update — a stale save
+  fails loudly with "changed by someone else", it never clobbers.
+- **Delete guard**: an inquiry with a downstream Proforma Invoice (or JO / DN /
+  TI / Statement link) cannot be deleted — cancel it instead.
 
-Latest user instruction: no pull request without two separate confirmations. Windows Action tracking needs `workflows` permission.
+### Attachments
 
-## Current rich Bento workspace
+Manifest-backed storage: `{appdata}/…/Inquiries/{id}/Attachments/` with a
+`manifest.json` source of truth, files renamed to `{guid}_{safeName}`.
 
-The startup tab is **Theme Studio**: edit Ocean/Indigo/Teal accent, compact/comfortable density, crisp/soft/rounded corners and small/standard/large body typography. Reset design keeps sample inputs separate. **Business Reference** is a distinct tab with a compact KPI band, wide themed feature/trend, selected-work review list, status badges, preview form and handoff surfaces. It is illustrative local data, not an implemented ERP module. All design changes use the real active package and carry across mode switches and both pages. Settings are not saved to disk.
+- Allowed: `pdf, jpg, jpeg, png, bmp, gif, webp, dwg, dxf, xlsx, xls, csv`
+- Max size: **25 MB per file**
+- Legacy EF-only rows are migrated to disk on first read.
+- The editor auto-saves the draft before the first attachment, so attaching
+  never dead-ends.
 
-The current source supplies 102 semantic tokens and 47 required styles. See [c.11](step1.ThemeStudio/step1.c.docs/step1.c.11.Bento-Grid-Engine.md).
+### Import / export
+
+- **Export**: every row matching the *current filters* (paged fetch, capped at
+  5 000 rows) as RFC-quoted CSV.
+- **Import**: parses the register CSV, skips rows without customer/project,
+  regenerates numbers for duplicates, creates via the same workflow service,
+  and reports `imported / invalid-skipped / duplicates / failed`.
+
+## Shell integration
+
+- **Inquiries is the first business page** — its own *Business* group in the
+  sidebar, above *Settings* — and the app's **default landing workspace**.
+- Workspace index 2 of 7 (`0 Studio · 1 Home · 2 Inquiries · 3 Texts · 4 Colors
+  · 5 About · 6 Icons`), with its own clipboard-check navigation mark
+  (`IconKind.Inquiry`) in the icon service.
+- Banner shows the workspace title/subtitle ("Inquiries — Business · Inquiry
+  register") on every page, including Inquiry.
+
+## Work tree — what shipped, and when
+
+```
+branch arena/da841e06-proglassautomation3-0
+│
+└─ 2026-10-23
+   ├─ 06:18   2ce9856   Base (ThemeStudio-9 lineage): V3 theme engine,
+   │                   9 themes, shell, Texts/Colors/Icons studios,
+   │                   page marks resolved from heading title/category
+   │
+   └─ 14:51   f01060b   INQUIRY MODULE — list + detail, end to end
+      ├─ Models          InquiryRecord (dimension-first BOQ) + lifecycle snapshot
+      ├─ Persistence     EF Core SQLite, migrations 1001–1004, resilience,
+      │                  INQ-{yyyy}-#### numbering, RowVersion concurrency
+      ├─ Services        repository, workflow (CanTransition), attachments
+      │                  (manifest-backed), CSV import/export, validation (verbatim)
+      ├─ ViewModels      list (chips/filters/KPI/pagination/context workflow),
+      │                  editor (dirty tracking, inline validation, BOQ grid)
+      ├─ Views           InquiryListView, InquiryEditorView, InquiryWorkspaceView
+      └─ Shell           Business nav group, Inquiries default landing,
+                         IconKind.Inquiry, workspace range 0–6
+```
+
+Each entry above is a commit on this branch — hash, time and content. When the
+next module lands, add its branch to this tree.
+
+## Verification status
+
+| Check | Status |
+|---|---|
+| XAML well-formedness (all views) | ✅ |
+| No `Ov.` / `Pg.` / `VisualThemeEngine` / ADV theme leakage in module files | ✅ |
+| All `FontSize/Margin/Padding/Foreground/Background/BorderBrush` values are `{DynamicResource}` / `{Binding}` | ✅ (120/120) |
+| No `#hex` colours in views; no `StaticResource` colours | ✅ |
+| C# brace/paren balance (string-aware scan) | ✅ |
+| XAML bindings cross-checked against VM / row / contract members | ✅ |
+| `dotnet build` | ⏳ **no .NET SDK in the authoring sandbox** — build on Windows |
+| Visual proof (fonts, theme rendering) | ⏳ requires Windows — not claimable from Linux |
+
+## Roadmap
+
+1. **Proforma Invoice (PI)** — converts confirmed inquiries using the
+   dimension-first BOQ; *starts only on the owner's go*.
+2. **Job Order (JO)** — cutting sheet (distinct from the PI utilized sheet).
+3. **Delivery Note (DN)** / **Tax Invoice (TI)** / **Statement (STMT)**.
+
+Every one of them reuses the Inquiry page pattern and the shared validation
+gate — no reinvention.
+
+---
+
+*ProGlass Automation 3.0 — built on the V3 theme engine. If a pixel is not a
+contract token, it does not ship.*
