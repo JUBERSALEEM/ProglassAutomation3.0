@@ -40,6 +40,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
     {
         private readonly IInquiryRepository _repository;
         private readonly IInquiryWorkflowService _workflow;
+        private readonly ProGlassAutomation.Services.Inquiry.InquiryInbox.InquiryStatusReporter? _statusReporter;
         private readonly InquiryAttachmentService _attachments;
         // Register-sourced suggestion lists (master data not yet ported):
         // distinct customers, and (customer, location) pairs.
@@ -297,11 +298,13 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             IInquiryRepository repository,
             IInquiryWorkflowService workflow,
             InquiryAttachmentService attachments,
-            InquiryRecord? source = null)
+            InquiryRecord? source = null,
+            ProGlassAutomation.Services.Inquiry.InquiryInbox.InquiryStatusReporter? statusReporter = null)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _workflow = workflow ?? throw new ArgumentNullException(nameof(workflow));
             _attachments = attachments ?? throw new ArgumentNullException(nameof(attachments));
+            _statusReporter = statusReporter;
             Record = source ?? new InquiryRecord
             {
                 InquiryReference = "Customer Inquiry", Status = InquiryStatuses.Received,
@@ -731,6 +734,9 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                     RefreshStages();
                     RefreshStatusProperties();
                     SetMessage($"Status changed to {Record.Status}.");
+                    // Best-effort mirror to the website (opt-in, off by
+                    // default). Never blocks or fails the local change.
+                    if (_statusReporter != null) _ = _statusReporter.ReportAsync(Record);
                 }
             }
             catch (Exception ex) { SetMessage(ExceptionMessages.Deep(ex), isError: true); }

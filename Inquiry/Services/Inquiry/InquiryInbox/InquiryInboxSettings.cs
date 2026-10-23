@@ -37,6 +37,13 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         [JsonPropertyName("pollMinutes")] public int PollMinutes { get; set; } = 5;
         [JsonPropertyName("notificationsEnabled")] public bool NotificationsEnabled { get; set; } = true;
         [JsonPropertyName("notificationSound")] public bool NotificationSound { get; set; } = true;
+        /// <summary>
+        /// Opt-in: mirror local workflow transitions (Prepared/Sent/
+        /// Confirmed/Hold/Cancelled) to the website so its reports page
+        /// can show the inquiry's status. Requires the website-side RPC
+        /// from docs/website-inquiry-status-writeback.sql.
+        /// </summary>
+        [JsonPropertyName("reportStatusToWebsite")] public bool ReportStatusToWebsite { get; set; } = false;
 
         /// <summary>Operational state (not user config) — last sync bookkeeping.</summary>
         [JsonPropertyName("lastSyncAtUtc")] public string? LastSyncAtUtc { get; set; }

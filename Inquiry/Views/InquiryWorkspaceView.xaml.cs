@@ -246,7 +246,8 @@ public partial class InquiryWorkspaceView : UserControl
             _repository,
             new InquiryWorkflowService(_repository),
             new InquiryAttachmentService(_repository),
-            source);
+            source,
+            new ProGlassAutomation.Services.Inquiry.InquiryInbox.InquiryStatusReporter(_inboxService.Settings));
 
         var closed = new System.Threading.Tasks.TaskCompletionSource<bool>(
             System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);

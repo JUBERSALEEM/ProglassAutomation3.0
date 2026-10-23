@@ -209,6 +209,13 @@
                                       IsEnabled="{Binding NotificationsEnabled}"
                                       AutomationProperties.Name="Notification sound" />
                         </StackPanel>
+                        <CheckBox Content="Report status to website"
+                                  IsChecked="{Binding ReportStatusToWebsite}"
+                                  Margin="0,4,0,0"
+                                  AutomationProperties.Name="Report status to website"
+                                  ToolTip="{Binding ReportStatusHint}" />
+                        <TextBlock Text="{Binding ReportStatusHint}" Style="{StaticResource InboxFieldLabel}"
+                                   TextWrapping="Wrap" Margin="0,2,0,0" />
                     </StackPanel>
                 </Grid>
                 <TextBlock Grid.Row="2" Margin="{DynamicResource MarginItem}"

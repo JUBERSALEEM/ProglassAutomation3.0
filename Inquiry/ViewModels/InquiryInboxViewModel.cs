@@ -164,6 +164,21 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         private bool _notificationSound = true;
         public bool NotificationSound { get => _notificationSound; set => SetField(ref _notificationSound, value); }
 
+        private bool _reportStatusToWebsite;
+        public bool ReportStatusToWebsite
+        {
+            get => _reportStatusToWebsite;
+            set
+            {
+                if (SetField(ref _reportStatusToWebsite, value))
+                    OnPropertyChanged(nameof(ReportStatusHint));
+            }
+        }
+
+        public string ReportStatusHint => _reportStatusToWebsite
+            ? "Workflow changes (Prepared / Sent / Confirmed / Hold / Cancelled) are mirrored to the website for its reports page. Needs the website-side update_customer_inquiry_status_v1 function."
+            : "Off by default — the website only receives the download acknowledgement.";
+
         public bool HasSavedPassword => _service.Settings.HasPassword;
         public string SavedPasswordHint => HasSavedPassword
             ? "A password is saved on this computer — leave empty to keep it."
@@ -256,6 +271,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             PollMinutes = s.PollMinutes;
             NotificationsEnabled = s.NotificationsEnabled;
             NotificationSound = s.NotificationSound;
+            ReportStatusToWebsite = s.ReportStatusToWebsite;
             OnPropertyChanged(nameof(HasSavedPassword));
             OnPropertyChanged(nameof(SavedPasswordHint));
             IsConfigured = s.IsConfigured;
@@ -278,6 +294,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 s.PollMinutes = PollMinutes;
                 s.NotificationsEnabled = NotificationsEnabled;
                 s.NotificationSound = NotificationSound;
+                s.ReportStatusToWebsite = ReportStatusToWebsite;
 
                 var problem = InquiryInboxService.ValidateRoot(s.InboxRoot);
                 if (problem != null)
@@ -322,10 +339,30 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 var client = new InquiryInboxClient(_service.Settings);
                 try
                 {
-                    var result = await client.SignInAsync();
-                    StatusText = result.Success
-                        ? "Website connection OK — the bridge account signed in."
-                        : "Sign-in failed: " + (result.Error ?? "unknown error");
+                var result = await client.SignInAsync();
+                if (!result.Success)
+                {
+                    StatusText = "Sign-in failed: " + (result.Error ?? "unknown error");
+                }
+                else
+                {
+                    // Sign-in proves the account; the plan call proves the
+                    // account may actually read the inbox (RPC role).
+                    StatusText = "Signed in — checking inbox access…";
+                    try
+                    {
+                        var pending = await client.PlanDeliveriesAsync(10);
+                        StatusText = "Website connection OK — sign-in OK, inbox access OK ("
+                            + pending.Count + " pending).";
+                    }
+                    catch (InboxRemoteException ex)
+                    {
+                        StatusText = "Sign-in OK but inbox access failed: "
+                            + (ex.Kind == InboxRemoteErrorKind.Offline
+                                ? "the website is unreachable."
+                                : ex.Message);
+                    }
+                }
                 }
                 finally
                 {

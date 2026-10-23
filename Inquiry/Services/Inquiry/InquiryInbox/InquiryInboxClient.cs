@@ -184,6 +184,22 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             if (status != 200) throw new InboxRemoteException(kind, $"Acknowledgement failed: {ExtractError(payload)} (HTTP {status}).");
         }
 
+        /// <summary>
+        /// update_customer_inquiry_status_v1 — optional pipeline status
+        /// write-back (see docs/website-inquiry-status-writeback.sql).
+        /// </summary>
+        public async Task UpdateInquiryStatusAsync(string submissionId, string status, string note, CancellationToken ct)
+        {
+            var body = JsonSerializer.Serialize(new
+            {
+                p_submission_id = submissionId,
+                p_status = status,
+                p_note = note
+            }, JsonOpts);
+            var (status2, payload, kind) = await PostRpcAsync("update_customer_inquiry_status_v1", body, ct).ConfigureAwait(false);
+            if (status2 != 200) throw new InboxRemoteException(kind, $"Status update failed: {ExtractError(payload)} (HTTP {status2}).");
+        }
+
         /// <summary>Storage object download (raw bytes).</summary>
         public async Task<byte[]> DownloadObjectAsync(string bucket, string objectKey, CancellationToken ct)
         {
