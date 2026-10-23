@@ -131,7 +131,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{DynamicResource PaddingPage}">
             <StackPanel>
                 <!-- Header fields -->
-                <ContentControl Style="{StaticResource EditorCompactCard}">
+                <ContentControl Style="{DynamicResource EditorCompactCard}">
                     <StackPanel>
                         <TextBlock Text="Header fields" Style="{DynamicResource SectionHeading}" />
                         <UniformGrid Columns="3" Margin="{DynamicResource MarginItem}">
@@ -214,7 +214,7 @@
                 </ContentControl>
 
                 <!-- Scope of supply (BOQ) -->
-                <ContentControl Style="{StaticResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
+                <ContentControl Style="{DynamicResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
                     <StackPanel>
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="+ Add row" Style="{DynamicResource SubtleButton}"
@@ -337,7 +337,7 @@
                 </ContentControl>
 
                 <!-- Attachments -->
-                <ContentControl Style="{StaticResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
+                <ContentControl Style="{DynamicResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
                     <StackPanel>
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="Open folder" Style="{DynamicResource SubtleButton}"
@@ -394,7 +394,7 @@
                 </ContentControl>
 
                 <!-- Communications -->
-                <ContentControl Style="{StaticResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
+                <ContentControl Style="{DynamicResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
                     <StackPanel>
                         <TextBlock Text="Communications &amp; activity" Style="{DynamicResource SectionHeading}" />
                         <ItemsControl ItemsSource="{Binding RecentActivity}" Margin="{DynamicResource MarginItem}">
@@ -430,7 +430,7 @@
                 </ContentControl>
 
                 <!-- Lifecycle -->
-                <ContentControl Style="{StaticResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
+                <ContentControl Style="{DynamicResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
                     <StackPanel>
                         <TextBlock Text="Lifecycle" Style="{DynamicResource SectionHeading}" />
                         <TextBlock Text="{Binding PipelineProgressText}" Style="{DynamicResource Caption}"
