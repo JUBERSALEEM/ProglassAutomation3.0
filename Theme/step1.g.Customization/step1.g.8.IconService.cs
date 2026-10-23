@@ -6,7 +6,8 @@ namespace ProGlassAutomation.Customization;
 public enum IconKind
 {
     Home, Theme, Texts, Colors, About, Marks,
-    Appearance, Layout, Charts, Work, Settings, Author, Engineering, Components
+    Appearance, Layout, Charts, Work, Settings, Author, Engineering, Components,
+    Inquiry
 }
 
 public enum IconMarkStyle
@@ -151,6 +152,8 @@ public static class IconService
             (IconKind.Engineering, true, _) => "M 8,7.5 L 4,12 L 8,16.5 L 5.6,12 Z M 16,7.5 L 20,12 L 16,16.5 L 18.4,12 Z",
             (IconKind.Components, false, _) => "M 12,3.2 L 20,7.2 L 12,11.2 L 4,7.2 Z M 4,12 L 12,16 L 20,12 M 4,16.2 L 12,20.2 L 20,16.2",
             (IconKind.Components, true, _) => "M 12,3.2 L 20,7.2 L 12,11.2 L 4,7.2 Z",
+            (IconKind.Inquiry, false, _) => "M 8,4.4 H 10 C 10,3.2 14,3.2 14,4.4 H 16 A 1.4,1.4 0 0 1 17.4,5.8 V 19 A 1.4,1.4 0 0 1 16,20.4 H 8 A 1.4,1.4 0 0 1 6.6,19 V 5.8 A 1.4,1.4 0 0 1 8,4.4 Z M 9.4,12.6 L 11.2,14.4 L 15,10.4",
+            (IconKind.Inquiry, true, _) => "M 7.6,4.4 H 10 C 10,3 14,3 14,4.4 H 16.4 A 1.6,1.6 0 0 1 18,6 V 18.8 A 1.6,1.6 0 0 1 16.4,20.4 H 7.6 A 1.6,1.6 0 0 1 6,18.8 V 6 A 1.6,1.6 0 0 1 7.6,4.4 Z M 9.2,12.7 L 11.1,14.6 L 14.8,10.6 L 13.5,9.4 L 11.1,12.3 L 10.5,11.5 Z",
             _ => "M 4,4 H 10.4 V 10.4 H 4 Z M 13.6,4 H 20 V 10.4 H 13.6 Z M 4,13.6 H 10.4 V 20 H 4 Z M 13.6,13.6 H 20 V 20 H 13.6 Z"
         };
         var geometry = Geometry.Parse(data);

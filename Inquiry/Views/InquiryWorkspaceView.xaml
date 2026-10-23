@@ -1,0 +1,16 @@
+<UserControl x:Class="ProGlassAutomation.Inquiry.InquiryWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ProGlassAutomation.Inquiry"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- The Inquiry module's workspace: the register (list) and the
+         detail editor switch in place; the list page is the module's
+         landing view and the same pattern is reused by later modules. -->
+    <Grid>
+        <local:InquiryListView x:Name="ListView" />
+        <local:InquiryEditorView x:Name="EditorView" Visibility="Collapsed" />
+    </Grid>
+</UserControl>

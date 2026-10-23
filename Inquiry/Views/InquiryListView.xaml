@@ -1,0 +1,432 @@
+<UserControl x:Class="ProGlassAutomation.Inquiry.InquiryListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <UserControl.Resources>
+        <!-- Status chip: BorderSubtle idle, AccentPrimary selected,
+             TextOnAccent on the selected label. -->
+        <Style x:Key="InquiryChipButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="ClickMode" Value="Press" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{DynamicResource BorderThicknessControl}"
+                                CornerRadius="{DynamicResource ChipCornerRadius}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StatePressed}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource DisabledText}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="InquiryFieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+        </Style>
+        <Style x:Key="InquiryCombo" TargetType="ComboBox">
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+            <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="InquiryCustomerCell" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="InquiryNumberCell" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="InquiryValueCell" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ── Page heading + primary actions ─────────────────────── -->
+        <DockPanel Grid.Row="0" Margin="{DynamicResource PaddingPage}">
+            <Button DockPanel.Dock="Right" Content="New inquiry" Style="{DynamicResource PrimaryButton}"
+                    Command="{Binding NewInquiryCommand}" Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="New inquiry" />
+            <Button DockPanel.Dock="Right" Content="Export" Style="{DynamicResource SubtleButton}"
+                    Command="{Binding ExportCommand}" Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="Export inquiries to CSV" />
+            <Button DockPanel.Dock="Right" Content="Import" Style="{DynamicResource SubtleButton}"
+                    Command="{Binding ImportCommand}" Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="Import inquiries from CSV" />
+            <Button DockPanel.Dock="Right" Content="Refresh" Style="{DynamicResource SubtleButton}"
+                    Command="{Binding RefreshCommand}" Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="Refresh register" />
+            <StackPanel>
+                <TextBlock Text="Inquiries" Style="{DynamicResource PageHeading}" />
+                <TextBlock Text="Commercial intake register — scope of supply, status and lifecycle" Style="{DynamicResource Caption}" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- ── KPI strip ──────────────────────────────────────────── -->
+        <UniformGrid Grid.Row="1" Columns="4" Margin="{DynamicResource PaddingPage}">
+            <ContentControl Style="{DynamicResource MetricCard}" Margin="{DynamicResource MarginItem}">
+                <StackPanel>
+                    <TextBlock Text="Filtered pipeline value" Style="{DynamicResource Caption}" />
+                    <TextBlock Text="{Binding PipelineValueText}" FontSize="{DynamicResource FontSizeSection}"
+                               FontWeight="{DynamicResource FontWeightHeading}" />
+                    <TextBlock Text="Cancelled inquiries excluded" Style="{DynamicResource Caption}" />
+                </StackPanel>
+            </ContentControl>
+            <ContentControl Style="{DynamicResource MetricCard}" Margin="{DynamicResource MarginItem}">
+                <StackPanel>
+                    <TextBlock Text="Open" Style="{DynamicResource Caption}" />
+                    <TextBlock Text="{Binding OpenCount}" FontSize="{DynamicResource FontSizeSection}"
+                               FontWeight="{DynamicResource FontWeightHeading}" />
+                    <TextBlock Text="Received + prepared" Style="{DynamicResource Caption}" />
+                </StackPanel>
+            </ContentControl>
+            <ContentControl Style="{DynamicResource MetricCard}" Margin="{DynamicResource MarginItem}">
+                <StackPanel>
+                    <TextBlock Text="Awaiting customer" Style="{DynamicResource Caption}" />
+                    <TextBlock Text="{Binding AwaitingCount}" FontSize="{DynamicResource FontSizeSection}"
+                               FontWeight="{DynamicResource FontWeightHeading}" />
+                    <TextBlock Text="Sent, waiting confirmation" Style="{DynamicResource Caption}" />
+                </StackPanel>
+            </ContentControl>
+            <ContentControl Style="{DynamicResource MetricCard}" Margin="{DynamicResource MarginItem}">
+                <StackPanel>
+                    <TextBlock Text="Confirmed" Style="{DynamicResource Caption}" />
+                    <TextBlock Text="{Binding ConfirmedCount}" FontSize="{DynamicResource FontSizeSection}"
+                               FontWeight="{DynamicResource FontWeightHeading}" />
+                    <TextBlock Text="Ready to convert to PI" Style="{DynamicResource Caption}" />
+                </StackPanel>
+            </ContentControl>
+        </UniformGrid>
+
+        <!-- ── Filter / search card ───────────────────────────────── -->
+        <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBox Grid.Row="0"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Search by number, customer, project, salesman or preparer"
+                         AutomationProperties.Name="Search inquiries"
+                         Margin="{DynamicResource MarginItem}" />
+                <WrapPanel Grid.Row="1" Margin="{DynamicResource MarginItem}">
+                    <StackPanel Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Received" Style="{StaticResource InquiryFieldLabel}" />
+                        <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding DateRanges}"
+                                  SelectedItem="{Binding SelectedDateRange}" AutomationProperties.Name="Received date range" />
+                    </StackPanel>
+                    <StackPanel Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Salesman" Style="{StaticResource InquiryFieldLabel}" />
+                        <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding Salesmen}"
+                                  SelectedItem="{Binding SelectedSalesman}" AutomationProperties.Name="Filter by salesman" />
+                    </StackPanel>
+                    <StackPanel Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Prepared by" Style="{StaticResource InquiryFieldLabel}" />
+                        <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding PreparedByUsers}"
+                                  SelectedItem="{Binding SelectedPreparedBy}" AutomationProperties.Name="Filter by preparer" />
+                    </StackPanel>
+                    <StackPanel Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Priority" Style="{StaticResource InquiryFieldLabel}" />
+                        <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding Priorities}"
+                                  SelectedItem="{Binding SelectedPriority}" AutomationProperties.Name="Filter by priority" />
+                    </StackPanel>
+                    <StackPanel Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Sort order" Style="{StaticResource InquiryFieldLabel}" />
+                        <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding SortOptions}"
+                                  SelectedItem="{Binding SelectedSort}" AutomationProperties.Name="Sort order" />
+                    </StackPanel>
+                    <StackPanel Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Attachments" Style="{StaticResource InquiryFieldLabel}" />
+                        <CheckBox Content="Has files only" IsChecked="{Binding HasAttachmentsOnly}"
+                                  VerticalAlignment="Center" AutomationProperties.Name="Only inquiries with attachments" />
+                    </StackPanel>
+                </WrapPanel>
+                <DockPanel Grid.Row="2" Margin="{DynamicResource MarginItem}">
+                    <Button DockPanel.Dock="Right" Content="Reset filters" Style="{DynamicResource SubtleButton}"
+                            Command="{Binding ResetFiltersCommand}" Margin="{DynamicResource MarginInline}"
+                            AutomationProperties.Name="Reset filters" />
+                    <TextBlock Text="Filters active" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasActiveFilters}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </DockPanel>
+            </Grid>
+        </ContentControl>
+
+        <!-- ── Status chips / counts ──────────────────────────────── -->
+        <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                      Margin="{DynamicResource PaddingPage}">
+            <ItemsControl ItemsSource="{Binding StatusTabs}" Focusable="False" AutomationProperties.Name="Status chips">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource InquiryChipButton}"
+                                Command="{Binding DataContext.SelectStatusTabCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding Key}"
+                                Content="{Binding LabelWithCount}"
+                                AutomationProperties.Name="{Binding LabelWithCount}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- ── Register: error surface + data grid + empty state ──── -->
+        <ContentControl Grid.Row="4" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Background="{DynamicResource StatusErrorSurface}"
+                        BorderBrush="{DynamicResource StatusError}"
+                        BorderThickness="{DynamicResource BorderThicknessControl}"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Margin="{DynamicResource MarginItem}" Padding="{DynamicResource PaddingControl}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasError}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding ErrorText}" Foreground="{DynamicResource StatusError}" TextWrapping="Wrap" />
+                </Border>
+                <Grid Grid.Row="1" Margin="{DynamicResource MarginItem}">
+                    <DataGrid ItemsSource="{Binding Inquiries}"
+                              SelectedItem="{Binding SelectedInquiry, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="SingleRow"
+                              SelectionUnit="FullRow"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserReorderColumns="False"
+                              CanUserSortColumns="False"
+                              HeadersVisibility="Column"
+                              AutomationProperties.Name="Inquiry register"
+                              MouseDoubleClick="OnRowDoubleClick"
+                              KeyDown="OnGridKeyDown">
+                        <DataGrid.Resources>
+                            <ContextMenu x:Key="RowMenu">
+                                <MenuItem Header="Open inquiry…"
+                                          Command="{Binding DataContext.OpenInquiryRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}" />
+                                <MenuItem Header="Edit inquiry…"
+                                          Command="{Binding DataContext.EditInquiryRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}" />
+                                <Separator />
+                                <MenuItem Header="Change status">
+                                    <MenuItem Header="Prepare"
+                                              Command="{Binding DataContext.PrepareRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}"
+                                              IsEnabled="{Binding CanPrepareWorkflow}" />
+                                    <MenuItem Header="Send"
+                                              Command="{Binding DataContext.SendRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}"
+                                              IsEnabled="{Binding CanSendWorkflow}" />
+                                    <MenuItem Header="Confirm"
+                                              Command="{Binding DataContext.ConfirmRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}"
+                                              IsEnabled="{Binding CanConfirmWorkflow}" />
+                                    <MenuItem Header="Hold"
+                                              Command="{Binding DataContext.HoldRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}"
+                                              IsEnabled="{Binding CanHoldWorkflow}" />
+                                    <MenuItem Header="Cancel inquiry"
+                                              Command="{Binding DataContext.CancelRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}"
+                                              IsEnabled="{Binding CanCancelWorkflow}" />
+                                </MenuItem>
+                                <MenuItem Header="Change priority">
+                                    <MenuItem Header="Urgent"
+                                              Command="{Binding DataContext.SetUrgentPriorityCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}" />
+                                    <MenuItem Header="High"
+                                              Command="{Binding DataContext.SetHighPriorityCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}" />
+                                    <MenuItem Header="Normal"
+                                              Command="{Binding DataContext.SetNormalPriorityCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}" />
+                                    <MenuItem Header="Low"
+                                              Command="{Binding DataContext.SetLowPriorityCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              CommandParameter="{Binding}" />
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="Duplicate inquiry"
+                                          Command="{Binding DataContext.DuplicateInquiryRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}" />
+                                <MenuItem Header="Delete inquiry"
+                                          Command="{Binding DataContext.DeleteInquiryRowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}" />
+                                <Separator />
+                                <MenuItem Header="Copy inquiry number"
+                                          Command="{Binding DataContext.CopyInquiryNumberCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}" />
+                                <MenuItem Header="Copy summary"
+                                          Command="{Binding DataContext.CopySummaryCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}" />
+                                <MenuItem Header="Copy PI number"
+                                          Command="{Binding DataContext.CopyProformaNumberCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}"
+                                          IsEnabled="{Binding Lifecycle.HasProforma}" />
+                                <MenuItem Header="Copy JO number"
+                                          Command="{Binding DataContext.CopyJobOrderNumberCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}"
+                                          IsEnabled="{Binding Lifecycle.HasJobOrder}" />
+                                <MenuItem Header="Open attachments folder"
+                                          Command="{Binding DataContext.OpenAttachmentsFolderCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                          CommandParameter="{Binding}"
+                                          IsEnabled="{Binding HasAttachments}" />
+                            </ContextMenu>
+                        </DataGrid.Resources>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="ContextMenu" Value="{DynamicResource RowMenu}" />
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Inquiry" Binding="{Binding InquiryNumber}" Width="130"
+                                                ElementStyle="{StaticResource InquiryNumberCell}" />
+                            <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}" Width="160"
+                                                ElementStyle="{StaticResource InquiryCustomerCell}" />
+                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="160" />
+                            <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}" Width="120" />
+                            <DataGridTemplateColumn Header="Status" Width="110" IsSortable="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StatusTag}"
+                                                HorizontalAlignment="Left">
+                                            <TextBlock Text="{Binding Status}" Style="{DynamicResource StatusText}"
+                                                       Tag="{Binding StatusTag}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Value (AED)" Binding="{Binding ValueText}" Width="120"
+                                                ElementStyle="{StaticResource InquiryValueCell}" />
+                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedDateText}" Width="105" />
+                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}" Width="150" />
+                            <DataGridTextColumn Header="PI" Binding="{Binding ProformaCellText}" Width="130" />
+                            <DataGridTextColumn Header="JO" Binding="{Binding JobOrderCellText}" Width="120" />
+                            <DataGridTextColumn Header="Files" Binding="{Binding AttachmentChipText}" Width="90"
+                                                IsSortable="False" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <!-- Empty state -->
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasInquiries}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="No inquiries match the current filters"
+                                   FontSize="{DynamicResource FontSizeSection}"
+                                   FontWeight="{DynamicResource FontWeightHeading}"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Adjust the filters or create a new inquiry from the toolbar above."
+                                   Style="{DynamicResource Caption}"
+                                   HorizontalAlignment="Center"
+                                   Margin="{DynamicResource PaddingCompact}" />
+                        <Button Content="New inquiry" Style="{DynamicResource PrimaryButton}"
+                                Command="{Binding NewInquiryCommand}"
+                                HorizontalAlignment="Center"
+                                Margin="{DynamicResource PaddingCompact}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </ContentControl>
+
+        <!-- ── Footer: status + pagination ────────────────────────── -->
+        <DockPanel Grid.Row="5" Margin="{DynamicResource PaddingPage}">
+            <Button DockPanel.Dock="Right" Content="Next page" Style="{DynamicResource SubtleButton}"
+                    Command="{Binding NextPageCommand}" Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="Next page" />
+            <Button DockPanel.Dock="Right" Content="Previous page" Style="{DynamicResource SubtleButton}"
+                    Command="{Binding PreviousPageCommand}" Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="Previous page" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Loading…" VerticalAlignment="Center"
+                           Margin="{DynamicResource MarginInline}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Text="{Binding PageStatus}" Style="{DynamicResource Caption}"
+                           VerticalAlignment="Center"
+                           AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</UserControl>

@@ -29,7 +29,8 @@ public sealed partial class ThemeStudioViewModel
     private SavedCustomization lastSaved = CustomizationStore.Load();
     private ThemeEditSession session = null!;
     private BentoCustomizationState draft => extended;
-    private int selectedWorkspace = 1;
+    // Inquiry (index 2) is the first business page and the app's default landing page.
+    private int selectedWorkspace = 2;
     private bool isMenuOpen = true;
     private string customizationCategory = "Appearance";
 
@@ -338,12 +339,13 @@ public sealed partial class ThemeStudioViewModel
         get => selectedWorkspace;
         set
         {
-            if (value is >= 0 and <= 5)
+            if (value is >= 0 and <= 6)
             {
                 selectedWorkspace = value;
                 Changed(nameof(SelectedWorkspace));
                 Changed(nameof(IsStudio));
                 Changed(nameof(IsBusiness));
+                Changed(nameof(IsInquiry));
                 Changed(nameof(IsTexts));
                 Changed(nameof(IsColors));
                 Changed(nameof(IsAbout));
@@ -356,35 +358,42 @@ public sealed partial class ThemeStudioViewModel
     }
     public bool IsStudio { get => selectedWorkspace == 0; set { if (value) SelectedWorkspace = 0; } }
     public bool IsBusiness { get => selectedWorkspace == 1; set { if (value) SelectedWorkspace = 1; } }
-    public bool IsTexts { get => selectedWorkspace == 2; set { if (value) SelectedWorkspace = 2; } }
-    public bool IsColors { get => selectedWorkspace == 3; set { if (value) SelectedWorkspace = 3; } }
-    public bool IsAbout { get => selectedWorkspace == 4; set { if (value) SelectedWorkspace = 4; } }
-    public bool IsIcons { get => selectedWorkspace == 5; set { if (value) SelectedWorkspace = 5; } }
+    public bool IsInquiry { get => selectedWorkspace == 2; set { if (value) SelectedWorkspace = 2; } }
+    public bool IsTexts { get => selectedWorkspace == 3; set { if (value) SelectedWorkspace = 3; } }
+    public bool IsColors { get => selectedWorkspace == 4; set { if (value) SelectedWorkspace = 4; } }
+    public bool IsAbout { get => selectedWorkspace == 5; set { if (value) SelectedWorkspace = 5; } }
+    public bool IsIcons { get => selectedWorkspace == 6; set { if (value) SelectedWorkspace = 6; } }
     public IconKind WorkspaceIcon => selectedWorkspace switch
     {
         0 => IconKind.Theme,
-        2 => IconKind.Texts,
-        3 => IconKind.Colors,
-        4 => IconKind.About,
-        5 => IconKind.Marks,
+        1 => IconKind.Home,
+        2 => IconKind.Inquiry,
+        3 => IconKind.Texts,
+        4 => IconKind.Colors,
+        5 => IconKind.About,
+        6 => IconKind.Marks,
         _ => IconKind.Home
     };
     public string WorkspaceTitle => selectedWorkspace switch
     {
         0 => "Theme Studio",
-        2 => "Texts Studio",
-        3 => "Colors Studio",
-        4 => "About",
-        5 => "Icons Studio",
+        1 => "Home",
+        2 => "Inquiries",
+        3 => "Texts Studio",
+        4 => "Colors Studio",
+        5 => "About",
+        6 => "Icons Studio",
         _ => "Home"
     };
     public string WorkspaceSubtitle => selectedWorkspace switch
     {
         0 => "Settings · Theme engine",
-        2 => "Settings · Type overlay",
-        3 => "Settings · Color plates",
-        4 => "Settings · Product and credits",
-        5 => "Settings · Navigation marks",
+        1 => "Home",
+        2 => "Business · Inquiry register",
+        3 => "Settings · Type overlay",
+        4 => "Settings · Color plates",
+        5 => "Settings · Product and credits",
+        6 => "Settings · Navigation marks",
         _ => "Home"
     };
     public bool IsMenuOpen { get => isMenuOpen; set { isMenuOpen = value; Changed(nameof(IsMenuOpen)); } }
@@ -394,6 +403,7 @@ public sealed partial class ThemeStudioViewModel
     public ICommand ResetDesign { get; private set; } = null!;
     public ICommand ShowStudio { get; private set; } = null!;
     public ICommand ShowBusiness { get; private set; } = null!;
+    public ICommand ShowInquiry { get; private set; } = null!;
     public ICommand ShowTexts { get; private set; } = null!;
     public ICommand ShowColors { get; private set; } = null!;
     public ICommand ShowAbout { get; private set; } = null!;
@@ -463,10 +473,11 @@ public sealed partial class ThemeStudioViewModel
         ToggleAppearance = new DelegateCommand(() => { if (IsLight) IsDark = true; else IsLight = true; });
         ShowStudio = new DelegateCommand(() => SelectedWorkspace = 0);
         ShowBusiness = new DelegateCommand(() => SelectedWorkspace = 1);
-        ShowTexts = new DelegateCommand(() => SelectedWorkspace = 2);
-        ShowColors = new DelegateCommand(() => SelectedWorkspace = 3);
-        ShowAbout = new DelegateCommand(() => SelectedWorkspace = 4);
-        ShowIcons = new DelegateCommand(() => SelectedWorkspace = 5);
+        ShowInquiry = new DelegateCommand(() => SelectedWorkspace = 2);
+        ShowTexts = new DelegateCommand(() => SelectedWorkspace = 3);
+        ShowColors = new DelegateCommand(() => SelectedWorkspace = 4);
+        ShowAbout = new DelegateCommand(() => SelectedWorkspace = 5);
+        ShowIcons = new DelegateCommand(() => SelectedWorkspace = 6);
         SelectColorPlate = new DelegateCommand<string>(name => { if (!string.IsNullOrWhiteSpace(name)) SelectedColorPlate = name; });
         ApplyPreview = new DelegateCommand(() => { try { themes.Apply(SelectedTheme, themes.ActiveAppearance, LiveConfigure()); ThemeError=""; Feedback="Preview applied — unsaved changes present."; } catch(Exception ex){ ThemeError=ex.Message; } Changed(nameof(ThemeError)); }, () => CanCustomize || CanCustomizeGeometry);
         SaveCustomization = new DelegateCommand(() =>
