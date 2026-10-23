@@ -71,7 +71,9 @@ public sealed partial class ThemeStudioViewModel : INotifyPropertyChanged, IData
         var current = extended;
         try
         {
-            themes.Apply(theme, appearance, SharedGeometry.Compose(theme, current, clay, geometry, neumorph, font, colors, liquid));
+            // Pages must ride along here too: an appearance/theme switch rebuilds
+            // the whole package, so a pinned page size would drop without it.
+            themes.Apply(theme, appearance, SharedGeometry.Compose(theme, current, clay, geometry, neumorph, font, colors, liquid, pages));
             ThemeError = "";
             lastSaved = lastSaved with { Theme = theme, Appearance = appearance, Geometry = geometry };
             try { CustomizationStore.Save(lastSaved); } catch (Exception ex) when (ex is IOException or ArgumentException or InvalidOperationException) { }
