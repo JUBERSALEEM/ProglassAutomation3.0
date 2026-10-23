@@ -26,6 +26,10 @@
             <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <!-- Compact card: same contract Card, tighter padding (8,4). -->
+        <Style x:Key="InboxCompactCard" TargetType="ContentControl" BasedOn="{DynamicResource Card}">
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -55,7 +59,7 @@
         </DockPanel>
 
         <!-- ── Status strip ───────────────────────────────────────── -->
-        <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="1" Style="{StaticResource InboxCompactCard}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -119,7 +123,7 @@
         </ContentControl>
 
         <!-- ── Website connection card ────────────────────────────── -->
-        <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="2" Style="{StaticResource InboxCompactCard}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -215,7 +219,7 @@
         </ContentControl>
 
         <!-- ── Deliveries ─────────────────────────────────────────── -->
-        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="3" Style="{StaticResource InboxCompactCard}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
