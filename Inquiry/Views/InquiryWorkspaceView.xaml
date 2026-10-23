@@ -6,11 +6,13 @@
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
              TextOptions.TextFormattingMode="Display">
-    <!-- The Inquiry module's workspace: the register (list) and the
-         detail editor switch in place; the list page is the module's
-         landing view and the same pattern is reused by later modules. -->
+    <!-- The Inquiry module's workspace: the register (list), the website
+         inbox (separate page, owner spec) and the detail editor switch
+         in place. The register is the module's landing view; the same
+         page pattern is reused by later modules (PI, JO, DN, TI). -->
     <Grid>
         <local:InquiryListView x:Name="ListView" />
+        <local:InquiryInboxView x:Name="InboxView" Visibility="Collapsed" />
         <local:InquiryEditorView x:Name="EditorView" Visibility="Collapsed" />
     </Grid>
 </UserControl>

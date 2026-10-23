@@ -21,6 +21,7 @@ namespace ProGlassAutomation.Services.Inquiry
         public DbSet<InquiryAttachment> Attachments => Set<InquiryAttachment>();
         public DbSet<InquiryCommunication> Communications => Set<InquiryCommunication>();
         public DbSet<InquiryLineItem> LineItems => Set<InquiryLineItem>();
+        public DbSet<InquiryInboxItem> InboxItems => Set<InquiryInboxItem>();
         public static string DatabaseFilePath => Path.Combine(AppDataRoot.CurrentFolder, "inquiries.db");
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
@@ -66,6 +67,11 @@ namespace ProGlassAutomation.Services.Inquiry
             {
                 e.HasIndex(x => x.InquiryId);
                 e.HasIndex(x => new { x.InquiryId, x.SortOrder });
+            });
+            model.Entity<InquiryInboxItem>(e =>
+            {
+                e.HasIndex(x => x.State);
+                e.HasIndex(x => x.Reference);
             });
         }
     }

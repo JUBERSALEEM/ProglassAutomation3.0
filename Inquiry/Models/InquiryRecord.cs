@@ -69,6 +69,15 @@ namespace ProGlassAutomation.Models.Inquiry
         public int? ProformaInvoiceId { get; set; }
         [MaxLength(50)] public string ProformaNumber { get; set; } = "";
         [MaxLength(50)] public string JobOrderNumber { get; set; } = "";
+        /// <summary>
+        /// Website intake traceability: set when this inquiry was
+        /// ingested from a customer-website submission (inbox).
+        /// WebSubmissionId = the submission UUID; the reference is the
+        /// human number (WEB-YYYY-NNNNNN). Both stay empty for
+        /// locally created inquiries.
+        /// </summary>
+        [MaxLength(40)] public string WebSubmissionId { get; set; } = "";
+        [MaxLength(30)] public string WebSubmissionReference { get; set; } = "";
         /// <summary>Optimistic-concurrency counter advanced by each persisted edit.</summary>
         public int RowVersion { get; set; }
         public List<InquiryAttachment> Attachments { get; set; } = new();

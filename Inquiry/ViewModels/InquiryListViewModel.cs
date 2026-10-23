@@ -305,8 +305,56 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             SetLowPriorityCommand = new DelegateCommand<InquiryListRow>(row => _ = ApplyPriorityAsync(row, "Low"),
                 r => r != null);
 
+            // Website inbox card at the top of the register.
+            OpenInboxCommand = new DelegateCommand(() => OpenInboxRequested?.Invoke(),
+                () => InboxCardVisible);
+
             AsyncUtility.SafeFireAndForget(LoadFilterSourcesAsync);
             Reload();
+        }
+
+        // ── Website inbox card (top of the register) ───────────────────
+
+        private bool _inboxCardVisible;
+        public bool InboxCardVisible { get => _inboxCardVisible; private set => SetField(ref _inboxCardVisible, value); }
+
+        private int _inboxReadyCount;
+        public int InboxReadyCount { get => _inboxReadyCount; private set => SetField(ref _inboxReadyCount, value); }
+
+        private int _inboxIngestedCount;
+        public int InboxIngestedCount { get => _inboxIngestedCount; private set => SetField(ref _inboxIngestedCount, value); }
+
+        private int _inboxFailedCount;
+        public int InboxFailedCount { get => _inboxFailedCount; private set => SetField(ref _inboxFailedCount, value); }
+
+        private string _inboxSummaryText = "";
+        public string InboxSummaryText { get => _inboxSummaryText; private set => SetField(ref _inboxSummaryText, value); }
+
+        private string _inboxLastSyncText = "";
+        public string InboxLastSyncText { get => _inboxLastSyncText; private set => SetField(ref _inboxLastSyncText, value); }
+
+        /// <summary>Wired by the workspace view: navigate to the inbox page.</summary>
+        public Action? OpenInboxRequested { get; set; }
+        public ICommand OpenInboxCommand { get; private set; }
+
+        /// <summary>Refreshes the top-of-register inbox card from the inbox service.</summary>
+        public void UpdateInboxCard(ProGlassAutomation.Services.Inquiry.InquiryInbox.InboxSummary summary)
+        {
+            InboxCardVisible = true;
+            InboxReadyCount = summary.DownloadedCount;
+            InboxIngestedCount = summary.IngestedCount;
+            InboxFailedCount = summary.FailedCount;
+            InboxSummaryText = !summary.Configured
+                ? "Connect the customer website to receive online inquiries"
+                : summary.Offline
+                    ? "Website unreachable — inbox keeps working locally"
+                    : summary.DownloadedCount == 0 && summary.FailedCount == 0
+                        ? "No new website inquiries"
+                        : summary.DownloadedCount + " awaiting local entry"
+                          + (summary.FailedCount > 0 ? $" · {summary.FailedCount} failed" : "");
+            InboxLastSyncText = string.IsNullOrEmpty(summary.LastSyncAtUtc)
+                ? "Not checked yet"
+                : "Last check " + summary.LastSyncAtUtc.Substring(11, 5) + " UTC · " + summary.LastSyncStatus;
         }
 
         // ── Actions ───────────────────────────────────────────────────
@@ -538,7 +586,12 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             Reload();
         }
 
-        private void Reload()
+        /// <summary>
+        /// Reloads the register keeping the current filters/page.
+        /// Public so the workspace can refresh it after an inbox
+        /// ingest created a new inquiry.
+        /// </summary>
+        public void Reload()
         {
             _loadCts?.Cancel();
             _loadCts?.Dispose();

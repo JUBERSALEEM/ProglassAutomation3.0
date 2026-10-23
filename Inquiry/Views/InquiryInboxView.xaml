@@ -1,0 +1,315 @@
+<UserControl x:Class="ProGlassAutomation.Inquiry.InquiryInboxView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <UserControl.Resources>
+        <Style x:Key="InboxFieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+        </Style>
+        <Style x:Key="InboxTextField" TargetType="TextBox">
+            <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
+            <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
+        </Style>
+        <Style x:Key="InboxRefCell" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="InboxCompanyCell" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="InboxCountBadge" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ── Page heading + primary actions ─────────────────────── -->
+        <DockPanel Grid.Row="0" Margin="{DynamicResource PaddingPage}">
+            <Button DockPanel.Dock="Right" Content="Check now"
+                    Style="{DynamicResource PrimaryButton}"
+                    Command="{Binding CheckNowCommand}"
+                    Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="Check the customer website now" />
+            <Button DockPanel.Dock="Right" Content="Test connection" Style="{DynamicResource SubtleButton}"
+                    Command="{Binding TestConnectionCommand}" Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="Test the website connection" />
+            <Button DockPanel.Dock="Right" Content="← Register" Style="{DynamicResource SubtleButton}"
+                    Command="{Binding BackCommand}" Margin="{DynamicResource MarginInline}"
+                    AutomationProperties.Name="Back to the inquiry register" />
+            <StackPanel>
+                <TextBlock Text="Customer inbox" Style="{DynamicResource PageHeading}" />
+                <TextBlock Text="Inquiries arriving from the customer website — sync, review, then create local inquiries" Style="{DynamicResource Caption}" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- ── Status strip ───────────────────────────────────────── -->
+        <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ConnectionText}"
+                               FontSize="{DynamicResource FontSizeSection}"
+                               FontWeight="{DynamicResource FontWeightHeading}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding LastSyncText}" Style="{DynamicResource Caption}" />
+                        <TextBlock Text="  ·  " Style="{DynamicResource Caption}" />
+                        <TextBlock Text="{Binding AutoSyncText}" Style="{DynamicResource Caption}" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource StatusInformationSurface}"
+                            BorderBrush="{DynamicResource StatusInformation}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ChipCornerRadius}"
+                            Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource MarginInline}">
+                        <StackPanel Style="{StaticResource InboxCountBadge}">
+                            <TextBlock Text="{Binding ReadyCount}"
+                                       FontSize="{DynamicResource FontSizeSection}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Foreground="{DynamicResource StatusInformation}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text=" ready" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource StatusSuccessSurface}"
+                            BorderBrush="{DynamicResource StatusSuccess}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ChipCornerRadius}"
+                            Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource MarginInline}">
+                        <StackPanel Style="{StaticResource InboxCountBadge}">
+                            <TextBlock Text="{Binding IngestedCount}"
+                                       FontSize="{DynamicResource FontSizeSection}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Foreground="{DynamicResource StatusSuccess}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text=" in register" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource StatusErrorSurface}"
+                            BorderBrush="{DynamicResource StatusError}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ChipCornerRadius}"
+                            Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource MarginInline}">
+                        <StackPanel Style="{StaticResource InboxCountBadge}">
+                            <TextBlock Text="{Binding FailedCount}"
+                                       FontSize="{DynamicResource FontSizeSection}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Foreground="{DynamicResource StatusError}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text=" failed" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </ContentControl>
+
+        <!-- ── Website connection card ────────────────────────────── -->
+        <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" Margin="{DynamicResource MarginItem}">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Save connection" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding SaveSettingsCommand}" Margin="{DynamicResource MarginInline}"
+                                AutomationProperties.Name="Save the website connection" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{Binding SavedPasswordHint}" Style="{DynamicResource Caption}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="Website connection"
+                                   FontSize="{DynamicResource FontSizeSection}"
+                                   FontWeight="{DynamicResource FontWeightHeading}" />
+                        <TextBlock Text="The ProGlass inbox bridge account on the customer website (Supabase URL, anon key and bridge email/password)"
+                                   Style="{DynamicResource Caption}" />
+                    </StackPanel>
+                </DockPanel>
+                <Grid Grid.Row="1" Margin="{DynamicResource MarginItem}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Supabase URL" Style="{StaticResource InboxFieldLabel}" />
+                        <TextBox Style="{StaticResource InboxTextField}" Margin="0"
+                                 Text="{Binding SupabaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="e.g. https://xxxx.supabase.co"
+                                 AutomationProperties.Name="Supabase URL" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Anon key" Style="{StaticResource InboxFieldLabel}" />
+                        <TextBox Style="{StaticResource InboxTextField}" Margin="0"
+                                 Text="{Binding AnonKey, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Supabase anon key" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Bridge account email" Style="{StaticResource InboxFieldLabel}" />
+                        <TextBox Style="{StaticResource InboxTextField}" Margin="0"
+                                 Text="{Binding BridgeEmail, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Bridge account email" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Bridge password" Style="{StaticResource InboxFieldLabel}" />
+                        <PasswordBox x:Name="PasswordBox" Margin="0"
+                                     ToolTip="Stored encrypted on this computer only"
+                                     AutomationProperties.Name="Bridge account password" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Inbox folder" Style="{StaticResource InboxFieldLabel}" />
+                        <TextBox Style="{StaticResource InboxTextField}" Margin="0"
+                                 Text="{Binding InboxRoot, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Shared with the Node bridge (GLASS_INBOX_ROOT)"
+                                 AutomationProperties.Name="Inbox folder" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Automatic check" Style="{StaticResource InboxFieldLabel}" />
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding PollMinutesOptions}"
+                                      SelectedItem="{Binding PollMinutes}"
+                                      Width="70" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Automatic check interval in minutes" />
+                            <TextBlock Text="minute(s)" Style="{StaticResource InboxFieldLabel}"
+                                       VerticalAlignment="Center" Margin="6,0,0,0" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <CheckBox Content="Desktop notifications"
+                                      IsChecked="{Binding NotificationsEnabled}"
+                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Desktop notifications" />
+                            <CheckBox Content="With sound"
+                                      IsChecked="{Binding NotificationSound}"
+                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
+                                      IsEnabled="{Binding NotificationsEnabled}"
+                                      AutomationProperties.Name="Notification sound" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+                <TextBlock Grid.Row="2" Margin="{DynamicResource MarginItem}"
+                           Text="{Binding StatusText}"
+                           TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Assertive" />
+            </Grid>
+        </ContentControl>
+
+        <!-- ── Deliveries ─────────────────────────────────────────── -->
+        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" Margin="{DynamicResource MarginItem}">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding SelectedErrorText}"
+                                   Foreground="{DynamicResource StatusError}"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="360"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource MarginInline}" />
+                        <Button Content="Create local inquiry" Style="{DynamicResource PrimaryButton}"
+                                Command="{Binding IngestSelectedCommand}"
+                                Margin="{DynamicResource MarginInline}"
+                                AutomationProperties.Name="Create a local inquiry from the selected delivery" />
+                        <Button Content="Open inquiry" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding OpenInquirySelectedCommand}"
+                                Margin="{DynamicResource MarginInline}"
+                                AutomationProperties.Name="Open the local inquiry for the selected delivery" />
+                        <Button Content="Open folder" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding OpenFolderSelectedCommand}"
+                                Margin="{DynamicResource MarginInline}"
+                                AutomationProperties.Name="Open the delivery folder" />
+                    </StackPanel>
+                    <TextBlock Text="Website deliveries"
+                               FontSize="{DynamicResource FontSizeSection}"
+                               FontWeight="{DynamicResource FontWeightHeading}"
+                               VerticalAlignment="Center" />
+                </DockPanel>
+                <Grid Grid.Row="1" Margin="{DynamicResource MarginItem}">
+                    <DataGrid ItemsSource="{Binding Items}"
+                              SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="SingleRow"
+                              SelectionUnit="FullRow"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserReorderColumns="False"
+                              CanUserSortColumns="False"
+                              HeadersVisibility="Column"
+                              AutomationProperties.Name="Website deliveries"
+                              MouseDoubleClick="OnRowDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="150"
+                                                ElementStyle="{StaticResource InboxRefCell}" />
+                            <DataGridTextColumn Header="Company" Binding="{Binding Company}" Width="170"
+                                                ElementStyle="{StaticResource InboxCompanyCell}" />
+                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="160" />
+                            <DataGridTextColumn Header="Prepared by" Binding="{Binding Estimator}" Width="130" />
+                            <DataGridTextColumn Header="Files" Binding="{Binding DocumentsText}" Width="80"
+                                                IsSortable="False" />
+                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedText}" Width="140" />
+                            <DataGridTemplateColumn Header="State" Width="110" IsSortable="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StateTag}"
+                                                HorizontalAlignment="Left">
+                                            <TextBlock Text="{Binding State}" Style="{DynamicResource StatusText}"
+                                                       Tag="{Binding StateTag}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Local inquiry" Binding="{Binding LocalNumber}" Width="130"
+                                                ElementStyle="{StaticResource InboxRefCell}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <!-- Empty state -->
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasItems}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="No website deliveries yet"
+                                   FontSize="{DynamicResource FontSizeSection}"
+                                   FontWeight="{DynamicResource FontWeightHeading}"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="When the customer website receives an inquiry, it appears here automatically — or press Check now."
+                                   Style="{DynamicResource Caption}"
+                                   HorizontalAlignment="Center"
+                                   Margin="{DynamicResource PaddingCompact}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </ContentControl>
+    </Grid>
+</UserControl>

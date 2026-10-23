@@ -26,11 +26,15 @@ namespace ProGlassAutomation.Services.Inquiry
         public static FileOpResult Fail(string error) => new(false, error ?? "");
     }
 
-    /// <summary>Attachment upload limits (aligned with the legacy build).</summary>
+    /// <summary>
+    /// Attachment upload limits. 30 MB per file to match the
+    /// customer-website intake limit (31457280), so web-ingested
+    /// documents and manual attachments share one cap.
+    /// </summary>
     public static class AttachmentLimits
     {
-        public static readonly long MaxFileSizeBytes = 25L * 1024 * 1024;
-        public static string MaxFileSizeDisplay => "25 MB";
+        public static readonly long MaxFileSizeBytes = 31457280L; // 30 MB, website parity
+        public static string MaxFileSizeDisplay => "30 MB";
     }
 
     /// <summary>Deep exception text for status bars and messages.</summary>

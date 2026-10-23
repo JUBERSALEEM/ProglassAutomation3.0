@@ -42,11 +42,16 @@ namespace ProGlassAutomation.Services.Inquiry
             PropertyNameCaseInsensitive = true
         };
 
-        /// <summary>All accepted extensions (lowercase, with dot).</summary>
+        /// <summary>
+        /// All accepted extensions (lowercase, with dot). Matches the
+        /// customer-website intake set (pdf/images/csv/xlsx/zip/txt) so
+        /// WhatsApp-style manual attachments and web-ingested documents
+        /// share one rule.
+        /// </summary>
         public static readonly string[] AllowedExtensions =
         {
             ".pdf", ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp",
-            ".dwg", ".dxf", ".xlsx", ".xls", ".csv"
+            ".dwg", ".dxf", ".xlsx", ".xls", ".csv", ".zip", ".txt"
         };
 
         public static bool IsAllowedExtension(string extension) =>
@@ -133,7 +138,14 @@ namespace ProGlassAutomation.Services.Inquiry
         //  ADD (upload)
         // ══════════════════════════════════════════════════════════════
 
-        public async Task<InquiryAttachment> AddAsync(int inquiryId, string sourcePath, CancellationToken ct = default)
+        /// <summary>
+        /// <paramref name="displayName"/> overrides the stored file name
+        /// shown to the user (the website inbox passes the customer's
+        /// original file name while the on-disk copy keeps its
+        /// {documentId}_ prefix).
+        /// </summary>
+        public async Task<InquiryAttachment> AddAsync(int inquiryId, string sourcePath,
+            string? displayName = null, CancellationToken ct = default)
         {
             if (!File.Exists(sourcePath)) throw new FileNotFoundException("Attachment not found.", sourcePath);
             string extension = Path.GetExtension(sourcePath).ToLowerInvariant();
@@ -158,7 +170,8 @@ namespace ProGlassAutomation.Services.Inquiry
                 {
                     // Ticks: unique, sortable, no EF identity needed.
                     Id = DateTime.UtcNow.Ticks,
-                    InquiryId = inquiryId, FileName = info.Name, Extension = extension,
+                    InquiryId = inquiryId, FileName = string.IsNullOrWhiteSpace(displayName) ? info.Name : displayName,
+                    Extension = extension,
                     FileSize = info.Length, StoragePath = destination,
                     AttachmentType = extension.TrimStart('.').ToUpperInvariant(),
                     UploadedBy = CurrentOperator.Username, UploadedAt = DateTime.Now

@@ -80,6 +80,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -104,8 +105,80 @@
             </StackPanel>
         </DockPanel>
 
+        <!-- ── Website inbox card (top of the register) ───────────── -->
+        <ContentControl Grid.Row="1" Margin="{DynamicResource PaddingPage}">
+            <ContentControl.Style>
+                <Style TargetType="ContentControl" BasedOn="{StaticResource Card}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding InboxCardVisible}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContentControl.Style>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0"
+                        Background="{DynamicResource AccentSoft}"
+                        CornerRadius="{DynamicResource ChipCornerRadius}"
+                        Padding="{DynamicResource PaddingCompact}"
+                        Margin="{DynamicResource MarginItem}"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="Website inbox"
+                               FontWeight="{DynamicResource FontWeightHeading}"
+                               Foreground="{DynamicResource AccentPrimary}" />
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <TextBlock Text="{Binding InboxSummaryText}"
+                               FontWeight="{DynamicResource FontWeightHeading}" />
+                    <TextBlock Text="{Binding InboxLastSyncText}" Style="{DynamicResource Caption}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource StatusInformationSurface}"
+                            BorderBrush="{DynamicResource StatusInformation}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ChipCornerRadius}"
+                            Padding="{DynamicResource PaddingCompact}"
+                            Margin="{DynamicResource MarginInline}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding InboxReadyCount}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Foreground="{DynamicResource StatusInformation}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text=" ready" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource StatusSuccessSurface}"
+                            BorderBrush="{DynamicResource StatusSuccess}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ChipCornerRadius}"
+                            Padding="{DynamicResource PaddingCompact}"
+                            Margin="{DynamicResource MarginInline}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding InboxIngestedCount}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Foreground="{DynamicResource StatusSuccess}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text=" in register" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <Button Grid.Column="3" Content="Open inbox" Style="{DynamicResource SubtleButton}"
+                        Command="{Binding OpenInboxCommand}"
+                        Margin="{DynamicResource MarginItem}"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="Open the customer website inbox" />
+            </Grid>
+        </ContentControl>
+
         <!-- ── KPI strip ──────────────────────────────────────────── -->
-        <UniformGrid Grid.Row="1" Columns="4" Margin="{DynamicResource PaddingPage}">
+        <UniformGrid Grid.Row="2" Columns="4" Margin="{DynamicResource PaddingPage}">
             <ContentControl Style="{DynamicResource MetricCard}" Margin="{DynamicResource MarginItem}">
                 <StackPanel>
                     <TextBlock Text="Filtered pipeline value" Style="{DynamicResource Caption}" />
@@ -141,7 +214,7 @@
         </UniformGrid>
 
         <!-- ── Filter / search card ───────────────────────────────── -->
-        <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -206,7 +279,7 @@
         </ContentControl>
 
         <!-- ── Status chips / counts ──────────────────────────────── -->
-        <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+        <ScrollViewer Grid.Row="4" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                       Margin="{DynamicResource PaddingPage}">
             <ItemsControl ItemsSource="{Binding StatusTabs}" Focusable="False" AutomationProperties.Name="Status chips">
                 <ItemsControl.ItemsPanel>
@@ -227,7 +300,7 @@
         </ScrollViewer>
 
         <!-- ── Register: error surface + data grid + empty state ──── -->
-        <ContentControl Grid.Row="4" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="5" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -350,6 +423,7 @@
                                                 ElementStyle="{StaticResource InquiryCustomerCell}" />
                             <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="160" />
                             <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}" Width="120" />
+                            <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}" Width="130" />
                             <DataGridTemplateColumn Header="Status" Width="110" IsSortable="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -402,7 +476,7 @@
         </ContentControl>
 
         <!-- ── Footer: status + pagination ────────────────────────── -->
-        <DockPanel Grid.Row="5" Margin="{DynamicResource PaddingPage}">
+        <DockPanel Grid.Row="6" Margin="{DynamicResource PaddingPage}">
             <Button DockPanel.Dock="Right" Content="Next page" Style="{DynamicResource SubtleButton}"
                     Command="{Binding NextPageCommand}" Margin="{DynamicResource MarginInline}"
                     AutomationProperties.Name="Next page" />

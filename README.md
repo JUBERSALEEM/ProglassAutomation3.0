@@ -64,18 +64,22 @@ ProGlassAutomation3.0/
 ├─ step1.ThemeStudio/
 │  └─ step1.b.ThemeStudioScreen/  shell VM (workspaces 0–6), studio screens
 └─ Inquiry/                       first business module
-   ├─ Models/                     InquiryRecord (dimension-first BOQ), lifecycle
+   ├─ Models/                     InquiryRecord (dimension-first BOQ), lifecycle,
+   │                              inbox state ledger
    ├─ Services/
    │  ├─ Database/                AppDataRoot, SqliteResilience, migrations
-   │  │  └─ SchemaMigrations/     runner + registry (1001–1004)
+   │  │  └─ SchemaMigrations/     runner + registry (1001–1005)
    │  ├─ Inquiry/                 repository, workflow, attachments,
-   │  │                            import/export, lifecycle, validation
+   │  │  │                        import/export, lifecycle, validation
+   │  │  └─ InquiryInbox/         website inbox: protocol models, Supabase
+   │  │                            client, sync service, ingest, tray notifier
    │  ├─ Audit/                   CurrentOperator (environment-user actor)
    │  ├─ Reporting/               PagedResult
    │  └─ Support/                 FileOpener, AsyncUtility, limits, errors
-   ├─ ViewModels/                 list VM, editor VM, row models
-   └─ Views/                      InquiryListView, InquiryEditorView,
-                                   InquiryWorkspaceView (list ↔ detail)
+   ├─ ViewModels/                 list VM, editor VM, inbox VM, row models
+   └─ Views/                      InquiryListView, InquiryInboxView,
+                                   InquiryEditorView, InquiryWorkspaceView
+                                   (register ↔ inbox ↔ detail)
 ```
 
 > `tests/ui-mockups/` holds local UI mockup images only. It is git-ignored and
@@ -101,12 +105,56 @@ grouped under *Settings* in the shell.
 
 | Page | View | What it does |
 |---|---|---|
-| **Register (list)** | `InquiryListView` | Page heading + caption · KPI strip (filtered pipeline value, open, awaiting customer, confirmed) · filter card (search with 300 ms debounce, received-date range, salesman, prepared-by, priority, sort, files-only) · seven status chips with live counts · data grid with every column (number, customer, project, salesman, status badge, value, received, updated, **PI / JO numbers, files**) · error surface · empty state · pagination · full right-click workflow menu |
+| **Register (list)** | `InquiryListView` | **Website-inbox card at the top** (ready / in-register counts, last check, one-click *Open inbox*) · page heading + caption · KPI strip (filtered pipeline value, open, awaiting customer, confirmed) · filter card (search with 300 ms debounce, received-date range, salesman, prepared-by, priority, sort, files-only) · seven status chips with live counts · data grid with every column (number, customer, project, salesman, **prepared by**, status badge, value, received, updated, **PI / JO numbers, files**) · error surface · empty state · pagination · full right-click workflow menu |
+| **Inbox (website)** | `InquiryInboxView` | Separate page for inquiries arriving from the customer website · connection status strip (last check, automatic interval, ready / in-register / failed counts) · **Website connection** card (Supabase URL, anon key, bridge account, DPAPI-protected password, inbox folder, sync interval, notification + sound toggles, Test / Save) · **Website deliveries** grid (reference, company, project, prepared by, files, received, state badge, local inquiry) · *Check now*, *Create local inquiry* (ingest), *Open inquiry*, *Open folder* |
 | **Detail (editor)** | `InquiryEditorView` | Header (number, customer, status badge, dirty dot) · status actions (Prepare / Send / Confirm / Hold / Cancel) · Save · **Header fields** card (customer/project/salesman register-sourced suggestions, location auto-fill, value with inline validation, notes) · **Scope of supply (BOQ)** grid · **Attachments** card · **Communications & activity** feed · **Lifecycle** card (INQ → PI → JO → DN → TI → STMT) |
-| **Workspace** | `InquiryWorkspaceView` | Owns the single list view-model; switches list ↔ detail in place; hosts file dialogs and confirmations; initializes the local database on first open |
+| **Workspace** | `InquiryWorkspaceView` | Owns the single list view-model; switches register ↔ inbox ↔ detail in place; hosts file dialogs and confirmations; initializes the local database on first open; runs the inbox auto-sync timer and owns the tray notifier |
 
 The list ↔ detail pattern is the standing page pattern: every future module
-(PI, JO, DN, TI) reuses the same structure.
+(PI, JO, DN, TI) reuses the same structure. The inbox is the first module
+to host a third page type (an intake page) inside the same workspace.
+
+### Website inbox (customer website → local register)
+
+The customer-website intake portal stores new submissions in Supabase. The
+desktop pulls them into an isolated inbox folder and, on demand, creates
+local inquiries — the desktop remains fully usable offline at all times.
+
+| Step | Detail |
+|---|---|
+| **Pull** | `plan_customer_inquiry_deliveries_v2` returns accepted, not-yet-delivered submissions (up to 100), each with its primary estimator and assignment snapshot |
+| **Download** | per-document `plan_customer_inquiry_delivery_documents` → Supabase Storage download; size **and** SHA-256 verified before anything touches disk (fail closed) |
+| **Stage & commit** | files land in `.staging/{id}.{uuid}.partial` and the whole folder is atomically renamed to `{root}/{unassigned\|assigned/{CODE}}/{WEB-ref}_{id}/` with `manifest.json` + `READY` — byte-identical to the Node bridge, so both can share one root |
+| **Acknowledge** | `acknowledge_customer_inquiry_delivery_v2` with the manifest hash at **download-complete** (remote status flips to `downloaded`); re-ack of an identical delivery is a no-op |
+| **Ingest** | *Create local inquiry* maps the submission onto an `InquiryRecord` (company → customer, project/location, description, salesman, **primary estimator → Prepared by**, `inquiry_type` → reference, `WEB-…` reference + submission UUID kept on the record for traceability), adds a *Website* communication entry, copies every document through the normal attachment pipeline, and links the ledger row to the new `INQ-…` number — idempotent |
+| **Notify** | a tray-icon balloon **with sound** the moment a sync sees a submission the local ledger has not seen |
+| **Auto-sync** | on the configured interval (default 5 min) plus an instant *Check now* button |
+
+**Folder contract** (shared with the Node bridge):
+
+```
+C:\ProgramData\ProGlass\CustomerInquiryInbox\
+├─ unassigned\{WEB-ref}_{submissionId}\{manifest.json, READY, documents\…}
+├─ assigned\{ESTIMATOR_CODE}\{WEB-ref}_{submissionId}\{…}
+├─ .staging\                          (interrupted downloads, cleared on start)
+└─ checkpoint.json
+```
+
+**Offline is a state, not an error**: an unreachable backend shows
+"Website unreachable — the inbox keeps working locally"; already-downloaded
+deliveries stay ingestible, and the register never depends on the network.
+A local ledger table (`InquiryInboxItems`, migration **1005**) records
+`downloaded → ingested` (or `failed`) per submission, and READY folders
+already on disk (delivered by the Node bridge) are adopted on startup.
+
+The manifest is canonical JSON (sorted keys, 2-space indent, JS string
+escaping, trailing newline) so the SHA-256 that travels to the
+acknowledgement RPC is the same value the Node bridge would compute —
+WPF and Node interoperate on one inbox root without drift.
+
+Local attachments accept the website's file set (pdf, images, csv, xlsx,
+**zip, txt**) up to **30 MB** per file — WhatsApp-style manual
+attachments and web-ingested documents share one rule.
 
 ### Status flow
 
@@ -175,9 +223,10 @@ re-runs the full gate before any write — the button state can never be bypasse
 
 - **Local EF Core 8 + SQLite** (`inquiries.db` under the app data root) — the
   same store engine the legacy system used; only the Inquiry tables exist.
-- **Schema migrations 1001–1004** converge an existing database: create tables,
+- **Schema migrations 1001–1005** converge an existing database: create tables,
   drop legacy columns, add the `InquiryLineItems` table, add the `RowVersion`
-  concurrency token.
+  concurrency token, add the website-inbox ledger (`InquiryInboxItems`) and the
+  `WebSubmissionId` / `WebSubmissionReference` traceability columns.
 - **Numbering**: `INQ-{yyyy}-####` (max+1) with up to 20 jittered uniqueness
   attempts; `BUSY`/`LOCKED` writes retry with back-off (`SqliteResilience`).
 - **Concurrency**: `RowVersion` optimistic token on every update — a stale save

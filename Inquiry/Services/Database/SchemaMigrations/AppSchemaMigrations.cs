@@ -80,6 +80,36 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                     "INTEGER NOT NULL DEFAULT 0");
                 SchemaMigrationSql.RequireColumn(connection, "Inquiries", "RowVersion");
                 SchemaMigrationSql.RequireNoNullValues(connection, "Inquiries", "RowVersion");
+            }),
+            // Website intake: inbox ledger + traceability columns on the
+            // register. Idempotent (ADD COLUMN IF NOT EXISTS via the
+            // helper, CREATE TABLE IF NOT EXISTS).
+            new(1005, "Inquiry: website inbox state + web submission traceability", connection =>
+            {
+                SchemaMigrationSql.AddColumnIfMissing(connection, "Inquiries", "WebSubmissionId",
+                    "TEXT NOT NULL DEFAULT ''");
+                SchemaMigrationSql.AddColumnIfMissing(connection, "Inquiries", "WebSubmissionReference",
+                    "TEXT NOT NULL DEFAULT ''");
+                SchemaMigrationSql.CreateTableIfNotExists(connection, @"""
+                    CREATE TABLE IF NOT EXISTS ""InquiryInboxItems"" (
+                        ""SubmissionId""           TEXT NOT NULL CONSTRAINT ""PK_InquiryInboxItems"" PRIMARY KEY,
+                        ""Reference""              TEXT NOT NULL DEFAULT '',
+                        ""State""                  TEXT NOT NULL DEFAULT 'downloaded',
+                        ""ManifestSha256""         TEXT NOT NULL DEFAULT '',
+                        ""DocumentCount""          INTEGER NOT NULL DEFAULT 0,
+                        ""RoutingKey""             TEXT NOT NULL DEFAULT '',
+                        ""PrimaryEstimatorCode""   TEXT NOT NULL DEFAULT '',
+                        ""AssignmentSnapshot""     TEXT NOT NULL DEFAULT '[]',
+                        ""DownloadedAt""           TEXT NOT NULL DEFAULT '',
+                        ""IngestedAt""             TEXT NOT NULL DEFAULT '',
+                        ""LocalInquiryId""         INTEGER NULL,
+                        ""LocalInquiryNumber""     TEXT NOT NULL DEFAULT '',
+                        ""Error""                  TEXT NOT NULL DEFAULT ''
+                    );"");
+                SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                    "CREATE INDEX IF NOT EXISTS \"IX_InquiryInboxItems_State\" ON InquiryInboxItems(State);");
+                SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                    "CREATE INDEX IF NOT EXISTS \"IX_InquiryInboxItems_Reference\" ON InquiryInboxItems(Reference);");
             })
         };
 

@@ -29,11 +29,12 @@ public partial class InquiryEditorView : UserControl
             {
                 Title = "Attach files to this inquiry",
                 Multiselect = true,
-                Filter = "All allowed formats|*.pdf;*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp;*.dwg;*.dxf;*.xlsx;*.xls;*.csv"
+                Filter = "All allowed formats|*.pdf;*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp;*.dwg;*.dxf;*.xlsx;*.xls;*.csv;*.zip;*.txt"
                         + "|PDF documents (*.pdf)|*.pdf"
                         + "|Images (*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp)|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.webp"
                         + "|CAD drawings (*.dwg;*.dxf)|*.dwg;*.dxf"
                         + "|Spreadsheets (*.xlsx;*.xls;*.csv)|*.xlsx;*.xls;*.csv"
+                        + "|Archives & notes (*.zip;*.txt)|*.zip;*.txt"
             };
             return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileNames : null;
         };

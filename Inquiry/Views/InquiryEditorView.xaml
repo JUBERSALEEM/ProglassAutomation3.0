@@ -344,7 +344,7 @@
                                     AutomationProperties.Name="Add attachment" />
                             <TextBlock Text="Attachments" Style="{DynamicResource SectionHeading}" />
                         </DockPanel>
-                        <TextBlock Text="PDF, images, DWG/DXF or XLSX/CSV · up to 25 MB per file"
+                        <TextBlock Text="PDF, images, DWG/DXF, XLSX/CSV, ZIP or TXT · up to 30 MB per file"
                                    Style="{DynamicResource Caption}" Margin="{DynamicResource MarginItem}" />
                         <ListBox ItemsSource="{Binding AttachmentItems}"
                                  BorderThickness="0" Background="{DynamicResource SurfacePrimary}"
