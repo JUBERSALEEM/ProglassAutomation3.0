@@ -28,7 +28,8 @@ public partial class App : Application
                     saved.Geometry ?? new SharedGeometryState(),
                     saved.Neumorph ?? new NeumorphCustomizationState(),
                     saved.Font ?? new FontCustomizationState(),
-                    saved.Colors ?? new ColorPlateState()));
+                    saved.Colors ?? new ColorPlateState(),
+                    saved.Pages));
                 IconService.Apply(saved.Icons ?? new IconCustomizationState());
             }
             catch { /* safe fallback already handled in store */ }

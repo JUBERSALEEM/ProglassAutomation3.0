@@ -62,7 +62,7 @@ ProGlassAutomation3.0/
 │      └─ step1.e.Components/     per-theme component styles (Card, Caption,
 │                                 StatusBadge, PrimaryButton, …)
 ├─ step1.ThemeStudio/
-│  └─ step1.b.ThemeStudioScreen/  shell VM (workspaces 0–6), studio screens
+│  └─ step1.b.ThemeStudioScreen/  shell VM (workspaces 0–7), studio screens
 └─ Inquiry/                       first business module
    ├─ Models/                     InquiryRecord (dimension-first BOQ), lifecycle,
    │                              inbox state ledger
@@ -95,9 +95,12 @@ the same token names (`ApplicationBackground`, `SurfacePrimary/Secondary/Elevate
 `BorderSubtle/Strong`, `FocusIndicator`, `StateHover/Pressed/Selected`,
 `Status*`, `Padding*`, `Margin*`).
 
-The **Texts / Colors / Icons studios are overlays, not themes** — they customize
-type, color plates and navigation marks on top of the active theme and are
-grouped under *Settings* in the shell.
+The **Texts / Colors / Icons / Pages studios are overlays, not themes** — they
+customize type, color plates, navigation marks and page sizing on top of the
+active theme and are grouped under *Settings* in the shell. The Pages studio
+pins one of four compact layouts (Compact · Cozy · Comfortable · Spacious —
+spacing, card padding, control height and text size) above every theme engine;
+*Reset pages* returns to the theme's own rhythm.
 
 ## The Inquiry module
 
@@ -257,8 +260,8 @@ Manifest-backed storage: `{appdata}/…/Inquiries/{id}/Attachments/` with a
 
 - **Inquiries is the first business page** — its own *Business* group in the
   sidebar, above *Settings* — and the app's **default landing workspace**.
-- Workspace index 2 of 7 (`0 Studio · 1 Home · 2 Inquiries · 3 Texts · 4 Colors
-  · 5 About · 6 Icons`), with its own clipboard-check navigation mark
+- Workspace index 2 of 8 (`0 Studio · 1 Home · 2 Inquiries · 3 Texts · 4 Colors
+  · 5 About · 6 Icons · 7 Pages`), with its own clipboard-check navigation mark
   (`IconKind.Inquiry`) in the icon service.
 - Banner shows the workspace title/subtitle ("Inquiries — Business · Inquiry
   register") on every page, including Inquiry.

@@ -1,0 +1,63 @@
+<UserControl x:Class="ProGlassAutomation.ThemeStudio.PagesStudioView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:ProGlassAutomation.ThemeStudio">
+    <UserControl.Resources>
+        <!-- Preview compact card: mirrors the module pages' compact card style. -->
+        <Style x:Key="PreviewCompactCard" TargetType="ContentControl" BasedOn="{DynamicResource Card}">
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False" PanningMode="VerticalOnly">
+        <Grid Margin="{DynamicResource PaddingPage}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+            <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginInline}">
+                <StackPanel>
+                    <DockPanel Margin="{DynamicResource MarginItem}">
+                        <local:ShellMark DockPanel.Dock="Left" Title="Pages studio" Category="layout" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock Text="Pages studio" Style="{DynamicResource PageHeading}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Text="A shared sizing overlay. Four compact layouts written into the active theme — spacing, card padding, control height and text size. Every page on every theme follows the live choice." Style="{DynamicResource Caption}" TextWrapping="Wrap"/>
+                    <Label Content="Page size" Target="{Binding ElementName=PageSizePicker}" Foreground="{DynamicResource TextSecondary}"/>
+                    <ListBox x:Name="PageSizePicker" ItemsSource="{Binding PageSizeCards}" SelectedValue="{Binding SelectedPageSize}" SelectedValuePath="Size" DisplayMemberPath="Name" AutomationProperties.Name="Page size" MinHeight="{DynamicResource ReferenceListMaxHeight}" Margin="{DynamicResource MarginSection}"/>
+                    <WrapPanel Margin="{DynamicResource MarginItem}">
+                        <Button Content="Reset pages" Command="{Binding ResetPages}" Margin="{DynamicResource MarginInline}" AutomationProperties.Name="Reset pages to Compact"/>
+                        <Button Content="Save" Command="{Binding SaveCustomization}" Style="{DynamicResource PrimaryButton}" Margin="{DynamicResource MarginInline}" AutomationProperties.Name="Save page sizing"/>
+                        <Button Content="Discard" Command="{Binding DiscardChanges}" Margin="{DynamicResource MarginInline}" AutomationProperties.Name="Discard page sizing"/>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding ThemeError}" Foreground="{DynamicResource StatusError}" AutomationProperties.LiveSetting="Assertive" Margin="{DynamicResource MarginItem}"/>
+                </StackPanel>
+            </ContentControl>
+            <ContentControl Grid.Column="1" Style="{DynamicResource Card}" Margin="{DynamicResource MarginInline}">
+                <StackPanel>
+                    <DockPanel Margin="{DynamicResource MarginItem}">
+                        <local:ShellMark DockPanel.Dock="Left" Title="Live page preview" Category="layout" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                        <TextBlock Text="Live page preview" Style="{DynamicResource SectionHeading}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Text="A page built from the same tokens the register, inbox and detail pages use, so it reflows with the choice." Style="{DynamicResource Caption}" TextWrapping="Wrap" Margin="{DynamicResource MarginItem}"/>
+                    <!-- Mini register page from contract tokens -->
+                    <StackPanel Margin="{DynamicResource MarginSection}">
+                        <DockPanel Margin="{DynamicResource MarginItem}">
+                            <local:ShellMark DockPanel.Dock="Left" Title="Customer inquiry" Category="work" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}"/>
+                            <StackPanel>
+                                <TextBlock Text="Register" Style="{DynamicResource SectionHeading}"/>
+                                <TextBlock Text="3 open · value 412,500" Style="{DynamicResource Caption}"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ContentControl Style="{DynamicResource PreviewCompactCard}" Margin="{DynamicResource MarginItem}">
+                            <TextBlock Text="Website inbox · connected · 4 ready" Style="{DynamicResource Caption}"/>
+                        </ContentControl>
+                        <TextBlock Text="INQ-2026-000121 · Customer A · 148,000" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginItem}"/>
+                        <TextBlock Text="INQ-2026-000119 · Customer B · 185,000" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginItem}"/>
+                        <TextBlock Text="INQ-2026-000114 · Customer C · 79,500" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginItem}"/>
+                        <WrapPanel Margin="{DynamicResource MarginItem}">
+                            <Button Content="Save" Style="{DynamicResource PrimaryButton}" Margin="{DynamicResource MarginInline}" IsHitTestVisible="False"/>
+                            <Button Content="Send to customer" Style="{DynamicResource SubtleButton}" Margin="{DynamicResource MarginInline}" IsHitTestVisible="False"/>
+                        </WrapPanel>
+                    </StackPanel>
+                    <TextBlock Text="{Binding SelectedPageCaption}" Style="{DynamicResource TokenValue}" TextWrapping="Wrap" Margin="{DynamicResource MarginItem}"/>
+                </StackPanel>
+            </ContentControl>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

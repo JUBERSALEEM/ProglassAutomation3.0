@@ -73,6 +73,7 @@ public static class CustomizationStore
         if (loaded.Font?.Validate() is not null) throw new ArgumentException("Theme file contains invalid font preferences.");
         if (loaded.Colors?.Validate() is not null) throw new ArgumentException("Theme file contains invalid color plate preferences.");
         if (loaded.Icons?.Validate() is not null) throw new ArgumentException("Theme file contains invalid icon preferences.");
+        if (loaded.Pages?.Validate() is not null) throw new ArgumentException("Theme file contains invalid page size preferences.");
         foreach (var preset in loaded.CustomPresets ?? [])
             if (string.IsNullOrWhiteSpace(preset.Name) || preset.State.Validate() is not null)
                 throw new ArgumentException("Theme file contains an invalid Bento preset.");
@@ -101,6 +102,7 @@ public static class CustomizationStore
         if ((state.Font ?? new FontCustomizationState()).Validate() is not null) throw new ArgumentException("Cannot persist invalid font preferences.");
         if ((state.Colors ?? new ColorPlateState()).Validate() is not null) throw new ArgumentException("Cannot persist invalid color plate preferences.");
         if ((state.Icons ?? new IconCustomizationState()).Validate() is not null) throw new ArgumentException("Cannot persist invalid icon preferences.");
+        if ((state.Pages ?? new PageCustomizationState()).Validate() is not null) throw new ArgumentException("Cannot persist invalid page size preferences.");
         var dir = Path.GetDirectoryName(Path.GetFullPath(path))!;
         Directory.CreateDirectory(dir);
         var tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";

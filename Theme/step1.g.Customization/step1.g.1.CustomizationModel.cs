@@ -87,7 +87,8 @@ public sealed record SavedCustomization(
     ColorPlateState? Colors = null,
     LiquidCustomizationState? Liquid = null,
     List<LiquidNamedPreset>? LiquidPresets = null,
-    IconCustomizationState? Icons = null
+    IconCustomizationState? Icons = null,
+    PageCustomizationState? Pages = null
 )
 {
     public SavedCustomization() : this(2, Appearance.Light, new BentoCustomizationState()) { }

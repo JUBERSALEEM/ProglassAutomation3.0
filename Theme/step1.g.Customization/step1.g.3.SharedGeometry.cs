@@ -60,7 +60,7 @@ public static class SharedGeometry
     }
 
     /// <summary>Keep copy off the left rim of every Card, regardless of theme chrome.</summary>
-    private static void InsetCardCopy(ResourceDictionary package)
+    public static void InsetCardCopy(ResourceDictionary package)
     {
         if (package["PaddingCard"] is not Thickness card) return;
         package["PaddingCard"] = new Thickness(card.Left + 8, card.Top, card.Right, card.Bottom);
@@ -74,7 +74,8 @@ public static class SharedGeometry
         NeumorphCustomizationState? neumorph = null,
         FontCustomizationState? font = null,
         ColorPlateState? colors = null,
-        LiquidCustomizationState? liquid = null)
+        LiquidCustomizationState? liquid = null,
+        PageCustomizationState? pages = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(theme);
         ArgumentNullException.ThrowIfNull(bento);
@@ -96,6 +97,9 @@ public static class SharedGeometry
                 LiquidCustomization.Apply(package, mode, glass);
             FontService.Apply(package, type);
             ColorPlateService.Apply(package, mode, plate, theme);
+            // Null keeps the theme's own rhythm (the default); a choice pins
+            // the four compact layouts above the engine.
+            if (pages is not null) PageSizeService.Apply(package, pages);
             InsetCardCopy(package);
             if (ThemeCatalog.Find(theme).Geometry != ThemeGeometry.SharedTokens)
                 return;

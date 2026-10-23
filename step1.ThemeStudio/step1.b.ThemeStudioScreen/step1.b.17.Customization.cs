@@ -23,6 +23,8 @@ public sealed partial class ThemeStudioViewModel
     private SharedGeometryState geometry = new();
     private FontCustomizationState font = new();
     private IconCustomizationState icons = new();
+    // Null = theme default (each theme keeps its own rhythm); non-null = a pinned page size.
+    private PageCustomizationState? pages = null;
     private ColorPlateState colors = new();
     private string selectedColorRole = ColorPlateService.Roles[0];
     private string colorRoleHexDraft = "";
@@ -80,6 +82,26 @@ public sealed partial class ThemeStudioViewModel
     }
     public string SelectedIconCaption =>
         IconService.Cards.FirstOrDefault(card => card.Style == icons.Style)?.Caption ?? "";
+    public IReadOnlyList<PageStyleCard> PageSizeCards => PageSizeService.Cards;
+    public PageSize? SelectedPageSize
+    {
+        get => pages?.Size;
+        set
+        {
+            if (value is null || pages?.Size == value) return;
+            UpdatePages(new PageCustomizationState(value.Value));
+        }
+    }
+    public string SelectedPageCaption
+    {
+        get
+        {
+            var current = pages;
+            return current is null
+                ? "Theme default — each theme keeps its own spacing rhythm. Pick a size to pin one layout across all pages."
+                : PageSizeService.Cards.FirstOrDefault(card => card.Size == current.Size)?.Caption ?? "";
+        }
+    }
     public IReadOnlyList<string> ColorPlateChoices => ColorPlateService.BuiltIn.Select(plate => plate.Name).ToList();
     public IReadOnlyList<ColorPlateCard> ColorPlateCards => ColorPlateService.Cards;
     public IReadOnlyList<string> ColorRoleChoices => ColorPlateService.Roles;
@@ -333,13 +355,14 @@ public sealed partial class ThemeStudioViewModel
         || (CanCustomizeBento && extended != lastSaved.Preferences)
         || font != (lastSaved.Font ?? new FontCustomizationState())
         || icons != (lastSaved.Icons ?? new IconCustomizationState())
+        || pages != lastSaved.Pages
         || !SameColors(colors, lastSaved.Colors ?? new ColorPlateState());
     public int SelectedWorkspace
     {
         get => selectedWorkspace;
         set
         {
-            if (value is >= 0 and <= 6)
+            if (value is >= 0 and <= 7)
             {
                 selectedWorkspace = value;
                 Changed(nameof(SelectedWorkspace));
@@ -350,6 +373,7 @@ public sealed partial class ThemeStudioViewModel
                 Changed(nameof(IsColors));
                 Changed(nameof(IsAbout));
                 Changed(nameof(IsIcons));
+                Changed(nameof(IsPages));
                 Changed(nameof(WorkspaceTitle));
                 Changed(nameof(WorkspaceSubtitle));
                 Changed(nameof(WorkspaceIcon));
@@ -363,6 +387,7 @@ public sealed partial class ThemeStudioViewModel
     public bool IsColors { get => selectedWorkspace == 4; set { if (value) SelectedWorkspace = 4; } }
     public bool IsAbout { get => selectedWorkspace == 5; set { if (value) SelectedWorkspace = 5; } }
     public bool IsIcons { get => selectedWorkspace == 6; set { if (value) SelectedWorkspace = 6; } }
+    public bool IsPages { get => selectedWorkspace == 7; set { if (value) SelectedWorkspace = 7; } }
     public IconKind WorkspaceIcon => selectedWorkspace switch
     {
         0 => IconKind.Theme,
@@ -372,6 +397,7 @@ public sealed partial class ThemeStudioViewModel
         4 => IconKind.Colors,
         5 => IconKind.About,
         6 => IconKind.Marks,
+        7 => IconKind.Layout,
         _ => IconKind.Home
     };
     public string WorkspaceTitle => selectedWorkspace switch
@@ -383,6 +409,7 @@ public sealed partial class ThemeStudioViewModel
         4 => "Colors Studio",
         5 => "About",
         6 => "Icons Studio",
+        7 => "Pages Studio",
         _ => "Home"
     };
     public string WorkspaceSubtitle => selectedWorkspace switch
@@ -394,6 +421,7 @@ public sealed partial class ThemeStudioViewModel
         4 => "Settings · Color plates",
         5 => "Settings · Product and credits",
         6 => "Settings · Navigation marks",
+        7 => "Settings · Page sizing",
         _ => "Home"
     };
     public bool IsMenuOpen { get => isMenuOpen; set { isMenuOpen = value; Changed(nameof(IsMenuOpen)); } }
@@ -409,6 +437,8 @@ public sealed partial class ThemeStudioViewModel
     public ICommand ShowAbout { get; private set; } = null!;
     public ICommand ShowIcons { get; private set; } = null!;
     public ICommand ResetIcons { get; private set; } = null!;
+    public ICommand ShowPages { get; private set; } = null!;
+    public ICommand ResetPages { get; private set; } = null!;
     public ICommand SelectColorPlate { get; private set; } = null!;
     public ICommand ApplyPreview { get; private set; } = null!;
     public ICommand SaveCustomization { get; private set; } = null!;
@@ -445,6 +475,7 @@ public sealed partial class ThemeStudioViewModel
         geometry = lastSaved.Geometry ?? new SharedGeometryState(SharedGeometry.FromShape(extended.Shape));
         font = lastSaved.Font ?? new FontCustomizationState();
         icons = lastSaved.Icons ?? new IconCustomizationState();
+        pages = lastSaved.Pages;
         colors = lastSaved.Colors ?? new ColorPlateState();
         colorRoleHexDraft = ColorPlateService.ResolvedHex(colors, lastSaved.Appearance, selectedColorRole);
         if (lastSaved.Geometry is null) lastSaved = lastSaved with { Geometry = geometry };
@@ -455,7 +486,7 @@ public sealed partial class ThemeStudioViewModel
         var restored = ThemeService.InstalledThemes.Contains(lastSaved.Theme) ? lastSaved.Theme : ThemeService.Bento;
         try
         {
-            themes.Apply(restored, lastSaved.Appearance, SharedGeometry.Compose(restored, extended, clay, geometry, neumorph, font, colors, liquid));
+            themes.Apply(restored, lastSaved.Appearance, SharedGeometry.Compose(restored, extended, clay, geometry, neumorph, font, colors, liquid, pages));
             IconService.Apply(icons);
         }
         catch { }
@@ -478,11 +509,12 @@ public sealed partial class ThemeStudioViewModel
         ShowColors = new DelegateCommand(() => SelectedWorkspace = 4);
         ShowAbout = new DelegateCommand(() => SelectedWorkspace = 5);
         ShowIcons = new DelegateCommand(() => SelectedWorkspace = 6);
+        ShowPages = new DelegateCommand(() => SelectedWorkspace = 7);
         SelectColorPlate = new DelegateCommand<string>(name => { if (!string.IsNullOrWhiteSpace(name)) SelectedColorPlate = name; });
         ApplyPreview = new DelegateCommand(() => { try { themes.Apply(SelectedTheme, themes.ActiveAppearance, LiveConfigure()); ThemeError=""; Feedback="Preview applied — unsaved changes present."; } catch(Exception ex){ ThemeError=ex.Message; } Changed(nameof(ThemeError)); }, () => CanCustomize || CanCustomizeGeometry);
         SaveCustomization = new DelegateCommand(() =>
         {
-            if (extended.Validate() is not null || (clay ?? new ClayCustomizationState()).Validate() is not null || (neumorph ?? new NeumorphCustomizationState()).Validate() is not null || (liquid ?? new LiquidCustomizationState()).Validate() is not null || font.Validate() is not null || colors.Validate() is not null || icons.Validate() is not null)
+            if (extended.Validate() is not null || (clay ?? new ClayCustomizationState()).Validate() is not null || (neumorph ?? new NeumorphCustomizationState()).Validate() is not null || (liquid ?? new LiquidCustomizationState()).Validate() is not null || font.Validate() is not null || colors.Validate() is not null || icons.Validate() is not null || pages?.Validate() is not null)
             {
                 ThemeError = "Cannot save invalid customization.";
                 Changed(nameof(ThemeError));
@@ -501,7 +533,7 @@ public sealed partial class ThemeStudioViewModel
             }
             Changed(nameof(ThemeError));
             Changed(nameof(IsDirty));
-        }, () => extended.Validate() is null && (clay ?? new ClayCustomizationState()).Validate() is null && (neumorph ?? new NeumorphCustomizationState()).Validate() is null && (liquid ?? new LiquidCustomizationState()).Validate() is null && font.Validate() is null && colors.Validate() is null && icons.Validate() is null);
+        }, () => extended.Validate() is null && (clay ?? new ClayCustomizationState()).Validate() is null && (neumorph ?? new NeumorphCustomizationState()).Validate() is null && (liquid ?? new LiquidCustomizationState()).Validate() is null && font.Validate() is null && colors.Validate() is null && icons.Validate() is null && pages?.Validate() is null);
         DiscardChanges = new DelegateCommand(() =>
         {
             RestoreSaved(session.Revert());
@@ -570,6 +602,7 @@ public sealed partial class ThemeStudioViewModel
             UpdateIcons(new IconCustomizationState());
             Feedback = "Icons restored to Fluent outline.";
         });
+        ResetPages = new DelegateCommand(() => UpdatePages(null));
         ResetColors = new DelegateCommand(() =>
         {
             UpdateColors(new ColorPlateState());
@@ -952,7 +985,7 @@ public sealed partial class ThemeStudioViewModel
         });
     }
     private Action<ResourceDictionary, Appearance> LiveConfigure() =>
-        SharedGeometry.Compose(SelectedTheme, extended, clay, geometry, neumorph, font, colors, liquid);
+        SharedGeometry.Compose(SelectedTheme, extended, clay, geometry, neumorph, font, colors, liquid, pages);
     private void Customize(BentoPreferences candidate)
     {
         if (!CanCustomizeBento || candidate == preferences) return;
@@ -972,7 +1005,7 @@ public sealed partial class ThemeStudioViewModel
     {
         try
         {
-            themes.Apply(ThemeService.Bento, themes.ActiveAppearance, SharedGeometry.Compose(ThemeService.Bento, next, clay, geometry, neumorph, font, colors));
+            themes.Apply(ThemeService.Bento, themes.ActiveAppearance, SharedGeometry.Compose(ThemeService.Bento, next, clay, geometry, neumorph, font, colors, pages: pages));
             extended = next; preferences = next.ToLegacy(); ThemeError=""; Feedback="Live preview updated — use Save to persist.";
         }
         catch (ThemeNotificationException error) { extended = next; preferences = next.ToLegacy(); ThemeError = error.Message; }
@@ -983,7 +1016,7 @@ public sealed partial class ThemeStudioViewModel
     {
         try
         {
-            themes.Apply(ThemeService.Clay, themes.ActiveAppearance, SharedGeometry.Compose(ThemeService.Clay, extended, next, geometry, neumorph, font, colors));
+            themes.Apply(ThemeService.Clay, themes.ActiveAppearance, SharedGeometry.Compose(ThemeService.Clay, extended, next, geometry, neumorph, font, colors, pages: pages));
             clay = next; ThemeError=""; Feedback="Live clay preview updated — use Save to persist.";
         }
         catch (ThemeNotificationException error) { clay = next; ThemeError = error.Message; }
@@ -1000,7 +1033,7 @@ public sealed partial class ThemeStudioViewModel
     {
         try
         {
-            themes.Apply(ThemeService.Neumorphism, themes.ActiveAppearance, SharedGeometry.Compose(ThemeService.Neumorphism, extended, clay, geometry, next, font, colors, liquid));
+            themes.Apply(ThemeService.Neumorphism, themes.ActiveAppearance, SharedGeometry.Compose(ThemeService.Neumorphism, extended, clay, geometry, next, font, colors, liquid, pages));
             neumorph = next; ThemeError = ""; Feedback = "Live neumorph preview updated — use Save to persist.";
         }
         catch (ThemeNotificationException error) { neumorph = next; ThemeError = error.Message; }
@@ -1017,7 +1050,7 @@ public sealed partial class ThemeStudioViewModel
     {
         try
         {
-            themes.Apply(ThemeService.LiquidGlass, themes.ActiveAppearance, SharedGeometry.Compose(ThemeService.LiquidGlass, extended, clay, geometry, neumorph, font, colors, next));
+            themes.Apply(ThemeService.LiquidGlass, themes.ActiveAppearance, SharedGeometry.Compose(ThemeService.LiquidGlass, extended, clay, geometry, neumorph, font, colors, next, pages));
             liquid = next; ThemeError = ""; Feedback = "Live liquid glass preview updated — use Save to persist.";
         }
         catch (ThemeNotificationException error) { liquid = next; ThemeError = error.Message; }
@@ -1042,7 +1075,8 @@ public sealed partial class ThemeStudioViewModel
         colors with { RoleHex = colors.RoleHex is null ? null : new Dictionary<string, string>(colors.RoleHex) },
         liquid,
         lastSaved.LiquidPresets,
-        icons);
+        icons,
+        pages);
 
     private void ApplySharedOnly()
     {
@@ -1079,6 +1113,7 @@ public sealed partial class ThemeStudioViewModel
         var nextGeometry = package.Geometry ?? new SharedGeometryState(SharedGeometry.FromShape(nextBento.Shape));
         var nextFont = package.Font ?? new FontCustomizationState();
         var nextIcons = package.Icons ?? new IconCustomizationState();
+        var nextPages = package.Pages;
         var nextColors = package.Colors ?? new ColorPlateState();
         var theme = ThemeService.InstalledThemes.Contains(package.Theme) ? package.Theme : ThemeService.Bento;
         var previousBento = extended;
@@ -1088,6 +1123,7 @@ public sealed partial class ThemeStudioViewModel
         var previousGeometry = geometry;
         var previousFont = font;
         var previousIcons = icons;
+        var previousPages = pages;
         var previousColors = colors;
         try
         {
@@ -1098,11 +1134,12 @@ public sealed partial class ThemeStudioViewModel
             geometry = nextGeometry;
             font = nextFont;
             icons = nextIcons;
+            pages = nextPages;
             colors = nextColors;
             IconService.Apply(icons);
             colorRoleHexDraft = ColorPlateService.ResolvedHex(colors, package.Appearance, selectedColorRole);
             preferences = nextBento.ToLegacy();
-            themes.Apply(theme, package.Appearance, SharedGeometry.Compose(theme, nextBento, nextClay, nextGeometry, nextNeumorph, nextFont, nextColors, nextLiquid));
+            themes.Apply(theme, package.Appearance, SharedGeometry.Compose(theme, nextBento, nextClay, nextGeometry, nextNeumorph, nextFont, nextColors, nextLiquid, nextPages));
             ThemeError = "";
             if (persist)
             {
@@ -1122,13 +1159,14 @@ public sealed partial class ThemeStudioViewModel
             geometry = previousGeometry;
             font = previousFont;
             icons = previousIcons;
+            pages = previousPages;
             colors = previousColors;
             IconService.Apply(icons);
             colorRoleHexDraft = ColorPlateService.ResolvedHex(colors, themes.ActiveAppearance, selectedColorRole);
             preferences = previousBento.ToLegacy();
             ThemeError = error.Message;
         }
-        foreach (var n in new[] { nameof(SelectedAccent), nameof(SelectedDensity), nameof(SelectedShape), nameof(SelectedTypography), nameof(SelectedCanvas), nameof(SelectedSurface), nameof(SelectedTextContrast), nameof(SelectedBorder), nameof(SelectedShadow), nameof(SelectedSpacing), nameof(SelectedPadding), nameof(SelectedWeight), nameof(SelectedLayoutPreset), nameof(HeroCompact), nameof(ShowKpiTrend), nameof(SelectedRounding), nameof(SelectedClayAccent), nameof(SelectedClayVolume), nameof(SelectedClayPlumpness), nameof(SelectedClayDensity), nameof(SelectedClayCanvas), nameof(SelectedClayTypography), nameof(SelectedClaySpacing), nameof(SelectedClayTextContrast), nameof(SelectedClaySheen), nameof(SelectedClayWeight), nameof(SelectedClayLighting), nameof(SelectedClayRelief), nameof(SelectedClayEffects), nameof(SelectedNeumorphDepth), nameof(SelectedNeumorphBlur), nameof(SelectedNeumorphIntensity), nameof(SelectedLiquidFrost), nameof(SelectedLiquidSpecular), nameof(SelectedLiquidTint), nameof(SelectedFontFamily), nameof(HeadingBold), nameof(BodyItalic), nameof(BodyUnderline), nameof(SelectedIconStyle), nameof(SelectedIconCaption), nameof(SelectedColorPlate), nameof(ColorStopSummary), nameof(ColorRoleSummary), nameof(ColorRoleHex), nameof(FontFamilyChoices), nameof(DesignSummary), nameof(ThemeError), nameof(IsDirty) }) Changed(n);
+        foreach (var n in new[] { nameof(SelectedAccent), nameof(SelectedDensity), nameof(SelectedShape), nameof(SelectedTypography), nameof(SelectedCanvas), nameof(SelectedSurface), nameof(SelectedTextContrast), nameof(SelectedBorder), nameof(SelectedShadow), nameof(SelectedSpacing), nameof(SelectedPadding), nameof(SelectedWeight), nameof(SelectedLayoutPreset), nameof(HeroCompact), nameof(ShowKpiTrend), nameof(SelectedRounding), nameof(SelectedClayAccent), nameof(SelectedClayVolume), nameof(SelectedClayPlumpness), nameof(SelectedClayDensity), nameof(SelectedClayCanvas), nameof(SelectedClayTypography), nameof(SelectedClaySpacing), nameof(SelectedClayTextContrast), nameof(SelectedClaySheen), nameof(SelectedClayWeight), nameof(SelectedClayLighting), nameof(SelectedClayRelief), nameof(SelectedClayEffects), nameof(SelectedNeumorphDepth), nameof(SelectedNeumorphBlur), nameof(SelectedNeumorphIntensity), nameof(SelectedLiquidFrost), nameof(SelectedLiquidSpecular), nameof(SelectedLiquidTint), nameof(SelectedFontFamily), nameof(HeadingBold), nameof(BodyItalic), nameof(BodyUnderline), nameof(SelectedIconStyle), nameof(SelectedIconCaption), nameof(SelectedPageSize), nameof(SelectedPageCaption), nameof(SelectedColorPlate), nameof(ColorStopSummary), nameof(ColorRoleSummary), nameof(ColorRoleHex), nameof(FontFamilyChoices), nameof(DesignSummary), nameof(ThemeError), nameof(IsDirty) }) Changed(n);
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -1172,6 +1210,47 @@ public sealed partial class ThemeStudioViewModel
         NotifyFontColor();
     }
 
+    private void UpdatePages(PageCustomizationState? next)
+    {
+        if (overlayBusy || next == pages) return;
+        overlayBusy = true;
+        try
+        {
+            if (next is null)
+            {
+                // Returning to the theme default rebuilds the live package so the
+                // engine's own sizing tokens come back (the overlay wrote in place).
+                themes.Apply(themes.ActiveTheme, themes.ActiveAppearance, LiveConfigure());
+            }
+            else
+            {
+                // Same pass as Compose: page sizing, then the card-copy inset.
+                themes.Overlay((package, _) =>
+                {
+                    PageSizeService.Apply(package, next);
+                    SharedGeometry.InsetCardCopy(package);
+                });
+            }
+            pages = next;
+            ThemeError = "";
+            Feedback = next is null
+                ? "Pages restored to the theme default — use Save to persist."
+                : "Live page sizing updated — use Save to persist.";
+        }
+        catch (ThemeNotificationException error) { ThemeError = error.Message; }
+        catch (Exception error) when (error is InvalidOperationException or ArgumentException or IOException or System.Windows.Markup.XamlParseException or System.Runtime.InteropServices.COMException)
+        {
+            ThemeError = $"Design unchanged: {error.Message}";
+        }
+        finally { overlayBusy = false; }
+        Changed(nameof(SelectedPageSize));
+        Changed(nameof(SelectedPageCaption));
+        Changed(nameof(ThemeError));
+        Changed(nameof(DesignSummary));
+        Changed(nameof(IsDirty));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
     private void UpdateColors(ColorPlateState next)
     {
         if (overlayBusy || SameColors(next, colors)) return;
@@ -1203,7 +1282,7 @@ public sealed partial class ThemeStudioViewModel
 
     private void NotifyFontColor()
     {
-        foreach (var n in new[] { nameof(SelectedFontFamily), nameof(HeadingBold), nameof(BodyItalic), nameof(BodyUnderline), nameof(SelectedIconStyle), nameof(SelectedIconCaption), nameof(SelectedColorPlate), nameof(ColorStopSummary), nameof(ColorRoleSummary), nameof(ColorRoleHex), nameof(CardSaturation), nameof(SelectedCardGradient), nameof(CardTintHex), nameof(CardTintEndHex), nameof(CardTintSummary), nameof(ThemeError), nameof(IsDirty) })
+        foreach (var n in new[] { nameof(SelectedFontFamily), nameof(HeadingBold), nameof(BodyItalic), nameof(BodyUnderline), nameof(SelectedIconStyle), nameof(SelectedIconCaption), nameof(SelectedPageSize), nameof(SelectedPageCaption), nameof(SelectedColorPlate), nameof(ColorStopSummary), nameof(ColorRoleSummary), nameof(ColorRoleHex), nameof(CardSaturation), nameof(SelectedCardGradient), nameof(CardTintHex), nameof(CardTintEndHex), nameof(CardTintSummary), nameof(ThemeError), nameof(IsDirty) })
             Changed(n);
         CommandManager.InvalidateRequerySuggested();
     }
