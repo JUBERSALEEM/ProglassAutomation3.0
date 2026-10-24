@@ -27,7 +27,7 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <!-- Compact card: same contract Card, tighter padding (8,4). -->
-        <Style x:Key="InboxCompactCard" TargetType="ContentControl" BasedOn="{DynamicResource Card}">
+        <Style x:Key="InboxCompactCard" TargetType="ContentControl" BasedOn="{StaticResource Card}">
             <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
         </Style>
     </UserControl.Resources>

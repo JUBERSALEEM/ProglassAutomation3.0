@@ -7,7 +7,7 @@
              TextOptions.TextFormattingMode="Display">
     <UserControl.Resources>
         <!-- Compact card: same contract Card, tighter padding (8,4). -->
-        <Style x:Key="RegisterCompactCard" TargetType="ContentControl" BasedOn="{DynamicResource Card}">
+        <Style x:Key="RegisterCompactCard" TargetType="ContentControl" BasedOn="{StaticResource Card}">
             <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
         </Style>
         <!-- Status chip: BorderSubtle idle, AccentPrimary selected,
@@ -112,7 +112,7 @@
         <!-- ── Website inbox card (top of the register) ───────────── -->
         <ContentControl Grid.Row="1" Margin="{DynamicResource PaddingPage}">
             <ContentControl.Style>
-                <Style TargetType="ContentControl" BasedOn="{DynamicResource RegisterCompactCard}">
+                <Style TargetType="ContentControl" BasedOn="{StaticResource RegisterCompactCard}">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding InboxCardVisible}" Value="True">
