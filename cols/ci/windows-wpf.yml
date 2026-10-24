@@ -58,6 +58,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Guard live card insets and inquiry theme usage
+        run: python Theme/step1.d.tests/step1.d.11.InquiryThemeChecks.py
       - name: Validate isolated resources and contrast
         run: python Theme/step1.d.tests/step1.d.3.verify_sources.py
       - name: Verify clean V3 foundation and startup
