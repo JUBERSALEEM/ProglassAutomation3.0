@@ -258,7 +258,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     case '\r': sb.Append("\\r"); break;
                     case '\t': sb.Append("\\t"); break;
                     default:
-                        if (ch < 0x20) sb.Append("\\u").Append(ch.ToString("x4"));
+                        if (ch < 0x20) sb.Append("\\u").Append(((int)ch).ToString("x4", System.Globalization.CultureInfo.InvariantCulture));
                         else sb.Append(ch);
                         break;
                 }

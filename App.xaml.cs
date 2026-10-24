@@ -1,6 +1,7 @@
 using System.Windows;
 using ProGlassAutomation.Customization;
 using ProGlassAutomation.ThemeClaymorphism;
+using ProGlassAutomation.ThemeLiquidGlass;
 using ProGlassAutomation.ThemeNeumorphism;
 using ProGlassAutomation.Theming;
 

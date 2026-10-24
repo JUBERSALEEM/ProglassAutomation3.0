@@ -69,7 +69,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             Project = project;
             InquiryType = inquiryType;
             Estimator = estimator;
-            if (DateTime.TryParse(submittedAtIso, null, CultureInfo.InvariantCulture,
+            if (DateTime.TryParse(submittedAtIso, CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal, out var dt))
                 ReceivedText = dt.ToString("dd MMM yyyy · hh:mm tt", CultureInfo.CurrentCulture);
             Raise(nameof(Company));
@@ -368,7 +368,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                     StatusText = "Signed in — checking inbox access…";
                     try
                     {
-                        var pending = await client.PlanDeliveriesAsync(10);
+                        var pending = await client.PlanDeliveriesAsync(10, CancellationToken.None);
                         StatusText = "Website connection OK — sign-in OK, inbox access OK ("
                             + pending.Count + " pending).";
                     }
@@ -512,12 +512,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 var manifestPath = Path.Combine(folder, "manifest.json");
                 if (!File.Exists(manifestPath)) return null;
                 var manifest = InquiryInboxService.ParseManifest(File.ReadAllBytes(manifestPath));
-                var plan = System.Text.Json.JsonSerializer.Deserialize<InboxSubmissionPlan>(manifest.SubmissionRaw,
-                    new System.Text.Json.JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        NumberHandling = System.Text.Json.JsonNumberHandling.AllowReadingFromString
-                    });
+                var plan = System.Text.Json.JsonSerializer.Deserialize<InboxSubmissionPlan>(manifest.SubmissionRaw, InboxJson.Options);
                 if (plan == null) return null;
                 var estimator = plan.PrimaryEstimatorDisplay();
                 if (string.IsNullOrWhiteSpace(estimator)) estimator = plan.HandoverEstimatorName ?? "";

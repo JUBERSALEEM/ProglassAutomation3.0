@@ -18,8 +18,10 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using ProGlassAutomation.Models.Inquiry;
 using ProGlassAutomation.Services.Database;
 
@@ -40,20 +42,24 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
     public sealed class InboxSyncOutcome
     {
+        // Mutable by design: the sync method builds this result
+        // incrementally (counts accumulate, status text is refined,
+        // errors are recorded per phase), so the working set uses
+        // ordinary setters; Ran/Configured are set once at creation.
         public bool Ran { get; init; }
         public bool Configured { get; init; } = true;
-        public bool Offline { get; init; }
+        public bool Offline { get; set; }
         public bool Busy { get; init; }
-        public int Planned { get; init; }
-        public int Delivered { get; init; }
-        public int Verified { get; init; }
-        public int Failed { get; init; }
+        public int Planned { get; set; }
+        public int Delivered { get; set; }
+        public int Verified { get; set; }
+        public int Failed { get; set; }
         /// <summary>References newly seen this sync (drives notifications).</summary>
-        public string[] NewReferences { get; init; } = Array.Empty<string>();
-        public string[] NewCompanyNames { get; init; } = Array.Empty<string>();
-        public string[] NewEstimatorNames { get; init; } = Array.Empty<string>();
-        public string StatusText { get; init; } = "";
-        public string? Error { get; init; }
+        public string[] NewReferences { get; set; } = Array.Empty<string>();
+        public string[] NewCompanyNames { get; set; } = Array.Empty<string>();
+        public string[] NewEstimatorNames { get; set; } = Array.Empty<string>();
+        public string StatusText { get; set; } = "";
+        public string? Error { get; set; }
     }
 
     public sealed class InquiryInboxService : IDisposable
@@ -76,11 +82,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         // ── Guards & paths ───────────────────────────────────────────────
 
-        private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            NumberHandling = System.Text.Json.JsonNumberHandling.AllowReadingFromString
-        };
+        private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = InboxJson.Options;
 
         private string Root =>
             string.IsNullOrWhiteSpace(_settings.InboxRoot)
@@ -112,8 +114,12 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         {
             var route = (routingKey ?? "unassigned").Replace('\\', '/').Trim('/');
             var folder = InboxFileNames.Safe(reference) + "_" + submissionId;
-            var full = Path.Combine(root, route.Split('/').Where(s => s.Length > 0).ToArray())
-                .Replace('\\', Path.DirectorySeparatorChar);
+            // Path.Combine has no (string, string[]) overload — combine
+            // the array in one call instead.
+            var routeParts = route.Split('/').Where(s => s.Length > 0).ToArray();
+            var full = routeParts.Length > 0
+                ? Path.Combine(new string[] { root }.Concat(routeParts).ToArray()).Replace('\\', Path.DirectorySeparatorChar)
+                : root;
             return Path.Combine(full, folder);
         }
 

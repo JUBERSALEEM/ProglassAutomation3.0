@@ -49,6 +49,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         // Tracks whether the user manually edited CustomerLocation so we
         // don't stomp their value when a known customer is picked.
         private bool _locationManuallyEdited;
+        private bool _salesmanManuallyEdited;
         // Set by CancelLoaders when the editor is dismissed; the
         // fire-and-forget loaders check it before mutating VM state.
         private bool _isDisposed;
@@ -338,12 +339,12 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 row.DirtyChanged += OnLineItemDirtyChanged;
 
             AddLineItemCommand = new DelegateCommand(AddLineItem, () => !IsBusy);
-            RemoveLineItemCommand = new DelegateCommand(p => RemoveLineItem(p), () => !IsBusy);
+            RemoveLineItemCommand = new DelegateCommand<object>(p => RemoveLineItem(p), p => !IsBusy);
 
             SaveCommand = new DelegateCommand(async () => await SaveAndCloseAsync(), () => CanSave && !IsBusy);
-            ChangeStatusCommand = new DelegateCommand(p => _ = ChangeStatusAsync(p as string), () => !IsBusy);
+            ChangeStatusCommand = new DelegateCommand<object>(p => _ = ChangeStatusAsync(p as string), p => !IsBusy);
             AddAttachmentCommand = new DelegateCommand(async () => await AddAttachmentsAsync(), () => !IsBusy);
-            DeleteAttachmentCommand = new DelegateCommand(async p =>
+            DeleteAttachmentCommand = new DelegateCommand<object>(async p =>
             {
                 if (p is InquiryAttachmentItem item && ConfirmDeleteRequested?.Invoke(item) == true)
                 {
@@ -358,15 +359,15 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                     catch (Exception ex) { SetMessage("Delete failed: " + ExceptionMessages.Deep(ex), isError: true); }
                     finally { IsBusy = false; }
                 }
-            }, () => !IsBusy);
-            OpenAttachmentCommand = new DelegateCommand(p =>
+            }, p => !IsBusy);
+            OpenAttachmentCommand = new DelegateCommand<object>(p =>
             {
                 if (p is InquiryAttachmentItem item)
                 {
                     var result = _attachments.Open(item.Attachment);
                     if (!result.IsSuccess) SetMessage(result.Error, isError: true);
                 }
-            }, () => !IsBusy);
+            }, p => !IsBusy);
             OpenAttachmentsFolderCommand = new DelegateCommand(() =>
             {
                 if (Record.Id > 0)

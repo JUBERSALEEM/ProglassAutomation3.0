@@ -262,11 +262,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         // ── HTTP plumbing ─────────────────────────────────────────────────
 
-        private static readonly JsonSerializerOptions JsonOpts = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            NumberHandling = JsonNumberHandling.AllowReadingFromString
-        };
+        private static readonly JsonSerializerOptions JsonOpts = InboxJson.Options;
 
         private async Task<(int Status, string Payload, InboxRemoteErrorKind Kind)> PostAsync(
             string url, string body, bool withBearer, CancellationToken ct)

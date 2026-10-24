@@ -26,6 +26,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 using System.IO;
+using Microsoft.EntityFrameworkCore;
 using ProGlassAutomation.Models.Inquiry;
 using ProGlassAutomation.Services.Database;
 
@@ -83,12 +84,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
             // Verify integrity again right before ingest (fail closed).
             var (manifest, _) = InquiryInboxService.ReadReadyFolder(folder);
-            var plan = System.Text.Json.JsonSerializer.Deserialize<InboxSubmissionPlan>(manifest.SubmissionRaw,
-                new System.Text.Json.JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    NumberHandling = System.Text.Json.JsonNumberHandling.AllowReadingFromString
-                });
+            var plan = System.Text.Json.JsonSerializer.Deserialize<InboxSubmissionPlan>(manifest.SubmissionRaw, InboxJson.Options);
             if (plan == null)
                 return Fail("The inbox manifest is unreadable.");
 
@@ -190,7 +186,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         private static DateTime ParseUtc(string iso)
         {
-            if (DateTime.TryParse(iso, null, System.Globalization.CultureInfo.InvariantCulture,
+            if (DateTime.TryParse(iso, System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
                     out var dt))
                 return dt;
