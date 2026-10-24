@@ -98,10 +98,12 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                 using (var connection = Open(dbPath))
                 using (var tx = connection.BeginTransaction())
                 {
+                    SchemaMigration? activeMigration = null;
                     try
                     {
                         foreach (var migration in pending)
                         {
+                            activeMigration = migration;
                             migration.Apply(connection);
                             migration.Verify?.Invoke(connection);
                         }
@@ -112,8 +114,12 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                         // earlier required index/column/data invariant
                         // before the version marker commits.
                         foreach (var migration in pending)
+                        {
+                            activeMigration = migration;
                             migration.Verify?.Invoke(connection);
+                        }
 
+                        activeMigration = null;
                         VerifyDatabaseIntegrity(connection);
                         SetVersion(connection, target);
                         tx.Commit();
@@ -121,8 +127,12 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                     catch (Exception applyEx)
                     {
                         try { tx.Rollback(); } catch (System.Exception) { /* rollback is best-effort */ }
+                        string context = activeMigration is null
+                            ? "post-migration integrity verification"
+                            : $"migration v{activeMigration.Version} '{activeMigration.Name}'";
                         RecordFailure(
-                            $"Schema upgrade for {Path.GetFileName(dbPath)} failed ({applyEx.GetType().Name}). " +
+                            $"Schema upgrade for {Path.GetFileName(dbPath)} failed during {context} " +
+                            $"({applyEx.GetType().Name}: {applyEx.Message}). " +
                             "The database was not changed. Backup: " + backupPath);
                         return false;
                     }

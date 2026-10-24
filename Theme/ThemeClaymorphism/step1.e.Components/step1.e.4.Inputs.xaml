@@ -29,6 +29,31 @@
    </ControlTemplate.Triggers>
   </ControlTemplate></Setter.Value></Setter>
  </Style>
+  <Style TargetType="PasswordBox">
+  <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+  <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+  <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+  <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+  <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
+  <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+  <Setter Property="FontFamily" Value="{DynamicResource FontFamilyBody}" />
+  <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+  <Setter Property="VerticalContentAlignment" Value="Center" />
+  <Setter Property="Validation.ErrorTemplate"><Setter.Value><ControlTemplate>
+   <AdornedElementPlaceholder />
+  </ControlTemplate></Setter.Value></Setter>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="PasswordBox">
+   <clay:ClaySurface x:Name="Frame" Rank="Control" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="{DynamicResource ChipCornerRadius}">
+    <ScrollViewer x:Name="PART_ContentHost" Focusable="False" IsTabStop="False" />
+   </clay:ClaySurface>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" /></Trigger>
+    <Trigger Property="Validation.HasError" Value="True"><Setter TargetName="Frame" Property="ShadeBrush" Value="{DynamicResource StatusError}" /><Setter TargetName="Frame" Property="LightBrush" Value="{DynamicResource StatusError}" /></Trigger>
+    <Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource DisabledSurface}" /><Setter Property="Foreground" Value="{DynamicResource DisabledText}" /></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
  <Style TargetType="ComboBoxItem">
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />

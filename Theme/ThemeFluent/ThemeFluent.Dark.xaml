@@ -81,7 +81,7 @@
   <Thickness x:Key="PaddingSelection">10,5,32,5</Thickness>
   <CornerRadius x:Key="ChoiceCornerRadius">14</CornerRadius>
   <sys:Double x:Key="StrokeWidth">1</sys:Double>
-  <sys:Double x:Key="SelectionOpacity">1</sys:Double>
+  <sys:Double x:Key="SelectionOpacity">0.55</sys:Double>
   <Thickness x:Key="MarginFocus">-3</Thickness>
   <SolidColorBrush x:Key="SurfacePositive" Color="#1A2E24" />
   <SolidColorBrush x:Key="SurfaceFeature" Color="#262238" />

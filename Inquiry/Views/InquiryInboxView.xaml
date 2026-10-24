@@ -6,50 +6,6 @@
              SnapsToDevicePixels="True"
              TextOptions.TextFormattingMode="Display">
     <UserControl.Resources>
-        <!-- PasswordBox has a distinct WPF control template and cannot
-             inherit TextBox's template. Keep it on the same theme tokens,
-             with a rounded field frame and the required PART_ContentHost. -->
-        <Style x:Key="InboxPasswordBox" TargetType="PasswordBox">
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
-            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
-            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
-            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyBody}" />
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
-            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
-            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="PasswordBox">
-                        <Border x:Name="Frame" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource ControlCornerRadius}"
-                                SnapsToDevicePixels="True">
-                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
-                                          IsTabStop="False" Background="Transparent"
-                                          Foreground="{TemplateBinding Foreground}"
-                                          Padding="{TemplateBinding Padding}"
-                                          HorizontalScrollBarVisibility="Hidden"
-                                          VerticalScrollBarVisibility="Hidden" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
-                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource FocusIndicator}" />
-                            </Trigger>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Frame" Property="Opacity" Value="0.55" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
         <Style x:Key="InboxRefCell" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -205,13 +161,8 @@
                     <StackPanel Grid.Row="0" Grid.Column="3" Margin="{DynamicResource MarginInline}">
                         <TextBlock Text="Supabase password" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}"
                                    ToolTip="Use the password for this Supabase Auth account. The website's emailed OTP cannot be entered as a password." />
-                        <PasswordBox x:Name="PasswordBox" Style="{StaticResource InboxPasswordBox}"
-                                     Background="{DynamicResource SurfacePrimary}"
-                                     BorderBrush="{DynamicResource BorderStrong}"
-                                     BorderThickness="{DynamicResource BorderThicknessControl}"
-                                     Padding="{DynamicResource PaddingControl}"
+                        <PasswordBox x:Name="PasswordBox" Style="{DynamicResource {x:Type PasswordBox}}"
                                      MinWidth="{DynamicResource ControlMinWidth}"
-                                     MinHeight="{DynamicResource ControlMinHeight}"
                                      ToolTip="Your account must have a website-granted role for inquiry inbox access."
                                      AutomationProperties.Name="Supabase account password" />
                     </StackPanel>

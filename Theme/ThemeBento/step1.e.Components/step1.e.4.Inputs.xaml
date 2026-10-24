@@ -31,6 +31,33 @@
    </ControlTemplate.Triggers>
   </ControlTemplate></Setter.Value></Setter>
  </Style>
+  <Style TargetType="PasswordBox">
+  <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+  <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+  <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+  <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+  <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
+  <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+  <Setter Property="FontFamily" Value="{DynamicResource FontFamilyBody}" />
+  <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+  <Setter Property="VerticalContentAlignment" Value="Center" />
+  <Setter Property="Validation.ErrorTemplate"><Setter.Value><ControlTemplate>
+   <AdornedElementPlaceholder />
+  </ControlTemplate></Setter.Value></Setter>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="PasswordBox">
+   <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+     BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource ControlCornerRadius}">
+    <ScrollViewer x:Name="PART_ContentHost" Focusable="False" IsTabStop="False" Margin="{TemplateBinding Padding}" />
+   </Border>
+   <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" /><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource BorderStrong}" /></Trigger>
+    <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource FocusIndicator}" /><Setter TargetName="Frame" Property="BorderThickness" Value="{DynamicResource FocusThickness}" /></Trigger>
+    <Trigger Property="Validation.HasError" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource StatusError}" /><Setter TargetName="Frame" Property="BorderThickness" Value="{DynamicResource FocusThickness}" /></Trigger>
+    <Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource DisabledSurface}" /><Setter Property="Foreground" Value="{DynamicResource DisabledText}" /></Trigger>
+   </ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
  <Style TargetType="ComboBoxItem">
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />

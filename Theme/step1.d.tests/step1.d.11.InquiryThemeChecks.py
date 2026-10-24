@@ -66,6 +66,14 @@ for theme in themes:
     assert 'Property="IsMouseOver" Value="True"' in textbox_template, theme.name
     assert 'Value="{DynamicResource StateHover}"' in textbox_template, theme.name
     assert 'TextBoxFocusBehavior.SelectAllOnFocus" Value="True"' in inputs, theme.name
+    password_style = inputs.split('<Style TargetType="PasswordBox">', 1)[1].split('</Style>', 1)[0]
+    assert '<ControlTemplate TargetType="PasswordBox">' in password_style, theme.name
+    assert 'x:Name="PART_ContentHost" Focusable="False" IsTabStop="False"' in password_style, theme.name
+    assert 'x:Name="Frame"' in password_style and 'DynamicResource' in password_style, theme.name
+    for appearance in ("Light", "Dark"):
+        palette = (theme / f"{theme.name}.{appearance}.xaml").read_text(encoding="utf-8")
+        selection_opacity = float(palette.split('x:Key="SelectionOpacity">', 1)[1].split('<', 1)[0])
+        assert 0 < selection_opacity < 1, (theme.name, appearance, selection_opacity)
 
 focus_behavior = (ROOT / "Theme/step1.g.Customization/step1.g.7.TextBoxFocusBehavior.cs").read_text(encoding="utf-8")
 assert 'textBox.SelectAll()' in focus_behavior
@@ -74,7 +82,8 @@ assert 'PreviewMouseLeftButtonDown' in focus_behavior
 assert 'Width="70" Margin="{DynamicResource MarginInline}"' in inbox_xaml
 assert 'Text="Supabase account email"' in inbox_xaml
 assert 'Text="Supabase password"' in inbox_xaml
-assert 'BorderBrush" Value="{DynamicResource BorderStrong}"' in inbox_xaml
+assert 'Style="{DynamicResource {x:Type PasswordBox}}"' in inbox_xaml
+assert 'InboxPasswordBox' not in inbox_xaml
 repository = (ROOT / "Inquiry/Services/Inquiry/InquiryRepository.cs").read_text(encoding="utf-8")
 migrations = (ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs").read_text(encoding="utf-8")
 runner = (ROOT / "Inquiry/Services/Database/SchemaMigrations/SchemaMigrationRunner.cs").read_text(encoding="utf-8")
