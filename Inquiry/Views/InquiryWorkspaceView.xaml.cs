@@ -33,6 +33,7 @@ public partial class InquiryWorkspaceView : UserControl
 
     private InquiryInboxViewModel? _inbox;
     private DispatcherTimer? _syncTimer;
+    private string? _databaseInitializationWarning;
     private DateTime _lastAutoSyncUtc = DateTime.MinValue;
     private Page _returnTo = Page.List;
     private bool _started;
@@ -47,9 +48,12 @@ public partial class InquiryWorkspaceView : UserControl
         {
             _repository.InitializeAsync().GetAwaiter().GetResult();
         }
-        catch
+        catch (Exception error)
         {
-            // Surface on the list page instead of crashing the window.
+            // Keep the shell alive but preserve the actual migration failure
+            // for the inbox status surface; otherwise a missing table looks
+            // like an unexplained SQLite query failure later.
+            _databaseInitializationWarning = error.Message;
         }
 
         _list = new InquiryListViewModel(_repository);
@@ -234,6 +238,8 @@ public partial class InquiryWorkspaceView : UserControl
             _list.Reload();
         };
         InboxView.DataContext = _inbox;
+        if (!string.IsNullOrWhiteSpace(_databaseInitializationWarning))
+            _inbox.ReportInitializationWarning(_databaseInitializationWarning);
     }
 
     private void ShowListPage()

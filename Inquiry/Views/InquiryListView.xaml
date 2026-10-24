@@ -94,13 +94,13 @@
         <!-- Dashboard header: accent pipeline card, three compact KPIs, and actions. -->
         <Grid Grid.Row="0" Margin="{DynamicResource PaddingPage}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2.8*" />
-                <ColumnDefinition Width="0.92*" />
-                <ColumnDefinition Width="0.92*" />
-                <ColumnDefinition Width="0.92*" />
-                <ColumnDefinition Width="2.65*" />
+                <ColumnDefinition Width="2.4*" />
+                <ColumnDefinition Width="0.9*" />
+                <ColumnDefinition Width="0.9*" />
+                <ColumnDefinition Width="0.9*" />
+                <ColumnDefinition Width="2.55*" />
             </Grid.ColumnDefinitions>
-            <Border Grid.Column="0" Margin="{DynamicResource MarginItem}"
+            <Border Grid.Column="0" Margin="{DynamicResource PaddingCompact}"
                     Background="{DynamicResource AccentPrimary}"
                     CornerRadius="{DynamicResource ControlCornerRadius}"
                     Padding="{DynamicResource PaddingControl}">
@@ -116,7 +116,7 @@
                                Foreground="{DynamicResource TextOnAccent}" Margin="{DynamicResource MarginInline}" />
                 </StackPanel>
             </Border>
-            <ContentControl Grid.Column="1" Style="{DynamicResource MetricCard}" Margin="{DynamicResource MarginItem}">
+            <ContentControl Grid.Column="1" Style="{DynamicResource MetricCard}" Margin="{DynamicResource PaddingCompact}">
                 <StackPanel>
                     <TextBlock Text="Open" Style="{DynamicResource Caption}" />
                     <TextBlock Text="{Binding OpenCount}" FontSize="{DynamicResource FontSizeSection}"
@@ -132,7 +132,7 @@
                     <TextBlock Text="Sent, waiting confirmation" Style="{DynamicResource Caption}" />
                 </StackPanel>
             </ContentControl>
-            <ContentControl Grid.Column="3" Style="{DynamicResource MetricCard}" Margin="{DynamicResource MarginItem}">
+            <ContentControl Grid.Column="3" Style="{DynamicResource MetricCard}" Margin="{DynamicResource PaddingCompact}">
                 <StackPanel>
                     <TextBlock Text="Confirmed" Style="{DynamicResource Caption}" />
                     <TextBlock Text="{Binding ConfirmedCount}" FontSize="{DynamicResource FontSizeSection}"
@@ -140,19 +140,19 @@
                     <TextBlock Text="Ready to convert to PI" Style="{DynamicResource Caption}" />
                 </StackPanel>
             </ContentControl>
-            <ContentControl Grid.Column="4" Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
+            <ContentControl Grid.Column="4" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingCompact}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <StackPanel Grid.Row="0" Margin="{DynamicResource MarginItem}">
+                    <StackPanel Grid.Row="0" Margin="{DynamicResource PaddingCompact}">
                         <TextBlock Text="Actions" Style="{DynamicResource Caption}" />
                         <Button Content="＋  NEW INQUIRY" Style="{DynamicResource PrimaryButton}"
                                 Command="{Binding NewInquiryCommand}" HorizontalAlignment="Stretch"
-                                Margin="{DynamicResource MarginItem}" AutomationProperties.Name="New inquiry" />
+                                Margin="{DynamicResource PaddingCompact}" AutomationProperties.Name="New inquiry" />
                     </StackPanel>
-                    <WrapPanel Grid.Row="1" HorizontalAlignment="Left" Margin="{DynamicResource MarginItem}">
+                    <WrapPanel Grid.Row="1" HorizontalAlignment="Left" Margin="{DynamicResource PaddingCompact}">
                         <Button Content="Refresh" Style="{DynamicResource SubtleButton}"
                                 Command="{Binding RefreshCommand}" Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Refresh register" />

@@ -96,7 +96,12 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 ct).ConfigureAwait(false);
 
             if (status == (int)HttpStatusCode.BadRequest || status == 401 || status == 403)
-                return InboxSignInResult.Fail(DescribeAuth(status, payload));
+            {
+                var diagnosis = DescribeAuth(status, payload);
+                if (string.Equals(diagnosis, "Invalid login credentials", StringComparison.OrdinalIgnoreCase))
+                    diagnosis += ". The desktop requires the dedicated bridge account's Supabase Auth password; a website email OTP is not a password.";
+                return InboxSignInResult.Fail(diagnosis);
+            }
 
             if (status != 200)
                 return InboxSignInResult.Fail($"Sign-in failed (HTTP {status}).");

@@ -216,7 +216,15 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public bool IsSyncing { get => _isSyncing; private set { if (SetField(ref _isSyncing, value)) RaiseCommandState(); } }
 
         private string _statusText = "Ready.";
+        private string? _initializationWarning;
         public string StatusText { get => _statusText; private set => SetField(ref _statusText, value); }
+
+        public void ReportInitializationWarning(string warning)
+        {
+            if (string.IsNullOrWhiteSpace(warning)) return;
+            _initializationWarning = warning;
+            StatusText = "Database initialization warning: " + warning;
+        }
 
         private string _lastSyncText = "";
         public string LastSyncText { get => _lastSyncText; private set => SetField(ref _lastSyncText, value); }
@@ -549,7 +557,10 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 // The inbox view-model is created lazily on the user's
                 // first click. A missing/outdated local table must be shown
                 // on the page, not escape the command and close the app.
-                StatusText = "Could not load local inbox records: " + error.Message;
+                StatusText = _initializationWarning == null
+                    ? "Could not load local inbox records: " + error.Message
+                    : "Could not load local inbox records: " + error.Message
+                      + " Database migration also reported: " + _initializationWarning;
             }
         }
 

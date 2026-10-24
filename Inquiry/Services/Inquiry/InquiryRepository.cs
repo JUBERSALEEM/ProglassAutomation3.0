@@ -45,8 +45,11 @@ namespace ProGlassAutomation.Services.Inquiry
         {
             await using var db = new InquiryDbContext();
             await db.Database.EnsureCreatedAsync(ct).ConfigureAwait(false);
-            SchemaMigrationRunner.Upgrade(InquiryDbContext.DatabaseFilePath,
+            var upgraded = SchemaMigrationRunner.Upgrade(InquiryDbContext.DatabaseFilePath,
                 AppSchemaMigrations.Inquiries, "Inquiry");
+            if (!upgraded)
+                throw new InvalidOperationException(
+                    "Inquiry database migration failed: " + SchemaMigrationRunner.FailureSummary);
         }
 
         public async Task<PagedResult<InquiryListProjection>> QueryAsync(
