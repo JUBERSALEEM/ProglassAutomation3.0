@@ -16,11 +16,13 @@ public partial class InquiryEditorView : UserControl
     public InquiryEditorView()
     {
         InitializeComponent();
+        // WPF has no OnDataContextChanged virtual (that is WinForms) —
+        // subscribe to the routed event instead.
+        DataContextChanged += OnDataContextChanged;
     }
 
-    protected override void OnDataContextChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
-        base.OnDataContextChanged(e);
         if (DataContext is not InquiryEditorViewModel vm) return;
 
         vm.SelectFilesRequested = () =>

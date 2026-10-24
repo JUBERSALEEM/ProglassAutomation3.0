@@ -16,6 +16,16 @@
     <EnableDefaultPageItems>false</EnableDefaultPageItems>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <!-- The Windows Forms SDK injects implicit GLOBAL usings for
+       System.Windows.Forms and System.Drawing; with UseWPF=true that makes
+       every bare WPF type (Application, UserControl, Brush, Color, ...)
+       ambiguous project-wide (CS0104). Remove those two implicit usings:
+       WinForms stays a normal assembly reference, and its imports are
+       explicit and confined to InquiryInboxNotifier.cs (tray icon). -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
   <!-- Explicit inclusion keeps the application and verification executable separate. -->
   <ItemGroup>
     <Compile Include="App.xaml.cs;MainWindow.xaml.cs;AssemblyInfo.cs" />

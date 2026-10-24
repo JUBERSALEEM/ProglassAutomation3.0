@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 using ProGlassAutomation.Models.Inquiry;
+using ProGlassAutomation.Services.Inquiry;
 using System;
 using System.Globalization;
 
