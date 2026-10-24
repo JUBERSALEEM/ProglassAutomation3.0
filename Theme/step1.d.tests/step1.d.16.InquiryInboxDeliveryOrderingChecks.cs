@@ -53,6 +53,15 @@ internal static class InquiryInboxDeliveryOrderingChecks
             var folder = InquiryInboxService.FolderPath(inboxRoot, route, reference, submissionId);
             var manifestBytes = File.ReadAllBytes(Path.Combine(folder, "manifest.json"));
             var manifestHash = Convert.ToHexString(SHA256.HashData(manifestBytes)).ToLowerInvariant();
+            var parsedManifest = InquiryInboxService.ParseManifest(manifestBytes);
+            if (parsedManifest.RoutingKey != route || parsedManifest.Documents.Count != 1
+                || parsedManifest.SubmissionRaw.Contains("submission_reference", StringComparison.Ordinal) == false)
+                throw new InvalidOperationException("The stored delivery manifest is not valid JSON or lost its routing/submission data.");
+            var legacyManifest = Encoding.UTF8.GetString(manifestBytes)
+                .Replace("\"key\": \"unassigned\"", "\"unassigned\"", StringComparison.Ordinal);
+            var legacyParsed = InquiryInboxService.ParseManifest(Encoding.UTF8.GetBytes(legacyManifest));
+            if (legacyParsed.RoutingKey != route)
+                throw new InvalidOperationException("The pre-fix manifest compatibility repair failed.");
             var ready = File.ReadAllText(Path.Combine(folder, "READY")).Trim();
             if (ready != manifestHash)
                 throw new InvalidOperationException("READY does not contain the manifest-byte SHA-256.");

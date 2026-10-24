@@ -221,8 +221,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             sb.Append("    \"assignmentSnapshot\": ");
             Write(sb, snapshot.RootElement, 2);
             sb.Append(",\n");
-            Spaces(sb, 3);
-            sb.Append('"').Append(Escape(manifest.RoutingKey)).Append("\",\n");
+            Spaces(sb, 2);
+            sb.Append("\"key\": \"").Append(Escape(manifest.RoutingKey)).Append("\",\n");
             sb.Append("    \"primaryEstimatorCode\": ");
             if (string.IsNullOrWhiteSpace(manifest.PrimaryEstimatorCode)) sb.Append("null");
             else sb.Append('"').Append(Escape(manifest.PrimaryEstimatorCode)).Append('"');

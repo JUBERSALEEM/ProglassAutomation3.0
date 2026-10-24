@@ -894,9 +894,27 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             return (manifest, hash);
         }
 
+        private static System.Text.Json.JsonDocument ParseManifestJsonWithLegacyRoutingRepair(byte[] manifestBytes)
+        {
+            try { return System.Text.Json.JsonDocument.Parse(manifestBytes); }
+            catch (System.Text.Json.JsonException original)
+            {
+                // Early 3.0 builds emitted the routing value without its "key" property name.
+                // Repair only that exact shape in memory; never rewrite the acknowledged bytes or READY hash.
+                var json = System.Text.Encoding.UTF8.GetString(manifestBytes);
+                const string pattern = "(\"routing\"\\s*:\\s*\\{[\\s\\S]*?,\\s*)(\"(?:\\\\.|[^\"\\\\])*\")(\\s*,\\s*\"primaryEstimatorCode\"\\s*:)";
+                var repaired = System.Text.RegularExpressions.Regex.Replace(json, pattern,
+                    match => match.Groups[1].Value + "\"key\": " + match.Groups[2].Value + match.Groups[3].Value,
+                    System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+                if (string.Equals(json, repaired, StringComparison.Ordinal)) throw;
+                try { return System.Text.Json.JsonDocument.Parse(repaired); }
+                catch (System.Text.Json.JsonException) { throw original; }
+            }
+        }
+
         internal static InboxManifest ParseManifest(byte[] manifestBytes)
         {
-            using var doc = System.Text.Json.JsonDocument.Parse(manifestBytes);
+            using var doc = ParseManifestJsonWithLegacyRoutingRepair(manifestBytes);
             var root = doc.RootElement;
             var manifest = new InboxManifest
             {
