@@ -5,9 +5,9 @@
   <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   <Setter Property="CaretBrush" Value="{DynamicResource TextPrimary}" />
-  <Setter Property="SelectionTextBrush" Value="{DynamicResource TextOnAccent}" />
+  <Setter Property="SelectionTextBrush" Value="{DynamicResource TextPrimary}" />
   <Setter Property="SelectionOpacity" Value="{DynamicResource SelectionOpacity}" />
-  <Setter Property="SelectionBrush" Value="{DynamicResource AccentPrimary}" />
+  <Setter Property="SelectionBrush" Value="{DynamicResource StateSelected}" />
   <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
   <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
   <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />

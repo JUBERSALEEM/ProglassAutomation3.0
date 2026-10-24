@@ -61,8 +61,8 @@ for theme in themes:
 
     inputs = (theme / "step1.e.Components/step1.e.4.Inputs.xaml").read_text(encoding="utf-8")
     textbox_template = inputs.split('<Setter Property="Template"', 1)[1].split('</ControlTemplate>', 1)[0]
-    assert 'SelectionBrush" Value="{DynamicResource AccentPrimary}"' in inputs, theme.name
-    assert 'SelectionTextBrush" Value="{DynamicResource TextOnAccent}"' in inputs, theme.name
+    assert 'SelectionBrush" Value="{DynamicResource StateSelected}"' in inputs, theme.name
+    assert 'SelectionTextBrush" Value="{DynamicResource TextPrimary}"' in inputs, theme.name
     assert 'Property="IsMouseOver" Value="True"' in textbox_template, theme.name
     assert 'Value="{DynamicResource StateHover}"' in textbox_template, theme.name
     assert 'TextBoxFocusBehavior.SelectAllOnFocus" Value="True"' in inputs, theme.name
