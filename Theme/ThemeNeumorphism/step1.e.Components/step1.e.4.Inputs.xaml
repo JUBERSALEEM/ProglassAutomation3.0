@@ -1,5 +1,6 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:neu="clr-namespace:ProGlassAutomation.ThemeNeumorphism">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:neu="clr-namespace:ProGlassAutomation.ThemeNeumorphism" xmlns:input="clr-namespace:ProGlassAutomation.Customization">
  <Style TargetType="TextBox">
+  <Setter Property="input:TextBoxFocusBehavior.SelectAllOnFocus" Value="True" />
   <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
   <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />

@@ -206,7 +206,12 @@
                         <TextBlock Text="Supabase password" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}"
                                    ToolTip="Use the password for this Supabase Auth account. The website's emailed OTP cannot be entered as a password." />
                         <PasswordBox x:Name="PasswordBox" Style="{StaticResource InboxPasswordBox}"
+                                     Background="{DynamicResource SurfacePrimary}"
+                                     BorderBrush="{DynamicResource BorderStrong}"
+                                     BorderThickness="{DynamicResource BorderThicknessControl}"
+                                     Padding="{DynamicResource PaddingControl}"
                                      MinWidth="{DynamicResource ControlMinWidth}"
+                                     MinHeight="{DynamicResource ControlMinHeight}"
                                      ToolTip="Your account must have a website-granted role for inquiry inbox access."
                                      AutomationProperties.Name="Supabase account password" />
                     </StackPanel>

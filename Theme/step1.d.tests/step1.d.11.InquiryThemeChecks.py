@@ -65,6 +65,11 @@ for theme in themes:
     assert 'SelectionTextBrush" Value="{DynamicResource TextOnAccent}"' in inputs, theme.name
     assert 'Property="IsMouseOver" Value="True"' in textbox_template, theme.name
     assert 'Value="{DynamicResource StateHover}"' in textbox_template, theme.name
+    assert 'TextBoxFocusBehavior.SelectAllOnFocus" Value="True"' in inputs, theme.name
+
+focus_behavior = (ROOT / "Theme/step1.g.Customization/step1.g.7.TextBoxFocusBehavior.cs").read_text(encoding="utf-8")
+assert 'textBox.SelectAll()' in focus_behavior
+assert 'PreviewMouseLeftButtonDown' in focus_behavior
 
 assert 'Width="70" Margin="{DynamicResource MarginInline}"' in inbox_xaml
 assert 'Text="Supabase account email"' in inbox_xaml
