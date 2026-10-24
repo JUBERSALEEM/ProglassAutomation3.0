@@ -225,7 +225,7 @@
                         <DataGrid ItemsSource="{Binding LineItems}"
                                   AutoGenerateColumns="False"
                                   IsReadOnly="False"
-                                  SelectionMode="SingleRow"
+                                  SelectionMode="Single"
                                   SelectionUnit="FullRow"
                                   CanUserAddRows="False"
                                   CanUserDeleteRows="False"

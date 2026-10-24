@@ -270,7 +270,7 @@
                               SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
-                              SelectionMode="SingleRow"
+                              SelectionMode="Single"
                               SelectionUnit="FullRow"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
