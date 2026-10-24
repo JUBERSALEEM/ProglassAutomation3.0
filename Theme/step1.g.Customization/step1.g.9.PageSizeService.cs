@@ -40,20 +40,20 @@ public static class PageSizeService
          Thickness item, Thickness inline, Thickness sectionMargin) = state.Size switch
         {
             PageSize.Compact => (12, 13, 16, 20, 28, 4, 8, 16, 24, 32, 32, 18,
-                new Thickness(10, 5), new Thickness(16), new Thickness(12), new Thickness(16),
-                new Thickness(8), new Thickness(8, 4), new Thickness(4), new Thickness(10, 5, 32, 5),
+                new Thickness(10, 5, 10, 5), new Thickness(16), new Thickness(12), new Thickness(16),
+                new Thickness(8), new Thickness(8, 4, 8, 4), new Thickness(4), new Thickness(10, 5, 32, 5),
                 new Thickness(0, 0, 0, 8), new Thickness(0, 0, 8, 4), new Thickness(0, 0, 0, 12)),
             PageSize.Cozy => (12.5, 13.5, 17, 21, 30, 5, 10, 18, 28, 36, 34, 19,
-                new Thickness(11, 6), new Thickness(18), new Thickness(13), new Thickness(18),
-                new Thickness(9), new Thickness(10, 6), new Thickness(5), new Thickness(11, 6, 34, 6),
+                new Thickness(11, 6, 11, 6), new Thickness(18), new Thickness(13), new Thickness(18),
+                new Thickness(9), new Thickness(10, 6, 10, 6), new Thickness(5), new Thickness(11, 6, 34, 6),
                 new Thickness(0, 0, 0, 10), new Thickness(0, 0, 10, 5), new Thickness(0, 0, 0, 14)),
             PageSize.Comfortable => (13, 14, 18, 23, 32, 6, 12, 20, 32, 40, 36, 20,
-                new Thickness(12, 7), new Thickness(20), new Thickness(14), new Thickness(20),
-                new Thickness(10), new Thickness(12, 8), new Thickness(6), new Thickness(12, 7, 36, 7),
+                new Thickness(12, 7, 12, 7), new Thickness(20), new Thickness(14), new Thickness(20),
+                new Thickness(10), new Thickness(12, 8, 12, 8), new Thickness(6), new Thickness(12, 7, 36, 7),
                 new Thickness(0, 0, 0, 12), new Thickness(0, 0, 12, 6), new Thickness(0, 0, 0, 16)),
             _ => (13.5, 15, 20, 26, 36, 8, 16, 24, 40, 48, 40, 22,
-                new Thickness(14, 8), new Thickness(24), new Thickness(16), new Thickness(24),
-                new Thickness(12), new Thickness(16, 10), new Thickness(8), new Thickness(14, 8, 40, 8),
+                new Thickness(14, 8, 14, 8), new Thickness(24), new Thickness(16), new Thickness(24),
+                new Thickness(12), new Thickness(16, 10, 16, 10), new Thickness(8), new Thickness(14, 8, 40, 8),
                 new Thickness(0, 0, 0, 16), new Thickness(0, 0, 16, 8), new Thickness(0, 0, 0, 20))
         };
         Set(package, "FontSizeCaption", caption);
