@@ -64,6 +64,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         private readonly InquiryInboxSettings _settings;
         private readonly HttpClient _http;
         private string? _accessToken;
+        private string? _authenticatedConfiguration;
         private DateTime _tokenExpiresUtc = DateTime.MinValue;
         private bool _disposed;
 
@@ -90,12 +91,23 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         /// <summary>Signs in the bridge service account. Offline-safe (returns a result).</summary>
         public async Task<InboxSignInResult> SignInAsync(CancellationToken ct = default)
         {
-            var body = JsonSerializer.Serialize(new { email = _settings.BridgeEmail, password = _settings.GetPassword() });
+            // Capture one coherent credential set. Settings can be edited
+            // while a background check is running; never pair an old email
+            // with a newly saved password (or cache its token for the new
+            // account).
+            string url = Url;
+            string anonKey = _settings.AnonKey;
+            string email = _settings.BridgeEmail;
+            string encryptedPassword = _settings.EncryptedPassword;
+            string password = _settings.GetPassword();
+            string authConfiguration = BuildAuthConfiguration(url, anonKey, email, encryptedPassword);
+            var body = JsonSerializer.Serialize(new { email, password });
             var (status, payload, _) = await PostAsync(
-                Url + "/auth/v1/token?grant_type=password",
+                url + "/auth/v1/token?grant_type=password",
                 body,
                 withBearer: false,
-                ct).ConfigureAwait(false);
+                ct,
+                anonKey).ConfigureAwait(false);
 
             if (status == (int)HttpStatusCode.BadRequest || status == 401 || status == 403)
             {
@@ -118,9 +130,30 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             var expiresIn = doc.RootElement.TryGetProperty("expires_in", out var e) && e.ValueKind == JsonValueKind.Number
                 ? e.GetInt32()
                 : 3600;
+            if (!string.Equals(authConfiguration, CurrentAuthConfiguration(), StringComparison.Ordinal))
+            {
+                InvalidateAuthentication();
+                return InboxSignInResult.Fail("Connection settings changed during sign-in. Please test again.");
+            }
+
             _accessToken = token;
+            _authenticatedConfiguration = authConfiguration;
             _tokenExpiresUtc = DateTime.UtcNow.AddSeconds(Math.Max(60, expiresIn - 60));
             return InboxSignInResult.Ok();
+        }
+
+        private static string BuildAuthConfiguration(string url, string anonKey, string email, string encryptedPassword) =>
+            string.Join("\n", url, anonKey, email, encryptedPassword);
+
+        private string CurrentAuthConfiguration() =>
+            BuildAuthConfiguration(Url, _settings.AnonKey, _settings.BridgeEmail, _settings.EncryptedPassword);
+
+        /// <summary>Discard a cached JWT after connection credentials are edited.</summary>
+        public void InvalidateAuthentication()
+        {
+            _accessToken = null;
+            _authenticatedConfiguration = null;
+            _tokenExpiresUtc = DateTime.MinValue;
         }
 
         private static string DescribeAuth(int status, string payload)
@@ -147,7 +180,14 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         private async Task EnsureTokenAsync(CancellationToken ct)
         {
-            if (_accessToken != null && DateTime.UtcNow < _tokenExpiresUtc) return;
+            string currentConfiguration = CurrentAuthConfiguration();
+            if (_accessToken != null
+                && string.Equals(_authenticatedConfiguration, currentConfiguration, StringComparison.Ordinal)
+                && DateTime.UtcNow < _tokenExpiresUtc)
+                return;
+            if (!string.Equals(_authenticatedConfiguration, currentConfiguration, StringComparison.Ordinal))
+                InvalidateAuthentication();
+
             var result = await SignInAsync(ct).ConfigureAwait(false);
             if (!result.Success)
                 throw new InboxRemoteException(InboxRemoteErrorKind.Auth, result.Error ?? "Sign-in failed.");
@@ -281,14 +321,14 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         private static readonly JsonSerializerOptions JsonOpts = InboxJson.Options;
 
         private async Task<(int Status, string Payload, InboxRemoteErrorKind Kind)> PostAsync(
-            string url, string body, bool withBearer, CancellationToken ct)
+            string url, string body, bool withBearer, CancellationToken ct, string? anonKeyOverride = null)
         {
             if (withBearer) await EnsureTokenAsync(ct).ConfigureAwait(false);
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-                request.Headers.Add("apikey", _settings.AnonKey);
+                request.Headers.Add("apikey", anonKeyOverride ?? _settings.AnonKey);
                 if (withBearer)
                 {
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);

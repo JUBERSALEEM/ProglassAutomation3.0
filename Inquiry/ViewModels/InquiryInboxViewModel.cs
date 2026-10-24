@@ -333,26 +333,39 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             {
                 StatusText = "Saving settings…";
                 var s = _service.Settings;
-                s.SupabaseUrl = SupabaseUrl.Trim();
-                s.AnonKey = AnonKey.Trim();
-                s.BridgeEmail = BridgeEmail.Trim();
-                s.InboxRoot = string.IsNullOrWhiteSpace(InboxRoot) ? InquiryInboxSettings.DefaultInboxRoot : InboxRoot.Trim();
-                s.PollMinutes = PollMinutes;
-                s.NotificationsEnabled = NotificationsEnabled;
-                s.NotificationSound = NotificationSound;
-                s.ReportStatusToWebsite = ReportStatusToWebsite;
-                s.SyncWebsiteChat = SyncWebsiteChat;
+                var enteredPassword = GetPasswordFunc?.Invoke() ?? _pendingPassword;
+                bool accountChanged = !string.Equals(
+                    s.BridgeEmail.Trim(), BridgeEmail.Trim(), StringComparison.OrdinalIgnoreCase);
+                if (accountChanged && string.IsNullOrEmpty(enteredPassword))
+                {
+                    StatusText = "Account email changed. Enter that account's Supabase Auth password; the previously saved password belongs to the old account.";
+                    return;
+                }
 
-                var problem = InquiryInboxService.ValidateRoot(s.InboxRoot);
+                var inboxRoot = string.IsNullOrWhiteSpace(InboxRoot)
+                    ? InquiryInboxSettings.DefaultInboxRoot
+                    : InboxRoot.Trim();
+                var problem = InquiryInboxService.ValidateRoot(inboxRoot);
                 if (problem != null)
                 {
                     StatusText = problem;
                     return;
                 }
 
-                var password = GetPasswordFunc?.Invoke() ?? _pendingPassword;
-                if (!string.IsNullOrWhiteSpace(password))
-                    s.EncryptedPassword = s.EncryptPassword(password);
+                // Validate the whole form before mutating the shared settings
+                // object used by background sync.
+                s.SupabaseUrl = SupabaseUrl.Trim();
+                s.AnonKey = AnonKey.Trim();
+                s.BridgeEmail = BridgeEmail.Trim();
+                s.InboxRoot = inboxRoot;
+                s.PollMinutes = PollMinutes;
+                s.NotificationsEnabled = NotificationsEnabled;
+                s.NotificationSound = NotificationSound;
+                s.ReportStatusToWebsite = ReportStatusToWebsite;
+                s.SyncWebsiteChat = SyncWebsiteChat;
+
+                if (!string.IsNullOrEmpty(enteredPassword))
+                    s.EncryptedPassword = s.EncryptPassword(enteredPassword);
 
                 s.Save();
                 _notifier.SetSoundEnabled(s.NotificationSound);
@@ -394,11 +407,20 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 };
 
                 var enteredPassword = GetPasswordFunc?.Invoke() ?? _pendingPassword;
+                bool accountChanged = !string.Equals(
+                    saved.BridgeEmail.Trim(), candidate.BridgeEmail, StringComparison.OrdinalIgnoreCase);
+                if (accountChanged && string.IsNullOrEmpty(enteredPassword))
+                {
+                    StatusText = "Account email changed. Enter that account's Supabase Auth password before testing; the saved password belongs to the previous account.";
+                    return;
+                }
+
+                string savedPassword = saved.GetPassword();
                 if (!string.IsNullOrEmpty(enteredPassword))
                 {
                     candidate.EncryptedPassword = candidate.EncryptPassword(enteredPassword);
                 }
-                else if (saved.HasPassword && string.IsNullOrEmpty(saved.GetPassword()))
+                else if (saved.HasPassword && string.IsNullOrEmpty(savedPassword))
                 {
                     StatusText = "The saved password cannot be decrypted for this Windows account. Re-enter it, then test again.";
                     return;
@@ -409,6 +431,13 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                     StatusText = "Enter the Supabase URL, public API key, account email, and password before testing.";
                     return;
                 }
+
+                bool matchesSavedConnection =
+                    string.Equals(candidate.SupabaseUrl, saved.SupabaseUrl, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(candidate.AnonKey, saved.AnonKey, StringComparison.Ordinal)
+                    && string.Equals(candidate.BridgeEmail, saved.BridgeEmail, StringComparison.OrdinalIgnoreCase)
+                    && (string.IsNullOrEmpty(enteredPassword)
+                        || string.Equals(enteredPassword, savedPassword, StringComparison.Ordinal));
 
                 StatusText = "Signing in to the website…";
                 using var client = new InquiryInboxClient(candidate);
@@ -425,9 +454,12 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 try
                 {
                     var pending = await client.PlanDeliveriesAsync(10, CancellationToken.None);
-                    SetConnectionVerified(true);
+                    SetConnectionVerified(matchesSavedConnection);
                     StatusText = "Website connection OK — sign-in OK, inbox access OK ("
-                        + pending.Count + " pending).";
+                        + pending.Count + " pending)."
+                        + (matchesSavedConnection
+                            ? ""
+                            : " These form values are not saved; choose Save connection to use them for automatic checks.");
                 }
                 catch (InboxRemoteException ex)
                 {

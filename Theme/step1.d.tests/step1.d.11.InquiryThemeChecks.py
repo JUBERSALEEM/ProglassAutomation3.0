@@ -125,5 +125,11 @@ view_model = (ROOT / "Inquiry/ViewModels/InquiryInboxViewModel.cs").read_text(en
 assert '403 => InboxRemoteErrorKind.PermissionDenied' in client
 assert 'InboxRemoteErrorKind.PermissionDenied => "Access denied"' in service
 assert 'Signed in — this account is not authorized for the website inbox' in view_model
+assert 'matchesSavedConnection' in view_model
+assert 'Save connection to use them for automatic checks' in view_model
+assert "Account email changed. Enter that account's Supabase Auth password" in view_model
+assert 'CurrentAuthConfiguration()' in client
+assert '_authenticatedConfiguration' in client
+assert 'ToolTip="{Binding Error}"' in inbox_xaml
 
 print("PASS: inquiry theme styles, interval spacing, inbox schema repair, dynamic input interaction, and auth/authorization diagnostics")

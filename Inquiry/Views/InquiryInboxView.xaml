@@ -273,7 +273,9 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StateTag}"
-                                                HorizontalAlignment="Left">
+                                                HorizontalAlignment="Left"
+                                                ToolTip="{Binding Error}"
+                                                ToolTipService.ShowDuration="60000">
                                             <TextBlock Text="{Binding State}" Style="{DynamicResource StatusText}"
                                                        Tag="{Binding StateTag}" />
                                         </Border>
