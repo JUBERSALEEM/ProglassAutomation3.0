@@ -134,6 +134,39 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                 SchemaMigrationSql.AddColumnIfMissing(connection, "Communications", "ExternalId", "TEXT NULL");
                 SchemaMigrationSql.CreateIndexIfNotExists(connection,
                     "CREATE INDEX IF NOT EXISTS \"IX_Communications_InquiryId_ExternalId\" ON \"Communications\" (\"InquiryId\", \"ExternalId\");");
+            }),
+            // Some installs have a later user_version but lack InboxItems
+            // (e.g. an earlier upgrade was skipped or interrupted). This
+            // idempotent repair converges the legacy inbox table name when
+            // present, otherwise creates the EF table queried by the app.
+            new(1008, "Inquiry: ensure current website inbox ledger table", connection =>
+            {
+                ConvergeInquiryInboxTableName(connection);
+                SchemaMigrationSql.CreateTableIfNotExists(connection, @"
+                    CREATE TABLE IF NOT EXISTS ""InboxItems"" (
+                        ""SubmissionId"" TEXT NOT NULL CONSTRAINT ""PK_InboxItems"" PRIMARY KEY,
+                        ""Reference"" TEXT NOT NULL DEFAULT '',
+                        ""State"" TEXT NOT NULL DEFAULT 'downloaded',
+                        ""ManifestSha256"" TEXT NOT NULL DEFAULT '',
+                        ""DocumentCount"" INTEGER NOT NULL DEFAULT 0,
+                        ""RoutingKey"" TEXT NOT NULL DEFAULT '',
+                        ""PrimaryEstimatorCode"" TEXT NOT NULL DEFAULT '',
+                        ""AssignmentSnapshot"" TEXT NOT NULL DEFAULT '[]',
+                        ""DownloadedAt"" TEXT NOT NULL DEFAULT '',
+                        ""IngestedAt"" TEXT NOT NULL DEFAULT '',
+                        ""LocalInquiryId"" INTEGER NULL,
+                        ""LocalInquiryNumber"" TEXT NOT NULL DEFAULT '',
+                        ""Error"" TEXT NOT NULL DEFAULT ''
+                    );");
+                SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                    "CREATE INDEX IF NOT EXISTS \"IX_InboxItems_State\" ON \"InboxItems\" (\"State\");");
+                SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                    "CREATE INDEX IF NOT EXISTS \"IX_InboxItems_Reference\" ON \"InboxItems\" (\"Reference\");");
+            }, connection =>
+            {
+                SchemaMigrationSql.RequireColumn(connection, "InboxItems", "SubmissionId");
+                SchemaMigrationSql.RequireColumn(connection, "InboxItems", "State");
+                SchemaMigrationSql.RequireColumn(connection, "InboxItems", "Reference");
             })
         };
 
@@ -338,6 +371,36 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                     SchemaMigrationSql.CreateIndexIfNotExists(connection,
                         $"CREATE INDEX IF NOT EXISTS \"{index}\" ON \"{current}\" ({columns});");
             }
+        }
+
+        /// <summary>
+        /// Converges the old website-ledger table name without touching
+        /// other child tables. The 1008 repair can run independently on
+        /// installs whose user_version already passed the earlier
+        /// convergence migration.
+        /// </summary>
+        private static void ConvergeInquiryInboxTableName(SqliteConnection connection)
+        {
+            var (hasLegacy, legacyRows) = TableRowCount(connection, "InquiryInboxItems");
+            var (hasCurrent, currentRows) = TableRowCount(connection, "InboxItems");
+
+            if (hasLegacy && !hasCurrent)
+            {
+                SchemaMigrationSql.Execute(connection,
+                    "ALTER TABLE [InquiryInboxItems] RENAME TO [InboxItems];");
+            }
+            else if (hasLegacy && hasCurrent && legacyRows == 0)
+            {
+                SchemaMigrationSql.Execute(connection, "DROP TABLE [InquiryInboxItems];");
+            }
+            else if (hasLegacy && hasCurrent && currentRows == 0)
+            {
+                SchemaMigrationSql.Execute(connection, "DROP TABLE [InboxItems];");
+                SchemaMigrationSql.Execute(connection,
+                    "ALTER TABLE [InquiryInboxItems] RENAME TO [InboxItems];");
+            }
+            // If both tables carry data, preserve both; EF continues to use
+            // InboxItems and the legacy table remains available for review.
         }
 
         private static (bool Exists, long Rows) TableRowCount(SqliteConnection connection, string table)

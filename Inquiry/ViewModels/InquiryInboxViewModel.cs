@@ -230,9 +230,27 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         private int _failedCount;
         public int FailedCount { get => _failedCount; private set => SetField(ref _failedCount, value); }
 
-        public string ConnectionText => IsConfigured
-            ? "Connected to the customer website"
-            : "Website connection not configured yet";
+        private bool _connectionVerified;
+        public string ConnectionText
+        {
+            get
+            {
+                if (!IsConfigured) return "Website connection not configured yet";
+                if (_connectionVerified) return "Connected to the customer website";
+                var savedStatus = _service.Settings.LastSyncStatus ?? "";
+                if (savedStatus == "Sign-in failed")
+                    return "Sign-in failed — check account, password, and API key";
+                if (savedStatus.StartsWith("Offline", StringComparison.Ordinal))
+                    return "Connection settings saved — website unreachable";
+                return "Connection settings saved — not yet verified";
+            }
+        }
+
+        private void SetConnectionVerified(bool verified)
+        {
+            _connectionVerified = verified;
+            OnPropertyChanged(nameof(ConnectionText));
+        }
 
         private string _autoSyncText = "";
         public string AutoSyncText { get => _autoSyncText; private set => SetField(ref _autoSyncText, value); }
@@ -291,6 +309,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             OnPropertyChanged(nameof(HasSavedPassword));
             OnPropertyChanged(nameof(SavedPasswordHint));
             IsConfigured = s.IsConfigured;
+            SetConnectionVerified(s.LastSyncStatus is "OK" or "OK (with failures)");
             RefreshAutoSyncText();
         }
 
@@ -344,46 +363,67 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
         private async Task TestConnectionAsync()
         {
-            if (!IsConfigured)
-            {
-                StatusText = "Save the website connection details first.";
-                return;
-            }
             IsSyncing = true;
+            SetConnectionVerified(false);
             try
             {
-                StatusText = "Signing in to the website…";
-                var client = new InquiryInboxClient(_service.Settings);
-                try
+                // Test the values currently in the editor, not just the last
+                // saved settings. Otherwise typing a corrected password and
+                // pressing Test connection would silently retry the old one.
+                var saved = _service.Settings;
+                var candidate = new InquiryInboxSettings
                 {
+                    SupabaseUrl = SupabaseUrl.Trim(),
+                    AnonKey = AnonKey.Trim(),
+                    BridgeEmail = BridgeEmail.Trim(),
+                    InboxRoot = string.IsNullOrWhiteSpace(InboxRoot)
+                        ? InquiryInboxSettings.DefaultInboxRoot
+                        : InboxRoot.Trim(),
+                    EncryptedPassword = saved.EncryptedPassword
+                };
+
+                var enteredPassword = GetPasswordFunc?.Invoke() ?? _pendingPassword;
+                if (!string.IsNullOrEmpty(enteredPassword))
+                {
+                    candidate.EncryptedPassword = candidate.EncryptPassword(enteredPassword);
+                }
+                else if (saved.HasPassword && string.IsNullOrEmpty(saved.GetPassword()))
+                {
+                    StatusText = "The saved password cannot be decrypted for this Windows account. Re-enter it, then test again.";
+                    return;
+                }
+
+                if (!candidate.IsConfigured)
+                {
+                    StatusText = "Enter the Supabase URL, API key, bridge email, and password before testing.";
+                    return;
+                }
+
+                StatusText = "Signing in to the website…";
+                using var client = new InquiryInboxClient(candidate);
                 var result = await client.SignInAsync();
                 if (!result.Success)
                 {
                     StatusText = "Sign-in failed: " + (result.Error ?? "unknown error");
+                    return;
                 }
-                else
+
+                // Sign-in proves the account; the plan call proves the
+                // account may actually read the inbox (RPC role).
+                StatusText = "Signed in — checking inbox access…";
+                try
                 {
-                    // Sign-in proves the account; the plan call proves the
-                    // account may actually read the inbox (RPC role).
-                    StatusText = "Signed in — checking inbox access…";
-                    try
-                    {
-                        var pending = await client.PlanDeliveriesAsync(10, CancellationToken.None);
-                        StatusText = "Website connection OK — sign-in OK, inbox access OK ("
-                            + pending.Count + " pending).";
-                    }
-                    catch (InboxRemoteException ex)
-                    {
-                        StatusText = "Sign-in OK but inbox access failed: "
-                            + (ex.Kind == InboxRemoteErrorKind.Offline
-                                ? "the website is unreachable."
-                                : ex.Message);
-                    }
+                    var pending = await client.PlanDeliveriesAsync(10, CancellationToken.None);
+                    SetConnectionVerified(true);
+                    StatusText = "Website connection OK — sign-in OK, inbox access OK ("
+                        + pending.Count + " pending).";
                 }
-                }
-                finally
+                catch (InboxRemoteException ex)
                 {
-                    client.Dispose();
+                    StatusText = "Sign-in OK but inbox access failed: "
+                        + (ex.Kind == InboxRemoteErrorKind.Offline
+                            ? "the website is unreachable."
+                            : ex.Message);
                 }
             }
             catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.Offline)
@@ -458,6 +498,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             LastSyncText = string.IsNullOrEmpty(_service.Settings.LastSyncAtUtc)
                 ? "No check yet this session."
                 : $"Last check: {_service.Settings.LastSyncAtUtc.Substring(0, 19)} (UTC) · {_service.Settings.LastSyncStatus}";
+            SetConnectionVerified(_service.Settings.LastSyncStatus is "OK" or "OK (with failures)");
         }
 
         private void OnServiceStateChanged(object? sender, EventArgs e)

@@ -13,6 +13,49 @@
             <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
             <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
         </Style>
+        <!-- PasswordBox has a distinct WPF control template and cannot
+             inherit TextBox's template. Keep it on the same theme tokens,
+             with a rounded field frame and the required PART_ContentHost. -->
+        <Style x:Key="InboxPasswordBox" TargetType="PasswordBox">
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyBody}" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="Frame" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                          IsTabStop="False" Background="Transparent"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Frame" Property="Opacity" Value="0.55" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="InboxRefCell" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -164,7 +207,8 @@
                                  AutomationProperties.Name="Supabase URL" />
                     </StackPanel>
                     <StackPanel Grid.Row="0" Grid.Column="1" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Anon key" Style="{StaticResource InboxFieldLabel}" />
+                        <TextBlock Text="Supabase API key (anon or publishable)" Style="{StaticResource InboxFieldLabel}"
+                                   ToolTip="Use a public anon or publishable key. Never enter a service_role secret here." />
                         <TextBox Style="{StaticResource InboxTextField}" Margin="0"
                                  Text="{Binding AnonKey, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="Supabase anon key" />
@@ -177,7 +221,7 @@
                     </StackPanel>
                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="{DynamicResource MarginInline}">
                         <TextBlock Text="Bridge password" Style="{StaticResource InboxFieldLabel}" />
-                        <PasswordBox x:Name="PasswordBox" Margin="0"
+                        <PasswordBox x:Name="PasswordBox" Style="{StaticResource InboxPasswordBox}"
                                      ToolTip="Stored encrypted on this computer only"
                                      AutomationProperties.Name="Bridge account password" />
                     </StackPanel>

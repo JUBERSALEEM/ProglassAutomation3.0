@@ -121,8 +121,17 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             try
             {
                 using var doc = JsonDocument.Parse(payload);
-                var msg = doc.RootElement.TryGetProperty("msg", out var m) ? m.GetString()
-                    : doc.RootElement.TryGetProperty("error_description", out var d) ? d.GetString() : null;
+                var root = doc.RootElement;
+                // Supabase Auth and the API gateway use different error
+                // envelopes: GoTrue commonly returns msg/error_description,
+                // while an invalid API key is returned as message/error.
+                // Preserve the server's actual diagnosis instead of labeling
+                // every 401 as a bad email/password.
+                var msg = root.TryGetProperty("message", out var message) ? message.GetString()
+                    : root.TryGetProperty("msg", out var m) ? m.GetString()
+                    : root.TryGetProperty("error_description", out var d) ? d.GetString()
+                    : root.TryGetProperty("error", out var error) ? error.GetString()
+                    : null;
                 if (!string.IsNullOrEmpty(msg)) return msg;
             }
             catch { }

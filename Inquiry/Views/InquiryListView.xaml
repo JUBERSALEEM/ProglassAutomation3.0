@@ -124,7 +124,7 @@
                     <TextBlock Text="Received + prepared" Style="{DynamicResource Caption}" />
                 </StackPanel>
             </ContentControl>
-            <ContentControl Grid.Column="2" Style="{DynamicResource MetricCard}" Margin="{DynamicResource MarginItem}">
+            <ContentControl Grid.Column="2" Style="{DynamicResource MetricCard}" Margin="{DynamicResource PaddingCompact}">
                 <StackPanel>
                     <TextBlock Text="Awaiting customer" Style="{DynamicResource Caption}" />
                     <TextBlock Text="{Binding AwaitingCount}" FontSize="{DynamicResource FontSizeSection}"
