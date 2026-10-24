@@ -87,7 +87,14 @@
         <Border Background="{DynamicResource TransparentBrush}"><TextBlock Text="⌄" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondary}" /></Border>
        </ControlTemplate></ToggleButton.Template>
       </ToggleButton>
-      <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" Margin="0,0,24,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" />
+      <ContentPresenter x:Name="ContentSite" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" Margin="0,0,24,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False" />
+    <TextBox x:Name="PART_EditableTextBox" Style="{x:Null}" Margin="0,0,24,0"
+             Visibility="Hidden" Focusable="True"
+             Background="Transparent" Foreground="{TemplateBinding Foreground}"
+             CaretBrush="{TemplateBinding Foreground}" BorderThickness="0" Padding="0"
+             FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}"
+             FontWeight="{TemplateBinding FontWeight}" VerticalContentAlignment="Center"
+             IsReadOnly="{TemplateBinding IsReadOnly}" />
      </Grid>
     </clay:ClaySurface>
     <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False">
@@ -97,6 +104,10 @@
     </Popup>
    </Grid>
    <ControlTemplate.Triggers>
+   <Trigger Property="IsEditable" Value="True">
+    <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden" />
+    <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+   </Trigger>
     <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource DisabledText}" /><Setter TargetName="Frame" Property="Background" Value="{DynamicResource DisabledSurface}" /></Trigger>
    </ControlTemplate.Triggers>
   </ControlTemplate></Setter.Value></Setter>

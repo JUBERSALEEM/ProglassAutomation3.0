@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -147,16 +148,24 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
         // ── Form fields (each setter marks the form dirty) ─────────────
 
+        private bool SetFormField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+        {
+            if (!SetField(ref field, value, propertyName)) return false;
+            IsDirty = true;
+            return true;
+        }
+
         private string _reference = "";
-        public string Reference { get => _reference; set => SetField(ref _reference, value); }
+        public string Reference { get => _reference; set => SetFormField(ref _reference, value); }
         private string _customerName = "";
         public string CustomerName
         {
             get => _customerName;
             set
             {
-                if (!SetField(ref _customerName, value)) return;
+                if (!SetFormField(ref _customerName, value)) return;
                 RefreshCustomerLocations();
+                NotifyCanSaveChanged();
                 // Auto-fill the location the first time the user picks a
                 // known customer — but never clobber a value they typed
                 // themselves.
@@ -174,7 +183,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             get => _customerLocation;
             set
             {
-                if (!SetField(ref _customerLocation, value)) return;
+                if (!SetFormField(ref _customerLocation, value)) return;
                 // Any time the user touches the location box, mark it
                 // manually edited so future auto-fills don't overwrite it.
                 _locationManuallyEdited = !string.IsNullOrWhiteSpace(_customerLocation)
@@ -182,36 +191,27 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             }
         }
         private string _projectName = "";
-        public string ProjectName { get => _projectName; set => SetField(ref _projectName, value); }
-        private string _projectDescription = "";
-        public string ProjectDescription { get => _projectDescription; set => SetField(ref _projectDescription, value); }
-        private string _salesmanName = "";
-        public string SalesmanName
+        public string ProjectName
         {
-            get => _salesmanName;
-            set
-            {
-                if (SetField(ref _salesmanName, value))
-                {
-                    // The dropdown list grows for genuinely new names so
-                    // the value stays visible while typing.
-                    if (!string.IsNullOrWhiteSpace(_salesmanName)
-                        && !Salesmen.Any(s => string.Equals(s, _salesmanName, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        Salesmen.Add(_salesmanName);
-                    }
-                }
-            }
+            get => _projectName;
+            set { if (SetFormField(ref _projectName, value)) NotifyCanSaveChanged(); }
         }
+        private string _projectDescription = "";
+        public string ProjectDescription { get => _projectDescription; set => SetFormField(ref _projectDescription, value); }
+        private string _salesmanName = "";
+        // Keep free-typed text out of the suggestion source while the user
+        // types. Adding every PropertyChanged prefix to ItemsSource can
+        // disturb the editable ComboBox and leave partial names as options.
+        public string SalesmanName { get => _salesmanName; set => SetFormField(ref _salesmanName, value); }
         private string _notes = "";
-        public string Notes { get => _notes; set => SetField(ref _notes, value); }
+        public string Notes { get => _notes; set => SetFormField(ref _notes, value); }
         private string _priority = "Normal";
-        public string Priority { get => _priority; set => SetField(ref _priority, value); }
+        public string Priority { get => _priority; set => SetFormField(ref _priority, value); }
         private DateTime _receivedDate = DateTime.Today;
         public DateTime ReceivedDate
         {
             get => _receivedDate;
-            set { if (SetField(ref _receivedDate, value.Date)) OnPropertyChanged(nameof(ReceivedHint)); }
+            set { if (SetFormField(ref _receivedDate, value.Date)) OnPropertyChanged(nameof(ReceivedHint)); }
         }
         private string _valueText = "";
         public string ValueText
@@ -219,10 +219,11 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             get => _valueText;
             set
             {
-                if (SetField(ref _valueText, value))
+                if (SetFormField(ref _valueText, value))
                 {
                     OnPropertyChanged(nameof(HasValueError));
                     OnPropertyChanged(nameof(ValueHint));
+                    NotifyCanSaveChanged();
                 }
             }
         }
@@ -462,6 +463,12 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             && !HasValueError
             && InquiryValidationRules.ValidateLineItems(
                 LineItems.Select(r => r.ToEntity()).ToList()).Count == 0;
+
+        private void NotifyCanSaveChanged()
+        {
+            OnPropertyChanged(nameof(CanSave));
+            AsyncUtility.InvalidateCommandsThrottled();
+        }
 
         private async Task LoadSuggestListsAsync()
         {

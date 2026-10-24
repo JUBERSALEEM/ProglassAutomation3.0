@@ -60,6 +60,11 @@ for theme in themes:
     assert 'x:Key="StatusBadge"' in workspace, theme.name
 
     inputs = (theme / "step1.e.Components/step1.e.4.Inputs.xaml").read_text(encoding="utf-8")
+    combo_template = inputs.split('<Style TargetType="ComboBox">', 1)[1].split('</Style>', 1)[0]
+    assert 'x:Name="PART_EditableTextBox"' in combo_template, theme.name
+    assert 'x:Name="ContentSite"' in combo_template, theme.name
+    assert 'Property="IsEditable" Value="True"' in combo_template, theme.name
+    assert 'TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"' in combo_template, theme.name
     textbox_template = inputs.split('<Setter Property="Template"', 1)[1].split('</ControlTemplate>', 1)[0]
     assert 'SelectionBrush" Value="{DynamicResource StateSelected}"' in inputs, theme.name
     assert 'SelectionTextBrush" Value="{DynamicResource TextPrimary}"' in inputs, theme.name
@@ -74,6 +79,25 @@ for theme in themes:
         palette = (theme / f"{theme.name}.{appearance}.xaml").read_text(encoding="utf-8")
         selection_opacity = float(palette.split('x:Key="SelectionOpacity">', 1)[1].split('<', 1)[0])
         assert 0 < selection_opacity < 1, (theme.name, appearance, selection_opacity)
+
+editor_xaml_path = ROOT / "Inquiry/Views/InquiryEditorView.xaml"
+editor_xaml = editor_xaml_path.read_text(encoding="utf-8")
+ET.parse(editor_xaml_path)
+for field, source in (("Customer", "Customers"), ("Customer location", "CustomerLocations"), ("Salesman", "Salesmen")):
+    assert 'IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"' in editor_xaml
+    assert f'ItemsSource="{{Binding {source}}}"' in editor_xaml
+    assert f'AutomationProperties.Name="{field}"' in editor_xaml
+    assert f'Text="{{Binding {"CustomerName" if field == "Customer" else "CustomerLocation" if field == "Customer location" else "SalesmanName"}, UpdateSourceTrigger=PropertyChanged}}"' in editor_xaml
+editor_vm = (ROOT / "Inquiry/ViewModels/InquiryEditorViewModel.cs").read_text(encoding="utf-8")
+assert 'Record.CustomerName = CustomerName.Trim();' in editor_vm
+assert 'Record.CustomerLocation = CustomerLocation.Trim();' in editor_vm
+assert 'Record.SalesmanName = SalesmanName.Trim();' in editor_vm
+assert 'private void NotifyCanSaveChanged()' in editor_vm
+assert 'private bool SetFormField<T>' in editor_vm and 'IsDirty = true;' in editor_vm
+assert editor_vm.count('NotifyCanSaveChanged();') >= 3
+assert 'if (await SaveAsync() != null)' in editor_vm
+salesman_setter = editor_vm.split('public string SalesmanName', 1)[1].split('private string _notes', 1)[0]
+assert 'Salesmen.Add' not in salesman_setter
 
 focus_behavior = (ROOT / "Theme/step1.g.Customization/step1.g.7.TextBoxFocusBehavior.cs").read_text(encoding="utf-8")
 assert 'textBox.SelectAll()' in focus_behavior

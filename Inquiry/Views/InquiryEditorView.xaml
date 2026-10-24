@@ -138,13 +138,13 @@
                             </StackPanel>
                             <StackPanel Margin="{DynamicResource MarginInline}">
                                 <TextBlock Text="Customer  (required)" Style="{StaticResource EditorFieldLabel}" />
-                                <ComboBox Margin="{DynamicResource MarginItem}" MinHeight="{DynamicResource ControlMinHeight}" VerticalAlignment="Center" IsEditable="True"
+                                <ComboBox Margin="{DynamicResource MarginItem}" MinHeight="{DynamicResource ControlMinHeight}" VerticalAlignment="Center" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
                                           ItemsSource="{Binding Customers}" Text="{Binding CustomerName, UpdateSourceTrigger=PropertyChanged}"
                                           AutomationProperties.Name="Customer" />
                             </StackPanel>
                             <StackPanel Margin="{DynamicResource MarginInline}">
                                 <TextBlock Text="Location" Style="{StaticResource EditorFieldLabel}" />
-                                <ComboBox Margin="{DynamicResource MarginItem}" MinHeight="{DynamicResource ControlMinHeight}" VerticalAlignment="Center" IsEditable="True"
+                                <ComboBox Margin="{DynamicResource MarginItem}" MinHeight="{DynamicResource ControlMinHeight}" VerticalAlignment="Center" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
                                           ItemsSource="{Binding CustomerLocations}" Text="{Binding CustomerLocation, UpdateSourceTrigger=PropertyChanged}"
                                           AutomationProperties.Name="Customer location" />
                             </StackPanel>
@@ -155,7 +155,7 @@
                             </StackPanel>
                             <StackPanel Margin="{DynamicResource MarginInline}">
                                 <TextBlock Text="Salesman" Style="{StaticResource EditorFieldLabel}" />
-                                <ComboBox Margin="{DynamicResource MarginItem}" MinHeight="{DynamicResource ControlMinHeight}" VerticalAlignment="Center" IsEditable="True"
+                                <ComboBox Margin="{DynamicResource MarginItem}" MinHeight="{DynamicResource ControlMinHeight}" VerticalAlignment="Center" IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
                                           ItemsSource="{Binding Salesmen}" Text="{Binding SalesmanName, UpdateSourceTrigger=PropertyChanged}"
                                           AutomationProperties.Name="Salesman" />
                             </StackPanel>
