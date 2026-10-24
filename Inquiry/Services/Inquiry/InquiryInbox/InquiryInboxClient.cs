@@ -11,7 +11,7 @@
 //   rpc       POST {url}/rest/v1/rpc/{name}
 //             header apikey + Authorization Bearer + Content-Profile:public
 //   download  GET  {url}/storage/v1/object/{bucket}/{objectKey}
-//             header Authorization Bearer
+//             headers apikey + Authorization Bearer
 //
 // Failure kinds are separated so the service can stay NEUTRAL (not an
 // error state) when the website backend is simply unreachable — the
@@ -423,14 +423,17 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 using var response = await SendWithResetAsync(() =>
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, url);
+                    request.Headers.Add("apikey", _settings.AnonKey);
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
                     return request;
                 }, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     var text = await SafeReadTextAsync(response).ConfigureAwait(false);
-                    throw new InboxRemoteException(InboxRemoteErrorKind.Remote,
-                        $"Download failed (HTTP {(int)response.StatusCode}): {ExtractError(text)}",
+                    string message = (int)response.StatusCode == 401 && IsMissingApiKeyError(text)
+                        ? $"Storage download API-key error (HTTP 401): {ExtractError(text)}"
+                        : $"Download failed (HTTP {(int)response.StatusCode}): {ExtractError(text)}";
+                    throw new InboxRemoteException(InboxRemoteErrorKind.Remote, message,
                         (int?)response.StatusCode);
                 }
                 return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
@@ -499,6 +502,19 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         {
             try { return await response.Content.ReadAsStringAsync().ConfigureAwait(false); }
             catch { return ""; }
+        }
+
+        private static bool IsMissingApiKeyError(string payload)
+        {
+            string text = payload.ToLowerInvariant();
+            bool namesKey = text.Contains("api key", StringComparison.Ordinal)
+                || text.Contains("apikey", StringComparison.Ordinal);
+            bool indicatesMissing = text.Contains("missing", StringComparison.Ordinal)
+                || text.Contains("no api", StringComparison.Ordinal)
+                || text.Contains("not provided", StringComparison.Ordinal)
+                || text.Contains("not found", StringComparison.Ordinal)
+                || text.Contains("required", StringComparison.Ordinal);
+            return namesKey && indicatesMissing;
         }
 
         private static string ExtractError(string payload)

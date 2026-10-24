@@ -149,6 +149,11 @@ assert 'DisposeProcessHttpClientForTests' in client_check
 runtime_checks = (ROOT / "Theme/step1.d.tests/step1.d.1.RuntimeChecks.cs").read_text(encoding="utf-8")
 assert 'InquiryInboxHttpClientChecks.Run()' in runtime_checks
 assert 'InquiryInboxAuthorizationChecks.Run()' in runtime_checks
+assert 'InquiryInboxStorageChecks.Run()' in runtime_checks
+assert 'request.Headers.Add("apikey", _settings.AnonKey)' in client
+assert 'Storage download API-key error (HTTP 401)' in client
+storage_checks = (ROOT / "Theme/step1.d.tests/step1.d.14.InquiryInboxStorageChecks.cs").read_text(encoding="utf-8")
+assert 'StorageHadApiKey' in storage_checks and 'StorageHadBearer' in storage_checks
 assert 'get_my_inquiry_access_v1' in (ROOT / "Theme/step1.d.tests/step1.d.13.InquiryInboxAuthorizationChecks.cs").read_text(encoding="utf-8")
 closed = workspace.split('private void OnOwnerWindowClosed', 1)[1]
 assert closed.index('StateChanged -= OnInboxStateChanged') < closed.index('CancelSynchronization()') < closed.index('_inboxService.Dispose()') < closed.index('ShutdownProcessHttpClient()')
