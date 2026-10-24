@@ -149,7 +149,10 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                     "TEXT NOT NULL DEFAULT ''");
                 SchemaMigrationSql.RequireColumn(connection, "InboxItems", "AcknowledgedAtUtc");
                 SchemaMigrationSql.RequireColumn(connection, "InboxItems", "AcknowledgedBy");
-            })
+            }),
+            // 1006 used DbSet names despite [Table] mappings on the child entities.
+            // Restore the mapped names so EF writes to the tables it actually queries.
+            new(1010, "Inquiry: restore mapped inquiry child table names", EnsureMappedInquiryChildTables)
 
         };
 
@@ -399,6 +402,141 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             }
             SchemaMigrationSql.CreateIndexIfNotExists(connection,
                 "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Inquiries_InquiryNumber\" ON \"Inquiries\" (\"InquiryNumber\");");
+        }
+
+        private static void EnsureMappedInquiryChildTables(SqliteConnection connection)
+        {
+            ConvergeChildTableToMappedName(connection, "Attachments", "InquiryAttachments");
+            ConvergeChildTableToMappedName(connection, "Communications", "InquiryCommunications");
+            ConvergeChildTableToMappedName(connection, "LineItems", "InquiryLineItems");
+
+            SchemaMigrationSql.CreateTableIfNotExists(connection, @"
+                CREATE TABLE IF NOT EXISTS ""InquiryAttachments"" (
+                    ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_InquiryAttachments"" PRIMARY KEY AUTOINCREMENT,
+                    ""InquiryId"" INTEGER NOT NULL,
+                    ""FileName"" TEXT NOT NULL DEFAULT '',
+                    ""Extension"" TEXT NOT NULL DEFAULT '',
+                    ""FileSize"" INTEGER NOT NULL DEFAULT 0,
+                    ""StoragePath"" TEXT NOT NULL DEFAULT '',
+                    ""AttachmentType"" TEXT NOT NULL DEFAULT 'Document',
+                    ""UploadedBy"" TEXT NOT NULL DEFAULT '',
+                    ""UploadedAt"" TEXT NOT NULL DEFAULT '0001-01-01 00:00:00',
+                    CONSTRAINT ""FK_InquiryAttachments_Inquiries_InquiryId""
+                        FOREIGN KEY (""InquiryId"") REFERENCES ""Inquiries"" (""Id"") ON DELETE CASCADE
+                );");
+            SchemaMigrationSql.CreateTableIfNotExists(connection, @"
+                CREATE TABLE IF NOT EXISTS ""InquiryCommunications"" (
+                    ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_InquiryCommunications"" PRIMARY KEY AUTOINCREMENT,
+                    ""InquiryId"" INTEGER NOT NULL,
+                    ""EventType"" TEXT NOT NULL DEFAULT '',
+                    ""Title"" TEXT NOT NULL DEFAULT '',
+                    ""Description"" TEXT NOT NULL DEFAULT '',
+                    ""OccurredAt"" TEXT NOT NULL DEFAULT '0001-01-01 00:00:00',
+                    ""ActorUserId"" INTEGER NULL,
+                    ""ActorName"" TEXT NOT NULL DEFAULT '',
+                    ""ExternalId"" TEXT NULL,
+                    CONSTRAINT ""FK_InquiryCommunications_Inquiries_InquiryId""
+                        FOREIGN KEY (""InquiryId"") REFERENCES ""Inquiries"" (""Id"") ON DELETE CASCADE
+                );");
+            SchemaMigrationSql.CreateTableIfNotExists(connection, @"
+                CREATE TABLE IF NOT EXISTS ""InquiryLineItems"" (
+                    ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_InquiryLineItems"" PRIMARY KEY AUTOINCREMENT,
+                    ""InquiryId"" INTEGER NOT NULL,
+                    ""SortOrder"" INTEGER NOT NULL DEFAULT 0,
+                    ""GlassType"" TEXT NOT NULL DEFAULT '',
+                    ""SpecName"" TEXT NOT NULL DEFAULT '',
+                    ""OuterGlassColor"" TEXT NOT NULL DEFAULT '',
+                    ""InnerGlassColor"" TEXT NOT NULL DEFAULT '',
+                    ""WidthMm"" INTEGER NOT NULL DEFAULT 0,
+                    ""HeightMm"" INTEGER NOT NULL DEFAULT 0,
+                    ""Qty"" INTEGER NOT NULL DEFAULT 0,
+                    ""RatePerSqm"" TEXT NOT NULL DEFAULT '0',
+                    ""Notes"" TEXT NOT NULL DEFAULT '',
+                    ""CreatedAt"" TEXT NOT NULL DEFAULT '0001-01-01 00:00:00',
+                    CONSTRAINT ""FK_InquiryLineItems_Inquiries_InquiryId""
+                        FOREIGN KEY (""InquiryId"") REFERENCES ""Inquiries"" (""Id"") ON DELETE CASCADE
+                );");
+
+            foreach (var (table, column, definition) in new[]
+            {
+                ("InquiryAttachments", "InquiryId", "INTEGER NOT NULL DEFAULT 0"),
+                ("InquiryAttachments", "FileName", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryAttachments", "Extension", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryAttachments", "FileSize", "INTEGER NOT NULL DEFAULT 0"),
+                ("InquiryAttachments", "StoragePath", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryAttachments", "AttachmentType", "TEXT NOT NULL DEFAULT 'Document'"),
+                ("InquiryAttachments", "UploadedBy", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryAttachments", "UploadedAt", "TEXT NOT NULL DEFAULT '0001-01-01 00:00:00'"),
+                ("InquiryCommunications", "InquiryId", "INTEGER NOT NULL DEFAULT 0"),
+                ("InquiryCommunications", "EventType", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryCommunications", "Title", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryCommunications", "Description", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryCommunications", "OccurredAt", "TEXT NOT NULL DEFAULT '0001-01-01 00:00:00'"),
+                ("InquiryCommunications", "ActorUserId", "INTEGER NULL"),
+                ("InquiryCommunications", "ActorName", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryCommunications", "ExternalId", "TEXT NULL"),
+                ("InquiryLineItems", "InquiryId", "INTEGER NOT NULL DEFAULT 0"),
+                ("InquiryLineItems", "SortOrder", "INTEGER NOT NULL DEFAULT 0"),
+                ("InquiryLineItems", "GlassType", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryLineItems", "SpecName", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryLineItems", "OuterGlassColor", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryLineItems", "InnerGlassColor", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryLineItems", "WidthMm", "INTEGER NOT NULL DEFAULT 0"),
+                ("InquiryLineItems", "HeightMm", "INTEGER NOT NULL DEFAULT 0"),
+                ("InquiryLineItems", "Qty", "INTEGER NOT NULL DEFAULT 0"),
+                ("InquiryLineItems", "RatePerSqm", "TEXT NOT NULL DEFAULT '0'"),
+                ("InquiryLineItems", "Notes", "TEXT NOT NULL DEFAULT ''"),
+                ("InquiryLineItems", "CreatedAt", "TEXT NOT NULL DEFAULT '0001-01-01 00:00:00'")
+            })
+                SchemaMigrationSql.AddColumnIfMissing(connection, table, column, definition);
+
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                "CREATE INDEX IF NOT EXISTS \"IX_InquiryAttachments_InquiryId\" ON \"InquiryAttachments\" (\"InquiryId\");");
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                "CREATE INDEX IF NOT EXISTS \"IX_InquiryAttachments_UploadedAt\" ON \"InquiryAttachments\" (\"UploadedAt\");");
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                "CREATE INDEX IF NOT EXISTS \"IX_InquiryCommunications_InquiryId_OccurredAt\" ON \"InquiryCommunications\" (\"InquiryId\", \"OccurredAt\");");
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                "CREATE INDEX IF NOT EXISTS \"IX_InquiryCommunications_InquiryId_ExternalId\" ON \"InquiryCommunications\" (\"InquiryId\", \"ExternalId\");");
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                "CREATE INDEX IF NOT EXISTS \"IX_InquiryLineItems_InquiryId\" ON \"InquiryLineItems\" (\"InquiryId\");");
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                "CREATE INDEX IF NOT EXISTS \"IX_InquiryLineItems_InquiryId_SortOrder\" ON \"InquiryLineItems\" (\"InquiryId\", \"SortOrder\");");
+
+            foreach (var (table, columns) in new[]
+            {
+                ("InquiryAttachments", new[] { "Id", "InquiryId", "FileName", "Extension", "FileSize", "StoragePath", "AttachmentType", "UploadedBy", "UploadedAt" }),
+                ("InquiryCommunications", new[] { "Id", "InquiryId", "EventType", "Title", "Description", "OccurredAt", "ActorUserId", "ActorName", "ExternalId" }),
+                ("InquiryLineItems", new[] { "Id", "InquiryId", "SortOrder", "GlassType", "SpecName", "OuterGlassColor", "InnerGlassColor", "WidthMm", "HeightMm", "Qty", "RatePerSqm", "Notes", "CreatedAt" })
+            })
+                foreach (var column in columns)
+                    SchemaMigrationSql.RequireColumn(connection, table, column);
+        }
+
+        private static void ConvergeChildTableToMappedName(SqliteConnection connection,
+            string priorName, string mappedName)
+        {
+            var (hasPrior, priorRows) = TableRowCount(connection, priorName);
+            var (hasMapped, mappedRows) = TableRowCount(connection, mappedName);
+            if (hasPrior && !hasMapped)
+            {
+                SchemaMigrationSql.Execute(connection,
+                    $"ALTER TABLE \"{priorName}\" RENAME TO \"{mappedName}\";");
+            }
+            else if (hasPrior && hasMapped)
+            {
+                if (priorRows == 0)
+                    SchemaMigrationSql.Execute(connection, $"DROP TABLE \"{priorName}\";");
+                else if (mappedRows == 0)
+                {
+                    SchemaMigrationSql.Execute(connection, $"DROP TABLE \"{mappedName}\";");
+                    SchemaMigrationSql.Execute(connection,
+                        $"ALTER TABLE \"{priorName}\" RENAME TO \"{mappedName}\";");
+                }
+                else
+                    throw new InvalidOperationException(
+                        $"Both {priorName} and {mappedName} contain rows; automatic table-name repair stopped to preserve both datasets.");
+            }
         }
 
         /// <summary>

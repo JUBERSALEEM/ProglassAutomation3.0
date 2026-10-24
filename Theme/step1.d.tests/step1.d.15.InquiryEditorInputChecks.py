@@ -85,6 +85,8 @@ assert 'AcknowledgedBy' in (ROOT / "Inquiry/Models/Inquiry/InquiryInboxState.cs"
 assert 'Signed in as {AccessReport.AccountEmail}' in view_model
 migrations = (ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs").read_text(encoding="utf-8")
 assert 'new(1009, "Inquiry: persist website acknowledgement identity"' in migrations
+assert 'new(1010, "Inquiry: restore mapped inquiry child table names"' in migrations
+assert 'ConvergeChildTableToMappedName(connection, "Communications", "InquiryCommunications")' in migrations
 assert 'RequireColumn(connection, "InboxItems", "AcknowledgedAtUtc")' in migrations
 assert 'RequireColumn(connection, "InboxItems", "AcknowledgedBy")' in migrations
 settings = (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxSettings.cs").read_text(encoding="utf-8")
