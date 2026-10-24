@@ -35,6 +35,14 @@ public partial class InquiryInboxView : UserControl
 
     private void OnSettingsSaved(object? sender, EventArgs e) => PasswordBox.Clear();
 
+    private void OnFilesClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is InquiryInboxViewModel vm
+            && sender is FrameworkElement element
+            && element.DataContext is InquiryInboxItemRow row)
+            vm.ShowDeliveryFiles(row);
+    }
+
     /// <summary>
     /// Double-click primary action: a downloaded delivery creates its
     /// local inquiry; an ingested one opens the inquiry in the editor.

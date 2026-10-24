@@ -71,8 +71,9 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             }
             catch (Exception ex)
             {
-                MarkImportPending(submissionId, ex.Message);
-                return Fail(ex.Message);
+                var message = DescribeException(ex);
+                MarkImportPending(submissionId, message);
+                return Fail(message);
             }
         }
 
@@ -177,6 +178,19 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 InquiryNumber = saved.InquiryNumber,
                 AttachmentCount = copied
             };
+        }
+
+        private static string DescribeException(Exception exception)
+        {
+            var messages = new List<string>();
+            for (Exception? current = exception; current != null; current = current.InnerException)
+            {
+                var message = current.Message?.Trim();
+                if (!string.IsNullOrWhiteSpace(message)
+                    && (messages.Count == 0 || !string.Equals(messages[^1], message, StringComparison.Ordinal)))
+                    messages.Add(message);
+            }
+            return string.Join(" → ", messages);
         }
 
         private static void MarkImportPending(string submissionId, string error)

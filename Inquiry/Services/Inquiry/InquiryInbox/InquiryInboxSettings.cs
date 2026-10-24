@@ -34,7 +34,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         /// </summary>
         [JsonPropertyName("inboxRoot")] public string InboxRoot { get; set; } = DefaultInboxRoot;
         /// <summary>Automatic sync interval (minutes).</summary>
-        [JsonPropertyName("pollMinutes")] public int PollMinutes { get; set; } = 5;
+        [JsonPropertyName("pollMinutes")] public int PollMinutes { get; set; } = 1;
         [JsonPropertyName("notificationsEnabled")] public bool NotificationsEnabled { get; set; } = true;
         [JsonPropertyName("notificationSound")] public bool NotificationSound { get; set; } = true;
         /// <summary>
@@ -93,7 +93,17 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             try
             {
                 if (File.Exists(FilePath))
-                    return JsonSerializer.Deserialize<InquiryInboxSettings>(File.ReadAllText(FilePath)) ?? new();
+                {
+                    var settings = JsonSerializer.Deserialize<InquiryInboxSettings>(File.ReadAllText(FilePath)) ?? new();
+                    // 5 minutes was the old out-of-box default. Move that legacy default
+                    // to one-minute polling while preserving other user-selected intervals.
+                    if (settings.PollMinutes == 5)
+                    {
+                        settings.PollMinutes = 1;
+                        settings.Save();
+                    }
+                    return settings;
+                }
             }
             catch { /* fall through to defaults */ }
             return new();

@@ -87,3 +87,7 @@ migrations = (ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrat
 assert 'new(1009, "Inquiry: persist website acknowledgement identity"' in migrations
 assert 'RequireColumn(connection, "InboxItems", "AcknowledgedAtUtc")' in migrations
 assert 'RequireColumn(connection, "InboxItems", "AcknowledgedBy")' in migrations
+assert '[JsonPropertyName("pollMinutes")] public int PollMinutes { get; set; } = 1;' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxSettings.cs").read_text(encoding="utf-8")
+assert 'ShowDeliveryFiles(row)' in (ROOT / "Inquiry/Views/InquiryInboxView.xaml.cs").read_text(encoding="utf-8")
+assert 'Files could not be verified:' in view_model
+assert 'current.InnerException' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxIngestService.cs").read_text(encoding="utf-8")

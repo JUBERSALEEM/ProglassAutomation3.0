@@ -287,9 +287,18 @@
                             <DataGridTextColumn Header="Prepared by" HeaderTemplate="{StaticResource InboxCenteredHeader}"
                                                 Binding="{Binding Estimator}" Width="1*"
                                                 ElementStyle="{StaticResource InboxCenterCell}" />
-                            <DataGridTextColumn Header="Files" HeaderTemplate="{StaticResource InboxCenteredHeader}"
-                                                Binding="{Binding DocumentsText}" Width="0.8*"
-                                                ElementStyle="{StaticResource InboxCenterCell}" CanUserSort="False" />
+                            <DataGridTemplateColumn Header="Files" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                    Width="0.8*" CanUserSort="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding DocumentsText}"
+                                                Style="{DynamicResource SubtleButton}"
+                                                Padding="4,1" Margin="0"
+                                                Click="OnFilesClick"
+                                                AutomationProperties.Name="Show delivery folder and file names" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Received" HeaderTemplate="{StaticResource InboxCenteredHeader}"
                                                 Binding="{Binding ReceivedText}" Width="1.15*"
                                                 ElementStyle="{StaticResource InboxCenterCell}" />

@@ -156,7 +156,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         private string _inboxRoot = InquiryInboxSettings.DefaultInboxRoot;
         public string InboxRoot { get => _inboxRoot; set => SetField(ref _inboxRoot, value); }
 
-        private int _pollMinutes = 5;
+        private int _pollMinutes = 1;
         public int PollMinutes
         {
             get => _pollMinutes;
@@ -735,6 +735,36 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             {
                 StatusText = "Ingest failed: " + ex.Message;
             }
+        }
+
+        public void ShowDeliveryFiles(InquiryInboxItemRow? row)
+        {
+            if (row == null) return;
+            var folder = InquiryInboxService.FolderPath(
+                _service.Settings.InboxRoot, row.Ledger.RoutingKey, row.Ledger.Reference, row.Ledger.SubmissionId);
+            var lines = new List<string> { "Folder: " + folder, "", "Files:" };
+            try
+            {
+                if (!Directory.Exists(folder))
+                {
+                    lines.Add("No local delivery folder is available on this PC.");
+                }
+                else
+                {
+                    var (manifest, _) = InquiryInboxService.ReadReadyFolder(folder);
+                    if (manifest.Documents.Count == 0) lines.Add("No files in this delivery.");
+                    foreach (var document in manifest.Documents)
+                        lines.Add(Path.GetFullPath(Path.Combine(folder,
+                            document.LocalFile.Replace('/', Path.DirectorySeparatorChar))));
+                }
+            }
+            catch (Exception ex)
+            {
+                lines.Add("Files could not be verified: " + ex.Message);
+            }
+
+            System.Windows.MessageBox.Show(string.Join(Environment.NewLine, lines), "Website delivery files",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
         }
 
         private async Task OpenFolderAsync()
