@@ -186,7 +186,7 @@ assert 'This account may not run the desktop inbox.' in service
 assert 'This account may not read those files.' in service
 assert '"Access denied"' in service
 permission_start = service.index('catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.PermissionDenied)', service.index('outcome.Delivered++'))
-permission_end = service.index('catch (Exception ex)', permission_start)
+permission_end = service.index('catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.AlreadyDelivered)', permission_start)
 assert 'UpsertState' not in service[permission_start:permission_end]
 assert 'get_my_inquiry_access_v1' in (ROOT / "Theme/step1.d.tests/step1.d.13.InquiryInboxAuthorizationChecks.cs").read_text(encoding="utf-8")
 closed = workspace.split('private void OnOwnerWindowClosed', 1)[1]

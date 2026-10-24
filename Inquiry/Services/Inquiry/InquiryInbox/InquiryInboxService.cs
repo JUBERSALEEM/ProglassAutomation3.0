@@ -55,6 +55,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         public int Delivered { get; set; }
         public int Verified { get; set; }
         public int Failed { get; set; }
+        public int ImportPending { get; set; }
+        public int DeliveredElsewhere { get; set; }
         /// <summary>References newly seen this sync (drives notifications).</summary>
         public string[] NewReferences { get; set; } = Array.Empty<string>();
         public string[] NewCompanyNames { get; set; } = Array.Empty<string>();
@@ -258,8 +260,10 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 outcome.Planned = planned.Count;
 
                 using var db = new InquiryDbContext();
+                var plannedIds = new HashSet<string>(planned.Select(x => x.Plan.SubmissionId), StringComparer.Ordinal);
+                ReconcileUnofferedItems(db, plannedIds);
                 var known = new HashSet<string>(
-                    db.InboxItems.AsNoTracking().Select(i => i.SubmissionId));
+                    db.InboxItems.AsNoTracking().Select(i => i.SubmissionId), StringComparer.Ordinal);
 
                 foreach (var (plan, rawJson) in planned)
                 {
@@ -269,11 +273,10 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     {
                         var existingItem = db.InboxItems.AsNoTracking()
                             .FirstOrDefault(i => i.SubmissionId == plan.SubmissionId);
-                        var existingFolder = FolderPath(Root, plan.RoutingKey, plan.SubmissionReference, plan.SubmissionId);
-                        if (existingItem?.State == InquiryInboxStates.ImportPending && Directory.Exists(existingFolder))
+                        if (existingItem?.State == InquiryInboxStates.ImportPending
+                            || existingItem?.State == InquiryInboxStates.DeliveredElsewhere)
                         {
-                            // A prior fetch reached placement but acknowledgement/import completion was
-                            // ambiguous. Preserve the payload and never fetch or acknowledge it again.
+                            // Preserve the local evidence and never fetch or acknowledge again.
                             continue;
                         }
 
@@ -294,6 +297,15 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                                 "Invalid inbox routing key for " + plan.SubmissionReference + ".");
 
                         var delivered = await DeliverAsync(plan, rawJson, docs, ct).ConfigureAwait(false);
+                        var deliveryFolder = FolderPath(Root, plan.RoutingKey, plan.SubmissionReference, plan.SubmissionId);
+                        if (delivered == ItemDeliveryResult.Verified
+                            && !File.Exists(Path.Combine(deliveryFolder, "delivery.json")))
+                        {
+                            outcome.ImportPending++;
+                            UpsertState(db, plan, docs.Count, ItemState.ImportPending,
+                                "The verified local folder has no delivery receipt. The acknowledgement was not repeated; re-import from disk.");
+                            continue;
+                        }
                         if (delivered == ItemDeliveryResult.Verified) outcome.Verified++;
                         else outcome.Delivered++;
 
@@ -320,17 +332,59 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                         outcome.StatusText = ex.Message;
                         break;
                     }
+                    catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.AlreadyDelivered)
+                    {
+                        outcome.DeliveredElsewhere++;
+                        var localFolder = FolderPath(Root, plan.RoutingKey, plan.SubmissionReference, plan.SubmissionId);
+                        UpsertState(db, plan, Directory.Exists(localFolder) ? (int)plan.DocumentCount : 0,
+                            ItemState.DeliveredElsewhere, ex.Message);
+                    }
                     catch (Exception ex)
                     {
-                        outcome.Failed++;
                         outcome.Error = ex.Message;
                         var localFolder = FolderPath(Root, plan.RoutingKey, plan.SubmissionReference, plan.SubmissionId);
                         bool payloadPlaced = Directory.Exists(localFolder)
                             && File.Exists(Path.Combine(localFolder, "manifest.json"))
                             && File.Exists(Path.Combine(localFolder, "READY"));
-                        UpsertState(db, plan, payloadPlaced ? (int)plan.DocumentCount : 0,
-                            payloadPlaced ? ItemState.ImportPending : ItemState.Failed,
-                            ex.Message.Length > 490 ? ex.Message[..490] : ex.Message);
+                        List<(InboxSubmissionPlan Plan, string RawJson)>? refreshedPlan = null;
+                        try { refreshedPlan = await _client.PlanDeliveriesAsync(100, ct).ConfigureAwait(false); }
+                        catch (InboxRemoteException refreshError) when (refreshError.Kind == InboxRemoteErrorKind.PermissionDenied)
+                        {
+                            outcome.AccessDenied = true;
+                            outcome.StatusText = refreshError.Message;
+                            break;
+                        }
+                        catch (InboxRemoteException refreshError) when (refreshError.Kind == InboxRemoteErrorKind.Offline)
+                        {
+                            outcome.Offline = true;
+                            outcome.StatusText = "Website connection lost while confirming delivery state.";
+                            outcome.Error = refreshError.Message;
+                            break;
+                        }
+                        if (refreshedPlan == null)
+                        {
+                            // Do not label an item Failed unless the website confirms it is still offered.
+                            continue;
+                        }
+                        bool stillOffered = refreshedPlan.Any(x => x.Plan.SubmissionId == plan.SubmissionId);
+                        if (!stillOffered && !payloadPlaced)
+                        {
+                            outcome.DeliveredElsewhere++;
+                            UpsertState(db, plan, 0, ItemState.DeliveredElsewhere,
+                                DeliveredElsewhereMessage(db, plan.SubmissionId));
+                        }
+                        else if (payloadPlaced)
+                        {
+                            outcome.ImportPending++;
+                            UpsertState(db, plan, (int)plan.DocumentCount, ItemState.ImportPending,
+                                ex.Message.Length > 490 ? ex.Message[..490] : ex.Message);
+                        }
+                        else
+                        {
+                            outcome.Failed++;
+                            UpsertState(db, plan, 0, ItemState.Failed,
+                                ex.Message.Length > 490 ? ex.Message[..490] : ex.Message);
+                        }
                     }
                 }
 
@@ -357,6 +411,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     outcome.StatusText = outcome.Failed == 0
                         ? $"Checked the website — {outcome.Planned} pending, {outcome.Delivered} downloaded, {outcome.Verified} already on disk."
                         : $"Checked the website — {outcome.Failed} of {outcome.Planned} failed (details in the inbox page).";
+                    if (outcome.ImportPending > 0)
+                        outcome.StatusText += $" {outcome.ImportPending} delivery item(s) are ready to re-import from disk.";
                     if (chatNote != null)
                         outcome.StatusText += " " + chatNote;
                     else if (chatAdded > 0)
@@ -489,7 +545,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         // ── One delivery (bridge apply-loop item) ────────────────────────
 
         private enum ItemDeliveryResult { Delivered, Verified }
-        private enum ItemState { Downloaded, ImportPending, Failed }
+        private enum ItemState { Downloaded, ImportPending, DeliveredElsewhere, Failed }
 
         private async Task<ItemDeliveryResult> DeliverAsync(InboxSubmissionPlan plan, string rawJson,
             List<InboxDocumentPlan> docs, CancellationToken ct)
@@ -534,9 +590,9 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                         throw new InboxRemoteException(InboxRemoteErrorKind.Remote,
                             "Existing inbox integrity check failed for " + doc.Filename + ".");
                 }
-                await AcknowledgeAsync(plan, manifestHash, docs, ct).ConfigureAwait(false);
-                WriteDeliveryReceipt(finalPath, plan, manifestHash, docs.Count,
-                    LastAccessReport?.AccountEmail ?? _settings.BridgeEmail);
+                if (File.Exists(Path.Combine(finalPath, "delivery.json")))
+                    VerifyDeliveryReceipt(finalPath, plan, manifestHash, docs.Count);
+                // A local READY folder is never a reason to replay the remote acknowledgement.
                 return ItemDeliveryResult.Verified;
             }
 
@@ -651,10 +707,53 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         // ── Local ledger ─────────────────────────────────────────────────
 
+        private void ReconcileUnofferedItems(InquiryDbContext db, HashSet<string> plannedIds)
+        {
+            foreach (var item in db.InboxItems.Where(i => i.State != InquiryInboxStates.Ingested)
+                .ToList().Where(i => !plannedIds.Contains(i.SubmissionId)))
+            {
+                var folder = FolderPath(Root, item.RoutingKey, item.Reference, item.SubmissionId);
+                if (Directory.Exists(folder)) continue;
+                item.State = InquiryInboxStates.DeliveredElsewhere;
+                item.Error = DeliveredElsewhereMessage(item);
+            }
+        }
+
+        private string DeliveredElsewhereMessage(InquiryDbContext db, string submissionId)
+        {
+            var item = db.InboxItems.FirstOrDefault(i => i.SubmissionId == submissionId);
+            return DeliveredElsewhereMessage(item ?? new InquiryInboxItem { SubmissionId = submissionId });
+        }
+
+        private static string DeliveredElsewhereMessage(InquiryInboxItem item)
+        {
+            string time = "time unavailable";
+            if (DateTime.TryParse(item.DownloadedAt, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                    out var utc))
+                time = utc.AddHours(4).ToString("dd MMM yyyy, HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            return "Delivered to this PC on " + time + " (Dubai); the files are missing here. "
+                + "Fetch them from the website (Customer submissions -> open the submission -> Download) "
+                + @"or restore them from C:\ProgramData\ProGlass\CustomerInquiryInbox.";
+        }
+
+        private static void VerifyDeliveryReceipt(string folder, InboxSubmissionPlan plan,
+            string manifestHash, int documentCount)
+        {
+            var receipt = JsonSerializer.Deserialize<InboxDeliveryReceipt>(
+                File.ReadAllText(Path.Combine(folder, "delivery.json")), JsonOpts)
+                ?? throw new IOException("Delivery receipt is unreadable.");
+            if (receipt.SubmissionId != plan.SubmissionId || receipt.Reference != plan.SubmissionReference
+                || receipt.ManifestSha256 != manifestHash || receipt.DocumentCount != documentCount
+                || receipt.RoutingKey != plan.RoutingKey)
+                throw new IOException("Delivery receipt does not match the verified payload.");
+        }
+
         private static string StateFor(ItemState state) => state switch
         {
             ItemState.Downloaded => InquiryInboxStates.Downloaded,
             ItemState.ImportPending => InquiryInboxStates.ImportPending,
+            ItemState.DeliveredElsewhere => InquiryInboxStates.DeliveredElsewhere,
             _ => InquiryInboxStates.Failed
         };
 
@@ -674,7 +773,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     RoutingKey = plan.RoutingKey,
                     PrimaryEstimatorCode = plan.PrimaryEstimatorCode ?? "",
                     AssignmentSnapshot = snapshot,
-                    DownloadedAt = state != ItemState.Failed ? DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") : "",
+                    DownloadedAt = state is ItemState.Downloaded or ItemState.ImportPending
+                        ? DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") : "",
                     Error = error ?? ""
                 });
             }
@@ -682,11 +782,12 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             {
                 existing.Reference = plan.SubmissionReference;
                 existing.State = StateFor(state);
-                existing.DocumentCount = documentCount;
+                if (documentCount > 0 || state != ItemState.DeliveredElsewhere)
+                    existing.DocumentCount = documentCount;
                 existing.RoutingKey = plan.RoutingKey;
                 existing.PrimaryEstimatorCode = plan.PrimaryEstimatorCode ?? "";
                 existing.AssignmentSnapshot = snapshot;
-                if (state != ItemState.Failed)
+                if (state is ItemState.Downloaded or ItemState.ImportPending)
                     existing.DownloadedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 existing.Error = error ?? "";
             }

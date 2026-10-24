@@ -35,6 +35,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         Auth,
         /// <summary>Authentication succeeded, but the account is not authorized for this operation.</summary>
         PermissionDenied,
+        /// <summary>The submission was acknowledged by a different operator.</summary>
+        AlreadyDelivered,
         /// <summary>Backend reachable but the RPC/protocol/config is wrong.</summary>
         Remote
     }
@@ -370,8 +372,16 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 p_assignment_snapshot = JsonSerializer.Deserialize<object>(assignmentSnapshotJson)
             }, JsonOpts);
             var (status, payload, kind) = await PostRpcAsync("acknowledge_customer_inquiry_delivery_v2", body, ct).ConfigureAwait(false);
+            if (IsUniqueViolation(payload))
+                throw new InboxRemoteException(InboxRemoteErrorKind.AlreadyDelivered,
+                    "This submission was already delivered by another operator.", status);
             if (status != 200) throw new InboxRemoteException(kind, $"Acknowledgement failed: {ExtractError(payload)} (HTTP {status}).", (int?)status);
         }
+
+        private static bool IsUniqueViolation(string payload) =>
+            payload.Contains("23505", StringComparison.Ordinal)
+            || payload.Contains("unique constraint", StringComparison.OrdinalIgnoreCase)
+            || payload.Contains("duplicate key", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// update_customer_inquiry_status_v1 — optional pipeline status
@@ -432,7 +442,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     var text = await SafeReadTextAsync(response).ConfigureAwait(false);
                     string message = (int)response.StatusCode == 401 && IsMissingApiKeyError(text)
                         ? $"Storage download API-key error (HTTP 401): {ExtractError(text)}"
-                        : $"Download failed (HTTP {(int)response.StatusCode}): {ExtractError(text)}";
+                        : $"Storage download failed (HTTP {(int)response.StatusCode}): {ExtractError(text)}";
                     var kind = response.StatusCode == HttpStatusCode.Forbidden
                         ? InboxRemoteErrorKind.PermissionDenied
                         : InboxRemoteErrorKind.Remote;

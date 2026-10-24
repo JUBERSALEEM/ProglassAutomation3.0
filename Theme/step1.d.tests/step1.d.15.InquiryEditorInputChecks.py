@@ -63,3 +63,16 @@ assert 'item.State = InquiryInboxStates.ImportPending;' in ingest_service
 view_model = (ROOT / "Inquiry/ViewModels/InquiryInboxViewModel.cs").read_text(encoding="utf-8")
 assert '"Re-import from disk"' in view_model and 'Ledger.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending' in view_model
 assert 'Content="{Binding SelectedItem.IngestActionLabel}"' in (ROOT / "Inquiry/Views/InquiryInboxView.xaml").read_text(encoding="utf-8")
+
+assert 'InquiryInboxStates.DeliveredElsewhere' in service
+assert 'ReconcileUnofferedItems(db, plannedIds)' in service
+assert 'AlreadyDelivered' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxClient.cs").read_text(encoding="utf-8")
+assert 'Storage download failed (HTTP ' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxClient.cs").read_text(encoding="utf-8")
+assert 'Delivered to this PC on ' in service and 'Customer submissions -> open the submission -> Download' in service
+
+assert 'outcome.Failed++' in service and 'if (!stillOffered && !payloadPlaced)' in service
+assert 'RunAlreadyDeliveredConflict' in (ROOT / "Theme/step1.d.tests/step1.d.16.InquiryInboxDeliveryOrderingChecks.cs").read_text(encoding="utf-8")
+assert 'RunStorageFailureThenPlanDisappearance' in (ROOT / "Theme/step1.d.tests/step1.d.16.InquiryInboxDeliveryOrderingChecks.cs").read_text(encoding="utf-8")
+
+assert 'private string SelectedErrorText => SelectedItem?.Ledger.State == InquiryInboxStates.DeliveredElsewhere' in view_model
+assert 'InquiryInboxStates.DeliveredElsewhere => "Information"' in view_model

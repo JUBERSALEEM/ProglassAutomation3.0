@@ -51,6 +51,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         {
             InquiryInboxStates.Ingested => "Ingested",
             InquiryInboxStates.ImportPending => "Import pending",
+            InquiryInboxStates.DeliveredElsewhere => "Delivered elsewhere",
             InquiryInboxStates.Failed => "Failed",
             _ => "Downloaded"
         };
@@ -59,14 +60,18 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         {
             InquiryInboxStates.Ingested => "Success",
             InquiryInboxStates.ImportPending => "Warning",
+            InquiryInboxStates.DeliveredElsewhere => "Information",
             InquiryInboxStates.Failed => "Error",
             _ => "Information"
         };
 
-        public bool CanIngest => Ledger.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending;
-        public string IngestActionLabel => Ledger.State == InquiryInboxStates.ImportPending
+        public bool HasLocalPayload { get; private set; }
+        public bool CanIngest => Ledger.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending
+            || (Ledger.State == InquiryInboxStates.DeliveredElsewhere && HasLocalPayload);
+        public string IngestActionLabel => Ledger.State is InquiryInboxStates.ImportPending or InquiryInboxStates.DeliveredElsewhere
             ? "Re-import from disk"
             : "Create local inquiry";
+        public void SetLocalPayload(bool exists) => HasLocalPayload = exists;
         public bool CanOpenInquiry => Ledger.State == InquiryInboxStates.Ingested && Ledger.LocalInquiryId != null;
 
         public void HydrateDisplay(string company, string project, string inquiryType, string estimator, string submittedAtIso)
@@ -319,7 +324,9 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
         public bool HasItems => Items.Count > 0;
 
-        private string SelectedErrorText => SelectedItem?.Error ?? "";
+        private string SelectedErrorText => SelectedItem?.Ledger.State == InquiryInboxStates.DeliveredElsewhere
+            ? ""
+            : SelectedItem?.Error ?? "";
 
         // ── Commands ─────────────────────────────────────────────────────
 
@@ -646,10 +653,11 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 foreach (var item in items)
                 {
                     var row = new InquiryInboxItemRow(item);
+                    row.SetLocalPayload(FolderExistsFor(row));
                     var display = TryReadManifestDisplay(item);
                     if (display != null)
                         row.HydrateDisplay(display.Value.Company, display.Value.Project, display.Value.Type, display.Value.Estimator, display.Value.SubmittedAt);
-                    if (item.State == InquiryInboxStates.Downloaded) ready++;
+                    if (item.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending) ready++;
                     else if (item.State == InquiryInboxStates.Ingested) ingested++;
                     else if (item.State == InquiryInboxStates.Failed) failed++;
                     Items.Add(row);

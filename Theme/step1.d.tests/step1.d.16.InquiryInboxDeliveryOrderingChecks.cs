@@ -74,6 +74,8 @@ internal static class InquiryInboxDeliveryOrderingChecks
         }
         RunAckFailureDoesNotReack();
         RunImportFailureKeepsPayloadAndOffersReimport();
+        RunAlreadyDeliveredConflict();
+        RunStorageFailureThenPlanDisappearance();
     }
 
     private static (byte[] Bytes, string Sha, string SubmissionId, string Reference, string Snapshot) Fixture()
@@ -173,6 +175,85 @@ internal static class InquiryInboxDeliveryOrderingChecks
         }
     }
 
+    private static void RunAlreadyDeliveredConflict()
+    {
+        var priorRoot = AppDataRoot.TestFolderOverride;
+        var root = Path.Combine(Path.GetTempPath(), "ProGlass-InboxAckConflict-" + Guid.NewGuid().ToString("N"));
+        var inboxRoot = Path.Combine(root, "files");
+        var fixture = Fixture();
+        AppDataRoot.TestFolderOverride = Path.Combine(root, "db");
+        var handler = new DeliveryHandler(fixture.Bytes, fixture.Sha, fixture.SubmissionId,
+            fixture.Reference, "unassigned", fixture.Snapshot, inboxRoot, HttpStatusCode.Conflict)
+        { AckErrorPayload = "{\"code\":\"23505\",\"message\":\"duplicate delivery\"}" };
+        try
+        {
+            new InquiryRepository().InitializeAsync().GetAwaiter().GetResult();
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(() => handler);
+            using var service = new InquiryInboxService(Settings(inboxRoot));
+            service.SynchronizeAsync().GetAwaiter().GetResult();
+            var item = service.GetItemRows().Single(i => i.SubmissionId == fixture.SubmissionId);
+            var row = new InquiryInboxItemRow(item);
+            row.SetLocalPayload(true);
+            if (item.State != InquiryInboxStates.DeliveredElsewhere
+                || !item.Error.Contains("delivered by another operator", StringComparison.OrdinalIgnoreCase)
+                || row.State == "Failed" || !row.CanIngest || row.IngestActionLabel != "Re-import from disk")
+                throw new InvalidOperationException("HTTP 23505 was not represented as DeliveredElsewhere with a disk-only import action.");
+            service.SynchronizeAsync().GetAwaiter().GetResult();
+            if (handler.AckCalls != 1 || handler.DownloadCalls != 1)
+                throw new InvalidOperationException("The duplicate-delivery case retried the ack or download.");
+        }
+        finally
+        {
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(null);
+            AppDataRoot.TestFolderOverride = priorRoot;
+            try { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); } catch { }
+        }
+    }
+
+    private static void RunStorageFailureThenPlanDisappearance()
+    {
+        var priorRoot = AppDataRoot.TestFolderOverride;
+        var root = Path.Combine(Path.GetTempPath(), "ProGlass-InboxPlanGone-" + Guid.NewGuid().ToString("N"));
+        var inboxRoot = Path.Combine(root, "files");
+        var fixture = Fixture();
+        AppDataRoot.TestFolderOverride = Path.Combine(root, "db");
+        var handler = new DeliveryHandler(fixture.Bytes, fixture.Sha, fixture.SubmissionId,
+            fixture.Reference, "unassigned", fixture.Snapshot, inboxRoot,
+            storageStatus: HttpStatusCode.Unauthorized);
+        try
+        {
+            new InquiryRepository().InitializeAsync().GetAwaiter().GetResult();
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(() => handler);
+            using var service = new InquiryInboxService(Settings(inboxRoot));
+            service.SynchronizeAsync().GetAwaiter().GetResult();
+            var failed = service.GetItemRows().Single(i => i.SubmissionId == fixture.SubmissionId);
+            if (failed.State != InquiryInboxStates.Failed
+                || !failed.Error.Contains("Storage", StringComparison.Ordinal)
+                || !failed.Error.Contains("401", StringComparison.Ordinal)
+                || handler.AckCalls != 0)
+                throw new InvalidOperationException("Storage HTTP 401 was not reported without acknowledgement.");
+            var incoming = Path.Combine(inboxRoot, "incoming");
+            if (Directory.Exists(incoming) && Directory.EnumerateDirectories(incoming).Any())
+                throw new InvalidOperationException("A failed storage fetch left its partial folder behind.");
+
+            handler.EmptyPlan = true;
+            service.SynchronizeAsync().GetAwaiter().GetResult();
+            var reconciled = service.GetItemRows().Single(i => i.SubmissionId == fixture.SubmissionId);
+            if (reconciled.State != InquiryInboxStates.DeliveredElsewhere
+                || !reconciled.Error.Contains("Delivered to this PC on", StringComparison.Ordinal)
+                || !reconciled.Error.Contains("Customer submissions -> open the submission -> Download", StringComparison.Ordinal)
+                || !reconciled.Error.Contains(InquiryInboxSettings.DefaultInboxRoot, StringComparison.Ordinal)
+                || handler.AckCalls != 0 || handler.DownloadCalls != 1)
+                throw new InvalidOperationException("A failed local row omitted DeliveredElsewhere guidance after leaving the plan.");
+        }
+        finally
+        {
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(null);
+            AppDataRoot.TestFolderOverride = priorRoot;
+            try { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); } catch { }
+        }
+    }
+
     private sealed class ThrowingWorkflow : IInquiryWorkflowService
     {
         public Task<InquiryRecord> CreateAsync(InquiryRecord inquiry, CancellationToken ct = default) =>
@@ -194,6 +275,9 @@ internal static class InquiryInboxDeliveryOrderingChecks
         private readonly string _snapshot;
         private readonly string _root;
         private readonly HttpStatusCode _ackStatus;
+        private readonly HttpStatusCode _storageStatus;
+        public bool EmptyPlan { get; set; }
+        public string AckErrorPayload { get; set; } = "{\"message\":\"fixture ack failure\"}";
         public int AckCalls { get; private set; }
         public int DownloadCalls { get; private set; }
         public bool AckSawReadyPayload { get; private set; }
@@ -201,7 +285,8 @@ internal static class InquiryInboxDeliveryOrderingChecks
         public bool AckArgumentsMatched { get; private set; }
 
         public DeliveryHandler(byte[] bytes, string sha, string submissionId, string reference,
-            string route, string snapshot, string root, HttpStatusCode ackStatus = HttpStatusCode.OK)
+            string route, string snapshot, string root, HttpStatusCode ackStatus = HttpStatusCode.OK,
+            HttpStatusCode storageStatus = HttpStatusCode.OK)
         {
             _bytes = bytes;
             _sha = sha;
@@ -211,6 +296,7 @@ internal static class InquiryInboxDeliveryOrderingChecks
             _snapshot = snapshot;
             _root = root;
             _ackStatus = ackStatus;
+            _storageStatus = storageStatus;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -221,13 +307,15 @@ internal static class InquiryInboxDeliveryOrderingChecks
             if (path.EndsWith("/get_my_inquiry_access_v1", StringComparison.Ordinal))
                 return Json(HttpStatusCode.OK, "{\"account_email\":\"operator@example.invalid\",\"roles\":[\"inquiry_bridge\"],\"capabilities\":[\"inbox.plan.bridge\"]}");
             if (path.EndsWith("/plan_customer_inquiry_deliveries_v2", StringComparison.Ordinal))
-                return Json(HttpStatusCode.OK, "[{\"submission_id\":\"" + _submissionId + "\",\"submission_reference\":\"" + _reference + "\",\"submitted_at\":\"2026-10-24T08:00:00Z\",\"status\":\"accepted\",\"company_name\":\"Fixture Co\",\"project_name\":\"Fixture Project\",\"document_count\":1,\"primary_estimator_code\":\"EST-TEST\",\"assignment_snapshot\":" + _snapshot + ",\"routing_key\":\"" + _route + "\"}]");
+                return Json(HttpStatusCode.OK, EmptyPlan ? "[]" : "[{\"submission_id\":\"" + _submissionId + "\",\"submission_reference\":\"" + _reference + "\",\"submitted_at\":\"2026-10-24T08:00:00Z\",\"status\":\"accepted\",\"company_name\":\"Fixture Co\",\"project_name\":\"Fixture Project\",\"document_count\":1,\"primary_estimator_code\":\"EST-TEST\",\"assignment_snapshot\":" + _snapshot + ",\"routing_key\":\"" + _route + "\"}]");
             if (path.EndsWith("/plan_customer_inquiry_delivery_documents", StringComparison.Ordinal))
                 return Json(HttpStatusCode.OK, "[{\"document_id\":\"doc-1\",\"original_filename\":\"drawing.pdf\",\"detected_mime\":\"application/pdf\",\"byte_size\":" + _bytes.LongLength + ",\"content_sha256\":\"" + _sha + "\",\"storage_bucket\":\"inquiry-intake-documents\",\"storage_object_key\":\"fixture/drawing.pdf\"}]");
             if (path.Contains("/storage/v1/object/inquiry-intake-documents/", StringComparison.Ordinal))
             {
                 DownloadCalls++;
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(_bytes) });
+                return _storageStatus == HttpStatusCode.OK
+                    ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(_bytes) })
+                    : Json(_storageStatus, "{\"message\":\"fixture storage refusal\"}");
             }
             if (path.EndsWith("/acknowledge_customer_inquiry_delivery_v2", StringComparison.Ordinal))
             {
@@ -245,7 +333,7 @@ internal static class InquiryInboxDeliveryOrderingChecks
                     && actualSnapshot == _snapshot
                     && root.GetProperty("p_manifest_sha256").GetString() == Convert.ToHexString(
                         SHA256.HashData(File.ReadAllBytes(Path.Combine(folder, "manifest.json")))).ToLowerInvariant();
-                return Json(_ackStatus, _ackStatus == HttpStatusCode.OK ? "{}" : "{\"message\":\"fixture ack failure\"}");
+                return Json(_ackStatus, _ackStatus == HttpStatusCode.OK ? "{}" : AckErrorPayload);
             }
             return Json(HttpStatusCode.NotFound, "{\"message\":\"unhandled fixture request\"}");
         }
