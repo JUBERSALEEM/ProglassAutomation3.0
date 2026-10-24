@@ -103,7 +103,9 @@ focus_behavior = (ROOT / "Theme/step1.g.Customization/step1.g.7.TextBoxFocusBeha
 assert 'textBox.SelectAll()' in focus_behavior
 assert 'PreviewMouseLeftButtonDown' in focus_behavior
 
-assert 'Width="70" Margin="{DynamicResource MarginInline}"' in inbox_xaml
+assert 'Width="120" Margin="{DynamicResource MarginInline}"' in inbox_xaml
+assert 'ItemsSource="{Binding PollIntervalOptions}"' in inbox_xaml
+assert 'SelectedItem="{Binding SelectedPollInterval, Mode=TwoWay}"' in inbox_xaml
 assert 'Text="Supabase account email"' in inbox_xaml
 assert 'Text="Supabase password"' in inbox_xaml
 assert 'Style="{DynamicResource {x:Type PasswordBox}}"' in inbox_xaml

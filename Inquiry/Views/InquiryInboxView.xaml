@@ -188,12 +188,11 @@
                         <TextBlock Text="Automatic check" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
                         <StackPanel Orientation="Horizontal">
                             <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                                      ItemsSource="{Binding PollMinutesOptions}"
-                                      SelectedItem="{Binding PollMinutes}"
-                                      Width="70" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
-                                      AutomationProperties.Name="Automatic check interval in minutes" />
-                            <TextBlock Text="minute(s)" Style="{DynamicResource Caption}"
-                                       VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
+                                      ItemsSource="{Binding PollIntervalOptions}"
+                                      SelectedItem="{Binding SelectedPollInterval, Mode=TwoWay}"
+                                      DisplayMemberPath="Label"
+                                      Width="120" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
+                                      AutomationProperties.Name="Automatic check interval" />
                         </StackPanel>
                     </StackPanel>
                     <UniformGrid Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"

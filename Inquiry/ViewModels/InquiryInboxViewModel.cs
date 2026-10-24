@@ -91,6 +91,8 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         }
     }
 
+    public sealed record InboxPollIntervalOption(int Seconds, string Label);
+
     public sealed class InquiryInboxViewModel : ViewModelBase
     {
         private readonly InquiryInboxService _service;
@@ -156,18 +158,38 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         private string _inboxRoot = InquiryInboxSettings.DefaultInboxRoot;
         public string InboxRoot { get => _inboxRoot; set => SetField(ref _inboxRoot, value); }
 
-        private int _pollMinutes = 1;
-        public int PollMinutes
+        private int _pollIntervalSeconds = 30;
+        public int PollIntervalSeconds
         {
-            get => _pollMinutes;
+            get => _pollIntervalSeconds;
             set
             {
-                var clamped = Math.Clamp(value, 1, 120);
-                if (SetField(ref _pollMinutes, clamped)) RefreshAutoSyncText();
+                var clamped = Math.Clamp(value, 15, 7200);
+                if (SetField(ref _pollIntervalSeconds, clamped))
+                {
+                    OnPropertyChanged(nameof(SelectedPollInterval));
+                    RefreshAutoSyncText();
+                }
             }
         }
 
-        public IReadOnlyList<int> PollMinutesOptions { get; } = new[] { 1, 5, 15, 30, 60 };
+        public IReadOnlyList<InboxPollIntervalOption> PollIntervalOptions { get; } = new[]
+        {
+            new InboxPollIntervalOption(15, "15 seconds"),
+            new InboxPollIntervalOption(30, "30 seconds"),
+            new InboxPollIntervalOption(60, "1 minute"),
+            new InboxPollIntervalOption(300, "5 minutes"),
+            new InboxPollIntervalOption(900, "15 minutes"),
+            new InboxPollIntervalOption(1800, "30 minutes"),
+            new InboxPollIntervalOption(3600, "60 minutes")
+        };
+
+        public InboxPollIntervalOption SelectedPollInterval
+        {
+            get => PollIntervalOptions.FirstOrDefault(option => option.Seconds == PollIntervalSeconds)
+                ?? PollIntervalOptions[1];
+            set { if (value != null) PollIntervalSeconds = value.Seconds; }
+        }
 
         private bool _notificationsEnabled = true;
         public bool NotificationsEnabled { get => _notificationsEnabled; set => SetField(ref _notificationsEnabled, value); }
@@ -305,7 +327,9 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         private string _autoSyncText = "";
         public string AutoSyncText { get => _autoSyncText; private set => SetField(ref _autoSyncText, value); }
         private void RefreshAutoSyncText() =>
-            AutoSyncText = $"Automatic check every {PollMinutes} minute{(PollMinutes == 1 ? "" : "s")}";
+            AutoSyncText = PollIntervalSeconds < 60
+                ? $"Automatic check every {PollIntervalSeconds} seconds"
+                : $"Automatic check every {PollIntervalSeconds / 60} minute{(PollIntervalSeconds == 60 ? "" : "s")}";
 
         // ── Grid ─────────────────────────────────────────────────────────
 
@@ -353,7 +377,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             AnonKey = s.AnonKey;
             BridgeEmail = s.BridgeEmail;
             InboxRoot = s.InboxRoot;
-            PollMinutes = s.PollMinutes;
+            PollIntervalSeconds = s.PollIntervalSeconds;
             NotificationsEnabled = s.NotificationsEnabled;
             NotificationSound = s.NotificationSound;
             ReportStatusToWebsite = s.ReportStatusToWebsite;
@@ -401,7 +425,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 s.AnonKey = AnonKey.Trim();
                 s.BridgeEmail = BridgeEmail.Trim();
                 s.InboxRoot = inboxRoot;
-                s.PollMinutes = PollMinutes;
+                s.PollIntervalSeconds = PollIntervalSeconds;
                 s.NotificationsEnabled = NotificationsEnabled;
                 s.NotificationSound = NotificationSound;
                 s.ReportStatusToWebsite = ReportStatusToWebsite;
@@ -740,27 +764,42 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public void ShowDeliveryFiles(InquiryInboxItemRow? row)
         {
             if (row == null) return;
-            var folder = InquiryInboxService.FolderPath(
-                _service.Settings.InboxRoot, row.Ledger.RoutingKey, row.Ledger.Reference, row.Ledger.SubmissionId);
-            var lines = new List<string> { "Folder: " + folder, "", "Files:" };
+            var root = string.IsNullOrWhiteSpace(_service.Settings.InboxRoot)
+                ? InquiryInboxSettings.DefaultInboxRoot : _service.Settings.InboxRoot;
+            var deliveryFolder = InquiryInboxService.FolderPath(
+                root, row.Ledger.RoutingKey, row.Ledger.Reference, row.Ledger.SubmissionId);
+            var lines = new List<string> { "Verified delivery folder: " + deliveryFolder };
             try
             {
-                if (!Directory.Exists(folder))
+                if (!Directory.Exists(deliveryFolder))
                 {
                     lines.Add("No local delivery folder is available on this PC.");
                 }
                 else
                 {
-                    var (manifest, _) = InquiryInboxService.ReadReadyFolder(folder);
+                    var (manifest, _) = InquiryInboxService.ReadReadyFolder(deliveryFolder);
+                    var plan = JsonSerializer.Deserialize<InboxSubmissionPlan>(manifest.SubmissionRaw, InboxJson.Options)
+                        ?? throw new IOException("The submission details in the manifest could not be read.");
+                    InquiryInboxService.EnsureCompanyArchive(root, deliveryFolder, manifest, plan);
+                    var companyName = string.IsNullOrWhiteSpace(plan.CompanyName)
+                        ? (string.IsNullOrWhiteSpace(plan.ContactName) ? "Unknown Company" : plan.ContactName)
+                        : plan.CompanyName;
+                    var documentsFolder = InquiryInboxService.CompanyDocumentsFolderPath(
+                        root, companyName, plan.SubmissionReference);
+                    lines.Add("Company folder: " + Path.GetDirectoryName(Path.GetDirectoryName(documentsFolder)));
+                    lines.Add("Inquiry folder: " + Path.GetDirectoryName(documentsFolder));
+                    lines.Add("Related documents: " + documentsFolder);
+                    lines.Add("");
+                    lines.Add("Files:");
                     if (manifest.Documents.Count == 0) lines.Add("No files in this delivery.");
-                    foreach (var document in manifest.Documents)
-                        lines.Add(Path.GetFullPath(Path.Combine(folder,
-                            document.LocalFile.Replace('/', Path.DirectorySeparatorChar))));
+                    for (int i = 0; i < manifest.Documents.Count; i++)
+                        lines.Add(Path.Combine(documentsFolder,
+                            InquiryInboxService.CompanyArchiveFileName(plan, manifest.Documents[i], i)));
                 }
             }
             catch (Exception ex)
             {
-                lines.Add("Files could not be verified: " + ex.Message);
+                lines.Add("Files could not be verified or organized: " + ex.Message);
             }
 
             System.Windows.MessageBox.Show(string.Join(Environment.NewLine, lines), "Website delivery files",

@@ -78,6 +78,14 @@ internal static class InquiryInboxDeliveryOrderingChecks
                     || ledger.AcknowledgedAtUtc != receipt.GetProperty("acked_at_utc").GetString())
                     throw new InvalidOperationException("The local ledger did not retain the acknowledgement identity and time.");
             }
+            var companyDocuments = InquiryInboxService.CompanyDocumentsFolderPath(inboxRoot, "Fixture Co", reference);
+            var companyFiles = Directory.Exists(companyDocuments)
+                ? Directory.GetFiles(companyDocuments)
+                : Array.Empty<string>();
+            if (companyFiles.Length != 1
+                || !Path.GetFileName(companyFiles[0]).StartsWith("Fixture Co-" + reference + "-20261024-120000-01-", StringComparison.Ordinal)
+                || !Path.GetFileName(companyFiles[0]).EndsWith("drawing.pdf", StringComparison.Ordinal))
+                throw new InvalidOperationException("The customer company/inquiry documents archive naming pattern is incorrect.");
             var incoming = Path.Combine(inboxRoot, "incoming");
             if (Directory.Exists(incoming) && Directory.EnumerateDirectories(incoming).Any())
                 throw new InvalidOperationException("A successful fetch left a partial folder behind.");

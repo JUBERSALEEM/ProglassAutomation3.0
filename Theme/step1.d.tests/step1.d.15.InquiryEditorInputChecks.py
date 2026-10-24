@@ -87,7 +87,14 @@ migrations = (ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrat
 assert 'new(1009, "Inquiry: persist website acknowledgement identity"' in migrations
 assert 'RequireColumn(connection, "InboxItems", "AcknowledgedAtUtc")' in migrations
 assert 'RequireColumn(connection, "InboxItems", "AcknowledgedBy")' in migrations
-assert '[JsonPropertyName("pollMinutes")] public int PollMinutes { get; set; } = 1;' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxSettings.cs").read_text(encoding="utf-8")
+settings = (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxSettings.cs").read_text(encoding="utf-8")
+assert '[JsonPropertyName("pollIntervalSeconds")] public int PollIntervalSeconds { get; set; } = 30;' in settings
+assert 'legacyMinutes is 1 or 5' in settings
 assert 'ShowDeliveryFiles(row)' in (ROOT / "Inquiry/Views/InquiryInboxView.xaml.cs").read_text(encoding="utf-8")
-assert 'Files could not be verified:' in view_model
+assert 'CompanyDocumentsFolderPath' in view_model
+inbox_service = (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxService.cs").read_text(encoding="utf-8")
+assert '"Related Documents"' in inbox_service
+assert 'CompanyArchiveFileName' in inbox_service
+assert '15, "15 seconds"' in view_model and '30, "30 seconds"' in view_model
+assert 'Files could not be verified or organized:' in view_model
 assert 'current.InnerException' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxIngestService.cs").read_text(encoding="utf-8")

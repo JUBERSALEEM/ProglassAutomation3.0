@@ -144,7 +144,7 @@ public partial class InquiryWorkspaceView : UserControl
 
             _syncTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMinutes(1)
+                Interval = TimeSpan.FromSeconds(5)
             };
             _syncTimer.Tick += OnSyncTick;
         }
@@ -176,8 +176,8 @@ public partial class InquiryWorkspaceView : UserControl
     private void OnSyncTick(object? sender, EventArgs e)
     {
         if (!_inboxService.Settings.IsConfigured) return;
-        var dueMinutes = Math.Clamp(_inboxService.Settings.PollMinutes, 1, 120);
-        if ((DateTime.UtcNow - _lastAutoSyncUtc).TotalMinutes < dueMinutes) return;
+        var dueSeconds = Math.Clamp(_inboxService.Settings.PollIntervalSeconds, 15, 7200);
+        if ((DateTime.UtcNow - _lastAutoSyncUtc).TotalSeconds < dueSeconds) return;
         _lastAutoSyncUtc = DateTime.UtcNow;
         _ = SafeAutoSyncAsync();
     }

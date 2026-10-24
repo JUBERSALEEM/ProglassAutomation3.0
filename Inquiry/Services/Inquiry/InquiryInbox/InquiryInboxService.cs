@@ -130,6 +130,68 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             return Path.Combine(full, folder);
         }
 
+        public static string CompanyInquiryFolderPath(string root, string companyName, string submissionReference) =>
+            Path.Combine(root, InboxFileNames.Safe(companyName), InboxFileNames.Safe(submissionReference));
+
+        public static string CompanyDocumentsFolderPath(string root, string companyName, string submissionReference) =>
+            Path.Combine(CompanyInquiryFolderPath(root, companyName, submissionReference), "Related Documents");
+
+        internal static string CompanyArchiveFileName(InboxSubmissionPlan plan,
+            InboxManifest.InboxManifestDocument document, int zeroBasedIndex)
+        {
+            var companyName = string.IsNullOrWhiteSpace(plan.CompanyName)
+                ? (string.IsNullOrWhiteSpace(plan.ContactName) ? "Unknown Company" : plan.ContactName)
+                : plan.CompanyName;
+            var customer = InboxFileNames.Safe(string.IsNullOrWhiteSpace(plan.ContactName)
+                ? companyName : plan.ContactName);
+            var stamp = "unknown-time";
+            if (DateTimeOffset.TryParse(plan.SubmittedAt, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal, out var submitted))
+                stamp = submitted.UtcDateTime.AddHours(4).ToString("yyyyMMdd-HHmmss",
+                    System.Globalization.CultureInfo.InvariantCulture);
+            var originalName = InboxFileNames.Safe(InboxFileNames.BaseName(document.Filename));
+            return $"{customer}-{InboxFileNames.Safe(plan.SubmissionReference)}-{stamp}-{zeroBasedIndex + 1:00}-{originalName}";
+        }
+
+        internal static void EnsureCompanyArchive(string root, string deliveryFolder,
+            InboxManifest manifest, InboxSubmissionPlan plan)
+        {
+            var companyName = string.IsNullOrWhiteSpace(plan.CompanyName)
+                ? (string.IsNullOrWhiteSpace(plan.ContactName) ? "Unknown Company" : plan.ContactName)
+                : plan.CompanyName;
+            var targetFolder = CompanyDocumentsFolderPath(root, companyName, plan.SubmissionReference);
+            Directory.CreateDirectory(targetFolder);
+
+            for (int i = 0; i < manifest.Documents.Count; i++)
+            {
+                var document = manifest.Documents[i];
+                var source = Path.Combine(deliveryFolder,
+                    document.LocalFile.Replace('/', Path.DirectorySeparatorChar));
+                var fileName = CompanyArchiveFileName(plan, document, i);
+                var destination = Path.Combine(targetFolder, fileName);
+                if (File.Exists(destination))
+                {
+                    var existing = File.ReadAllBytes(destination);
+                    if (existing.LongLength != document.ByteSize || Sha256Of(existing) != document.Sha256)
+                        throw new IOException("Company archive file conflicts with verified delivery: " + fileName);
+                    continue;
+                }
+                var stagedCopy = destination + "." + Guid.NewGuid().ToString("N") + ".partial";
+                try
+                {
+                    File.Copy(source, stagedCopy);
+                    var stagedBytes = File.ReadAllBytes(stagedCopy);
+                    if (stagedBytes.LongLength != document.ByteSize || Sha256Of(stagedBytes) != document.Sha256)
+                        throw new IOException("Company archive copy failed integrity verification: " + fileName);
+                    File.Move(stagedCopy, destination);
+                }
+                finally
+                {
+                    try { if (File.Exists(stagedCopy)) File.Delete(stagedCopy); } catch { }
+                }
+            }
+        }
+
         // ── Synchronize ──────────────────────────────────────────────────
 
         public Task<InboxSyncOutcome> SynchronizeAsync(CancellationToken ct = default)
@@ -277,6 +339,14 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                             || existingItem?.State == InquiryInboxStates.DeliveredElsewhere)
                         {
                             // Preserve the local evidence and never fetch or acknowledge again.
+                            var existingFolder = FolderPath(Root, plan.RoutingKey,
+                                plan.SubmissionReference, plan.SubmissionId);
+                            try
+                            {
+                                var (existingManifest, _) = ReadReadyFolder(existingFolder);
+                                EnsureCompanyArchive(Root, existingFolder, existingManifest, plan);
+                            }
+                            catch { /* keep the verified canonical delivery; archive is a convenience copy */ }
                             continue;
                         }
 
@@ -305,6 +375,12 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                             UpsertState(db, plan, docs.Count, ItemState.ImportPending,
                                 "The verified local folder has no delivery receipt. The acknowledgement was not repeated; re-import from disk.");
                             continue;
+                        }
+                        var (verifiedManifest, _) = ReadReadyFolder(deliveryFolder);
+                        try { EnsureCompanyArchive(Root, deliveryFolder, verifiedManifest, plan); }
+                        catch (Exception archiveError)
+                        {
+                            outcome.Error = "Company archive copy failed: " + archiveError.Message;
                         }
                         if (delivered == ItemDeliveryResult.Verified) outcome.Verified++;
                         else outcome.Delivered++;
@@ -415,6 +491,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                             : $"Checked the website — {outcome.Failed} of {outcome.Planned} failed (details in the inbox page).";
                     if (outcome.ImportPending > 0)
                         outcome.StatusText += $" {outcome.ImportPending} delivery item(s) are ready to re-import from disk.";
+                    if (outcome.Error?.StartsWith("Company archive copy failed:", StringComparison.Ordinal) == true)
+                        outcome.StatusText += " " + outcome.Error;
                     if (chatNote != null)
                         outcome.StatusText += " " + chatNote;
                     else if (chatAdded > 0)
@@ -824,8 +902,10 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     var (manifest, manifestHash) = ReadReadyFolder(candidate);
                     var plan = JsonSerializer.Deserialize<InboxSubmissionPlan>(manifest.SubmissionRaw, JsonOpts)
                         ?? throw new IOException("Adopted manifest is missing its submission row.");
-                    if (db.InboxItems.Any(i => i.SubmissionId == plan.SubmissionId)) continue;
                     var receipt = ReadDeliveryReceiptIfPresent(candidate, plan, manifest.Documents.Count);
+                    try { EnsureCompanyArchive(root, candidate, manifest, plan); }
+                    catch { /* the verified canonical delivery remains authoritative */ }
+                    if (db.InboxItems.Any(i => i.SubmissionId == plan.SubmissionId)) continue;
                     db.InboxItems.Add(new InquiryInboxItem
                     {
                         SubmissionId = plan.SubmissionId,

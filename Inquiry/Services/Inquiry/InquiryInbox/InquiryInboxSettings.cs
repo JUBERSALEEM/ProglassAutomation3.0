@@ -33,8 +33,11 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         /// GLASS_INBOX_ROOT when both run on the same machine.
         /// </summary>
         [JsonPropertyName("inboxRoot")] public string InboxRoot { get; set; } = DefaultInboxRoot;
-        /// <summary>Automatic sync interval (minutes).</summary>
-        [JsonPropertyName("pollMinutes")] public int PollMinutes { get; set; } = 1;
+        /// <summary>Automatic sync interval in seconds (minimum 15 seconds).</summary>
+        [JsonPropertyName("pollIntervalSeconds")] public int PollIntervalSeconds { get; set; } = 30;
+        /// <summary>Legacy setting read only for migration from earlier builds.</summary>
+        [JsonPropertyName("pollMinutes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? LegacyPollMinutes { get; set; }
         [JsonPropertyName("notificationsEnabled")] public bool NotificationsEnabled { get; set; } = true;
         [JsonPropertyName("notificationSound")] public bool NotificationSound { get; set; } = true;
         /// <summary>
@@ -95,13 +98,18 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 if (File.Exists(FilePath))
                 {
                     var settings = JsonSerializer.Deserialize<InquiryInboxSettings>(File.ReadAllText(FilePath)) ?? new();
-                    // 5 minutes was the old out-of-box default. Move that legacy default
-                    // to one-minute polling while preserving other user-selected intervals.
-                    if (settings.PollMinutes == 5)
+                    if (settings.LegacyPollMinutes.HasValue)
                     {
-                        settings.PollMinutes = 1;
+                        // The earlier defaults were 5 minutes (then 1 minute). Migrate those
+                        // defaults to 30 seconds; preserve other explicit intervals.
+                        int legacyMinutes = settings.LegacyPollMinutes.Value;
+                        settings.PollIntervalSeconds = legacyMinutes is 1 or 5
+                            ? 30
+                            : Math.Clamp(legacyMinutes * 60, 15, 7200);
+                        settings.LegacyPollMinutes = null;
                         settings.Save();
                     }
+                    settings.PollIntervalSeconds = Math.Clamp(settings.PollIntervalSeconds, 15, 7200);
                     return settings;
                 }
             }
