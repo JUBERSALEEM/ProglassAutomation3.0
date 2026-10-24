@@ -88,8 +88,9 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 {
                     PropertyNameCaseInsensitive = true,
                     NumberHandling = System.Text.Json.JsonNumberHandling.AllowReadingFromString
-                })
-                ?? return Fail("The inbox manifest is unreadable.");
+                });
+            if (plan == null)
+                return Fail("The inbox manifest is unreadable.");
 
             var estimator = plan.PrimaryEstimatorDisplay();
             if (string.IsNullOrWhiteSpace(estimator)) estimator = plan.HandoverEstimatorName ?? "";

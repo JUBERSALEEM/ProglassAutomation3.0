@@ -260,7 +260,7 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                     || (value[0] == '`' && value[^1] == '`')
                     || (value[0] == '[' && value[^1] == ']')))
                 value = value.Substring(1, value.Length - 2);
-            return value.Replace("""", "\"", StringComparison.Ordinal).Trim();
+            return value.Replace("\"\"", "\"", StringComparison.Ordinal).Trim();
         }
 
         private static void ValidateIdentifier(string value, string parameterName)
