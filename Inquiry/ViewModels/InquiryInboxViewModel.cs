@@ -249,7 +249,10 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             get
             {
                 if (AccessReport == null) return "";
-                var text = $"Account email: {AccessReport.AccountEmail} · Roles: {AccessReport.RolesText}";
+                var capabilities = AccessReport.Capabilities.Count == 0
+                    ? "(none)"
+                    : string.Join(", ", AccessReport.Capabilities);
+                var text = $"Signed in as {AccessReport.AccountEmail} · Roles: {AccessReport.RolesText} · Capabilities: {capabilities}";
                 if (AccessReport.DenialReason != null)
                     text += " · Denial reason: " + AccessReport.DenialReason;
                 return text;

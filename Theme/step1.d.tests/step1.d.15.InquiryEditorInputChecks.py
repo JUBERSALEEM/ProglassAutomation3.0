@@ -79,3 +79,11 @@ assert 'InquiryInboxStates.DeliveredElsewhere => "Information"' in view_model
 
 assert 'No submissions are waiting. The website hands a submission to this PC only after a ProGlass operator accepts it; everything accepted and not yet delivered appears here.' in service
 assert 'RunEmptyPlanIsNeutral' in (ROOT / "Theme/step1.d.tests/step1.d.16.InquiryInboxDeliveryOrderingChecks.cs").read_text(encoding="utf-8")
+
+assert 'AcknowledgedAtUtc' in (ROOT / "Inquiry/Models/Inquiry/InquiryInboxState.cs").read_text(encoding="utf-8")
+assert 'AcknowledgedBy' in (ROOT / "Inquiry/Models/Inquiry/InquiryInboxState.cs").read_text(encoding="utf-8")
+assert 'Signed in as {AccessReport.AccountEmail}' in view_model
+migrations = (ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs").read_text(encoding="utf-8")
+assert 'new(1009, "Inquiry: persist website acknowledgement identity"' in migrations
+assert 'RequireColumn(connection, "InboxItems", "AcknowledgedAtUtc")' in migrations
+assert 'RequireColumn(connection, "InboxItems", "AcknowledgedBy")' in migrations

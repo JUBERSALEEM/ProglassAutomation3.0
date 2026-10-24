@@ -140,7 +140,16 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             // idempotent repair converges the legacy inbox table name when
             // present, otherwise creates the EF table queried by the app.
             new(1008, "Inquiry: ensure current website inbox ledger table", EnsureInboxLedgerSchema,
-                VerifyInboxLedgerSchema)
+                VerifyInboxLedgerSchema),
+            new(1009, "Inquiry: persist website acknowledgement identity", connection =>
+            {
+                SchemaMigrationSql.AddColumnIfMissing(connection, "InboxItems", "AcknowledgedAtUtc",
+                    "TEXT NOT NULL DEFAULT ''");
+                SchemaMigrationSql.AddColumnIfMissing(connection, "InboxItems", "AcknowledgedBy",
+                    "TEXT NOT NULL DEFAULT ''");
+                SchemaMigrationSql.RequireColumn(connection, "InboxItems", "AcknowledgedAtUtc");
+                SchemaMigrationSql.RequireColumn(connection, "InboxItems", "AcknowledgedBy");
+            })
 
         };
 
@@ -171,6 +180,8 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                     ""IngestedAt"" TEXT NOT NULL DEFAULT '',
                     ""LocalInquiryId"" INTEGER NULL,
                     ""LocalInquiryNumber"" TEXT NOT NULL DEFAULT '',
+                    ""AcknowledgedAtUtc"" TEXT NOT NULL DEFAULT '',
+                    ""AcknowledgedBy"" TEXT NOT NULL DEFAULT '',
                     ""Error"" TEXT NOT NULL DEFAULT ''
                 );");
             EnsureInboxLedgerColumns(connection);
@@ -195,6 +206,8 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                 ("IngestedAt", "TEXT NOT NULL DEFAULT ''"),
                 ("LocalInquiryId", "INTEGER NULL"),
                 ("LocalInquiryNumber", "TEXT NOT NULL DEFAULT ''"),
+                ("AcknowledgedAtUtc", "TEXT NOT NULL DEFAULT ''"),
+                ("AcknowledgedBy", "TEXT NOT NULL DEFAULT ''"),
                 ("Error", "TEXT NOT NULL DEFAULT ''")
             };
             if (!InboxLedgerHasColumn(connection, "SubmissionId", requirePrimaryKey: true))
@@ -227,7 +240,8 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             {
                 "SubmissionId", "Reference", "State", "ManifestSha256", "DocumentCount",
                 "RoutingKey", "PrimaryEstimatorCode", "AssignmentSnapshot", "DownloadedAt",
-                "IngestedAt", "LocalInquiryId", "LocalInquiryNumber", "Error"
+                "IngestedAt", "LocalInquiryId", "LocalInquiryNumber", "AcknowledgedAtUtc",
+                "AcknowledgedBy", "Error"
             })
                 SchemaMigrationSql.RequireColumn(connection, "InboxItems", column);
             SchemaMigrationSql.RequireIndex(connection, "IX_InboxItems_State", "InboxItems", false, new[] { "State" });

@@ -40,6 +40,9 @@ namespace ProGlassAutomation.Models.Inquiry
         public string AssignmentSnapshot { get; set; } = "[]";
         /// <summary>ISO-8601 UTC timestamps (stored as TEXT by SQLite).</summary>
         public string DownloadedAt { get; set; } = "";
+        /// <summary>Server acknowledgement time and authenticated operator email.</summary>
+        public string AcknowledgedAtUtc { get; set; } = "";
+        [MaxLength(320)] public string AcknowledgedBy { get; set; } = "";
         public string IngestedAt { get; set; } = "";
         public int? LocalInquiryId { get; set; }
         [MaxLength(200)] public string LocalInquiryNumber { get; set; } = "";

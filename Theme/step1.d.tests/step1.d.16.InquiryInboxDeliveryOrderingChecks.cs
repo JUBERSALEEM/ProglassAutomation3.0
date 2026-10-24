@@ -62,6 +62,13 @@ internal static class InquiryInboxDeliveryOrderingChecks
                 || receipt.GetProperty("acked_by").GetString() != "operator@example.invalid"
                 || string.IsNullOrWhiteSpace(receipt.GetProperty("acked_at_utc").GetString()))
                 throw new InvalidOperationException("Delivery receipt is incomplete or does not match the acknowledged manifest.");
+            using (var db = new InquiryDbContext())
+            {
+                var ledger = db.InboxItems.Single(i => i.SubmissionId == submissionId);
+                if (ledger.AcknowledgedBy != "operator@example.invalid"
+                    || ledger.AcknowledgedAtUtc != receipt.GetProperty("acked_at_utc").GetString())
+                    throw new InvalidOperationException("The local ledger did not retain the acknowledgement identity and time.");
+            }
             var incoming = Path.Combine(inboxRoot, "incoming");
             if (Directory.Exists(incoming) && Directory.EnumerateDirectories(incoming).Any())
                 throw new InvalidOperationException("A successful fetch left a partial folder behind.");

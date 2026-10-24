@@ -298,8 +298,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
                         var delivered = await DeliverAsync(plan, rawJson, docs, ct).ConfigureAwait(false);
                         var deliveryFolder = FolderPath(Root, plan.RoutingKey, plan.SubmissionReference, plan.SubmissionId);
-                        if (delivered == ItemDeliveryResult.Verified
-                            && !File.Exists(Path.Combine(deliveryFolder, "delivery.json")))
+                        var receipt = ReadDeliveryReceiptIfPresent(deliveryFolder, plan, docs.Count);
+                        if (delivered == ItemDeliveryResult.Verified && receipt == null)
                         {
                             outcome.ImportPending++;
                             UpsertState(db, plan, docs.Count, ItemState.ImportPending,
@@ -309,7 +309,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                         if (delivered == ItemDeliveryResult.Verified) outcome.Verified++;
                         else outcome.Delivered++;
 
-                        UpsertState(db, plan, docs.Count, ItemState.Downloaded, null);
+                        UpsertState(db, plan, docs.Count, ItemState.Downloaded, null, receipt);
                         if (isNew)
                         {
                             outcome.NewReferences = Append(outcome.NewReferences, plan.SubmissionReference);
@@ -593,7 +593,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                             "Existing inbox integrity check failed for " + doc.Filename + ".");
                 }
                 if (File.Exists(Path.Combine(finalPath, "delivery.json")))
-                    VerifyDeliveryReceipt(finalPath, plan, manifestHash, docs.Count);
+                    _ = ReadDeliveryReceiptIfPresent(finalPath, plan, docs.Count);
                 // A local READY folder is never a reason to replay the remote acknowledgement.
                 return ItemDeliveryResult.Verified;
             }
@@ -633,8 +633,9 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             }
 
             await AcknowledgeAsync(plan, manifestHash, docs, ct).ConfigureAwait(false);
-            WriteDeliveryReceipt(finalPath, plan, manifestHash, docs.Count,
-                LastAccessReport?.AccountEmail ?? _settings.BridgeEmail);
+            var acknowledgedBy = LastAccessReport?.AccountEmail;
+            if (string.IsNullOrWhiteSpace(acknowledgedBy)) acknowledgedBy = _settings.BridgeEmail;
+            WriteDeliveryReceipt(finalPath, plan, manifestHash, docs.Count, acknowledgedBy);
             WriteCheckpoint(root, plan.SubmissionId);
             return ItemDeliveryResult.Delivered;
         }
@@ -730,7 +731,9 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         private static string DeliveredElsewhereMessage(InquiryInboxItem item)
         {
             string time = "time unavailable";
-            if (DateTime.TryParse(item.DownloadedAt, System.Globalization.CultureInfo.InvariantCulture,
+            var acknowledgedAt = string.IsNullOrWhiteSpace(item.AcknowledgedAtUtc)
+                ? item.DownloadedAt : item.AcknowledgedAtUtc;
+            if (DateTime.TryParse(acknowledgedAt, System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
                     out var utc))
                 time = utc.AddHours(4).ToString("dd MMM yyyy, HH:mm", System.Globalization.CultureInfo.InvariantCulture);
@@ -739,16 +742,20 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 + @"or restore them from C:\ProgramData\ProGlass\CustomerInquiryInbox.";
         }
 
-        private static void VerifyDeliveryReceipt(string folder, InboxSubmissionPlan plan,
-            string manifestHash, int documentCount)
+        private static InboxDeliveryReceipt? ReadDeliveryReceiptIfPresent(string folder,
+            InboxSubmissionPlan plan, int documentCount)
         {
-            var receipt = JsonSerializer.Deserialize<InboxDeliveryReceipt>(
-                File.ReadAllText(Path.Combine(folder, "delivery.json")), JsonOpts)
+            var path = Path.Combine(folder, "delivery.json");
+            if (!File.Exists(path)) return null;
+            var (_, manifestHash) = ReadReadyFolder(folder);
+            var receipt = JsonSerializer.Deserialize<InboxDeliveryReceipt>(File.ReadAllText(path), JsonOpts)
                 ?? throw new IOException("Delivery receipt is unreadable.");
             if (receipt.SubmissionId != plan.SubmissionId || receipt.Reference != plan.SubmissionReference
                 || receipt.ManifestSha256 != manifestHash || receipt.DocumentCount != documentCount
-                || receipt.RoutingKey != plan.RoutingKey)
+                || receipt.RoutingKey != plan.RoutingKey || string.IsNullOrWhiteSpace(receipt.AckedAtUtc)
+                || string.IsNullOrWhiteSpace(receipt.AckedBy))
                 throw new IOException("Delivery receipt does not match the verified payload.");
+            return receipt;
         }
 
         private static string StateFor(ItemState state) => state switch
@@ -760,7 +767,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         };
 
         private static void UpsertState(InquiryDbContext db, InboxSubmissionPlan plan,
-            int documentCount, ItemState state, string? error)
+            int documentCount, ItemState state, string? error, InboxDeliveryReceipt? receipt = null)
         {
             var existing = db.InboxItems.FirstOrDefault(i => i.SubmissionId == plan.SubmissionId);
             var snapshot = string.IsNullOrWhiteSpace(plan.AssignmentSnapshotRaw) ? "[]" : plan.AssignmentSnapshotRaw;
@@ -775,6 +782,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     RoutingKey = plan.RoutingKey,
                     PrimaryEstimatorCode = plan.PrimaryEstimatorCode ?? "",
                     AssignmentSnapshot = snapshot,
+                    AcknowledgedAtUtc = receipt?.AckedAtUtc ?? "",
+                    AcknowledgedBy = receipt?.AckedBy ?? "",
                     DownloadedAt = state is ItemState.Downloaded or ItemState.ImportPending
                         ? DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") : "",
                     Error = error ?? ""
@@ -789,6 +798,11 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 existing.RoutingKey = plan.RoutingKey;
                 existing.PrimaryEstimatorCode = plan.PrimaryEstimatorCode ?? "";
                 existing.AssignmentSnapshot = snapshot;
+                if (receipt != null)
+                {
+                    existing.AcknowledgedAtUtc = receipt.AckedAtUtc;
+                    existing.AcknowledgedBy = receipt.AckedBy;
+                }
                 if (state is ItemState.Downloaded or ItemState.ImportPending)
                     existing.DownloadedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 existing.Error = error ?? "";
@@ -811,6 +825,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     var plan = JsonSerializer.Deserialize<InboxSubmissionPlan>(manifest.SubmissionRaw, JsonOpts)
                         ?? throw new IOException("Adopted manifest is missing its submission row.");
                     if (db.InboxItems.Any(i => i.SubmissionId == plan.SubmissionId)) continue;
+                    var receipt = ReadDeliveryReceiptIfPresent(candidate, plan, manifest.Documents.Count);
                     db.InboxItems.Add(new InquiryInboxItem
                     {
                         SubmissionId = plan.SubmissionId,
@@ -822,6 +837,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                         PrimaryEstimatorCode = manifest.PrimaryEstimatorCode ?? "",
                         AssignmentSnapshot = string.IsNullOrWhiteSpace(manifest.AssignmentSnapshotRaw) ? "[]" : manifest.AssignmentSnapshotRaw,
                         DownloadedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
+                        AcknowledgedAtUtc = receipt?.AckedAtUtc ?? "",
+                        AcknowledgedBy = receipt?.AckedBy ?? "",
                         Error = ""
                     });
                     adopted++;
