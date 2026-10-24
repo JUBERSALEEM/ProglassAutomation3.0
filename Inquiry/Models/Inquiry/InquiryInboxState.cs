@@ -20,6 +20,7 @@ namespace ProGlassAutomation.Models.Inquiry
     {
         public const string Downloaded = "downloaded";
         public const string Ingested = "ingested";
+        public const string ImportPending = "import_pending";
         public const string Failed = "failed";
     }
 

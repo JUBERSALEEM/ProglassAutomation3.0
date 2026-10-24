@@ -63,6 +63,21 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         public async Task<InquiryInboxIngestResult> IngestAsync(string submissionId, CancellationToken ct = default)
         {
+            try
+            {
+                var result = await IngestCoreAsync(submissionId, ct).ConfigureAwait(false);
+                if (!result.Success) MarkImportPending(submissionId, result.Error ?? "Import did not complete.");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                MarkImportPending(submissionId, ex.Message);
+                return Fail(ex.Message);
+            }
+        }
+
+        private async Task<InquiryInboxIngestResult> IngestCoreAsync(string submissionId, CancellationToken ct)
+        {
             using (var db = new InquiryDbContext())
             {
                 var item = db.InboxItems.AsNoTracking().FirstOrDefault(i => i.SubmissionId == submissionId);
@@ -162,6 +177,20 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 InquiryNumber = saved.InquiryNumber,
                 AttachmentCount = copied
             };
+        }
+
+        private static void MarkImportPending(string submissionId, string error)
+        {
+            try
+            {
+                using var db = new InquiryDbContext();
+                var item = db.InboxItems.FirstOrDefault(i => i.SubmissionId == submissionId);
+                if (item == null || item.State == InquiryInboxStates.Ingested) return;
+                item.State = InquiryInboxStates.ImportPending;
+                item.Error = error.Length > 490 ? error[..490] : error;
+                db.SaveChanges();
+            }
+            catch { /* the durable READY folder remains available for a later re-import */ }
         }
 
         private static string FirstNonEmpty(params string[] values)

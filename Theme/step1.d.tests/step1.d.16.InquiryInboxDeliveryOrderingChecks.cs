@@ -6,6 +6,8 @@ using System.Text.Json;
 using ProGlassAutomation.Services.Database;
 using ProGlassAutomation.Services.Inquiry;
 using ProGlassAutomation.Services.Inquiry.InquiryInbox;
+using ProGlassAutomation.Models.Inquiry;
+using ProGlassAutomation.ViewModels.Inquiry;
 
 namespace ProGlassAutomation.ThemeTests;
 
@@ -70,6 +72,116 @@ internal static class InquiryInboxDeliveryOrderingChecks
             AppDataRoot.TestFolderOverride = priorRoot;
             try { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); } catch { }
         }
+        RunAckFailureDoesNotReack();
+        RunImportFailureKeepsPayloadAndOffersReimport();
+    }
+
+    private static (byte[] Bytes, string Sha, string SubmissionId, string Reference, string Snapshot) Fixture()
+    {
+        var bytes = Encoding.UTF8.GetBytes("fixture-document-content");
+        return (bytes, Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
+            Guid.NewGuid().ToString(), "WEB-2026-000001",
+            "[{\"role\":\"primary\",\"estimatorCode\":\"EST-TEST\",\"displayName\":\"Test Estimator\"}]");
+    }
+
+    private static InquiryInboxSettings Settings(string inboxRoot) => new()
+    {
+        SupabaseUrl = "https://unit.invalid",
+        AnonKey = "public-test-key",
+        BridgeEmail = "operator@example.invalid",
+        EncryptedPassword = Convert.ToBase64String(new byte[] { 1 }),
+        InboxRoot = inboxRoot
+    };
+
+    private static void RunAckFailureDoesNotReack()
+    {
+        var priorRoot = AppDataRoot.TestFolderOverride;
+        var root = Path.Combine(Path.GetTempPath(), "ProGlass-InboxAckFailure-" + Guid.NewGuid().ToString("N"));
+        var inboxRoot = Path.Combine(root, "files");
+        var fixture = Fixture();
+        AppDataRoot.TestFolderOverride = Path.Combine(root, "db");
+        var handler = new DeliveryHandler(fixture.Bytes, fixture.Sha, fixture.SubmissionId,
+            fixture.Reference, "unassigned", fixture.Snapshot, inboxRoot, HttpStatusCode.InternalServerError);
+        try
+        {
+            new InquiryRepository().InitializeAsync().GetAwaiter().GetResult();
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(() => handler);
+            using var service = new InquiryInboxService(Settings(inboxRoot));
+            var failedAck = service.SynchronizeAsync().GetAwaiter().GetResult();
+            if (failedAck.Failed != 1 || handler.AckCalls != 1 || handler.DownloadCalls != 1)
+                throw new InvalidOperationException("An acknowledgement failure did not stop at one fetch/ack attempt.");
+            using (var db = new InquiryDbContext())
+            {
+                var item = db.InboxItems.Single(i => i.SubmissionId == fixture.SubmissionId);
+                if (item.State != InquiryInboxStates.ImportPending)
+                    throw new InvalidOperationException("A placed payload after ack failure was not marked ImportPending.");
+            }
+            var folder = InquiryInboxService.FolderPath(inboxRoot, "unassigned", fixture.Reference, fixture.SubmissionId);
+            if (!File.Exists(Path.Combine(folder, "READY")))
+                throw new InvalidOperationException("The placed payload was deleted after acknowledgement failure.");
+            service.SynchronizeAsync().GetAwaiter().GetResult();
+            if (handler.AckCalls != 1 || handler.DownloadCalls != 1)
+                throw new InvalidOperationException("A later check repeated the fetch or acknowledgement for ImportPending.");
+        }
+        finally
+        {
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(null);
+            AppDataRoot.TestFolderOverride = priorRoot;
+            try { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); } catch { }
+        }
+    }
+
+    private static void RunImportFailureKeepsPayloadAndOffersReimport()
+    {
+        var priorRoot = AppDataRoot.TestFolderOverride;
+        var root = Path.Combine(Path.GetTempPath(), "ProGlass-InboxImportFailure-" + Guid.NewGuid().ToString("N"));
+        var inboxRoot = Path.Combine(root, "files");
+        var fixture = Fixture();
+        AppDataRoot.TestFolderOverride = Path.Combine(root, "db");
+        var repository = new InquiryRepository();
+        var handler = new DeliveryHandler(fixture.Bytes, fixture.Sha, fixture.SubmissionId,
+            fixture.Reference, "unassigned", fixture.Snapshot, inboxRoot);
+        try
+        {
+            repository.InitializeAsync().GetAwaiter().GetResult();
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(() => handler);
+            using var service = new InquiryInboxService(Settings(inboxRoot));
+            var fetched = service.SynchronizeAsync().GetAwaiter().GetResult();
+            if (fetched.Delivered != 1 || handler.AckCalls != 1)
+                throw new InvalidOperationException("Import-failure fixture delivery did not complete.");
+
+            var importer = new InquiryInboxIngestService(repository, new ThrowingWorkflow(),
+                new InquiryAttachmentService(repository), service);
+            var result = importer.IngestAsync(fixture.SubmissionId).GetAwaiter().GetResult();
+            if (result.Success) throw new InvalidOperationException("The injected import failure unexpectedly succeeded.");
+            var folder = InquiryInboxService.FolderPath(inboxRoot, "unassigned", fixture.Reference, fixture.SubmissionId);
+            if (!File.Exists(Path.Combine(folder, "READY")))
+                throw new InvalidOperationException("Import failure deleted the delivered payload.");
+            var row = new InquiryInboxItemRow(service.GetItemRows().Single(i => i.SubmissionId == fixture.SubmissionId));
+            if (row.State != "Import pending" || !row.CanIngest || row.IngestActionLabel != "Re-import from disk")
+                throw new InvalidOperationException("Import failure did not offer a disk-only re-import.");
+
+            service.SynchronizeAsync().GetAwaiter().GetResult();
+            if (handler.AckCalls != 1 || handler.DownloadCalls != 1)
+                throw new InvalidOperationException("An import failure triggered another fetch or acknowledgement.");
+        }
+        finally
+        {
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(null);
+            AppDataRoot.TestFolderOverride = priorRoot;
+            try { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); } catch { }
+        }
+    }
+
+    private sealed class ThrowingWorkflow : IInquiryWorkflowService
+    {
+        public Task<InquiryRecord> CreateAsync(InquiryRecord inquiry, CancellationToken ct = default) =>
+            Task.FromException<InquiryRecord>(new InvalidOperationException("fixture import failed"));
+        public Task<InquiryRecord> UpdateAsync(InquiryRecord inquiry, int expectedRowVersion, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> ChangeStatusAsync(int id, string current, string next, int expectedRowVersion, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<InquiryRecord> DuplicateAsync(int sourceId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<DeleteInquiryResult> DeleteAsync(int id, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<bool> SetPriorityAsync(int id, string priority, CancellationToken ct = default) => throw new NotImplementedException();
     }
 
     private sealed class DeliveryHandler : HttpMessageHandler
@@ -81,12 +193,15 @@ internal static class InquiryInboxDeliveryOrderingChecks
         private readonly string _route;
         private readonly string _snapshot;
         private readonly string _root;
+        private readonly HttpStatusCode _ackStatus;
+        public int AckCalls { get; private set; }
+        public int DownloadCalls { get; private set; }
         public bool AckSawReadyPayload { get; private set; }
         public bool AckSawReceipt { get; private set; }
         public bool AckArgumentsMatched { get; private set; }
 
         public DeliveryHandler(byte[] bytes, string sha, string submissionId, string reference,
-            string route, string snapshot, string root)
+            string route, string snapshot, string root, HttpStatusCode ackStatus = HttpStatusCode.OK)
         {
             _bytes = bytes;
             _sha = sha;
@@ -95,6 +210,7 @@ internal static class InquiryInboxDeliveryOrderingChecks
             _route = route;
             _snapshot = snapshot;
             _root = root;
+            _ackStatus = ackStatus;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -109,9 +225,13 @@ internal static class InquiryInboxDeliveryOrderingChecks
             if (path.EndsWith("/plan_customer_inquiry_delivery_documents", StringComparison.Ordinal))
                 return Json(HttpStatusCode.OK, "[{\"document_id\":\"doc-1\",\"original_filename\":\"drawing.pdf\",\"detected_mime\":\"application/pdf\",\"byte_size\":" + _bytes.LongLength + ",\"content_sha256\":\"" + _sha + "\",\"storage_bucket\":\"inquiry-intake-documents\",\"storage_object_key\":\"fixture/drawing.pdf\"}]");
             if (path.Contains("/storage/v1/object/inquiry-intake-documents/", StringComparison.Ordinal))
+            {
+                DownloadCalls++;
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(_bytes) });
+            }
             if (path.EndsWith("/acknowledge_customer_inquiry_delivery_v2", StringComparison.Ordinal))
             {
+                AckCalls++;
                 var folder = InquiryInboxService.FolderPath(_root, _route, _reference, _submissionId);
                 AckSawReadyPayload = File.Exists(Path.Combine(folder, "READY"))
                     && File.Exists(Path.Combine(folder, "manifest.json"))
@@ -125,7 +245,7 @@ internal static class InquiryInboxDeliveryOrderingChecks
                     && actualSnapshot == _snapshot
                     && root.GetProperty("p_manifest_sha256").GetString() == Convert.ToHexString(
                         SHA256.HashData(File.ReadAllBytes(Path.Combine(folder, "manifest.json")))).ToLowerInvariant();
-                return Json(HttpStatusCode.OK, "{}");
+                return Json(_ackStatus, _ackStatus == HttpStatusCode.OK ? "{}" : "{\"message\":\"fixture ack failure\"}");
             }
             return Json(HttpStatusCode.NotFound, "{\"message\":\"unhandled fixture request\"}");
         }

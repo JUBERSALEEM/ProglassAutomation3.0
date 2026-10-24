@@ -50,6 +50,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public string State => Ledger.State switch
         {
             InquiryInboxStates.Ingested => "Ingested",
+            InquiryInboxStates.ImportPending => "Import pending",
             InquiryInboxStates.Failed => "Failed",
             _ => "Downloaded"
         };
@@ -57,11 +58,15 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public string StateTag => Ledger.State switch
         {
             InquiryInboxStates.Ingested => "Success",
+            InquiryInboxStates.ImportPending => "Warning",
             InquiryInboxStates.Failed => "Error",
             _ => "Information"
         };
 
-        public bool CanIngest => Ledger.State == InquiryInboxStates.Downloaded;
+        public bool CanIngest => Ledger.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending;
+        public string IngestActionLabel => Ledger.State == InquiryInboxStates.ImportPending
+            ? "Re-import from disk"
+            : "Create local inquiry";
         public bool CanOpenInquiry => Ledger.State == InquiryInboxStates.Ingested && Ledger.LocalInquiryId != null;
 
         public void HydrateDisplay(string company, string project, string inquiryType, string estimator, string submittedAtIso)

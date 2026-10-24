@@ -267,6 +267,16 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     var isNew = !known.Contains(plan.SubmissionId);
                     try
                     {
+                        var existingItem = db.InboxItems.AsNoTracking()
+                            .FirstOrDefault(i => i.SubmissionId == plan.SubmissionId);
+                        var existingFolder = FolderPath(Root, plan.RoutingKey, plan.SubmissionReference, plan.SubmissionId);
+                        if (existingItem?.State == InquiryInboxStates.ImportPending && Directory.Exists(existingFolder))
+                        {
+                            // A prior fetch reached placement but acknowledgement/import completion was
+                            // ambiguous. Preserve the payload and never fetch or acknowledge it again.
+                            continue;
+                        }
+
                         List<InboxDocumentPlan> docs;
                         try
                         {
@@ -314,7 +324,12 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     {
                         outcome.Failed++;
                         outcome.Error = ex.Message;
-                        UpsertState(db, plan, 0, ItemState.Failed,
+                        var localFolder = FolderPath(Root, plan.RoutingKey, plan.SubmissionReference, plan.SubmissionId);
+                        bool payloadPlaced = Directory.Exists(localFolder)
+                            && File.Exists(Path.Combine(localFolder, "manifest.json"))
+                            && File.Exists(Path.Combine(localFolder, "READY"));
+                        UpsertState(db, plan, payloadPlaced ? (int)plan.DocumentCount : 0,
+                            payloadPlaced ? ItemState.ImportPending : ItemState.Failed,
                             ex.Message.Length > 490 ? ex.Message[..490] : ex.Message);
                     }
                 }
@@ -474,7 +489,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         // ── One delivery (bridge apply-loop item) ────────────────────────
 
         private enum ItemDeliveryResult { Delivered, Verified }
-        private enum ItemState { Downloaded, Failed }
+        private enum ItemState { Downloaded, ImportPending, Failed }
 
         private async Task<ItemDeliveryResult> DeliverAsync(InboxSubmissionPlan plan, string rawJson,
             List<InboxDocumentPlan> docs, CancellationToken ct)
@@ -636,6 +651,13 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         // ── Local ledger ─────────────────────────────────────────────────
 
+        private static string StateFor(ItemState state) => state switch
+        {
+            ItemState.Downloaded => InquiryInboxStates.Downloaded,
+            ItemState.ImportPending => InquiryInboxStates.ImportPending,
+            _ => InquiryInboxStates.Failed
+        };
+
         private static void UpsertState(InquiryDbContext db, InboxSubmissionPlan plan,
             int documentCount, ItemState state, string? error)
         {
@@ -647,24 +669,24 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 {
                     SubmissionId = plan.SubmissionId,
                     Reference = plan.SubmissionReference,
-                    State = state == ItemState.Downloaded ? InquiryInboxStates.Downloaded : InquiryInboxStates.Failed,
+                    State = StateFor(state),
                     DocumentCount = documentCount,
                     RoutingKey = plan.RoutingKey,
                     PrimaryEstimatorCode = plan.PrimaryEstimatorCode ?? "",
                     AssignmentSnapshot = snapshot,
-                    DownloadedAt = state == ItemState.Downloaded ? DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") : "",
+                    DownloadedAt = state != ItemState.Failed ? DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") : "",
                     Error = error ?? ""
                 });
             }
             else
             {
                 existing.Reference = plan.SubmissionReference;
-                existing.State = state == ItemState.Downloaded ? InquiryInboxStates.Downloaded : InquiryInboxStates.Failed;
+                existing.State = StateFor(state);
                 existing.DocumentCount = documentCount;
                 existing.RoutingKey = plan.RoutingKey;
                 existing.PrimaryEstimatorCode = plan.PrimaryEstimatorCode ?? "";
                 existing.AssignmentSnapshot = snapshot;
-                if (state == ItemState.Downloaded)
+                if (state != ItemState.Failed)
                     existing.DownloadedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 existing.Error = error ?? "";
             }
@@ -796,7 +818,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             {
                 Configured = _settings.IsConfigured,
                 Offline = (_settings.LastSyncStatus ?? "").StartsWith("Offline", StringComparison.Ordinal),
-                DownloadedCount = items.Count(i => i.State == InquiryInboxStates.Downloaded),
+                DownloadedCount = items.Count(i => i.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending),
                 IngestedCount = items.Count(i => i.State == InquiryInboxStates.Ingested),
                 FailedCount = items.Count(i => i.State == InquiryInboxStates.Failed),
                 LastSyncAtUtc = lastSyncAtUtc,

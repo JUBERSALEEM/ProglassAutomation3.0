@@ -55,3 +55,11 @@ assert staged_fetch.index("Directory.Move(stage, finalPath)") < staged_fetch.ind
 assert staged_fetch.index("await AcknowledgeAsync(plan, manifestHash, docs, ct)") < staged_fetch.index("WriteDeliveryReceipt(finalPath")
 assert '"integrity check failed for "' in staged_fetch
 assert "CleanupStalePartials" not in service
+assert 'InquiryInboxStates.ImportPending' in service
+assert 'existingItem?.State == InquiryInboxStates.ImportPending' in service
+ingest_service = (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxIngestService.cs").read_text(encoding="utf-8")
+assert 'private static void MarkImportPending' in ingest_service
+assert 'item.State = InquiryInboxStates.ImportPending;' in ingest_service
+view_model = (ROOT / "Inquiry/ViewModels/InquiryInboxViewModel.cs").read_text(encoding="utf-8")
+assert '"Re-import from disk"' in view_model and 'Ledger.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending' in view_model
+assert 'Content="{Binding SelectedItem.IngestActionLabel}"' in (ROOT / "Inquiry/Views/InquiryInboxView.xaml").read_text(encoding="utf-8")

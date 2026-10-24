@@ -241,10 +241,10 @@
                                    MaxWidth="360"
                                    VerticalAlignment="Center"
                                    Margin="{DynamicResource MarginInline}" />
-                        <Button Content="Create local inquiry" Style="{DynamicResource PrimaryButton}"
+                        <Button Content="{Binding SelectedItem.IngestActionLabel}" Style="{DynamicResource PrimaryButton}"
                                 Command="{Binding IngestSelectedCommand}"
                                 Margin="{DynamicResource MarginInline}"
-                                AutomationProperties.Name="Create a local inquiry from the selected delivery" />
+                                AutomationProperties.Name="Import or re-import the selected delivery from disk" />
                         <Button Content="Open inquiry" Style="{DynamicResource SubtleButton}"
                                 Command="{Binding OpenInquirySelectedCommand}"
                                 Margin="{DynamicResource MarginInline}"
