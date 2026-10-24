@@ -59,4 +59,33 @@ for theme in themes:
     assert 'x:Key="MetricCard"' in workspace, theme.name
     assert 'x:Key="StatusBadge"' in workspace, theme.name
 
-print("PASS: inquiry register and inbox use live theme styles for cards, badges, and theme-owned control templates across all nine themes")
+    inputs = (theme / "step1.e.Components/step1.e.4.Inputs.xaml").read_text(encoding="utf-8")
+    textbox_template = inputs.split('<Setter Property="Template"', 1)[1].split('</ControlTemplate>', 1)[0]
+    assert 'SelectionBrush" Value="{DynamicResource AccentPrimary}"' in inputs, theme.name
+    assert 'SelectionTextBrush" Value="{DynamicResource TextOnAccent}"' in inputs, theme.name
+    assert 'Property="IsMouseOver" Value="True"' in textbox_template, theme.name
+    assert 'Value="{DynamicResource StateHover}"' in textbox_template, theme.name
+
+assert 'Width="70" Margin="{DynamicResource MarginInline}"' in inbox_xaml
+assert 'Text="Supabase account email"' in inbox_xaml
+assert 'Text="Supabase password"' in inbox_xaml
+assert 'BorderBrush" Value="{DynamicResource BorderStrong}"' in inbox_xaml
+repository = (ROOT / "Inquiry/Services/Inquiry/InquiryRepository.cs").read_text(encoding="utf-8")
+migrations = (ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs").read_text(encoding="utf-8")
+runner = (ROOT / "Inquiry/Services/Database/SchemaMigrations/SchemaMigrationRunner.cs").read_text(encoding="utf-8")
+assert 'EnsureInboxLedgerCurrent(InquiryDbContext.DatabaseFilePath)' in repository
+assert 'RepairIfNeeded(dbPath, 1009, "Inquiry InboxItems ledger"' in migrations
+assert 'BackupBeforeMigrate(dbPath, backupVersion)' in runner
+assert 'VerifyDatabaseIntegrity(connection)' in runner
+
+color_plate = (ROOT / "Theme/step1.g.Customization/step1.g.6.ColorPlateService.cs").read_text(encoding="utf-8")
+assert 'ApplyTextOnAccent(package, accent)' in color_plate
+assert 'Roles.Append("TextOnAccent")' in color_plate
+client = (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxClient.cs").read_text(encoding="utf-8")
+service = (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxService.cs").read_text(encoding="utf-8")
+view_model = (ROOT / "Inquiry/ViewModels/InquiryInboxViewModel.cs").read_text(encoding="utf-8")
+assert '403 => InboxRemoteErrorKind.PermissionDenied' in client
+assert 'InboxRemoteErrorKind.PermissionDenied => "Access denied"' in service
+assert 'Signed in — this account is not authorized for the website inbox' in view_model
+
+print("PASS: inquiry theme styles, interval spacing, inbox schema repair, dynamic input interaction, and auth/authorization diagnostics")

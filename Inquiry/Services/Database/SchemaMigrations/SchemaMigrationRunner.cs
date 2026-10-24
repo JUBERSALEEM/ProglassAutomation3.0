@@ -138,6 +138,59 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             }
         }
 
+        /// <summary>
+        /// Runs a focused, data-preserving schema repair when an applied
+        /// migration version does not match the actual SQLite shape. Unlike
+        /// Upgrade, this check is not gated by PRAGMA user_version; this is
+        /// for repairs to a required invariant such as the inbox ledger.
+        /// </summary>
+        public static bool RepairIfNeeded(
+            string dbPath,
+            int backupVersion,
+            string description,
+            Func<SqliteConnection, bool> isReady,
+            Action<SqliteConnection> repair)
+        {
+            if (string.IsNullOrWhiteSpace(dbPath) || !File.Exists(dbPath)) return true;
+            ArgumentNullException.ThrowIfNull(isReady);
+            ArgumentNullException.ThrowIfNull(repair);
+            try
+            {
+                using (var probe = Open(dbPath))
+                    if (isReady(probe)) return true;
+
+                string? backupPath = BackupBeforeMigrate(dbPath, backupVersion);
+                if (string.IsNullOrEmpty(backupPath))
+                {
+                    RecordFailure($"SQLite repair for {description} was aborted: a backup could not be created. The database was not changed.");
+                    return false;
+                }
+
+                using var connection = Open(dbPath);
+                using var tx = connection.BeginTransaction();
+                try
+                {
+                    repair(connection);
+                    if (!isReady(connection))
+                        throw new InvalidOperationException("The repair completed but the required schema is still incomplete.");
+                    VerifyDatabaseIntegrity(connection);
+                    tx.Commit();
+                    return true;
+                }
+                catch (Exception repairEx)
+                {
+                    try { tx.Rollback(); } catch (Exception) { /* rollback is best-effort */ }
+                    RecordFailure($"SQLite repair for {description} failed ({repairEx.GetType().Name}). The database was not changed. Backup: {backupPath}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                RecordFailure($"SQLite repair for {description} failed ({ex.GetType().Name}). The database was not changed.");
+                return false;
+            }
+        }
+
         // ── Version read/write (PRAGMA user_version) ─────────────────────
 
         private static void VerifyDatabaseIntegrity(SqliteConnection connection)

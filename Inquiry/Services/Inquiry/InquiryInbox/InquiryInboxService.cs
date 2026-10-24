@@ -49,6 +49,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         public bool Ran { get; init; }
         public bool Configured { get; init; } = true;
         public bool Offline { get; set; }
+        public bool AccessDenied { get; set; }
         public bool Busy { get; init; }
         public int Planned { get; set; }
         public int Delivered { get; set; }
@@ -219,6 +220,14 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                         outcome.Error = ex.Message;
                         break;
                     }
+                    catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.PermissionDenied)
+                    {
+                        outcome.AccessDenied = true;
+                        outcome.Error = ex.Message;
+                        outcome.StatusText = "Supabase sign-in succeeded, but this account is not authorized to access one or more submission documents. "
+                            + "Ask a website administrator to review the account's inbox role. Details: " + ex.Message;
+                        break;
+                    }
                     catch (Exception ex)
                     {
                         outcome.Failed++;
@@ -237,15 +246,16 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 // chat keeps flowing after delivery.
                 int chatAdded = 0;
                 string? chatNote = null;
-                if (_settings.SyncWebsiteChat && !outcome.Offline)
+                if (_settings.SyncWebsiteChat && !outcome.Offline && !outcome.AccessDenied)
                     (chatAdded, chatNote) = await SyncInboxChatAsync(db, ct).ConfigureAwait(false);
 
                 db.SaveChanges();
                 _settings.LastSyncAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-                _settings.LastSyncStatus = outcome.Offline
-                    ? "Offline (partial)"
+                _settings.LastSyncStatus = outcome.AccessDenied
+                    ? "Access denied"
+                    : outcome.Offline ? "Offline (partial)"
                     : outcome.Failed == 0 ? "OK" : "OK (with failures)";
-                if (!outcome.Offline)
+                if (!outcome.Offline && !outcome.AccessDenied)
                 {
                     outcome.StatusText = outcome.Failed == 0
                         ? $"Checked the website — {outcome.Planned} pending, {outcome.Delivered} downloaded, {outcome.Verified} already on disk."
@@ -275,9 +285,19 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             }
             catch (InboxRemoteException ex)
             {
-                outcome.Error = ex.Message;
-                outcome.StatusText = "Website check failed: " + ex.Message;
-                _settings.LastSyncStatus = ex.Kind == InboxRemoteErrorKind.Auth ? "Sign-in failed" : "Failed";
+                outcome.AccessDenied = ex.Kind == InboxRemoteErrorKind.PermissionDenied;
+                outcome.Error = outcome.AccessDenied
+                    ? "Supabase sign-in succeeded, but this account is not authorized to read website submissions. Details: " + ex.Message
+                    : ex.Message;
+                outcome.StatusText = outcome.AccessDenied
+                    ? outcome.Error!
+                    : "Website check failed: " + ex.Message;
+                _settings.LastSyncStatus = ex.Kind switch
+                {
+                    InboxRemoteErrorKind.Auth => "Sign-in failed",
+                    InboxRemoteErrorKind.PermissionDenied => "Access denied",
+                    _ => "Failed"
+                };
                 _settings.Save();
             }
 

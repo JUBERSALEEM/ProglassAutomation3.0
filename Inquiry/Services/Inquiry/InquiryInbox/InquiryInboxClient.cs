@@ -30,9 +30,11 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
     {
         /// <summary>Network unreachable / timeout — treat as "offline", never an error.</summary>
         Offline,
-        /// <summary>Credentials rejected by the website backend.</summary>
+        /// <summary>Credentials rejected by Supabase Auth.</summary>
         Auth,
-        /// <summary>Backend reachable but the RPC/role/config is wrong.</summary>
+        /// <summary>Authentication succeeded, but the account is not authorized for this operation.</summary>
+        PermissionDenied,
+        /// <summary>Backend reachable but the RPC/protocol/config is wrong.</summary>
         Remote
     }
 
@@ -312,8 +314,12 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             return await PostAsync(Url + "/rest/v1/rpc/" + name, body, withBearer: true, ct).ConfigureAwait(false);
         }
 
-        private static InboxRemoteErrorKind Classify(int status) =>
-            status is 401 or 403 ? InboxRemoteErrorKind.Auth : InboxRemoteErrorKind.Remote;
+        private static InboxRemoteErrorKind Classify(int status) => status switch
+        {
+            401 => InboxRemoteErrorKind.Auth,
+            403 => InboxRemoteErrorKind.PermissionDenied,
+            _ => InboxRemoteErrorKind.Remote
+        };
 
         private static async Task<string> SafeReadTextAsync(HttpResponseMessage response)
         {

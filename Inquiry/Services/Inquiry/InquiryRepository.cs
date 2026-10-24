@@ -50,6 +50,9 @@ namespace ProGlassAutomation.Services.Inquiry
             if (!upgraded)
                 throw new InvalidOperationException(
                     "Inquiry database migration failed: " + SchemaMigrationRunner.FailureSummary);
+            if (!AppSchemaMigrations.EnsureInboxLedgerCurrent(InquiryDbContext.DatabaseFilePath))
+                throw new InvalidOperationException(
+                    "Inquiry inbox schema repair failed: " + SchemaMigrationRunner.FailureSummary);
         }
 
         public async Task<PagedResult<InquiryListProjection>> QueryAsync(

@@ -12,7 +12,7 @@
         <Style x:Key="InboxPasswordBox" TargetType="PasswordBox">
             <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
             <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
             <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyBody}" />
@@ -36,7 +36,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource FocusIndicator}" />
                             </Trigger>
                             <Trigger Property="IsFocused" Value="True">
                                 <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
@@ -166,7 +167,7 @@
                         <TextBlock Text="Website connection"
                                    FontSize="{DynamicResource FontSizeSection}"
                                    FontWeight="{DynamicResource FontWeightHeading}" />
-                        <TextBlock Text="Desktop bridge credentials. Website operator sign-in uses email OTP; the bridge account must have a Supabase Auth password."
+                        <TextBlock Text="Sign in with an eligible Supabase account. Inbox access is still controlled by website roles; email OTP is not a password."
                                    Style="{DynamicResource Caption}" />
                     </StackPanel>
                 </DockPanel>
@@ -175,7 +176,7 @@
                         <ColumnDefinition Width="1.1*" />
                         <ColumnDefinition Width="1.3*" />
                         <ColumnDefinition Width="1.1*" />
-                        <ColumnDefinition Width="0.9*" />
+                        <ColumnDefinition Width="1.1*" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -196,17 +197,18 @@
                                  AutomationProperties.Name="Supabase API key" />
                     </StackPanel>
                     <StackPanel Grid.Row="0" Grid.Column="2" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Bridge account email" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                        <TextBlock Text="Supabase account email" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
                         <TextBox Style="{DynamicResource {x:Type TextBox}}" Margin="0" MinWidth="{DynamicResource ControlMinWidth}"
                                  Text="{Binding BridgeEmail, UpdateSourceTrigger=PropertyChanged}"
-                                 AutomationProperties.Name="Bridge account email" />
+                                 AutomationProperties.Name="Supabase account email" />
                     </StackPanel>
                     <StackPanel Grid.Row="0" Grid.Column="3" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Bridge password" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}"
-                                   ToolTip="Website operator sign-in uses an email OTP. The desktop bridge requires a Supabase Auth password." />
+                        <TextBlock Text="Supabase password" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}"
+                                   ToolTip="Use the password for this Supabase Auth account. The website's emailed OTP cannot be entered as a password." />
                         <PasswordBox x:Name="PasswordBox" Style="{StaticResource InboxPasswordBox}"
-                                     ToolTip="Use the password set for the dedicated inquiry bridge account. An emailed OTP is not a password."
-                                     AutomationProperties.Name="Dedicated inquiry bridge account password" />
+                                     MinWidth="{DynamicResource ControlMinWidth}"
+                                     ToolTip="Your account must have a website-granted role for inquiry inbox access."
+                                     AutomationProperties.Name="Supabase account password" />
                     </StackPanel>
                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="{DynamicResource MarginInline}">
                         <TextBlock Text="Inbox folder" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
@@ -221,7 +223,7 @@
                             <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                       ItemsSource="{Binding PollMinutesOptions}"
                                       SelectedItem="{Binding PollMinutes}"
-                                      Width="70" VerticalAlignment="Center"
+                                      Width="70" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
                                       AutomationProperties.Name="Automatic check interval in minutes" />
                             <TextBlock Text="minute(s)" Style="{DynamicResource Caption}"
                                        VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />

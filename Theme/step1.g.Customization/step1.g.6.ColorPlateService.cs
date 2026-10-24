@@ -148,6 +148,7 @@ public static class ColorPlateService
         var plate = Find(state.Plate);
         var roles = mode == Appearance.Dark ? plate.DarkRoles : plate.LightRoles;
         var stops = plate.Stops.ToDictionary(stop => stop.Name, stop => stop.Hex, StringComparer.OrdinalIgnoreCase);
+        Color? appliedAccent = null;
         foreach (string role in Roles)
         {
             string hex;
@@ -161,7 +162,11 @@ public static class ColorPlateService
             var brush = new SolidColorBrush(color);
             brush.Freeze();
             Set(package, role, brush);
+            if (string.Equals(role, "AccentPrimary", StringComparison.Ordinal))
+                appliedAccent = color;
         }
+        if (appliedAccent is Color accent)
+            ApplyTextOnAccent(package, accent);
         ApplyCardTint(package, mode, state, theme);
     }
 
@@ -227,13 +232,41 @@ public static class ColorPlateService
     private static void RestoreRoles(ResourceDictionary package, string theme, Appearance mode)
     {
         var fresh = ThemeService.Load(mode, theme);
-        foreach (string role in Roles)
+        foreach (string role in Roles.Append("TextOnAccent"))
         {
             if (fresh[role] is not SolidColorBrush source) continue;
             var brush = new SolidColorBrush(source.Color);
             brush.Freeze();
             Set(package, role, brush);
         }
+    }
+
+    private static void ApplyTextOnAccent(ResourceDictionary package, Color accent)
+    {
+        // Choose whichever neutral foreground has the stronger contrast with
+        // the active accent so selection text remains readable for any plate.
+        double Contrast(Color foreground, Color background)
+        {
+            static double Linear(byte channel)
+            {
+                double value = channel / 255d;
+                return value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
+            }
+
+            double luminance = 0.2126 * Linear(background.R)
+                + 0.7152 * Linear(background.G) + 0.0722 * Linear(background.B);
+            double foregroundLuminance = 0.2126 * Linear(foreground.R)
+                + 0.7152 * Linear(foreground.G) + 0.0722 * Linear(foreground.B);
+            return (Math.Max(luminance, foregroundLuminance) + 0.05)
+                / (Math.Min(luminance, foregroundLuminance) + 0.05);
+        }
+
+        Color foreground = Contrast(Colors.White, accent) >= Contrast(Colors.Black, accent)
+            ? Colors.White
+            : Colors.Black;
+        var brush = new SolidColorBrush(foreground);
+        brush.Freeze();
+        Set(package, "TextOnAccent", brush);
     }
 
     private static ColorPlateCard CardOf(ColorPlateDefinition plate)

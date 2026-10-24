@@ -22,6 +22,7 @@
     <ScrollViewer x:Name="PART_ContentHost" />
    </spatial:SpatialSurface>
    <ControlTemplate.Triggers>
+    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" /></Trigger>
     <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="StrokeBrush" Value="{DynamicResource FocusIndicator}" /></Trigger>
     <Trigger Property="Validation.HasError" Value="True"><Setter TargetName="Frame" Property="StrokeBrush" Value="{DynamicResource StatusError}" /><Setter TargetName="Frame" Property="LuminosityBrush" Value="{DynamicResource StatusError}" /></Trigger>
     <Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource DisabledSurface}" /><Setter Property="Foreground" Value="{DynamicResource DisabledText}" /></Trigger>

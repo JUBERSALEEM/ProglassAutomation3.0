@@ -139,36 +139,115 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             // (e.g. an earlier upgrade was skipped or interrupted). This
             // idempotent repair converges the legacy inbox table name when
             // present, otherwise creates the EF table queried by the app.
-            new(1008, "Inquiry: ensure current website inbox ledger table", connection =>
-            {
-                ConvergeInquiryInboxTableName(connection);
-                SchemaMigrationSql.CreateTableIfNotExists(connection, @"
-                    CREATE TABLE IF NOT EXISTS ""InboxItems"" (
-                        ""SubmissionId"" TEXT NOT NULL CONSTRAINT ""PK_InboxItems"" PRIMARY KEY,
-                        ""Reference"" TEXT NOT NULL DEFAULT '',
-                        ""State"" TEXT NOT NULL DEFAULT 'downloaded',
-                        ""ManifestSha256"" TEXT NOT NULL DEFAULT '',
-                        ""DocumentCount"" INTEGER NOT NULL DEFAULT 0,
-                        ""RoutingKey"" TEXT NOT NULL DEFAULT '',
-                        ""PrimaryEstimatorCode"" TEXT NOT NULL DEFAULT '',
-                        ""AssignmentSnapshot"" TEXT NOT NULL DEFAULT '[]',
-                        ""DownloadedAt"" TEXT NOT NULL DEFAULT '',
-                        ""IngestedAt"" TEXT NOT NULL DEFAULT '',
-                        ""LocalInquiryId"" INTEGER NULL,
-                        ""LocalInquiryNumber"" TEXT NOT NULL DEFAULT '',
-                        ""Error"" TEXT NOT NULL DEFAULT ''
-                    );");
-                SchemaMigrationSql.CreateIndexIfNotExists(connection,
-                    "CREATE INDEX IF NOT EXISTS \"IX_InboxItems_State\" ON \"InboxItems\" (\"State\");");
-                SchemaMigrationSql.CreateIndexIfNotExists(connection,
-                    "CREATE INDEX IF NOT EXISTS \"IX_InboxItems_Reference\" ON \"InboxItems\" (\"Reference\");");
-            }, connection =>
-            {
-                SchemaMigrationSql.RequireColumn(connection, "InboxItems", "SubmissionId");
-                SchemaMigrationSql.RequireColumn(connection, "InboxItems", "State");
-                SchemaMigrationSql.RequireColumn(connection, "InboxItems", "Reference");
-            })
+            new(1008, "Inquiry: ensure current website inbox ledger table", EnsureInboxLedgerSchema,
+                VerifyInboxLedgerSchema)
+
         };
+
+        /// <summary>
+        /// Rechecks the inbox ledger's actual shape after versioned upgrades.
+        /// A database can carry a newer user_version from another app build
+        /// while still missing this table; the additive repair backs up first
+        /// and preserves any legacy ledger table and rows.
+        /// </summary>
+        public static bool EnsureInboxLedgerCurrent(string dbPath) =>
+            SchemaMigrationRunner.RepairIfNeeded(dbPath, 1009, "Inquiry InboxItems ledger",
+                IsInboxLedgerReady, EnsureInboxLedgerSchema);
+
+        private static void EnsureInboxLedgerSchema(SqliteConnection connection)
+        {
+            ConvergeInquiryInboxTableName(connection);
+            SchemaMigrationSql.CreateTableIfNotExists(connection, @"
+                CREATE TABLE IF NOT EXISTS ""InboxItems"" (
+                    ""SubmissionId"" TEXT NOT NULL CONSTRAINT ""PK_InboxItems"" PRIMARY KEY,
+                    ""Reference"" TEXT NOT NULL DEFAULT '',
+                    ""State"" TEXT NOT NULL DEFAULT 'downloaded',
+                    ""ManifestSha256"" TEXT NOT NULL DEFAULT '',
+                    ""DocumentCount"" INTEGER NOT NULL DEFAULT 0,
+                    ""RoutingKey"" TEXT NOT NULL DEFAULT '',
+                    ""PrimaryEstimatorCode"" TEXT NOT NULL DEFAULT '',
+                    ""AssignmentSnapshot"" TEXT NOT NULL DEFAULT '[]',
+                    ""DownloadedAt"" TEXT NOT NULL DEFAULT '',
+                    ""IngestedAt"" TEXT NOT NULL DEFAULT '',
+                    ""LocalInquiryId"" INTEGER NULL,
+                    ""LocalInquiryNumber"" TEXT NOT NULL DEFAULT '',
+                    ""Error"" TEXT NOT NULL DEFAULT ''
+                );");
+            EnsureInboxLedgerColumns(connection);
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                "CREATE INDEX IF NOT EXISTS \"IX_InboxItems_State\" ON \"InboxItems\" (\"State\");");
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                "CREATE INDEX IF NOT EXISTS \"IX_InboxItems_Reference\" ON \"InboxItems\" (\"Reference\");");
+        }
+
+        private static void EnsureInboxLedgerColumns(SqliteConnection connection)
+        {
+            var definitions = new (string Name, string Definition)[]
+            {
+                ("Reference", "TEXT NOT NULL DEFAULT ''"),
+                ("State", "TEXT NOT NULL DEFAULT 'downloaded'"),
+                ("ManifestSha256", "TEXT NOT NULL DEFAULT ''"),
+                ("DocumentCount", "INTEGER NOT NULL DEFAULT 0"),
+                ("RoutingKey", "TEXT NOT NULL DEFAULT ''"),
+                ("PrimaryEstimatorCode", "TEXT NOT NULL DEFAULT ''"),
+                ("AssignmentSnapshot", "TEXT NOT NULL DEFAULT '[]'"),
+                ("DownloadedAt", "TEXT NOT NULL DEFAULT ''"),
+                ("IngestedAt", "TEXT NOT NULL DEFAULT ''"),
+                ("LocalInquiryId", "INTEGER NULL"),
+                ("LocalInquiryNumber", "TEXT NOT NULL DEFAULT ''"),
+                ("Error", "TEXT NOT NULL DEFAULT ''")
+            };
+            if (!InboxLedgerHasColumn(connection, "SubmissionId", requirePrimaryKey: true))
+                throw new InvalidOperationException(
+                    "InboxItems has no usable SubmissionId primary key; automatic repair would risk existing rows.");
+            foreach (var (name, definition) in definitions)
+                if (!InboxLedgerHasColumn(connection, name))
+                    SchemaMigrationSql.Execute(connection,
+                        $"ALTER TABLE \"InboxItems\" ADD COLUMN \"{name}\" {definition};");
+        }
+
+        private static bool InboxLedgerHasColumn(
+            SqliteConnection connection, string columnName, bool requirePrimaryKey = false)
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA table_info(\"InboxItems\");";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                if (!string.Equals(reader.GetString(1), columnName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                return !requirePrimaryKey || reader.GetInt32(5) > 0;
+            }
+            return false;
+        }
+
+        private static void VerifyInboxLedgerSchema(SqliteConnection connection)
+        {
+            foreach (string column in new[]
+            {
+                "SubmissionId", "Reference", "State", "ManifestSha256", "DocumentCount",
+                "RoutingKey", "PrimaryEstimatorCode", "AssignmentSnapshot", "DownloadedAt",
+                "IngestedAt", "LocalInquiryId", "LocalInquiryNumber", "Error"
+            })
+                SchemaMigrationSql.RequireColumn(connection, "InboxItems", column);
+            SchemaMigrationSql.RequireIndex(connection, "IX_InboxItems_State", "InboxItems", false, new[] { "State" });
+            SchemaMigrationSql.RequireIndex(connection, "IX_InboxItems_Reference", "InboxItems", false, new[] { "Reference" });
+        }
+
+        private static bool IsInboxLedgerReady(SqliteConnection connection)
+        {
+            var (exists, _) = TableRowCount(connection, "InboxItems");
+            if (!exists) return false;
+            try
+            {
+                VerifyInboxLedgerSchema(connection);
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }
 
         private static void ConvergeInquirySchema(SqliteConnection connection)
         {

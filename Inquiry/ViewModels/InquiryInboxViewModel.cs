@@ -249,6 +249,8 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 var savedStatus = _service.Settings.LastSyncStatus ?? "";
                 if (savedStatus == "Sign-in failed")
                     return "Sign-in failed — check account, password, and API key";
+                if (savedStatus == "Access denied")
+                    return "Signed in — this account is not authorized for the website inbox";
                 if (savedStatus.StartsWith("Offline", StringComparison.Ordinal))
                     return "Connection settings saved — website unreachable";
                 return "Connection settings saved — not yet verified";
@@ -404,7 +406,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
                 if (!candidate.IsConfigured)
                 {
-                    StatusText = "Enter the Supabase URL, API key, bridge email, and password before testing.";
+                    StatusText = "Enter the Supabase URL, public API key, account email, and password before testing.";
                     return;
                 }
 
@@ -429,10 +431,23 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 }
                 catch (InboxRemoteException ex)
                 {
-                    StatusText = "Sign-in OK but inbox access failed: "
-                        + (ex.Kind == InboxRemoteErrorKind.Offline
-                            ? "the website is unreachable."
-                            : ex.Message);
+                    if (ex.Kind == InboxRemoteErrorKind.PermissionDenied)
+                    {
+                        _service.Settings.LastSyncStatus = "Access denied";
+                        _service.Settings.LastSyncAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                        _service.Settings.Save();
+                        SetConnectionVerified(false);
+                        RefreshStatusFromSettings();
+                        StatusText = "Supabase sign-in succeeded, but this account is not authorized to read website submissions. "
+                            + "Ask a website administrator to grant an approved inbox role. Details: " + ex.Message;
+                    }
+                    else
+                    {
+                        StatusText = "Supabase sign-in succeeded, but inbox access failed: "
+                            + (ex.Kind == InboxRemoteErrorKind.Offline
+                                ? "the website is unreachable."
+                                : ex.Message);
+                    }
                 }
                 catch (JsonException ex)
                 {
