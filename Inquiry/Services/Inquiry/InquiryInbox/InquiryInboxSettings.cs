@@ -34,7 +34,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         /// </summary>
         [JsonPropertyName("inboxRoot")] public string InboxRoot { get; set; } = DefaultInboxRoot;
         /// <summary>Automatic sync interval in seconds (minimum 15 seconds).</summary>
-        [JsonPropertyName("pollIntervalSeconds")] public int PollIntervalSeconds { get; set; } = 30;
+        [JsonPropertyName("pollIntervalSeconds")] public int PollIntervalSeconds { get; set; } = 15;
         /// <summary>Legacy setting read only for migration from earlier builds.</summary>
         [JsonPropertyName("pollMinutes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? LegacyPollMinutes { get; set; }
@@ -101,10 +101,10 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     if (settings.LegacyPollMinutes.HasValue)
                     {
                         // The earlier defaults were 5 minutes (then 1 minute). Migrate those
-                        // defaults to 30 seconds; preserve other explicit intervals.
+                        // defaults to the quickest supported 15-second interval; preserve other explicit intervals.
                         int legacyMinutes = settings.LegacyPollMinutes.Value;
                         settings.PollIntervalSeconds = legacyMinutes is 1 or 5
-                            ? 30
+                            ? 15
                             : Math.Clamp(legacyMinutes * 60, 15, 7200);
                         settings.LegacyPollMinutes = null;
                         settings.Save();

@@ -158,7 +158,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         private string _inboxRoot = InquiryInboxSettings.DefaultInboxRoot;
         public string InboxRoot { get => _inboxRoot; set => SetField(ref _inboxRoot, value); }
 
-        private int _pollIntervalSeconds = 30;
+        private int _pollIntervalSeconds = 15;
         public int PollIntervalSeconds
         {
             get => _pollIntervalSeconds;
@@ -187,7 +187,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public InboxPollIntervalOption SelectedPollInterval
         {
             get => PollIntervalOptions.FirstOrDefault(option => option.Seconds == PollIntervalSeconds)
-                ?? PollIntervalOptions[1];
+                ?? PollIntervalOptions[0];
             set { if (value != null) PollIntervalSeconds = value.Seconds; }
         }
 

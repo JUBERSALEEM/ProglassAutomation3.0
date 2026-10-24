@@ -88,7 +88,7 @@ assert 'new(1009, "Inquiry: persist website acknowledgement identity"' in migrat
 assert 'RequireColumn(connection, "InboxItems", "AcknowledgedAtUtc")' in migrations
 assert 'RequireColumn(connection, "InboxItems", "AcknowledgedBy")' in migrations
 settings = (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxSettings.cs").read_text(encoding="utf-8")
-assert '[JsonPropertyName("pollIntervalSeconds")] public int PollIntervalSeconds { get; set; } = 30;' in settings
+assert '[JsonPropertyName("pollIntervalSeconds")] public int PollIntervalSeconds { get; set; } = 15;' in settings
 assert 'legacyMinutes is 1 or 5' in settings
 assert 'ShowDeliveryFiles(row)' in (ROOT / "Inquiry/Views/InquiryInboxView.xaml.cs").read_text(encoding="utf-8")
 assert 'CompanyDocumentsFolderPath' in view_model
