@@ -84,9 +84,33 @@ assert 'Text="Supabase account email"' in inbox_xaml
 assert 'Text="Supabase password"' in inbox_xaml
 assert 'Style="{DynamicResource {x:Type PasswordBox}}"' in inbox_xaml
 assert 'InboxPasswordBox' not in inbox_xaml
+assert 'Header=""' not in inbox_xaml
+for width in ("1.1*", "1.15*", "1.2*", "1*", "0.8*", "0.85*"):
+    assert f'Width="{width}"' in inbox_xaml, width
+
+# Outlined secondary actions must remain visible in themes where their
+# previous SubtleButton role deliberately zeroed both fill and stroke.
+for theme_name in ("ThemeBento", "ThemeHolographic", "ThemeSwiss"):
+    buttons = (ROOT / "Theme" / theme_name / "step1.e.Components/step1.e.3.Buttons.xaml").read_text(encoding="utf-8")
+    subtle = buttons.split('<Style x:Key="SubtleButton"', 1)[1].split('</Style>', 1)[0]
+    assert 'Value="{DynamicResource SurfaceSecondary}"' in subtle, theme_name
+    assert 'Value="{DynamicResource BorderSubtle}"' in subtle, theme_name
+glass_stroke = (ROOT / "Theme/ThemeGlassmorphism/ThemeGlassmorphism.Light.Extras.xaml").read_text(encoding="utf-8")
+assert 'x:Key="GlassStrokeBrush" Color="#99566F86"' in glass_stroke
+
+workspace = (ROOT / "Inquiry/Views/InquiryWorkspaceView.xaml.cs").read_text(encoding="utf-8")
+unloaded = workspace.split('private void OnUnloaded', 1)[1].split('private void OnOwnerWindowClosed', 1)[0]
+assert '_inboxService.Dispose()' not in unloaded
+assert 'Closed += OnOwnerWindowClosed' in workspace
+assert '_inboxService.Dispose()' in workspace.split('private void OnOwnerWindowClosed', 1)[1]
+
 repository = (ROOT / "Inquiry/Services/Inquiry/InquiryRepository.cs").read_text(encoding="utf-8")
 migrations = (ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs").read_text(encoding="utf-8")
 runner = (ROOT / "Inquiry/Services/Database/SchemaMigrations/SchemaMigrationRunner.cs").read_text(encoding="utf-8")
+migration_1005 = migrations.split('new(1005,', 1)[1].split('new(1006,', 1)[0]
+assert 'CreateTableIfNotExists(connection, @"\n' in migration_1005
+assert 'CreateTableIfNotExists(connection, @"""' not in migration_1005
+assert 'CREATE TABLE IF NOT EXISTS ""InquiryInboxItems""' in migration_1005
 assert 'EnsureInboxLedgerCurrent(InquiryDbContext.DatabaseFilePath)' in repository
 assert 'RepairIfNeeded(dbPath, 1009, "Inquiry InboxItems ledger"' in migrations
 assert 'BackupBeforeMigrate(dbPath, backupVersion)' in runner

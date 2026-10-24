@@ -260,16 +260,16 @@
                               AutomationProperties.Name="Website deliveries"
                               MouseDoubleClick="OnRowDoubleClick">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="150"
+                            <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="1.1*"
                                                 ElementStyle="{StaticResource InboxRefCell}" />
-                            <DataGridTextColumn Header="Company" Binding="{Binding Company}" Width="170"
+                            <DataGridTextColumn Header="Company" Binding="{Binding Company}" Width="1.15*"
                                                 ElementStyle="{StaticResource InboxCompanyCell}" />
-                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="160" />
-                            <DataGridTextColumn Header="Prepared by" Binding="{Binding Estimator}" Width="130" />
-                            <DataGridTextColumn Header="Files" Binding="{Binding DocumentsText}" Width="80"
+                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="1.2*" />
+                            <DataGridTextColumn Header="Prepared by" Binding="{Binding Estimator}" Width="1*" />
+                            <DataGridTextColumn Header="Files" Binding="{Binding DocumentsText}" Width="0.8*"
                                                 CanUserSort="False" />
-                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedText}" Width="140" />
-                            <DataGridTemplateColumn Header="State" Width="110" CanUserSort="False">
+                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedText}" Width="1.15*" />
+                            <DataGridTemplateColumn Header="State" Width="0.85*" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StateTag}"
@@ -280,7 +280,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Local inquiry" Binding="{Binding LocalNumber}" Width="130"
+                            <DataGridTextColumn Header="Local inquiry" Binding="{Binding LocalNumber}" Width="1*"
                                                 ElementStyle="{StaticResource InboxRefCell}" />
                         </DataGrid.Columns>
                     </DataGrid>

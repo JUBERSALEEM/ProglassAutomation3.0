@@ -10,7 +10,9 @@
     <GradientStop Color="#00FFFFFF" Offset="1" />
   </LinearGradientBrush>
   <SolidColorBrush x:Key="GlassHairlineBrush" Color="#FFFFFFFF" />
-  <SolidColorBrush x:Key="GlassStrokeBrush" Color="#E6FFFFFF" />
+  <!-- Cool tinted hairline separates pearl-frost surfaces from the light,
+       saturated canvas; a near-white stroke disappears on these cards. -->
+  <SolidColorBrush x:Key="GlassStrokeBrush" Color="#99566F86" />
   <SolidColorBrush x:Key="GlassOpaqueBrush" Color="#F3F8FC" />
   <SolidColorBrush x:Key="GlassTintPositive" Color="#66165A3A" />
   <SolidColorBrush x:Key="GlassStrokePositive" Color="#99165A3A" />

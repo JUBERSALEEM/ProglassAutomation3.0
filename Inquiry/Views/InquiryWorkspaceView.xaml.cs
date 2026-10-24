@@ -36,7 +36,9 @@ public partial class InquiryWorkspaceView : UserControl
     private string? _databaseInitializationWarning;
     private DateTime _lastAutoSyncUtc = DateTime.MinValue;
     private Page _returnTo = Page.List;
+    private Window? _ownerWindow;
     private bool _started;
+    private bool _disposed;
 
     public InquiryWorkspaceView()
     {
@@ -120,19 +122,35 @@ public partial class InquiryWorkspaceView : UserControl
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (_started) return;
-        _started = true;
+        if (_disposed) return;
 
-        // Adopt READY folders already on disk (Node bridge parity), then
-        // the first remote check when configured.
-        _ = StartInboxAsync();
-
-        _syncTimer = new DispatcherTimer
+        // A TabControl unloads inactive tab content without closing the
+        // window. Keep the workspace services alive across those transitions
+        // and dispose them only when the owning window actually closes.
+        var owner = Window.GetWindow(this);
+        if (!ReferenceEquals(owner, _ownerWindow))
         {
-            Interval = TimeSpan.FromMinutes(1)
-        };
-        _syncTimer.Tick += OnSyncTick;
-        _syncTimer.Start();
+            if (_ownerWindow != null) _ownerWindow.Closed -= OnOwnerWindowClosed;
+            _ownerWindow = owner;
+            if (_ownerWindow != null) _ownerWindow.Closed += OnOwnerWindowClosed;
+        }
+
+        if (!_started)
+        {
+            _started = true;
+            // Adopt READY folders already on disk (Node bridge parity), then
+            // the first remote check when configured.
+            _ = StartInboxAsync();
+
+            _syncTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMinutes(1)
+            };
+            _syncTimer.Tick += OnSyncTick;
+        }
+
+        // Loaded fires again when the user returns to this tab.
+        _syncTimer?.Start();
     }
 
     private async System.Threading.Tasks.Task StartInboxAsync()
@@ -308,9 +326,23 @@ public partial class InquiryWorkspaceView : UserControl
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
-        // The workspace is a long-lived tab item; this effectively means
-        // the application is shutting down — release the tray icon.
+        // Inactive TabItem content is unloaded and later reloaded. This is
+        // not application shutdown: stop polling while hidden, but preserve
+        // the shared HTTP client, inbox VM, and tray notifier.
         _syncTimer?.Stop();
+    }
+
+    private void OnOwnerWindowClosed(object? sender, EventArgs e)
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _syncTimer?.Stop();
+        _syncTimer = null;
+
+        if (_ownerWindow != null)
+            _ownerWindow.Closed -= OnOwnerWindowClosed;
+        _ownerWindow = null;
+
         _inbox?.Dispose();
         _inboxService.StateChanged -= OnInboxStateChanged;
         _inboxService.Dispose();

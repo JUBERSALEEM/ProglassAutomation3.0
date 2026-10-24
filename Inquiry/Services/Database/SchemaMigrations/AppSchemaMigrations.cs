@@ -90,7 +90,7 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                     "TEXT NOT NULL DEFAULT ''");
                 SchemaMigrationSql.AddColumnIfMissing(connection, "Inquiries", "WebSubmissionReference",
                     "TEXT NOT NULL DEFAULT ''");
-                SchemaMigrationSql.CreateTableIfNotExists(connection, @"""
+                SchemaMigrationSql.CreateTableIfNotExists(connection, @"
                     CREATE TABLE IF NOT EXISTS ""InquiryInboxItems"" (
                         ""SubmissionId""           TEXT NOT NULL CONSTRAINT ""PK_InquiryInboxItems"" PRIMARY KEY,
                         ""Reference""              TEXT NOT NULL DEFAULT '',
@@ -105,7 +105,7 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
                         ""LocalInquiryId""         INTEGER NULL,
                         ""LocalInquiryNumber""     TEXT NOT NULL DEFAULT '',
                         ""Error""                  TEXT NOT NULL DEFAULT ''
-                    );""");
+                    );");
                 SchemaMigrationSql.CreateIndexIfNotExists(connection,
                     "CREATE INDEX IF NOT EXISTS \"IX_InquiryInboxItems_State\" ON InquiryInboxItems(State);");
                 SchemaMigrationSql.CreateIndexIfNotExists(connection,
