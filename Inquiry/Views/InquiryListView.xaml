@@ -428,7 +428,7 @@
                             <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="160" />
                             <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}" Width="120" />
                             <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}" Width="130" />
-                            <DataGridTemplateColumn Header="Status" Width="110" IsSortable="False">
+                            <DataGridTemplateColumn Header="Status" Width="110" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StatusTag}"
@@ -446,7 +446,7 @@
                             <DataGridTextColumn Header="PI" Binding="{Binding ProformaCellText}" Width="130" />
                             <DataGridTextColumn Header="JO" Binding="{Binding JobOrderCellText}" Width="120" />
                             <DataGridTextColumn Header="Files" Binding="{Binding AttachmentChipText}" Width="90"
-                                                IsSortable="False" />
+                                                CanUserSort="False" />
                         </DataGrid.Columns>
                     </DataGrid>
                     <!-- Empty state -->

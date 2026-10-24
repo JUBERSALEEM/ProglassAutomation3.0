@@ -315,7 +315,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="" Width="52" IsSortable="False">
+                                <DataGridTemplateColumn Header="" Width="52" CanUserSort="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Content="✕" Style="{StaticResource EditorRowRemove}"
@@ -414,7 +414,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <TextBlock Text="No activity yet — status changes and BOQ saves appear here."
-                                   Style="{DynamicResource Caption}" Margin="{DynamicResource MarginItem}">
+                                   Margin="{DynamicResource MarginItem}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
                                     <Setter Property="Visibility" Value="Collapsed" />

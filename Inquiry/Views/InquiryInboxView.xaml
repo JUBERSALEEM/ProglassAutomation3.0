@@ -287,9 +287,9 @@
                             <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="160" />
                             <DataGridTextColumn Header="Prepared by" Binding="{Binding Estimator}" Width="130" />
                             <DataGridTextColumn Header="Files" Binding="{Binding DocumentsText}" Width="80"
-                                                IsSortable="False" />
+                                                CanUserSort="False" />
                             <DataGridTextColumn Header="Received" Binding="{Binding ReceivedText}" Width="140" />
-                            <DataGridTemplateColumn Header="State" Width="110" IsSortable="False">
+                            <DataGridTemplateColumn Header="State" Width="110" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StateTag}"
