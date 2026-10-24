@@ -227,7 +227,6 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             try
             {
                 Directory.CreateDirectory(Root);
-                CleanupStalePartials(Root);
 
                 LastAccessReport = null;
                 var signIn = await _client.SignInAsync(ct).ConfigureAwait(false);
@@ -491,7 +490,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 Version = 2,
                 RoutingKey = route,
                 PrimaryEstimatorCode = string.IsNullOrWhiteSpace(plan.PrimaryEstimatorCode) ? null : plan.PrimaryEstimatorCode,
-                AssignmentSnapshotRaw = string.IsNullOrWhiteSpace(plan.AssignmentSnapshotRaw) ? "[]" : plan.AssignmentSnapshotRaw,
+                AssignmentSnapshotRaw = plan.AssignmentSnapshotRaw ?? "null",
                 SubmissionRaw = rawJson,
                 Documents = docs.Select(d => new InboxManifest.InboxManifestDocument
                 {
@@ -521,11 +520,13 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                             "Existing inbox integrity check failed for " + doc.Filename + ".");
                 }
                 await AcknowledgeAsync(plan, manifestHash, docs, ct).ConfigureAwait(false);
+                WriteDeliveryReceipt(finalPath, plan, manifestHash, docs.Count,
+                    LastAccessReport?.AccountEmail ?? _settings.BridgeEmail);
                 return ItemDeliveryResult.Verified;
             }
 
             // Stage → download → verify → atomic rename (bridge contract).
-            var stage = Path.Combine(Path.Combine(root, ".staging"), plan.SubmissionId + "." + Guid.NewGuid().ToString("N") + ".partial");
+            var stage = Path.Combine(root, "incoming", plan.SubmissionId + "." + Guid.NewGuid().ToString("N") + ".partial");
             try
             {
                 Directory.CreateDirectory(Path.Combine(stage, "documents"));
@@ -543,7 +544,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     }
                     if (bytes.LongLength != doc.ByteSize || Sha256Of(bytes) != doc.ContentSha256)
                         throw new InboxRemoteException(InboxRemoteErrorKind.Remote,
-                            "Integrity check failed for " + doc.OriginalFilename + ".");
+                            "integrity check failed for " + doc.OriginalFilename);
                     var localName = doc.DocumentId + "_" + InboxFileNames.Safe(InboxFileNames.BaseName(doc.OriginalFilename));
                     File.WriteAllBytes(Path.Combine(stage, "documents", localName), bytes);
                 }
@@ -559,6 +560,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             }
 
             await AcknowledgeAsync(plan, manifestHash, docs, ct).ConfigureAwait(false);
+            WriteDeliveryReceipt(finalPath, plan, manifestHash, docs.Count,
+                LastAccessReport?.AccountEmail ?? _settings.BridgeEmail);
             WriteCheckpoint(root, plan.SubmissionId);
             return ItemDeliveryResult.Delivered;
         }
@@ -566,7 +569,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         private async Task AcknowledgeAsync(InboxSubmissionPlan plan, string manifestHash,
             List<InboxDocumentPlan> docs, CancellationToken ct)
         {
-            var snapshot = string.IsNullOrWhiteSpace(plan.AssignmentSnapshotRaw) ? "[]" : plan.AssignmentSnapshotRaw;
+            var snapshot = plan.AssignmentSnapshotRaw ?? "null";
             try
             {
                 await _client.AcknowledgeAsync(plan.SubmissionId, manifestHash, docs.Count, plan.RoutingKey, snapshot, ct)
@@ -588,6 +591,23 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         private static string Sha256Of(byte[] bytes) =>
             Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
 
+        private static void WriteDeliveryReceipt(string folder, InboxSubmissionPlan plan,
+            string manifestHash, int documentCount, string acknowledgedBy)
+        {
+            var receipt = new InboxDeliveryReceipt
+            {
+                SubmissionId = plan.SubmissionId,
+                Reference = plan.SubmissionReference,
+                ManifestSha256 = manifestHash,
+                DocumentCount = documentCount,
+                RoutingKey = plan.RoutingKey,
+                AckedAtUtc = DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                AckedBy = acknowledgedBy
+            };
+            File.WriteAllText(Path.Combine(folder, "delivery.json"),
+                JsonSerializer.Serialize(receipt, JsonOpts), new UTF8Encoding(false));
+        }
+
         private static void WriteCheckpoint(string root, string submissionId)
         {
             try
@@ -598,17 +618,6 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     new UTF8Encoding(false));
             }
             catch { /* checkpoint is bookkeeping only */ }
-        }
-
-        private static void CleanupStalePartials(string root)
-        {
-            var stageRoot = Path.Combine(root, ".staging");
-            if (!Directory.Exists(stageRoot)) return;
-            foreach (var dir in Directory.EnumerateDirectories(stageRoot))
-            {
-                if (!dir.EndsWith(".partial")) continue;
-                DeleteDirectorySafe(dir);
-            }
         }
 
         private static void DeleteDirectorySafe(string path)

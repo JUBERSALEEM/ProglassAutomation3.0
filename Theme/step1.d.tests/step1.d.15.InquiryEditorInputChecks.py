@@ -42,3 +42,16 @@ for theme in sorted((ROOT / "Theme").glob("Theme*")):
     assert 'Property="IsEditable" Value="True"' in controls, theme.name
     assert 'TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"' in controls, theme.name
 print("PASS: Inquiry editable input bindings, dirty/save mapping, and all theme editable ComboBox parts")
+
+service_path = ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxService.cs"
+service = service_path.read_text(encoding="utf-8")
+fetch = service.split("private async Task<ItemDeliveryResult> DeliverAsync", 1)[1].split("private async Task AcknowledgeAsync", 1)[0]
+assert 'Path.Combine(root, "incoming"' in fetch
+staged_fetch = fetch.split("var stage = ", 1)[1]
+assert staged_fetch.index("DownloadObjectAsync") < staged_fetch.index('File.WriteAllBytes(Path.Combine(stage, "manifest.json")')
+assert staged_fetch.index('File.WriteAllBytes(Path.Combine(stage, "manifest.json")') < staged_fetch.index('File.WriteAllText(Path.Combine(stage, "READY")')
+assert staged_fetch.index('File.WriteAllText(Path.Combine(stage, "READY")') < staged_fetch.index("Directory.Move(stage, finalPath)")
+assert staged_fetch.index("Directory.Move(stage, finalPath)") < staged_fetch.index("await AcknowledgeAsync(plan, manifestHash, docs, ct)")
+assert staged_fetch.index("await AcknowledgeAsync(plan, manifestHash, docs, ct)") < staged_fetch.index("WriteDeliveryReceipt(finalPath")
+assert '"integrity check failed for "' in staged_fetch
+assert "CleanupStalePartials" not in service

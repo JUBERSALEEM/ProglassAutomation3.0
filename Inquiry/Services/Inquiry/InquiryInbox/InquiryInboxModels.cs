@@ -97,6 +97,18 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         [JsonPropertyName("storage_object_key")] public string StorageObjectKey { get; set; } = "";
     }
 
+    /// <summary>Local receipt written only after the website acknowledgement succeeds.</summary>
+    public sealed class InboxDeliveryReceipt
+    {
+        [JsonPropertyName("submission_id")] public string SubmissionId { get; set; } = "";
+        [JsonPropertyName("reference")] public string Reference { get; set; } = "";
+        [JsonPropertyName("manifest_sha256")] public string ManifestSha256 { get; set; } = "";
+        [JsonPropertyName("document_count")] public int DocumentCount { get; set; }
+        [JsonPropertyName("routing_key")] public string RoutingKey { get; set; } = "";
+        [JsonPropertyName("acked_at_utc")] public string AckedAtUtc { get; set; } = "";
+        [JsonPropertyName("acked_by")] public string AckedBy { get; set; } = "";
+    }
+
     /// <summary>
     /// Parsed READY-folder manifest (version 2). Also the shape the
     /// writer below produces.
