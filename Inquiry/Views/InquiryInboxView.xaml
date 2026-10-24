@@ -83,7 +83,7 @@
                                        FontWeight="{DynamicResource FontWeightHeading}"
                                        Foreground="{DynamicResource StatusInformation}"
                                        VerticalAlignment="Center" />
-                            <TextBlock Text=" ready" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
+                            <TextBlock Text=" awaiting import" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Border>
                     <Border Style="{DynamicResource StatusBadge}" Tag="Success"
@@ -240,7 +240,7 @@
                                    MaxWidth="360"
                                    VerticalAlignment="Center"
                                    Margin="{DynamicResource MarginInline}" />
-                        <Button Content="{Binding SelectedItem.IngestActionLabel}" Style="{DynamicResource PrimaryButton}"
+                        <Button Content="{Binding SelectedIngestActionLabel}" Style="{DynamicResource PrimaryButton}"
                                 Command="{Binding IngestSelectedCommand}"
                                 Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Import or re-import the selected delivery from disk" />

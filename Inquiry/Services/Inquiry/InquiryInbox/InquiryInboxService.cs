@@ -476,6 +476,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 if (_settings.SyncWebsiteChat && !outcome.Offline && !outcome.AccessDenied)
                     (chatAdded, chatNote) = await SyncInboxChatAsync(db, ct).ConfigureAwait(false);
 
+                int awaitingLocalImport = db.InboxItems.Local.Count(item =>
+                    item.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending);
                 db.SaveChanges();
                 _settings.LastSyncAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 _settings.LastSyncStatus = outcome.AccessDenied
@@ -489,8 +491,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                         : outcome.Failed == 0
                             ? $"Checked the website — {outcome.Planned} pending, {outcome.Delivered} downloaded, {outcome.Verified} already on disk."
                             : $"Checked the website — {outcome.Failed} of {outcome.Planned} failed (details in the inbox page).";
-                    if (outcome.ImportPending > 0)
-                        outcome.StatusText += $" {outcome.ImportPending} delivery item(s) are ready to re-import from disk.";
+                    if (awaitingLocalImport > 0)
+                        outcome.StatusText += $" {awaitingLocalImport} downloaded item(s) are awaiting local import; select one and choose Re-import from disk.";
                     if (outcome.Error?.StartsWith("Company archive copy failed:", StringComparison.Ordinal) == true)
                         outcome.StatusText += " " + outcome.Error;
                     if (chatNote != null)

@@ -349,12 +349,14 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 if (SetField(ref _selectedItem, value))
                 {
                     OnPropertyChanged(nameof(SelectedErrorText));
+                    OnPropertyChanged(nameof(SelectedIngestActionLabel));
                     RaiseCommandState();
                 }
             }
         }
 
         public bool HasItems => Items.Count > 0;
+        public string SelectedIngestActionLabel => SelectedItem?.IngestActionLabel ?? "Select a delivery";
 
         private string SelectedErrorText => SelectedItem?.Ledger.State == InquiryInboxStates.DeliveredElsewhere
             ? ""

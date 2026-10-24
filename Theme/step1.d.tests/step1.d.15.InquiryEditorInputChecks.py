@@ -62,7 +62,7 @@ assert 'private static void MarkImportPending' in ingest_service
 assert 'item.State = InquiryInboxStates.ImportPending;' in ingest_service
 view_model = (ROOT / "Inquiry/ViewModels/InquiryInboxViewModel.cs").read_text(encoding="utf-8")
 assert '"Re-import from disk"' in view_model and 'Ledger.State is InquiryInboxStates.Downloaded or InquiryInboxStates.ImportPending' in view_model
-assert 'Content="{Binding SelectedItem.IngestActionLabel}"' in (ROOT / "Inquiry/Views/InquiryInboxView.xaml").read_text(encoding="utf-8")
+assert 'Content="{Binding SelectedIngestActionLabel}"' in (ROOT / "Inquiry/Views/InquiryInboxView.xaml").read_text(encoding="utf-8")
 
 assert 'InquiryInboxStates.DeliveredElsewhere' in service
 assert 'ReconcileUnofferedItems(db, plannedIds)' in service
@@ -97,4 +97,6 @@ assert '"Related Documents"' in inbox_service
 assert 'CompanyArchiveFileName' in inbox_service
 assert '15, "15 seconds"' in view_model and '30, "30 seconds"' in view_model
 assert 'Files could not be verified or organized:' in view_model
+assert 'SelectedIngestActionLabel' in view_model
+assert 'awaitingLocalImport > 0' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxService.cs").read_text(encoding="utf-8")
 assert 'current.InnerException' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxIngestService.cs").read_text(encoding="utf-8")
