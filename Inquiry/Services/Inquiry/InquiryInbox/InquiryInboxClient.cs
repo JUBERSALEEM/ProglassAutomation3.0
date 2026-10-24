@@ -21,6 +21,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 
@@ -69,6 +70,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         private readonly InquiryInboxSettings _settings;
         private string? _accessToken;
         private string? _authenticatedConfiguration;
+        private InquiryInboxAccessReport? _accessReport;
         private DateTime _tokenExpiresUtc = DateTime.MinValue;
 
         public InquiryInboxClient(InquiryInboxSettings settings)
@@ -180,6 +182,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             string email = _settings.BridgeEmail;
             string encryptedPassword = _settings.EncryptedPassword;
             string password = _settings.GetPassword();
+            _accessReport = null;
             string authConfiguration = BuildAuthConfiguration(url, anonKey, email, encryptedPassword);
             var body = JsonSerializer.Serialize(new { email, password });
             var (status, payload, _) = await PostAsync(
@@ -193,7 +196,11 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             {
                 var diagnosis = DescribeAuth(status, payload);
                 if (string.Equals(diagnosis, "Invalid login credentials", StringComparison.OrdinalIgnoreCase))
-                    diagnosis += ". The desktop requires the dedicated bridge account's Supabase Auth password; a website email OTP is not a password.";
+                {
+                    diagnosis += ". Use the dedicated account's Supabase Auth password.";
+                    if (IsExactlySixDigits(password))
+                        diagnosis += " The six-digit value may be an emailed OTP; enter the account password instead.";
+                }
                 return InboxSignInResult.Fail(diagnosis);
             }
 
@@ -222,6 +229,41 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             return InboxSignInResult.Ok();
         }
 
+        public InquiryInboxAccessReport? LastAccessReport => _accessReport;
+
+        /// <summary>Fetches the authenticated user's own roles and capabilities.</summary>
+        public async Task<InquiryInboxAccessReport> GetMyInquiryAccessAsync(CancellationToken ct = default)
+        {
+            await EnsureTokenAsync(ct).ConfigureAwait(false);
+            var (status, payload, kind) = await PostRpcAsync("get_my_inquiry_access_v1", "{}", ct).ConfigureAwait(false);
+            if (status != 200)
+                throw new InboxRemoteException(kind,
+                    $"Account access check failed: {ExtractError(payload)} (HTTP {status}).", status);
+            try
+            {
+                using var doc = JsonDocument.Parse(payload);
+                _accessReport = InquiryInboxAccessReport.Parse(doc.RootElement);
+                return _accessReport;
+            }
+            catch (JsonException ex)
+            {
+                throw new InboxRemoteException(InboxRemoteErrorKind.Remote,
+                    "Account access report could not be read: " + ex.Message);
+            }
+        }
+
+        private async Task EnsureDeliveryCapabilityAsync(CancellationToken ct)
+        {
+            await EnsureTokenAsync(ct).ConfigureAwait(false);
+            var report = _accessReport ?? await GetMyInquiryAccessAsync(ct).ConfigureAwait(false);
+            if (!report.CanPlanBridge)
+                throw new InboxRemoteException(InboxRemoteErrorKind.PermissionDenied,
+                    report.MissingCapabilityMessage(), (int)HttpStatusCode.Forbidden);
+        }
+
+        private static bool IsExactlySixDigits(string value) =>
+            value.Length == 6 && value.All(character => character is >= '0' and <= '9');
+
         private static string BuildAuthConfiguration(string url, string anonKey, string email, string encryptedPassword) =>
             string.Join("\n", url, anonKey, email, encryptedPassword);
 
@@ -233,6 +275,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         {
             _accessToken = null;
             _authenticatedConfiguration = null;
+            _accessReport = null;
             _tokenExpiresUtc = DateTime.MinValue;
         }
 
@@ -278,6 +321,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         /// <summary>plan_customer_inquiry_deliveries_v2 — rows as raw JSON objects.</summary>
         public async Task<List<(InboxSubmissionPlan Plan, string RawJson)>> PlanDeliveriesAsync(int limit, CancellationToken ct)
         {
+            await EnsureDeliveryCapabilityAsync(ct).ConfigureAwait(false);
             var body = JsonSerializer.Serialize(new { p_limit = limit });
             var (status, payload, kind) = await PostRpcAsync("plan_customer_inquiry_deliveries_v2", body, ct).ConfigureAwait(false);
             if (status != 200) throw new InboxRemoteException(kind, $"Inbox plan failed: {ExtractError(payload)} (HTTP {status}).", (int?)status);
@@ -298,6 +342,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         /// <summary>plan_customer_inquiry_delivery_documents for one submission.</summary>
         public async Task<List<InboxDocumentPlan>> PlanDocumentsAsync(string submissionId, CancellationToken ct)
         {
+            await EnsureDeliveryCapabilityAsync(ct).ConfigureAwait(false);
             var body = JsonSerializer.Serialize(new { p_submission_id = submissionId });
             var (status, payload, kind) = await PostRpcAsync("plan_customer_inquiry_delivery_documents", body, ct).ConfigureAwait(false);
             if (status != 200) throw new InboxRemoteException(kind, $"Document plan failed: {ExtractError(payload)} (HTTP {status}).", (int?)status);
@@ -315,6 +360,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         public async Task AcknowledgeAsync(string submissionId, string manifestSha256, int documentCount,
             string routingKey, string assignmentSnapshotJson, CancellationToken ct)
         {
+            await EnsureDeliveryCapabilityAsync(ct).ConfigureAwait(false);
             var body = JsonSerializer.Serialize(new
             {
                 p_submission_id = submissionId,
@@ -370,7 +416,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         /// <summary>Storage object download (raw bytes).</summary>
         public async Task<byte[]> DownloadObjectAsync(string bucket, string objectKey, CancellationToken ct)
         {
-            await EnsureTokenAsync(ct).ConfigureAwait(false);
+            await EnsureDeliveryCapabilityAsync(ct).ConfigureAwait(false);
             var url = Url + "/storage/v1/object/" + bucket.Trim('/') + "/" + objectKey.TrimStart('/');
             try
             {
@@ -480,6 +526,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         {
             _accessToken = null;
             _authenticatedConfiguration = null;
+            _accessReport = null;
             _tokenExpiresUtc = DateTime.MinValue;
         }
     }

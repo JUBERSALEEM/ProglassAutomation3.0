@@ -109,6 +109,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <DockPanel Grid.Row="0" Margin="{DynamicResource MarginItem}">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -123,7 +124,7 @@
                         <TextBlock Text="Website connection"
                                    FontSize="{DynamicResource FontSizeSection}"
                                    FontWeight="{DynamicResource FontWeightHeading}" />
-                        <TextBlock Text="Sign in with an eligible Supabase account. Inbox access is still controlled by website roles; email OTP is not a password."
+                        <TextBlock Text="Sign in with an eligible Supabase Auth account. Delivery access requires the website-granted inbox capability."
                                    Style="{DynamicResource Caption}" />
                     </StackPanel>
                 </DockPanel>
@@ -160,10 +161,10 @@
                     </StackPanel>
                     <StackPanel Grid.Row="0" Grid.Column="3" Margin="{DynamicResource MarginInline}">
                         <TextBlock Text="Supabase password" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}"
-                                   ToolTip="Use the password for this Supabase Auth account. The website's emailed OTP cannot be entered as a password." />
+                                   ToolTip="Use the password for this Supabase Auth account." />
                         <PasswordBox x:Name="PasswordBox" Style="{DynamicResource {x:Type PasswordBox}}"
                                      MinWidth="{DynamicResource ControlMinWidth}"
-                                     ToolTip="Your account must have a website-granted role for inquiry inbox access."
+                                     ToolTip="Your account must have the website-granted inbox.plan.bridge capability."
                                      AutomationProperties.Name="Supabase account password" />
                     </StackPanel>
                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="{DynamicResource MarginInline}">
@@ -205,6 +206,10 @@
                     </UniformGrid>
                 </Grid>
                 <TextBlock Grid.Row="2" Margin="{DynamicResource MarginItem}"
+                           Text="{Binding AccessReportText}"
+                           TextWrapping="Wrap"
+                           AutomationProperties.Name="Authenticated account roles and access report" />
+                <TextBlock Grid.Row="3" Margin="{DynamicResource MarginItem}"
                            Text="{Binding StatusText}"
                            TextWrapping="Wrap"
                            AutomationProperties.LiveSetting="Assertive" />

@@ -72,6 +72,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         private readonly object _gate = new();
         private bool _disposed;
 
+        public InquiryInboxAccessReport? LastAccessReport { get; private set; }
+
         public InquiryInboxService(InquiryInboxSettings settings)
         {
             _settings = settings;
@@ -223,6 +225,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 Directory.CreateDirectory(Root);
                 CleanupStalePartials(Root);
 
+                LastAccessReport = null;
                 var signIn = await _client.SignInAsync(ct).ConfigureAwait(false);
                 if (!signIn.Success)
                 {
@@ -231,6 +234,14 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     _settings.LastSyncStatus = "Sign-in failed";
                     _settings.Save();
                     return outcome;
+                }
+
+                var accessReport = await _client.GetMyInquiryAccessAsync(ct).ConfigureAwait(false);
+                LastAccessReport = accessReport;
+                if (!accessReport.CanPlanBridge)
+                {
+                    throw new InboxRemoteException(InboxRemoteErrorKind.PermissionDenied,
+                        accessReport.MissingCapabilityMessage(), 403);
                 }
 
                 var planned = await _client.PlanDeliveriesAsync(100, ct).ConfigureAwait(false);

@@ -36,6 +36,7 @@ internal static class RuntimeChecks
             ContractChecks.Run();
             InquiryInboxJsonbChecks.Run();
             InquiryInboxHttpClientChecks.Run();
+            InquiryInboxAuthorizationChecks.Run();
             if (args.Contains("--contracts-only"))
             {
                 Check(failures.Messages.Count == 0, "contract binding diagnostics");

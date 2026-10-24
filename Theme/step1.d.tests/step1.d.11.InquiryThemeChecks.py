@@ -135,12 +135,21 @@ assert 'private static HttpClient _http' in client
 assert 'private static void Reset()' in client
 assert 'catch (ObjectDisposedException) when (attempt == 0)' in client
 assert 'ShutdownProcessHttpClient' in client
+assert 'get_my_inquiry_access_v1' in client
+access_report = (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxAccessReport.cs").read_text(encoding="utf-8")
+assert 'inbox.plan.bridge' in access_report
+assert 'EnsureDeliveryCapabilityAsync' in client
+assert 'IsExactlySixDigits(password)' in client
+assert 'AccessReportText' in view_model and 'AccessReport?.CanPlanBridge != false' in view_model
+assert 'AccessReportText' in inbox_xaml and 'email OTP is not a password' not in inbox_xaml
 assert 'Task<InboxSyncOutcome>? _runningTask' in service
 assert 'CancelSynchronization()' in service and 'NeutralStoppedOutcome()' in service
 client_check = (ROOT / "Theme/step1.d.tests/step1.d.12.InquiryInboxHttpClientChecks.cs").read_text(encoding="utf-8")
 assert 'DisposeProcessHttpClientForTests' in client_check
 runtime_checks = (ROOT / "Theme/step1.d.tests/step1.d.1.RuntimeChecks.cs").read_text(encoding="utf-8")
 assert 'InquiryInboxHttpClientChecks.Run()' in runtime_checks
+assert 'InquiryInboxAuthorizationChecks.Run()' in runtime_checks
+assert 'get_my_inquiry_access_v1' in (ROOT / "Theme/step1.d.tests/step1.d.13.InquiryInboxAuthorizationChecks.cs").read_text(encoding="utf-8")
 closed = workspace.split('private void OnOwnerWindowClosed', 1)[1]
 assert closed.index('StateChanged -= OnInboxStateChanged') < closed.index('CancelSynchronization()') < closed.index('_inboxService.Dispose()') < closed.index('ShutdownProcessHttpClient()')
 

@@ -100,7 +100,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
             Items = new ObservableCollection<InquiryInboxItemRow>();
 
-            CheckNowCommand = new DelegateCommand(async () => await CheckNowAsync(), () => !IsSyncing);
+            CheckNowCommand = new DelegateCommand(async () => await CheckNowAsync(), () => !IsSyncing && AccessReport?.CanPlanBridge != false);
             TestConnectionCommand = new DelegateCommand(async () => await TestConnectionAsync());
             SaveSettingsCommand = new DelegateCommand(async () => await SaveSettingsAsync());
             IngestSelectedCommand = new DelegateCommand(
@@ -219,6 +219,32 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         private string _statusText = "Ready.";
         private string? _initializationWarning;
         public string StatusText { get => _statusText; private set => SetField(ref _statusText, value); }
+
+        private InquiryInboxAccessReport? _accessReport;
+        public InquiryInboxAccessReport? AccessReport
+        {
+            get => _accessReport;
+            private set
+            {
+                if (SetField(ref _accessReport, value))
+                {
+                    OnPropertyChanged(nameof(AccessReportText));
+                    RaiseCommandState();
+                }
+            }
+        }
+
+        public string AccessReportText
+        {
+            get
+            {
+                if (AccessReport == null) return "";
+                var text = $"Account email: {AccessReport.AccountEmail} · Roles: {AccessReport.RolesText}";
+                if (AccessReport.DenialReason != null)
+                    text += " · Denial reason: " + AccessReport.DenialReason;
+                return text;
+            }
+        }
 
         public void ReportInitializationWarning(string warning)
         {
@@ -353,7 +379,9 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 }
 
                 // Validate the whole form before mutating the shared settings
-                // object used by background sync.
+                // object used by background sync. A changed connection must
+                // not inherit the previous account's authorization report.
+                AccessReport = null;
                 s.SupabaseUrl = SupabaseUrl.Trim();
                 s.AnonKey = AnonKey.Trim();
                 s.BridgeEmail = BridgeEmail.Trim();
@@ -388,6 +416,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         private async Task TestConnectionAsync()
         {
             IsSyncing = true;
+            AccessReport = null;
             SetConnectionVerified(false);
             try
             {
@@ -448,11 +477,23 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                     return;
                 }
 
-                // Sign-in proves the account; the plan call proves the
-                // account may actually read the inbox (RPC role).
-                StatusText = "Signed in — checking inbox access…";
+                StatusText = "Signed in — checking account access…";
                 try
                 {
+                    var access = await client.GetMyInquiryAccessAsync();
+                    AccessReport = access;
+                    if (!access.CanPlanBridge)
+                    {
+                        string denial = access.MissingCapabilityMessage();
+                        _service.Settings.LastSyncStatus = "Access denied";
+                        _service.Settings.LastSyncAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                        _service.Settings.Save();
+                        SetConnectionVerified(false);
+                        RefreshStatusFromSettings();
+                        StatusText = denial;
+                        return;
+                    }
+
                     var pending = await client.PlanDeliveriesAsync(10, CancellationToken.None);
                     SetConnectionVerified(matchesSavedConnection);
                     StatusText = "Website connection OK — sign-in OK, inbox access OK ("
@@ -508,6 +549,11 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public async Task CheckNowAsync()
         {
             if (IsSyncing) return;
+            if (AccessReport?.CanPlanBridge == false)
+            {
+                StatusText = AccessReport.MissingCapabilityMessage();
+                return;
+            }
             if (!IsConfigured)
             {
                 StatusText = "Connect the website first (card below).";
@@ -518,6 +564,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             {
                 StatusText = "Checking the customer website…";
                 var outcome = await _service.SynchronizeAsync();
+                AccessReport = _service.LastAccessReport;
                 RefreshItems();
                 RefreshStatusFromSettings();
 
