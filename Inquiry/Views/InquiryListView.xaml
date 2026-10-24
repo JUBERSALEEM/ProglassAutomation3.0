@@ -89,7 +89,6 @@
             </Grid.ColumnDefinitions>
             <ContentControl Grid.Column="0" Style="{DynamicResource HeroCard}"
                             Background="{DynamicResource AccentPrimary}"
-                            Padding="{DynamicResource PaddingControl}"
                             Margin="{DynamicResource PaddingCompact}">
                 <StackPanel VerticalAlignment="Stretch">
                     <TextBlock Text="PROGLASS  ·  INQUIRIES" FontWeight="{DynamicResource FontWeightHeading}"
@@ -198,7 +197,7 @@
         </ItemsControl>
 
         <!-- Single compact filter row, following the reference register layout. -->
-        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.45*" />
@@ -278,7 +277,7 @@
         </ContentControl>
 
         <!-- ── Register: error surface + data grid + empty state ──── -->
-        <ContentControl Grid.Row="4" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="4" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />

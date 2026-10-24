@@ -163,7 +163,7 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContentControl">
-                <ContentControl Style="{DynamicResource Card}" Padding="{DynamicResource PaddingControl}" Focusable="False">
+                <ContentControl Style="{DynamicResource Card}" Focusable="False">
                     <ContentPresenter />
                 </ContentControl>
             </ControlTemplate></Setter.Value></Setter>
@@ -172,7 +172,7 @@
             <Setter Property="Focusable" Value="False" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContentControl">
-                <ContentControl Style="{DynamicResource Plate}" Padding="{DynamicResource PaddingCompact}" Focusable="False">
+                <ContentControl Style="{DynamicResource Plate}" Focusable="False">
                     <ContentPresenter />
                 </ContentControl>
             </ControlTemplate></Setter.Value></Setter>

@@ -1,10 +1,4 @@
 <UserControl x:Class="ProGlassAutomation.ThemeStudio.PagesStudioView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:ProGlassAutomation.ThemeStudio">
-    <UserControl.Resources>
-        <!-- Preview compact card: mirrors the module pages' compact card style. -->
-        <Style x:Key="PreviewCompactCard" TargetType="ContentControl" BasedOn="{StaticResource Card}">
-            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
-        </Style>
-    </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False" PanningMode="VerticalOnly">
         <Grid Margin="{DynamicResource PaddingPage}">
             <Grid.ColumnDefinitions>
@@ -44,7 +38,7 @@
                                 <TextBlock Text="3 open · value 412,500" Style="{DynamicResource Caption}"/>
                             </StackPanel>
                         </DockPanel>
-                        <ContentControl Style="{DynamicResource PreviewCompactCard}" Margin="{DynamicResource MarginItem}">
+                        <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
                             <TextBlock Text="Website inbox · connected · 4 ready" Style="{DynamicResource Caption}"/>
                         </ContentControl>
                         <TextBlock Text="INQ-2026-000121 · Customer A · 148,000" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginItem}"/>

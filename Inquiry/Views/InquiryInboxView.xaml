@@ -91,7 +91,7 @@
         </DockPanel>
 
         <!-- ── Status strip ───────────────────────────────────────── -->
-        <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -146,7 +146,7 @@
         </ContentControl>
 
         <!-- ── Website connection card ────────────────────────────── -->
-        <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -175,7 +175,7 @@
                         <ColumnDefinition Width="1.1*" />
                         <ColumnDefinition Width="1.3*" />
                         <ColumnDefinition Width="1.1*" />
-                        <ColumnDefinition Width="1.5*" />
+                        <ColumnDefinition Width="0.9*" />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -195,27 +195,27 @@
                                  Text="{Binding AnonKey, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="Supabase API key" />
                     </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Margin="{DynamicResource MarginInline}">
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="{DynamicResource MarginInline}">
                         <TextBlock Text="Bridge account email" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
                         <TextBox Style="{DynamicResource {x:Type TextBox}}" Margin="0" MinWidth="{DynamicResource ControlMinWidth}"
                                  Text="{Binding BridgeEmail, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="Bridge account email" />
                     </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="{DynamicResource MarginInline}">
+                    <StackPanel Grid.Row="0" Grid.Column="3" Margin="{DynamicResource MarginInline}">
                         <TextBlock Text="Bridge password" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}"
                                    ToolTip="Website operator sign-in uses an email OTP. The desktop bridge requires a Supabase Auth password." />
                         <PasswordBox x:Name="PasswordBox" Style="{StaticResource InboxPasswordBox}"
                                      ToolTip="Use the password set for the dedicated inquiry bridge account. An emailed OTP is not a password."
                                      AutomationProperties.Name="Dedicated inquiry bridge account password" />
                     </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="{DynamicResource MarginInline}">
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="{DynamicResource MarginInline}">
                         <TextBlock Text="Inbox folder" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
                         <TextBox Style="{DynamicResource {x:Type TextBox}}" Margin="0" MinWidth="{DynamicResource ControlMinWidth}"
                                  Text="{Binding InboxRoot, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Shared with the Node bridge (GLASS_INBOX_ROOT)"
                                  AutomationProperties.Name="Inbox folder" />
                     </StackPanel>
-                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="{DynamicResource MarginInline}">
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="{DynamicResource MarginInline}">
                         <TextBlock Text="Automatic check" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
                         <StackPanel Orientation="Horizontal">
                             <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
@@ -227,7 +227,8 @@
                                        VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
                         </StackPanel>
                     </StackPanel>
-                    <UniformGrid Grid.Row="1" Grid.Column="3" Columns="2" VerticalAlignment="Center">
+                    <UniformGrid Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                                 Columns="4" VerticalAlignment="Center">
                         <CheckBox Style="{DynamicResource {x:Type CheckBox}}" Content="Desktop notifications" IsChecked="{Binding NotificationsEnabled}"
                                   Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
                                   AutomationProperties.Name="Desktop notifications" />
@@ -253,7 +254,7 @@
         </ContentControl>
 
         <!-- ── Deliveries ─────────────────────────────────────────── -->
-        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />

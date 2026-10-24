@@ -25,10 +25,6 @@
             <Setter Property="Padding" Value="{DynamicResource PaddingMark}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <!-- Compact card: same contract Card, tighter padding (8,4). -->
-        <Style x:Key="EditorCompactCard" TargetType="ContentControl" BasedOn="{StaticResource Card}">
-            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
-        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -131,7 +127,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="{DynamicResource PaddingPage}">
             <StackPanel>
                 <!-- Header fields -->
-                <ContentControl Style="{DynamicResource EditorCompactCard}">
+                <ContentControl Style="{DynamicResource Card}">
                     <StackPanel>
                         <TextBlock Text="Header fields" Style="{DynamicResource SectionHeading}" />
                         <UniformGrid Columns="3" Margin="{DynamicResource MarginItem}">
@@ -214,7 +210,7 @@
                 </ContentControl>
 
                 <!-- Scope of supply (BOQ) -->
-                <ContentControl Style="{DynamicResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
+                <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
                     <StackPanel>
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="+ Add row" Style="{DynamicResource SubtleButton}"
@@ -337,7 +333,7 @@
                 </ContentControl>
 
                 <!-- Attachments -->
-                <ContentControl Style="{DynamicResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
+                <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
                     <StackPanel>
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="Open folder" Style="{DynamicResource SubtleButton}"
@@ -394,7 +390,7 @@
                 </ContentControl>
 
                 <!-- Communications -->
-                <ContentControl Style="{DynamicResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
+                <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
                     <StackPanel>
                         <TextBlock Text="Communications &amp; activity" Style="{DynamicResource SectionHeading}" />
                         <ItemsControl ItemsSource="{Binding RecentActivity}" Margin="{DynamicResource MarginItem}">
@@ -430,7 +426,7 @@
                 </ContentControl>
 
                 <!-- Lifecycle -->
-                <ContentControl Style="{DynamicResource EditorCompactCard}" Margin="{DynamicResource MarginItem}">
+                <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
                     <StackPanel>
                         <TextBlock Text="Lifecycle" Style="{DynamicResource SectionHeading}" />
                         <TextBlock Text="{Binding PipelineProgressText}" Style="{DynamicResource Caption}"

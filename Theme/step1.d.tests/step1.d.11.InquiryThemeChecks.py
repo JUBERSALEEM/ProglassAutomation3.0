@@ -12,14 +12,31 @@ list_xaml = LIST_VIEW.read_text(encoding="utf-8")
 inbox_xaml = INBOX_VIEW.read_text(encoding="utf-8")
 
 # Theme-owned card styles must be dynamically looked up, not captured as a
-# StaticResource base style when the view is first loaded.
+# StaticResource base style when the view is first loaded. Keep their padding
+# owned by each theme so card content never hugs its outline.
 assert 'Style="{DynamicResource HeroCard}"' in list_xaml
 assert list_xaml.count('Style="{DynamicResource Card}"') >= 2
 assert list_xaml.count('Style="{DynamicResource MetricCard}"') >= 3
 assert 'Style="{DynamicResource Card}"' in inbox_xaml
 assert 'Style="{DynamicResource StatusBadge}"' in inbox_xaml
-assert "RegisterCompactCard" not in list_xaml
-assert "InboxCompactCard" not in inbox_xaml
+
+consumer_xaml = sorted(
+    view for view in ROOT.rglob("*.xaml")
+    if view.relative_to(ROOT).parts[0] != "Theme"
+)
+for view in consumer_xaml:
+    root = ET.parse(view).getroot()
+    for element in root.iter():
+        if not element.tag.endswith("ContentControl"):
+            continue
+        style = element.attrib.get("Style", "")
+        if any(f"{{DynamicResource {role}}}" in style
+               for role in ("Card", "HeroCard", "MetricCard", "Plate", "AccentPlate", "ElevatedPlate")):
+            padding = element.attrib.get("Padding")
+            assert padding is None or padding == "{TemplateBinding Padding}", (view, element.attrib)
+    text = view.read_text(encoding="utf-8")
+    assert 'BasedOn="{StaticResource Card}"' not in text, view
+    assert "CompactCard" not in text, view
 
 # Controls that have theme-owned templates must explicitly track replacement
 # of the active theme resource dictionary.
@@ -34,7 +51,11 @@ for theme in themes:
     foundation = (theme / "step1.e.Components/step1.e.2.Foundation.xaml").read_text(encoding="utf-8")
     workspace = (theme / "step1.e.Components/step1.e.9.Workspace.xaml").read_text(encoding="utf-8")
     assert 'x:Key="Card"' in foundation, theme.name
+    card_style = foundation.split('<Style x:Key="Card"', 1)[1].split('</Style>', 1)[0]
+    assert 'Value="{DynamicResource PaddingCard}"' in card_style, theme.name
     assert 'x:Key="HeroCard"' in workspace, theme.name
+    hero_style = workspace.split('<Style x:Key="HeroCard"', 1)[1].split('</Style>', 1)[0]
+    assert 'Value="{DynamicResource PaddingCard}"' in hero_style, theme.name
     assert 'x:Key="MetricCard"' in workspace, theme.name
     assert 'x:Key="StatusBadge"' in workspace, theme.name
 
