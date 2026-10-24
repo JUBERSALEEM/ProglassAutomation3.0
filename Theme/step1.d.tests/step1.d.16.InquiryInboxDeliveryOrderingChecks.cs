@@ -76,6 +76,7 @@ internal static class InquiryInboxDeliveryOrderingChecks
         RunImportFailureKeepsPayloadAndOffersReimport();
         RunAlreadyDeliveredConflict();
         RunStorageFailureThenPlanDisappearance();
+        RunEmptyPlanIsNeutral();
     }
 
     private static (byte[] Bytes, string Sha, string SubmissionId, string Reference, string Snapshot) Fixture()
@@ -245,6 +246,45 @@ internal static class InquiryInboxDeliveryOrderingChecks
                 || !reconciled.Error.Contains(InquiryInboxSettings.DefaultInboxRoot, StringComparison.Ordinal)
                 || handler.AckCalls != 0 || handler.DownloadCalls != 1)
                 throw new InvalidOperationException("A failed local row omitted DeliveredElsewhere guidance after leaving the plan.");
+        }
+        finally
+        {
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(null);
+            AppDataRoot.TestFolderOverride = priorRoot;
+            try { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); } catch { }
+        }
+    }
+
+    private static void RunEmptyPlanIsNeutral()
+    {
+        var priorRoot = AppDataRoot.TestFolderOverride;
+        var root = Path.Combine(Path.GetTempPath(), "ProGlass-InboxEmptyPlan-" + Guid.NewGuid().ToString("N"));
+        var inboxRoot = Path.Combine(root, "files");
+        AppDataRoot.TestFolderOverride = Path.Combine(root, "db");
+        var repository = new InquiryRepository();
+        var settings = Settings(inboxRoot);
+        var handler = new DeliveryHandler(Array.Empty<byte>(),
+            Convert.ToHexString(SHA256.HashData(Array.Empty<byte>())).ToLowerInvariant(),
+            Guid.NewGuid().ToString(), "WEB-2026-000001", "unassigned", "[]", inboxRoot)
+        { EmptyPlan = true };
+        try
+        {
+            repository.InitializeAsync().GetAwaiter().GetResult();
+            InquiryInboxClient.SetHttpHandlerFactoryForTests(() => handler);
+            using var service = new InquiryInboxService(settings);
+            var ingest = new InquiryInboxIngestService(repository, new ThrowingWorkflow(),
+                new InquiryAttachmentService(repository), service);
+            var viewModel = new InquiryInboxViewModel(service, ingest, new InquiryInboxNotifier());
+            var before = service.GetItemRows().Count;
+            Task.Run(() => viewModel.CheckNowAsync()).GetAwaiter().GetResult();
+            var after = service.GetItemRows().Count;
+            const string expected = "No submissions are waiting. The website hands a submission to this PC only after a ProGlass operator accepts it; everything accepted and not yet delivered appears here.";
+            if (viewModel.StatusText != expected || viewModel.FailedCount != 0
+                || service.Settings.LastSyncStatus != "OK" || before != after || after != 0
+                || handler.AckCalls != 0 || handler.DownloadCalls != 0
+                || !viewModel.CheckNowCommand.CanExecute(null))
+                throw new InvalidOperationException("An empty successful plan was not neutral, unchanged, and retryable.");
+            viewModel.Dispose();
         }
         finally
         {

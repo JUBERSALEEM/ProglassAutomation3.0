@@ -76,3 +76,6 @@ assert 'RunStorageFailureThenPlanDisappearance' in (ROOT / "Theme/step1.d.tests/
 
 assert 'private string SelectedErrorText => SelectedItem?.Ledger.State == InquiryInboxStates.DeliveredElsewhere' in view_model
 assert 'InquiryInboxStates.DeliveredElsewhere => "Information"' in view_model
+
+assert 'No submissions are waiting. The website hands a submission to this PC only after a ProGlass operator accepts it; everything accepted and not yet delivered appears here.' in service
+assert 'RunEmptyPlanIsNeutral' in (ROOT / "Theme/step1.d.tests/step1.d.16.InquiryInboxDeliveryOrderingChecks.cs").read_text(encoding="utf-8")

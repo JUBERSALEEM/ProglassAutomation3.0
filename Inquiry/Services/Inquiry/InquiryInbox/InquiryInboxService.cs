@@ -408,9 +408,11 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     : outcome.Failed == 0 ? "OK" : "OK (with failures)";
                 if (!outcome.Offline && !outcome.AccessDenied)
                 {
-                    outcome.StatusText = outcome.Failed == 0
-                        ? $"Checked the website — {outcome.Planned} pending, {outcome.Delivered} downloaded, {outcome.Verified} already on disk."
-                        : $"Checked the website — {outcome.Failed} of {outcome.Planned} failed (details in the inbox page).";
+                    outcome.StatusText = outcome.Planned == 0
+                        ? "No submissions are waiting. The website hands a submission to this PC only after a ProGlass operator accepts it; everything accepted and not yet delivered appears here."
+                        : outcome.Failed == 0
+                            ? $"Checked the website — {outcome.Planned} pending, {outcome.Delivered} downloaded, {outcome.Verified} already on disk."
+                            : $"Checked the website — {outcome.Failed} of {outcome.Planned} failed (details in the inbox page).";
                     if (outcome.ImportPending > 0)
                         outcome.StatusText += $" {outcome.ImportPending} delivery item(s) are ready to re-import from disk.";
                     if (chatNote != null)
