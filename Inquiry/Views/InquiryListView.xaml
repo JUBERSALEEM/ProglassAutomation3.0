@@ -59,7 +59,10 @@
         <Style x:Key="InquiryFieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
             <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
         </Style>
-        <Style x:Key="InquiryCombo" TargetType="ComboBox">
+        <!-- Filter dropdown: inherits the theme's implicit ComboBox
+             template (each theme owns its selection chrome); adds only
+             the register's spacing contract. -->
+        <Style x:Key="InquiryCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
             <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
             <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -109,18 +112,14 @@
             </StackPanel>
         </DockPanel>
 
-        <!-- ── Website inbox card (top of the register) ───────────── -->
-        <ContentControl Grid.Row="1" Margin="{DynamicResource PaddingPage}">
-            <ContentControl.Style>
-                <Style TargetType="ContentControl" BasedOn="{StaticResource RegisterCompactCard}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding InboxCardVisible}" Value="True">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ContentControl.Style>
+        <!-- ── Website inbox card (top of the register) ─────────────
+             Always visible: this is the register's entry point to the
+             website inbox (connection, Test connection, Prepare
+             inquiry). Its summary text carries the live state; a
+             failed refresh shows its error here instead of hiding
+             the card. -->
+        <ContentControl Grid.Row="1" Margin="{DynamicResource PaddingPage}"
+                        Style="{StaticResource RegisterCompactCard}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -421,14 +420,14 @@
                             </Style>
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Inquiry" Binding="{Binding InquiryNumber}" Width="130"
+                            <DataGridTextColumn Header="Inquiry" Binding="{Binding InquiryNumber}" Width="*"
                                                 ElementStyle="{StaticResource InquiryNumberCell}" />
-                            <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}" Width="160"
+                            <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}" Width="*"
                                                 ElementStyle="{StaticResource InquiryCustomerCell}" />
-                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="160" />
-                            <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}" Width="120" />
-                            <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}" Width="130" />
-                            <DataGridTemplateColumn Header="Status" Width="110" CanUserSort="False">
+                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="*" />
+                            <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}" Width="*" />
+                            <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}" Width="*" />
+                            <DataGridTemplateColumn Header="Status" Width="*" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StatusTag}"
@@ -439,13 +438,13 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Value (AED)" Binding="{Binding ValueText}" Width="120"
+                            <DataGridTextColumn Header="Value (AED)" Binding="{Binding ValueText}" Width="*"
                                                 ElementStyle="{StaticResource InquiryValueCell}" />
-                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedDateText}" Width="105" />
-                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}" Width="150" />
-                            <DataGridTextColumn Header="PI" Binding="{Binding ProformaCellText}" Width="130" />
-                            <DataGridTextColumn Header="JO" Binding="{Binding JobOrderCellText}" Width="120" />
-                            <DataGridTextColumn Header="Files" Binding="{Binding AttachmentChipText}" Width="90"
+                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedDateText}" Width="*" />
+                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}" Width="*" />
+                            <DataGridTextColumn Header="PI" Binding="{Binding ProformaCellText}" Width="*" />
+                            <DataGridTextColumn Header="JO" Binding="{Binding JobOrderCellText}" Width="*" />
+                            <DataGridTextColumn Header="Files" Binding="{Binding AttachmentChipText}" Width="*"
                                                 CanUserSort="False" />
                         </DataGrid.Columns>
                     </DataGrid>

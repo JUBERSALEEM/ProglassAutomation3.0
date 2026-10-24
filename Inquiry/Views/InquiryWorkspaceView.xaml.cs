@@ -133,17 +133,21 @@ public partial class InquiryWorkspaceView : UserControl
 
     private async System.Threading.Tasks.Task StartInboxAsync()
     {
+        // The inbox card is the register's entry point to the website
+        // inbox — it must appear even when the first check fails.
+        RefreshListInboxCard();
         try
         {
             _inboxService.ScanLocalInbox();
-            RefreshListInboxCard();
             if (_inboxService.Settings.IsConfigured)
                 await _inboxService.SynchronizeAsync();
             RefreshListInboxCard();
         }
         catch
         {
-            // The inbox must never take the register down.
+            // The inbox must never take the register down; the card's
+            // refresh reports what went wrong instead of hiding.
+            RefreshListInboxCard();
         }
     }
 
@@ -185,9 +189,15 @@ public partial class InquiryWorkspaceView : UserControl
         {
             _list.UpdateInboxCard(_inboxService.GetSummary());
         }
-        catch
+        catch (Exception error)
         {
-            // The register card is a courtesy; never break the list.
+            // Never hide the entry point: keep the card visible and show
+            // the failure where the owner can read it.
+            _list.UpdateInboxCard(new ProGlassAutomation.Services.Inquiry.InquiryInbox.InboxSummary
+            {
+                Configured = _inboxService.Settings.IsConfigured,
+                LastSyncStatus = "Inbox check failed: " + error.Message
+            });
         }
     }
 

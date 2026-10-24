@@ -1,5 +1,22 @@
 <Application x:Class="ProGlassAutomation.App"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
- <Application.Resources><ResourceDictionary /></Application.Resources>
+ <Application.Resources>
+  <ResourceDictionary>
+   <ResourceDictionary.MergedDictionaries>
+    <!-- Designer seed: the default theme package (Bento Light) merged statically
+         so the XAML designer resolves every contract key (brushes, styles,
+         metrics, fonts). The VS designer does not run App.OnStartup /
+         ThemeService.Initialize, so code-only merges are invisible to it
+         (XDG-0001). At runtime ThemeService.Initialize appends the live
+         theme package after these dictionaries; WPF searches merged
+         dictionaries last-added-first, so the active theme always wins.
+         Same architecture as the ADV reference (static theme merge in
+         App.xaml + runtime theme dual-write). Switching themes at runtime
+         is unchanged: Apply() swaps the live slot only. -->
+    <ResourceDictionary Source="pack://application:,,,/Theme/ThemeBento/ThemeBento.Light.xaml" />
+    <ResourceDictionary Source="pack://application:,,,/Theme/ThemeBento/step1.e.Components/step1.e.1.Components.xaml" />
+   </ResourceDictionary.MergedDictionaries>
+  </ResourceDictionary>
+ </Application.Resources>
 </Application>

@@ -9,7 +9,7 @@
         <Style x:Key="InboxFieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
             <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
         </Style>
-        <Style x:Key="InboxTextField" TargetType="TextBox">
+        <Style x:Key="InboxTextField" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
             <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
         </Style>

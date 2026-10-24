@@ -305,9 +305,10 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             SetLowPriorityCommand = new DelegateCommand<InquiryListRow>(row => _ = ApplyPriorityAsync(row, "Low"),
                 r => r != null);
 
-            // Website inbox card at the top of the register.
-            OpenInboxCommand = new DelegateCommand(() => OpenInboxRequested?.Invoke(),
-                () => InboxCardVisible);
+            // Website inbox card at the top of the register. The card is
+            // always visible (entry point to the website inbox), so the
+            // command is always available.
+            OpenInboxCommand = new DelegateCommand(() => OpenInboxRequested?.Invoke());
 
             AsyncUtility.SafeFireAndForget(LoadFilterSourcesAsync);
             Reload();
@@ -352,9 +353,17 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                         ? "No new website inquiries"
                         : summary.DownloadedCount + " awaiting local entry"
                           + (summary.FailedCount > 0 ? $" · {summary.FailedCount} failed" : "");
-            InboxLastSyncText = string.IsNullOrEmpty(summary.LastSyncAtUtc)
-                ? "Not checked yet"
-                : "Last check " + summary.LastSyncAtUtc.Substring(11, 5) + " UTC · " + summary.LastSyncStatus;
+            InboxLastSyncText = BuildLastSyncText(summary);
+        }
+
+        private static string BuildLastSyncText(ProGlassAutomation.Services.Inquiry.InquiryInbox.InboxSummary summary)
+        {
+            var when = summary.LastSyncAtUtc;
+            if (!string.IsNullOrEmpty(when) && when.Length > 15)
+                return "Last check " + when.Substring(11, 5) + " UTC · " + summary.LastSyncStatus;
+            // No timestamp: either never checked, or a status-only summary
+            // (e.g. a failed refresh reporting its error — never blank).
+            return string.IsNullOrEmpty(summary.LastSyncStatus) ? "Not checked yet" : summary.LastSyncStatus;
         }
 
         // ── Actions ───────────────────────────────────────────────────
