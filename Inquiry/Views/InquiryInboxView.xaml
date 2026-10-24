@@ -6,13 +6,6 @@
              SnapsToDevicePixels="True"
              TextOptions.TextFormattingMode="Display">
     <UserControl.Resources>
-        <Style x:Key="InboxFieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-        </Style>
-        <Style x:Key="InboxTextField" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
-            <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
-        </Style>
         <!-- PasswordBox has a distinct WPF control template and cannot
              inherit TextBox's template. Keep it on the same theme tokens,
              with a rounded field frame and the required PART_ContentHost. -->
@@ -69,10 +62,6 @@
             <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <!-- Compact card: same contract Card, tighter padding (8,4). -->
-        <Style x:Key="InboxCompactCard" TargetType="ContentControl" BasedOn="{StaticResource Card}">
-            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
-        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -102,7 +91,7 @@
         </DockPanel>
 
         <!-- ── Status strip ───────────────────────────────────────── -->
-        <ContentControl Grid.Row="1" Style="{DynamicResource InboxCompactCard}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -119,11 +108,8 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Background="{DynamicResource StatusInformationSurface}"
-                            BorderBrush="{DynamicResource StatusInformation}"
-                            BorderThickness="{DynamicResource BorderThicknessControl}"
-                            CornerRadius="{DynamicResource ChipCornerRadius}"
-                            Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource MarginInline}">
+                    <Border Style="{DynamicResource StatusBadge}" Tag="Information"
+                            Margin="{DynamicResource MarginInline}">
                         <StackPanel Style="{StaticResource InboxCountBadge}">
                             <TextBlock Text="{Binding ReadyCount}"
                                        FontSize="{DynamicResource FontSizeSection}"
@@ -133,11 +119,8 @@
                             <TextBlock Text=" ready" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Border>
-                    <Border Background="{DynamicResource StatusSuccessSurface}"
-                            BorderBrush="{DynamicResource StatusSuccess}"
-                            BorderThickness="{DynamicResource BorderThicknessControl}"
-                            CornerRadius="{DynamicResource ChipCornerRadius}"
-                            Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource MarginInline}">
+                    <Border Style="{DynamicResource StatusBadge}" Tag="Success"
+                            Margin="{DynamicResource MarginInline}">
                         <StackPanel Style="{StaticResource InboxCountBadge}">
                             <TextBlock Text="{Binding IngestedCount}"
                                        FontSize="{DynamicResource FontSizeSection}"
@@ -147,11 +130,8 @@
                             <TextBlock Text=" in register" Style="{DynamicResource Caption}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Border>
-                    <Border Background="{DynamicResource StatusErrorSurface}"
-                            BorderBrush="{DynamicResource StatusError}"
-                            BorderThickness="{DynamicResource BorderThicknessControl}"
-                            CornerRadius="{DynamicResource ChipCornerRadius}"
-                            Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource MarginInline}">
+                    <Border Style="{DynamicResource StatusBadge}" Tag="Error"
+                            Margin="{DynamicResource MarginInline}">
                         <StackPanel Style="{StaticResource InboxCountBadge}">
                             <TextBlock Text="{Binding FailedCount}"
                                        FontSize="{DynamicResource FontSizeSection}"
@@ -166,7 +146,7 @@
         </ContentControl>
 
         <!-- ── Website connection card ────────────────────────────── -->
-        <ContentControl Grid.Row="2" Style="{DynamicResource InboxCompactCard}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -202,63 +182,64 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" Grid.Column="0" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Supabase URL" Style="{StaticResource InboxFieldLabel}" />
-                        <TextBox Style="{StaticResource InboxTextField}" Margin="0"
+                        <TextBlock Text="Supabase URL" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}" Margin="0" MinWidth="{DynamicResource ControlMinWidth}"
                                  Text="{Binding SupabaseUrl, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="e.g. https://xxxx.supabase.co"
                                  AutomationProperties.Name="Supabase URL" />
                     </StackPanel>
                     <StackPanel Grid.Row="0" Grid.Column="1" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Supabase API key (anon or publishable)" Style="{StaticResource InboxFieldLabel}"
+                        <TextBlock Text="Supabase API key (anon or publishable)" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}"
                                    ToolTip="Use a public anon or publishable key. Never enter a service_role secret here." />
-                        <TextBox Style="{StaticResource InboxTextField}" Margin="0"
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}" Margin="0" MinWidth="{DynamicResource ControlMinWidth}"
                                  Text="{Binding AnonKey, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="Supabase API key" />
                     </StackPanel>
                     <StackPanel Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Bridge account email" Style="{StaticResource InboxFieldLabel}" />
-                        <TextBox Style="{StaticResource InboxTextField}" Margin="0"
+                        <TextBlock Text="Bridge account email" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}" Margin="0" MinWidth="{DynamicResource ControlMinWidth}"
                                  Text="{Binding BridgeEmail, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="Bridge account email" />
                     </StackPanel>
                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Bridge password" Style="{StaticResource InboxFieldLabel}"
+                        <TextBlock Text="Bridge password" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}"
                                    ToolTip="Website operator sign-in uses an email OTP. The desktop bridge requires a Supabase Auth password." />
                         <PasswordBox x:Name="PasswordBox" Style="{StaticResource InboxPasswordBox}"
                                      ToolTip="Use the password set for the dedicated inquiry bridge account. An emailed OTP is not a password."
                                      AutomationProperties.Name="Dedicated inquiry bridge account password" />
                     </StackPanel>
                     <StackPanel Grid.Row="1" Grid.Column="1" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Inbox folder" Style="{StaticResource InboxFieldLabel}" />
-                        <TextBox Style="{StaticResource InboxTextField}" Margin="0"
+                        <TextBlock Text="Inbox folder" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}" Margin="0" MinWidth="{DynamicResource ControlMinWidth}"
                                  Text="{Binding InboxRoot, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Shared with the Node bridge (GLASS_INBOX_ROOT)"
                                  AutomationProperties.Name="Inbox folder" />
                     </StackPanel>
                     <StackPanel Grid.Row="1" Grid.Column="2" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Automatic check" Style="{StaticResource InboxFieldLabel}" />
+                        <TextBlock Text="Automatic check" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
                         <StackPanel Orientation="Horizontal">
-                            <ComboBox ItemsSource="{Binding PollMinutesOptions}"
+                            <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                      ItemsSource="{Binding PollMinutesOptions}"
                                       SelectedItem="{Binding PollMinutes}"
                                       Width="70" VerticalAlignment="Center"
                                       AutomationProperties.Name="Automatic check interval in minutes" />
-                            <TextBlock Text="minute(s)" Style="{StaticResource InboxFieldLabel}"
+                            <TextBlock Text="minute(s)" Style="{DynamicResource Caption}"
                                        VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
                         </StackPanel>
                     </StackPanel>
                     <UniformGrid Grid.Row="1" Grid.Column="3" Columns="2" VerticalAlignment="Center">
-                        <CheckBox Content="Desktop notifications" IsChecked="{Binding NotificationsEnabled}"
+                        <CheckBox Style="{DynamicResource {x:Type CheckBox}}" Content="Desktop notifications" IsChecked="{Binding NotificationsEnabled}"
                                   Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
                                   AutomationProperties.Name="Desktop notifications" />
-                        <CheckBox Content="With sound" IsChecked="{Binding NotificationSound}"
+                        <CheckBox Style="{DynamicResource {x:Type CheckBox}}" Content="With sound" IsChecked="{Binding NotificationSound}"
                                   Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
                                   IsEnabled="{Binding NotificationsEnabled}"
                                   AutomationProperties.Name="Notification sound" />
-                        <CheckBox Content="Report status" IsChecked="{Binding ReportStatusToWebsite}"
+                        <CheckBox Style="{DynamicResource {x:Type CheckBox}}" Content="Report status" IsChecked="{Binding ReportStatusToWebsite}"
                                   Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
                                   AutomationProperties.Name="Report status to website"
                                   ToolTip="{Binding ReportStatusHint}" />
-                        <CheckBox Content="Sync website chat" IsChecked="{Binding SyncWebsiteChat}"
+                        <CheckBox Style="{DynamicResource {x:Type CheckBox}}" Content="Sync website chat" IsChecked="{Binding SyncWebsiteChat}"
                                   Margin="{DynamicResource MarginInline}" VerticalAlignment="Center"
                                   AutomationProperties.Name="Sync website chat"
                                   ToolTip="{Binding ChatSyncHint}" />
@@ -272,7 +253,7 @@
         </ContentControl>
 
         <!-- ── Deliveries ─────────────────────────────────────────── -->
-        <ContentControl Grid.Row="3" Style="{DynamicResource InboxCompactCard}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -305,7 +286,8 @@
                                VerticalAlignment="Center" />
                 </DockPanel>
                 <Grid Grid.Row="1" Margin="{DynamicResource MarginItem}">
-                    <DataGrid ItemsSource="{Binding Items}"
+                    <DataGrid Style="{DynamicResource {x:Type DataGrid}}"
+                              ItemsSource="{Binding Items}"
                               SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"

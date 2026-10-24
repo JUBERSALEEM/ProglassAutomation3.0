@@ -6,10 +6,6 @@
              SnapsToDevicePixels="True"
              TextOptions.TextFormattingMode="Display">
     <UserControl.Resources>
-        <!-- Compact card: same contract Card, tighter padding (8,4). -->
-        <Style x:Key="RegisterCompactCard" TargetType="ContentControl" BasedOn="{StaticResource Card}">
-            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
-        </Style>
         <!-- Status chip: BorderSubtle idle, AccentPrimary selected,
              TextOnAccent on the selected label. -->
         <Style x:Key="InquiryChipButton" TargetType="Button">
@@ -56,17 +52,8 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="InquiryFieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-        </Style>
-        <!-- Filter dropdown: inherits the theme's implicit ComboBox
-             template (each theme owns its selection chrome); adds only
-             the register's spacing contract. -->
-        <Style x:Key="InquiryCombo" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-            <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
+        <!-- Filter dropdowns bind the active theme's implicit ComboBox style
+             directly so changing themes replaces the template as well as its tokens. -->
         <Style x:Key="InquiryCustomerCell" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -100,10 +87,10 @@
                 <ColumnDefinition Width="0.9*" />
                 <ColumnDefinition Width="2.55*" />
             </Grid.ColumnDefinitions>
-            <Border Grid.Column="0" Margin="{DynamicResource PaddingCompact}"
-                    Background="{DynamicResource AccentPrimary}"
-                    CornerRadius="{DynamicResource ControlCornerRadius}"
-                    Padding="{DynamicResource PaddingControl}">
+            <ContentControl Grid.Column="0" Style="{DynamicResource HeroCard}"
+                            Background="{DynamicResource AccentPrimary}"
+                            Padding="{DynamicResource PaddingControl}"
+                            Margin="{DynamicResource PaddingCompact}">
                 <StackPanel VerticalAlignment="Stretch">
                     <TextBlock Text="PROGLASS  ·  INQUIRIES" FontWeight="{DynamicResource FontWeightHeading}"
                                Foreground="{DynamicResource TextOnAccent}" />
@@ -115,7 +102,7 @@
                     <TextBlock Text="Cancelled inquiries excluded" FontSize="{DynamicResource FontSizeCaption}"
                                Foreground="{DynamicResource TextOnAccent}" Margin="{DynamicResource MarginInline}" />
                 </StackPanel>
-            </Border>
+            </ContentControl>
             <ContentControl Grid.Column="1" Style="{DynamicResource MetricCard}" Margin="{DynamicResource PaddingCompact}">
                 <StackPanel>
                     <TextBlock Text="Open" Style="{DynamicResource Caption}" />
@@ -211,7 +198,7 @@
         </ItemsControl>
 
         <!-- Single compact filter row, following the reference register layout. -->
-        <ContentControl Grid.Row="3" Style="{DynamicResource RegisterCompactCard}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.45*" />
@@ -224,37 +211,64 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Search" Style="{StaticResource InquiryFieldLabel}" />
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBlock Text="Search" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                    <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="Search by number, customer, project, salesman or preparer"
                              AutomationProperties.Name="Search inquiries" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Date" Style="{StaticResource InquiryFieldLabel}" />
-                    <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding DateRanges}"
-                              SelectedItem="{Binding SelectedDateRange}" AutomationProperties.Name="Received date range" />
+                    <TextBlock Text="Date" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              Margin="{DynamicResource MarginInline}"
+                              MinWidth="{DynamicResource ControlMinWidth}"
+                              VerticalAlignment="Center"
+                              ItemsSource="{Binding DateRanges}"
+                              SelectedItem="{Binding SelectedDateRange}"
+                              AutomationProperties.Name="Received date range" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Salesman" Style="{StaticResource InquiryFieldLabel}" />
-                    <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding Salesmen}"
-                              SelectedItem="{Binding SelectedSalesman}" AutomationProperties.Name="Filter by salesman" />
+                    <TextBlock Text="Salesman" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              Margin="{DynamicResource MarginInline}"
+                              MinWidth="{DynamicResource ControlMinWidth}"
+                              VerticalAlignment="Center"
+                              ItemsSource="{Binding Salesmen}"
+                              SelectedItem="{Binding SelectedSalesman}"
+                              AutomationProperties.Name="Filter by salesman" />
                 </StackPanel>
                 <StackPanel Grid.Column="3" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Prepared by" Style="{StaticResource InquiryFieldLabel}" />
-                    <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding PreparedByUsers}"
-                              SelectedItem="{Binding SelectedPreparedBy}" AutomationProperties.Name="Filter by preparer" />
+                    <TextBlock Text="Prepared by" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              Margin="{DynamicResource MarginInline}"
+                              MinWidth="{DynamicResource ControlMinWidth}"
+                              VerticalAlignment="Center"
+                              ItemsSource="{Binding PreparedByUsers}"
+                              SelectedItem="{Binding SelectedPreparedBy}"
+                              AutomationProperties.Name="Filter by preparer" />
                 </StackPanel>
                 <StackPanel Grid.Column="4" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Priority" Style="{StaticResource InquiryFieldLabel}" />
-                    <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding Priorities}"
-                              SelectedItem="{Binding SelectedPriority}" AutomationProperties.Name="Filter by priority" />
+                    <TextBlock Text="Priority" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              Margin="{DynamicResource MarginInline}"
+                              MinWidth="{DynamicResource ControlMinWidth}"
+                              VerticalAlignment="Center"
+                              ItemsSource="{Binding Priorities}"
+                              SelectedItem="{Binding SelectedPriority}"
+                              AutomationProperties.Name="Filter by priority" />
                 </StackPanel>
                 <StackPanel Grid.Column="5" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Sort order" Style="{StaticResource InquiryFieldLabel}" />
-                    <ComboBox Style="{StaticResource InquiryCombo}" ItemsSource="{Binding SortOptions}"
-                              SelectedItem="{Binding SelectedSort}" AutomationProperties.Name="Sort order" />
+                    <TextBlock Text="Sort order" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              Margin="{DynamicResource MarginInline}"
+                              MinWidth="{DynamicResource ControlMinWidth}"
+                              VerticalAlignment="Center"
+                              ItemsSource="{Binding SortOptions}"
+                              SelectedItem="{Binding SelectedSort}"
+                              AutomationProperties.Name="Sort order" />
                 </StackPanel>
-                <CheckBox Grid.Column="6" Content="Has attachments" IsChecked="{Binding HasAttachmentsOnly}"
+                <CheckBox Grid.Column="6" Style="{DynamicResource {x:Type CheckBox}}"
+                          Content="Has attachments" IsChecked="{Binding HasAttachmentsOnly}"
                           VerticalAlignment="Center" Margin="{DynamicResource MarginInline}"
                           AutomationProperties.Name="Only inquiries with attachments" />
                 <Button Grid.Column="7" Content="Reset" Style="{DynamicResource SubtleButton}"
@@ -264,7 +278,7 @@
         </ContentControl>
 
         <!-- ── Register: error surface + data grid + empty state ──── -->
-        <ContentControl Grid.Row="4" Style="{DynamicResource RegisterCompactCard}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="4" Style="{DynamicResource Card}" Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -288,7 +302,8 @@
                     <TextBlock Text="{Binding ErrorText}" Foreground="{DynamicResource StatusError}" TextWrapping="Wrap" />
                 </Border>
                 <Grid Grid.Row="1" Margin="{DynamicResource MarginItem}">
-                    <DataGrid ItemsSource="{Binding Inquiries}"
+                    <DataGrid Style="{DynamicResource {x:Type DataGrid}}"
+                              ItemsSource="{Binding Inquiries}"
                               SelectedItem="{Binding SelectedInquiry, Mode=TwoWay}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
