@@ -34,6 +34,7 @@ internal static class RuntimeChecks
             app.Resources["UnrelatedResource"] = "preserve me";
             themes.Initialize(app.Resources);
             ContractChecks.Run();
+            InquiryInboxJsonbChecks.Run();
             if (args.Contains("--contracts-only"))
             {
                 Check(failures.Messages.Count == 0, "contract binding diagnostics");

@@ -258,6 +258,13 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 }
                 _settings.Save();
             }
+            catch (JsonException ex)
+            {
+                outcome.Error = "Website returned inbox data in an unsupported JSON format: " + ex.Message;
+                outcome.StatusText = outcome.Error;
+                _settings.LastSyncStatus = "Protocol error";
+                _settings.Save();
+            }
             catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.Offline)
             {
                 outcome.Offline = true;

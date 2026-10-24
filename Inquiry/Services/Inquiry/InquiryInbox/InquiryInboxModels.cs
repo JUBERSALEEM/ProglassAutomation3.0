@@ -45,11 +45,21 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         [JsonPropertyName("document_count")] public long DocumentCount { get; set; }
         [JsonPropertyName("primary_estimator_code")] public string? PrimaryEstimatorCode { get; set; }
         /// <summary>
-        /// Raw JSON array from the RPC — [{role, estimatorCode,
-        /// displayName, assignedAt}]. Kept raw so the manifest can embed
-        /// it verbatim (canonicalized) without a lossy round-trip.
+        /// PostgREST exposes the database jsonb column as a JSON value (usually
+        /// an array), not as a JSON string. Keep the token so object/array/null
+        /// values deserialize without coercion, then expose the raw JSON text to
+        /// the existing manifest and acknowledgement code.
         /// </summary>
-        [JsonPropertyName("assignment_snapshot")] public string? AssignmentSnapshotRaw { get; set; }
+        [JsonPropertyName("assignment_snapshot")] public JsonElement AssignmentSnapshotValue { get; set; }
+
+        [JsonIgnore]
+        public string? AssignmentSnapshotRaw => AssignmentSnapshotValue.ValueKind switch
+        {
+            JsonValueKind.Undefined or JsonValueKind.Null => null,
+            JsonValueKind.String => AssignmentSnapshotValue.GetString(),
+            _ => AssignmentSnapshotValue.GetRawText()
+        };
+
         [JsonPropertyName("routing_key")] public string RoutingKey { get; set; } = "";
 
         /// <summary>Human estimator display for the primary assignment ("" when unassigned).</summary>

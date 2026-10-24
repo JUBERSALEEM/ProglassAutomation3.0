@@ -16,6 +16,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Windows.Input;
 using ProGlassAutomation.Models.Inquiry;
 using ProGlassAutomation.Services.Inquiry;
@@ -432,6 +433,13 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                         + (ex.Kind == InboxRemoteErrorKind.Offline
                             ? "the website is unreachable."
                             : ex.Message);
+                }
+                catch (JsonException ex)
+                {
+                    SetConnectionVerified(false);
+                    _service.Settings.LastSyncStatus = "Protocol error";
+                    _service.Settings.Save();
+                    StatusText = "Sign-in succeeded, but the inbox response could not be read: " + ex.Message;
                 }
             }
             catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.Offline)
