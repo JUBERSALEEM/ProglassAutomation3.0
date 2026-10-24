@@ -91,7 +91,12 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         }
     }
 
-    public sealed record InboxPollIntervalOption(int Seconds, string Label);
+    public sealed record InboxPollIntervalOption(int Seconds, string Label)
+    {
+        // Theme ComboBox templates may render SelectedItem.ToString() directly;
+        // show the user-facing interval label rather than the record debug text.
+        public override string ToString() => Label;
+    }
 
     public sealed class InquiryInboxViewModel : ViewModelBase
     {
