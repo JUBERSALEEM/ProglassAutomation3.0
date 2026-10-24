@@ -148,9 +148,10 @@
                         <Button Content="Export" Style="{DynamicResource SubtleButton}"
                                 Command="{Binding ExportCommand}" Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Export inquiries to CSV" />
-                        <Button Content="Website inbox" Style="{DynamicResource SubtleButton}"
+                        <Button Content="Import from website inbox" Style="{DynamicResource SubtleButton}"
                                 Command="{Binding OpenInboxCommand}" Margin="{DynamicResource MarginInline}"
-                                AutomationProperties.Name="Open the customer website inbox" />
+                                ToolTip="Open accepted website deliveries, verify/download files, then create local inquiries."
+                                AutomationProperties.Name="Open website inbox to import accepted deliveries" />
                     </WrapPanel>
                 </Grid>
             </ContentControl>

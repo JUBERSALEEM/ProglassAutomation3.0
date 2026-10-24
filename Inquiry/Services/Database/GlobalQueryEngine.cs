@@ -105,16 +105,17 @@ namespace ProGlassAutomation.Services.Database
             {
                 throw;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // A failed page read must surface as an empty page the UI
-                // can report — not crash the register.
+                // Keep the shell alive, but carry the failure so the caller
+                // can distinguish a query error from a genuinely empty result.
                 return new PagedResult<TResult>
                 {
                     Items = new List<TResult>(),
                     TotalCount = 0,
                     Page = safePage,
-                    PageSize = safePageSize
+                    PageSize = safePageSize,
+                    Error = ex.GetBaseException().Message
                 };
             }
         }

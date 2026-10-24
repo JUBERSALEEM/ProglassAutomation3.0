@@ -99,4 +99,11 @@ assert '15, "15 seconds"' in view_model and '30, "30 seconds"' in view_model
 assert 'Files could not be verified or organized:' in view_model
 assert 'SelectedIngestActionLabel' in view_model
 assert 'awaitingLocalImport > 0' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxService.cs").read_text(encoding="utf-8")
+paged = (ROOT / "Inquiry/Services/Reporting/PagedResult.cs").read_text(encoding="utf-8")
+query_engine = (ROOT / "Inquiry/Services/Database/GlobalQueryEngine.cs").read_text(encoding="utf-8")
+inquiry_repository = (ROOT / "Inquiry/Services/Inquiry/InquiryRepository.cs").read_text(encoding="utf-8")
+assert 'public string? Error { get; set; }' in paged
+assert 'Error = ex.GetBaseException().Message' in query_engine
+assert 'Inquiry list query failed:' in inquiry_repository
+assert 'Content="Import from website inbox"' in (ROOT / "Inquiry/Views/InquiryListView.xaml").read_text(encoding="utf-8")
 assert 'current.InnerException' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxIngestService.cs").read_text(encoding="utf-8")

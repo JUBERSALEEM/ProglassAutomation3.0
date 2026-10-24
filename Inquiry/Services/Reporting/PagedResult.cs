@@ -18,6 +18,8 @@ namespace ProGlassAutomation.Services.Reporting
         public int TotalCount { get; set; }
         public int Page { get; set; }
         public int PageSize { get; set; }
+        /// <summary>Optional database query failure; an empty page must not masquerade as no matching records.</summary>
+        public string? Error { get; set; }
         public int TotalPages => PageSize <= 0 ? 1 : (int)Math.Ceiling(TotalCount / (double)PageSize);
         public bool HasNext => Page < TotalPages;
         public bool HasPrevious => Page > 1;

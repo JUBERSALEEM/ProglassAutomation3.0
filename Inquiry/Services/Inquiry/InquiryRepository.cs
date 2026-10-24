@@ -84,6 +84,8 @@ namespace ProGlassAutomation.Services.Inquiry
                     ProformaNumber = x.ProformaNumber, JobOrderNumber = x.JobOrderNumber,
                     RowVersion = x.RowVersion
                 }, query.Page, Math.Clamp(query.PageSize, 10, 200), ct).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(page.Error))
+                throw new InvalidOperationException("Inquiry list query failed: " + page.Error);
             var ids = page.Items.Select(x => x.Id).ToList();
             if (ids.Count > 0)
             {
