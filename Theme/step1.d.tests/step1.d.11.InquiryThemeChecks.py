@@ -131,5 +131,17 @@ assert "Account email changed. Enter that account's Supabase Auth password" in v
 assert 'CurrentAuthConfiguration()' in client
 assert '_authenticatedConfiguration' in client
 assert 'ToolTip="{Binding Error}"' in inbox_xaml
+assert 'private static HttpClient _http' in client
+assert 'private static void Reset()' in client
+assert 'catch (ObjectDisposedException) when (attempt == 0)' in client
+assert 'ShutdownProcessHttpClient' in client
+assert 'Task<InboxSyncOutcome>? _runningTask' in service
+assert 'CancelSynchronization()' in service and 'NeutralStoppedOutcome()' in service
+client_check = (ROOT / "Theme/step1.d.tests/step1.d.12.InquiryInboxHttpClientChecks.cs").read_text(encoding="utf-8")
+assert 'DisposeProcessHttpClientForTests' in client_check
+runtime_checks = (ROOT / "Theme/step1.d.tests/step1.d.1.RuntimeChecks.cs").read_text(encoding="utf-8")
+assert 'InquiryInboxHttpClientChecks.Run()' in runtime_checks
+closed = workspace.split('private void OnOwnerWindowClosed', 1)[1]
+assert closed.index('StateChanged -= OnInboxStateChanged') < closed.index('CancelSynchronization()') < closed.index('_inboxService.Dispose()') < closed.index('ShutdownProcessHttpClient()')
 
-print("PASS: inquiry theme styles, interval spacing, inbox schema repair, dynamic input interaction, and auth/authorization diagnostics")
+print("PASS: inquiry theme styles, inbox lifecycle, shared HTTP recovery, schema repair, and auth/authorization diagnostics")

@@ -68,7 +68,9 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
         private readonly InquiryInboxSettings _settings;
         private readonly InquiryInboxClient _client;
         private CancellationTokenSource? _running;
+        private Task<InboxSyncOutcome>? _runningTask;
         private readonly object _gate = new();
+        private bool _disposed;
 
         public InquiryInboxService(InquiryInboxSettings settings)
         {
@@ -126,24 +128,76 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         // ── Synchronize ──────────────────────────────────────────────────
 
-        public async Task<InboxSyncOutcome> SynchronizeAsync(CancellationToken ct = default)
+        public Task<InboxSyncOutcome> SynchronizeAsync(CancellationToken ct = default)
         {
             CancellationTokenSource linked;
+            TaskCompletionSource<InboxSyncOutcome> completion;
             lock (_gate)
             {
+                if (_disposed)
+                    return Task.FromResult(NeutralStoppedOutcome());
                 if (_running != null)
-                    return new InboxSyncOutcome { Busy = true, StatusText = "Already checking the website." };
+                    return Task.FromResult(new InboxSyncOutcome { Busy = true, StatusText = "Already checking the website." });
+
                 linked = _running = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                completion = new TaskCompletionSource<InboxSyncOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _runningTask = completion.Task;
             }
+
+            _ = CompleteSynchronizationAsync(linked, completion);
+            return completion.Task;
+        }
+
+        private async Task CompleteSynchronizationAsync(
+            CancellationTokenSource linked, TaskCompletionSource<InboxSyncOutcome> completion)
+        {
+            InboxSyncOutcome result = NeutralStoppedOutcome();
+            Exception? failure = null;
             try
             {
-                return await SynchronizeCoreAsync(linked.Token).ConfigureAwait(false);
+                result = await SynchronizeCoreAsync(linked.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (linked.IsCancellationRequested)
+            {
+                result = NeutralStoppedOutcome();
+            }
+            catch (Exception error)
+            {
+                failure = error;
             }
             finally
             {
-                lock (_gate) { _running = null; }
+                lock (_gate)
+                {
+                    if (ReferenceEquals(_running, linked))
+                    {
+                        _running = null;
+                        _runningTask = null;
+                    }
+                }
                 linked.Dispose();
             }
+
+            // Complete only after cleanup so Dispose truly waits until the
+            // running sync no longer uses the shared HttpClient.
+            if (failure != null) completion.TrySetException(failure);
+            else completion.TrySetResult(result);
+        }
+
+        private static InboxSyncOutcome NeutralStoppedOutcome() => new()
+        {
+            Ran = false,
+            Offline = false,
+            StatusText = "Inbox check stopped.",
+            Error = null
+        };
+
+        public void CancelSynchronization()
+        {
+            CancellationTokenSource? running;
+            lock (_gate) running = _disposed ? null : _running;
+            try { running?.Cancel(); }
+            catch (ObjectDisposedException) { /* the sync completed between capture and cancel */ }
         }
 
         private async Task<InboxSyncOutcome> SynchronizeCoreAsync(CancellationToken ct)
@@ -715,6 +769,26 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
         public void Dispose()
         {
+            Task<InboxSyncOutcome>? runningTask;
+            CancellationTokenSource? running;
+            lock (_gate)
+            {
+                if (_disposed) return;
+                _disposed = true;
+                running = _running;
+                runningTask = _runningTask;
+            }
+
+            try { running?.Cancel(); }
+            catch (ObjectDisposedException) { /* the sync completed between capture and cancel */ }
+
+            // Sync work uses ConfigureAwait(false) throughout, so waiting
+            // here cannot depend on the dispatcher. Stop it before the host
+            // releases the process-wide HTTP transport.
+            try { runningTask?.GetAwaiter().GetResult(); }
+            catch (OperationCanceledException) { }
+            catch (Exception) { /* shutdown is best-effort */ }
+
             _client.Dispose();
         }
     }

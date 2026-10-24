@@ -61,21 +61,80 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
 
     public sealed class InquiryInboxClient : IDisposable
     {
+        private static readonly object HttpGate = new();
+        private static Func<HttpMessageHandler>? _testHandlerFactory;
+        private static bool _httpShutdown;
+        private static HttpClient _http = CreateHttpClient();
+
         private readonly InquiryInboxSettings _settings;
-        private readonly HttpClient _http;
         private string? _accessToken;
         private string? _authenticatedConfiguration;
         private DateTime _tokenExpiresUtc = DateTime.MinValue;
-        private bool _disposed;
 
         public InquiryInboxClient(InquiryInboxSettings settings)
         {
             _settings = settings;
-            _http = new HttpClient
+        }
+
+        private static HttpClient CreateHttpClient()
+        {
+            var handler = _testHandlerFactory?.Invoke();
+            return new HttpClient(handler ?? new HttpClientHandler(), disposeHandler: true)
             {
-                // Downloads can be 30 MB; plan/ack are instant.
+                // One process-wide client; downloads can be 30 MB.
                 Timeout = TimeSpan.FromSeconds(120)
             };
+        }
+
+        private static HttpClient CurrentHttpClient
+        {
+            get
+            {
+                lock (HttpGate)
+                {
+                    if (_httpShutdown)
+                        throw new ObjectDisposedException(nameof(HttpClient), "The application is shutting down.");
+                    return _http;
+                }
+            }
+        }
+
+        private static void Reset()
+        {
+            lock (HttpGate)
+            {
+                if (_httpShutdown)
+                    throw new ObjectDisposedException(nameof(HttpClient), "The application is shutting down.");
+                _http.Dispose();
+                _http = CreateHttpClient();
+            }
+        }
+
+        /// <summary>Called once after the application has stopped its inbox workers.</summary>
+        public static void ShutdownProcessHttpClient()
+        {
+            lock (HttpGate)
+            {
+                if (_httpShutdown) return;
+                _httpShutdown = true;
+                _http.Dispose();
+            }
+        }
+
+        internal static void SetHttpHandlerFactoryForTests(Func<HttpMessageHandler>? factory)
+        {
+            lock (HttpGate)
+            {
+                if (_httpShutdown) throw new InvalidOperationException("The process HTTP client is already shut down.");
+                _http.Dispose();
+                _testHandlerFactory = factory;
+                _http = CreateHttpClient();
+            }
+        }
+
+        internal static void DisposeProcessHttpClientForTests()
+        {
+            lock (HttpGate) _http.Dispose();
         }
 
         private string Url => TrimEnd(_settings.SupabaseUrl);
@@ -84,6 +143,27 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             var u = url.Trim();
             while (u.EndsWith('/')) u = u[..^1];
             return u;
+        }
+
+        private static async Task<HttpResponseMessage> SendWithResetAsync(
+            Func<HttpRequestMessage> createRequest,
+            HttpCompletionOption completionOption,
+            CancellationToken ct)
+        {
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                using var request = createRequest();
+                try
+                {
+                    return await CurrentHttpClient.SendAsync(request, completionOption, ct).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException) when (attempt == 0)
+                {
+                    Reset();
+                }
+            }
+
+            throw new InvalidOperationException("The HTTP retry loop exited unexpectedly.");
         }
 
         // ── Auth ──────────────────────────────────────────────────────────
@@ -294,9 +374,12 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             var url = Url + "/storage/v1/object/" + bucket.Trim('/') + "/" + objectKey.TrimStart('/');
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
-                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+                using var response = await SendWithResetAsync(() =>
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Get, url);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+                    return request;
+                }, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     var text = await SafeReadTextAsync(response).ConfigureAwait(false);
@@ -326,15 +409,20 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             if (withBearer) await EnsureTokenAsync(ct).ConfigureAwait(false);
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-                request.Headers.Add("apikey", anonKeyOverride ?? _settings.AnonKey);
-                if (withBearer)
+                using var response = await SendWithResetAsync(() =>
                 {
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
-                    request.Headers.Add("Content-Profile", "public");
-                }
-                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+                    var request = new HttpRequestMessage(HttpMethod.Post, url)
+                    {
+                        Content = new StringContent(body, Encoding.UTF8, "application/json")
+                    };
+                    request.Headers.Add("apikey", anonKeyOverride ?? _settings.AnonKey);
+                    if (withBearer)
+                    {
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+                        request.Headers.Add("Content-Profile", "public");
+                    }
+                    return request;
+                }, HttpCompletionOption.ResponseContentRead, ct).ConfigureAwait(false);
                 var payload = await SafeReadTextAsync(response).ConfigureAwait(false);
                 var kind = Classify((int)response.StatusCode);
                 return ((int)response.StatusCode, payload, kind);
@@ -384,11 +472,15 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             return payload.Length > 160 ? payload[..160] + "…" : payload;
         }
 
+        /// <summary>
+        /// Client instances do not own the process-wide transport. The host
+        /// calls ShutdownProcessHttpClient only after stopping all workers.
+        /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
-            _http.Dispose();
+            _accessToken = null;
+            _authenticatedConfiguration = null;
+            _tokenExpiresUtc = DateTime.MinValue;
         }
     }
 }

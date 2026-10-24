@@ -336,16 +336,22 @@ public partial class InquiryWorkspaceView : UserControl
     {
         if (_disposed) return;
         _disposed = true;
-        _syncTimer?.Stop();
-        _syncTimer = null;
+        if (_syncTimer != null)
+        {
+            _syncTimer.Stop();
+            _syncTimer.Tick -= OnSyncTick;
+            _syncTimer = null;
+        }
 
         if (_ownerWindow != null)
             _ownerWindow.Closed -= OnOwnerWindowClosed;
         _ownerWindow = null;
 
-        _inbox?.Dispose();
         _inboxService.StateChanged -= OnInboxStateChanged;
+        _inbox?.Dispose();
+        _inboxService.CancelSynchronization();
         _inboxService.Dispose();
+        InquiryInboxClient.ShutdownProcessHttpClient();
         _notifier.Dispose();
     }
 }
