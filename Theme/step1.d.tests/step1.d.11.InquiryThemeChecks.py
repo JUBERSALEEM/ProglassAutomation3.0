@@ -85,6 +85,10 @@ assert 'Text="Supabase password"' in inbox_xaml
 assert 'Style="{DynamicResource {x:Type PasswordBox}}"' in inbox_xaml
 assert 'InboxPasswordBox' not in inbox_xaml
 assert 'Header=""' not in inbox_xaml
+assert 'x:Key="InboxCenteredHeader"' in inbox_xaml
+assert 'x:Key="InboxCenterCell"' in inbox_xaml
+assert 'TextAlignment" Value="Center"' in inbox_xaml
+assert 'HorizontalAlignment="Center"' in inbox_xaml
 for width in ("1.1*", "1.15*", "1.2*", "1*", "0.8*", "0.85*"):
     assert f'Width="{width}"' in inbox_xaml, width
 

@@ -6,13 +6,23 @@
              SnapsToDevicePixels="True"
              TextOptions.TextFormattingMode="Display">
     <UserControl.Resources>
-        <Style x:Key="InboxRefCell" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+        <DataTemplate x:Key="InboxCenteredHeader">
+            <TextBlock Text="{Binding}"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+        </DataTemplate>
+        <Style x:Key="InboxCenterCell" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
-        <Style x:Key="InboxCompanyCell" TargetType="TextBlock">
+        <Style x:Key="InboxRefCell" TargetType="TextBlock" BasedOn="{StaticResource InboxCenterCell}">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+        </Style>
+        <Style x:Key="InboxCompanyCell" TargetType="TextBlock" BasedOn="{StaticResource InboxCenterCell}">
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
         <Style x:Key="InboxCountBadge" TargetType="StackPanel">
             <Setter Property="Orientation" Value="Horizontal" />
@@ -265,29 +275,42 @@
                               AutomationProperties.Name="Website deliveries"
                               MouseDoubleClick="OnRowDoubleClick">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="1.1*"
+                            <DataGridTextColumn Header="Reference" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                Binding="{Binding Reference}" Width="1.1*"
                                                 ElementStyle="{StaticResource InboxRefCell}" />
-                            <DataGridTextColumn Header="Company" Binding="{Binding Company}" Width="1.15*"
+                            <DataGridTextColumn Header="Company" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                Binding="{Binding Company}" Width="1.15*"
                                                 ElementStyle="{StaticResource InboxCompanyCell}" />
-                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="1.2*" />
-                            <DataGridTextColumn Header="Prepared by" Binding="{Binding Estimator}" Width="1*" />
-                            <DataGridTextColumn Header="Files" Binding="{Binding DocumentsText}" Width="0.8*"
-                                                CanUserSort="False" />
-                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedText}" Width="1.15*" />
-                            <DataGridTemplateColumn Header="State" Width="0.85*" CanUserSort="False">
+                            <DataGridTextColumn Header="Project" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                Binding="{Binding Project}" Width="1.2*"
+                                                ElementStyle="{StaticResource InboxCenterCell}" />
+                            <DataGridTextColumn Header="Prepared by" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                Binding="{Binding Estimator}" Width="1*"
+                                                ElementStyle="{StaticResource InboxCenterCell}" />
+                            <DataGridTextColumn Header="Files" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                Binding="{Binding DocumentsText}" Width="0.8*"
+                                                ElementStyle="{StaticResource InboxCenterCell}" CanUserSort="False" />
+                            <DataGridTextColumn Header="Received" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                Binding="{Binding ReceivedText}" Width="1.15*"
+                                                ElementStyle="{StaticResource InboxCenterCell}" />
+                            <DataGridTemplateColumn Header="State" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                    Width="0.85*" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StateTag}"
-                                                HorizontalAlignment="Left"
+                                                HorizontalAlignment="Center"
                                                 ToolTip="{Binding Error}"
                                                 ToolTipService.ShowDuration="60000">
                                             <TextBlock Text="{Binding State}" Style="{DynamicResource StatusText}"
-                                                       Tag="{Binding StateTag}" />
+                                                       Tag="{Binding StateTag}"
+                                                       TextAlignment="Center"
+                                                       HorizontalAlignment="Center" />
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Local inquiry" Binding="{Binding LocalNumber}" Width="1*"
+                            <DataGridTextColumn Header="Local inquiry" HeaderTemplate="{StaticResource InboxCenteredHeader}"
+                                                Binding="{Binding LocalNumber}" Width="1*"
                                                 ElementStyle="{StaticResource InboxRefCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
