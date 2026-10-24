@@ -482,24 +482,34 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
         public void RefreshItems()
         {
-            var items = _service.GetItemRows();
-            Items.Clear();
-            int ready = 0, ingested = 0, failed = 0;
-            foreach (var item in items)
+            try
             {
-                var row = new InquiryInboxItemRow(item);
-                var display = TryReadManifestDisplay(item);
-                if (display != null)
-                    row.HydrateDisplay(display.Value.Company, display.Value.Project, display.Value.Type, display.Value.Estimator, display.Value.SubmittedAt);
-                if (item.State == InquiryInboxStates.Downloaded) ready++;
-                else if (item.State == InquiryInboxStates.Ingested) ingested++;
-                else if (item.State == InquiryInboxStates.Failed) failed++;
-                Items.Add(row);
+                var items = _service.GetItemRows();
+                Items.Clear();
+                int ready = 0, ingested = 0, failed = 0;
+                foreach (var item in items)
+                {
+                    var row = new InquiryInboxItemRow(item);
+                    var display = TryReadManifestDisplay(item);
+                    if (display != null)
+                        row.HydrateDisplay(display.Value.Company, display.Value.Project, display.Value.Type, display.Value.Estimator, display.Value.SubmittedAt);
+                    if (item.State == InquiryInboxStates.Downloaded) ready++;
+                    else if (item.State == InquiryInboxStates.Ingested) ingested++;
+                    else if (item.State == InquiryInboxStates.Failed) failed++;
+                    Items.Add(row);
+                }
+                ReadyCount = ready;
+                IngestedCount = ingested;
+                FailedCount = failed;
+                OnPropertyChanged(nameof(HasItems));
             }
-            ReadyCount = ready;
-            IngestedCount = ingested;
-            FailedCount = failed;
-            OnPropertyChanged(nameof(HasItems));
+            catch (Exception error)
+            {
+                // The inbox view-model is created lazily on the user's
+                // first click. A missing/outdated local table must be shown
+                // on the page, not escape the command and close the app.
+                StatusText = "Could not load local inbox records: " + error.Message;
+            }
         }
 
         private (string Company, string Project, string Type, string Estimator, string SubmittedAt)?

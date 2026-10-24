@@ -167,7 +167,7 @@
                     <DataTemplate>
                         <Button Command="{Binding DataContext.SelectModuleTabCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                 CommandParameter="{Binding Key}" Content="{Binding Label}"
-                                ToolTip="{Binding Label} — available when this module is implemented">
+                                ToolTip="{Binding Label}">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource InquiryChipButton}">
                                     <Style.Triggers>

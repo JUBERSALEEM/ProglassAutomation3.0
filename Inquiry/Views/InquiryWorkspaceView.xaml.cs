@@ -205,9 +205,21 @@ public partial class InquiryWorkspaceView : UserControl
 
     private void ShowInboxPage()
     {
-        EnsureInboxViewModel();
-        ListView.Visibility = Visibility.Collapsed;
-        InboxView.Visibility = Visibility.Visible;
+        try
+        {
+            EnsureInboxViewModel();
+            ListView.Visibility = Visibility.Collapsed;
+            InboxView.Visibility = Visibility.Visible;
+        }
+        catch (Exception error)
+        {
+            // Keep the shell alive and make the failure actionable rather
+            // than allowing a lazy inbox initialization exception to escape
+            // the button command (most commonly a local DB/schema issue).
+            MessageBox.Show(Window.GetWindow(this),
+                "The customer inbox could not be opened. The inquiry register is still available.\n\n" + error.Message,
+                "Customer inbox", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void EnsureInboxViewModel()
