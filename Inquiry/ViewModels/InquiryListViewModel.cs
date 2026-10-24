@@ -52,6 +52,13 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
         public ObservableCollection<InquiryListRow> Inquiries { get; } = new();
         public ObservableCollection<InquiryStatusTab> StatusTabs { get; } = new();
+        public ObservableCollection<InquiryModuleTab> ModuleTabs { get; } = new();
+        private bool _isInquiryActive = true;
+        public bool IsInquiryActive { get => _isInquiryActive; private set => SetField(ref _isInquiryActive, value); }
+        private string _selectedModuleKey = "Inquiries";
+        public string SelectedModuleKey { get => _selectedModuleKey; private set => SetField(ref _selectedModuleKey, value); }
+        private string _selectedModuleLabel = "Inquiries";
+        public string SelectedModuleLabel { get => _selectedModuleLabel; private set => SetField(ref _selectedModuleLabel, value); }
 
         public ObservableCollection<string> DateRanges { get; } =
             new() { "All time", "Today", "Yesterday", "Last 7 Days", "Last 30 Days" };
@@ -165,6 +172,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public ICommand NewInquiryCommand { get; }
         public ICommand EditInquiryCommand { get; }
         public ICommand SelectStatusTabCommand { get; }
+        public ICommand SelectModuleTabCommand { get; }
         public ICommand ExportCommand { get; }
         public ICommand ImportCommand { get; }
         public ICommand ResetFiltersCommand { get; }
@@ -209,6 +217,13 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             StatusTabs.Add(new InquiryStatusTab { Key = InquiryStatuses.Hold, Label = "Hold" });
             StatusTabs.Add(new InquiryStatusTab { Key = InquiryStatuses.Cancelled, Label = "Cancelled" });
 
+            ModuleTabs.Add(new InquiryModuleTab { Key = "Inquiries", Label = "Inquiries", IsSelected = true });
+            ModuleTabs.Add(new InquiryModuleTab { Key = "Proforma Invoices", Label = "Proforma Invoices", IsPlanned = true });
+            ModuleTabs.Add(new InquiryModuleTab { Key = "Job Orders", Label = "Job Orders", IsPlanned = true });
+            ModuleTabs.Add(new InquiryModuleTab { Key = "Delivery Notes", Label = "Delivery Notes", IsPlanned = true });
+            ModuleTabs.Add(new InquiryModuleTab { Key = "Tax Invoices", Label = "Tax Invoices", IsPlanned = true });
+            ModuleTabs.Add(new InquiryModuleTab { Key = "Statements", Label = "Statements", IsPlanned = true });
+
             NewInquiryCommand = new DelegateCommand(async () => await NewInquiryAsync());
             EditInquiryCommand = new DelegateCommand(
                 () => { if (SelectedInquiry != null) _ = EditRowAsync(SelectedInquiry); },
@@ -217,6 +232,14 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             {
                 SelectedStatusKey = key ?? "";
                 ResetAndReload();
+            });
+            SelectModuleTabCommand = new DelegateCommand<string>(key =>
+            {
+                // This page currently owns the live Inquiries register.
+                // Other module pages are intentionally not routed here;
+                // their tabs are disabled until their views are delivered.
+                if (!string.Equals(key, "Inquiries", StringComparison.Ordinal)) return;
+                foreach (var tab in ModuleTabs) tab.IsSelected = tab.Key == key;
             });
             ExportCommand = new DelegateCommand(() => _ = ExportAsync());
             ImportCommand = new DelegateCommand(() => _ = ImportAsync());
@@ -704,6 +727,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 _currentPage = value; OnPropertyChanged();
                 OnPropertyChanged(nameof(CanGoPrevious));
                 OnPropertyChanged(nameof(CanGoNext));
+                OnPropertyChanged(nameof(PageIndicator));
                 AsyncUtility.InvalidateCommandsThrottled();
             }
         }
@@ -715,9 +739,11 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             {
                 _totalPages = value; OnPropertyChanged();
                 OnPropertyChanged(nameof(CanGoNext));
+                OnPropertyChanged(nameof(PageIndicator));
                 AsyncUtility.InvalidateCommandsThrottled();
             }
         }
+        public string PageIndicator => $"Page {CurrentPage} of {TotalPages}";
         public bool CanGoPrevious => CurrentPage > 1;
         public bool CanGoNext => CurrentPage < TotalPages;
 

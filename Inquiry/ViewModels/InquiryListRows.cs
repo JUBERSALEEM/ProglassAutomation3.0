@@ -28,6 +28,20 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public string LabelWithCount => $"{Label} · {CountText}";
     }
 
+    /// <summary>
+    /// Register module tab. Inquiries is the live module; the planned
+    /// modules (PI, JO, DN, TI, statements) reuse this page pattern when
+    /// they are built and show a neutral placeholder until then.
+    /// </summary>
+    public sealed class InquiryModuleTab : ViewModelBase
+    {
+        public string Key { get; init; } = "";
+        public string Label { get; init; } = "";
+        public bool IsPlanned { get; init; }
+        private bool _isSelected;
+        public bool IsSelected { get => _isSelected; set => SetField(ref _isSelected, value); }
+    }
+
     /// <summary>One register row. Display text is precomputed for cheap binding.</summary>
     public sealed class InquiryListRow
     {
