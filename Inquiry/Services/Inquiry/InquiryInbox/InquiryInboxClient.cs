@@ -433,8 +433,10 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     string message = (int)response.StatusCode == 401 && IsMissingApiKeyError(text)
                         ? $"Storage download API-key error (HTTP 401): {ExtractError(text)}"
                         : $"Download failed (HTTP {(int)response.StatusCode}): {ExtractError(text)}";
-                    throw new InboxRemoteException(InboxRemoteErrorKind.Remote, message,
-                        (int?)response.StatusCode);
+                    var kind = response.StatusCode == HttpStatusCode.Forbidden
+                        ? InboxRemoteErrorKind.PermissionDenied
+                        : InboxRemoteErrorKind.Remote;
+                    throw new InboxRemoteException(kind, message, (int?)response.StatusCode);
                 }
                 return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
             }

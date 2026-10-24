@@ -202,6 +202,10 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             catch (ObjectDisposedException) { /* the sync completed between capture and cancel */ }
         }
 
+        private static InboxRemoteException PlanAccessDenied(string details, int? status) =>
+            new(InboxRemoteErrorKind.PermissionDenied,
+                "This account may not run the desktop inbox. " + details, status);
+
         private async Task<InboxSyncOutcome> SynchronizeCoreAsync(CancellationToken ct)
         {
             if (!_settings.IsConfigured)
@@ -240,11 +244,18 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 LastAccessReport = accessReport;
                 if (!accessReport.CanPlanBridge)
                 {
-                    throw new InboxRemoteException(InboxRemoteErrorKind.PermissionDenied,
-                        accessReport.MissingCapabilityMessage(), 403);
+                    throw PlanAccessDenied(accessReport.MissingCapabilityMessage(), 403);
                 }
 
-                var planned = await _client.PlanDeliveriesAsync(100, ct).ConfigureAwait(false);
+                List<(InboxSubmissionPlan Plan, string RawJson)> planned;
+                try
+                {
+                    planned = await _client.PlanDeliveriesAsync(100, ct).ConfigureAwait(false);
+                }
+                catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.PermissionDenied)
+                {
+                    throw PlanAccessDenied(ex.Message, ex.HttpStatusCode);
+                }
                 outcome.Planned = planned.Count;
 
                 using var db = new InquiryDbContext();
@@ -257,7 +268,15 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     var isNew = !known.Contains(plan.SubmissionId);
                     try
                     {
-                        var docs = await _client.PlanDocumentsAsync(plan.SubmissionId, ct).ConfigureAwait(false);
+                        List<InboxDocumentPlan> docs;
+                        try
+                        {
+                            docs = await _client.PlanDocumentsAsync(plan.SubmissionId, ct).ConfigureAwait(false);
+                        }
+                        catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.PermissionDenied)
+                        {
+                            throw PlanAccessDenied(ex.Message, ex.HttpStatusCode);
+                        }
                         if (docs.Count != plan.DocumentCount)
                             throw new InboxRemoteException(InboxRemoteErrorKind.Remote,
                                 $"Remote document count changed ({docs.Count} vs {plan.DocumentCount}).");
@@ -289,8 +308,7 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     {
                         outcome.AccessDenied = true;
                         outcome.Error = ex.Message;
-                        outcome.StatusText = "Supabase sign-in succeeded, but this account is not authorized to access one or more submission documents. "
-                            + "Ask a website administrator to review the account's inbox role. Details: " + ex.Message;
+                        outcome.StatusText = ex.Message;
                         break;
                     }
                     catch (Exception ex)
@@ -351,11 +369,9 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             catch (InboxRemoteException ex)
             {
                 outcome.AccessDenied = ex.Kind == InboxRemoteErrorKind.PermissionDenied;
-                outcome.Error = outcome.AccessDenied
-                    ? "Supabase sign-in succeeded, but this account is not authorized to read website submissions. Details: " + ex.Message
-                    : ex.Message;
+                outcome.Error = ex.Message;
                 outcome.StatusText = outcome.AccessDenied
-                    ? outcome.Error!
+                    ? ex.Message
                     : "Website check failed: " + ex.Message;
                 _settings.LastSyncStatus = ex.Kind switch
                 {
@@ -363,6 +379,8 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                     InboxRemoteErrorKind.PermissionDenied => "Access denied",
                     _ => "Failed"
                 };
+                if (outcome.AccessDenied)
+                    _settings.LastSyncAtUtc = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 _settings.Save();
             }
 
@@ -513,7 +531,16 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
                 Directory.CreateDirectory(Path.Combine(stage, "documents"));
                 foreach (var doc in docs)
                 {
-                    var bytes = await _client.DownloadObjectAsync(doc.StorageBucket, doc.StorageObjectKey, ct).ConfigureAwait(false);
+                    byte[] bytes;
+                    try
+                    {
+                        bytes = await _client.DownloadObjectAsync(doc.StorageBucket, doc.StorageObjectKey, ct).ConfigureAwait(false);
+                    }
+                    catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.PermissionDenied)
+                    {
+                        throw new InboxRemoteException(InboxRemoteErrorKind.PermissionDenied,
+                            "This account may not read those files. " + ex.Message, ex.HttpStatusCode);
+                    }
                     if (bytes.LongLength != doc.ByteSize || Sha256Of(bytes) != doc.ContentSha256)
                         throw new InboxRemoteException(InboxRemoteErrorKind.Remote,
                             "Integrity check failed for " + doc.OriginalFilename + ".");
@@ -540,8 +567,15 @@ namespace ProGlassAutomation.Services.Inquiry.InquiryInbox
             List<InboxDocumentPlan> docs, CancellationToken ct)
         {
             var snapshot = string.IsNullOrWhiteSpace(plan.AssignmentSnapshotRaw) ? "[]" : plan.AssignmentSnapshotRaw;
-            await _client.AcknowledgeAsync(plan.SubmissionId, manifestHash, docs.Count, plan.RoutingKey, snapshot, ct)
-                .ConfigureAwait(false);
+            try
+            {
+                await _client.AcknowledgeAsync(plan.SubmissionId, manifestHash, docs.Count, plan.RoutingKey, snapshot, ct)
+                    .ConfigureAwait(false);
+            }
+            catch (InboxRemoteException ex) when (ex.Kind == InboxRemoteErrorKind.PermissionDenied)
+            {
+                throw PlanAccessDenied(ex.Message, ex.HttpStatusCode);
+            }
         }
 
         private static bool IsInsideRoot(string path, string root)

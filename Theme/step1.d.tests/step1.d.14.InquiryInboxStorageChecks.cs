@@ -11,6 +11,7 @@ internal static class InquiryInboxStorageChecks
     {
         VerifyStorage(HttpStatusCode.OK);
         VerifyStorage(HttpStatusCode.Unauthorized);
+        VerifyStorage(HttpStatusCode.Forbidden);
     }
 
     private static void VerifyStorage(HttpStatusCode storageStatus)
@@ -46,9 +47,14 @@ internal static class InquiryInboxStorageChecks
                 }
                 catch (InboxRemoteException error)
                 {
-                    if (error.Kind != InboxRemoteErrorKind.Remote || error.HttpStatusCode != 401
-                        || !error.Message.Contains("Storage download API-key", StringComparison.OrdinalIgnoreCase))
-                        throw new InvalidOperationException("Storage 401 lost its Remote kind, status, or API-key diagnosis.");
+                    var expectedKind = storageStatus == HttpStatusCode.Forbidden
+                        ? InboxRemoteErrorKind.PermissionDenied
+                        : InboxRemoteErrorKind.Remote;
+                    if (error.Kind != expectedKind || error.HttpStatusCode != (int)storageStatus)
+                        throw new InvalidOperationException("Storage refusal lost its error kind or HTTP status.");
+                    if (storageStatus == HttpStatusCode.Unauthorized
+                        && !error.Message.Contains("Storage download API-key", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Storage 401 was not identified as an API-key download issue.");
                 }
             }
 
