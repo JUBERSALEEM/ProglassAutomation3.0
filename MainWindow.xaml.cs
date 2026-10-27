@@ -7,12 +7,14 @@ using System.Windows.Media.Imaging;
 using ProGlassAutomation.Services.Users;
 using ProGlassAutomation.Theming;
 using ProGlassAutomation.ThemeStudio;
+using ProGlassAutomation.ViewModels.Users;
 
 namespace ProGlassAutomation;
 
 public partial class MainWindow : Window
 {
     private readonly ThemeStudioViewModel viewModel;
+    private FirstRunViewModel? firstRun;
     private PreviewWindow? preview;
     private readonly BlurEffect spotlightBlur = new() { Radius = 16, KernelType = KernelType.Gaussian, RenderingBias = RenderingBias.Performance };
 
@@ -38,13 +40,11 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// First run: if the user directory is still empty, open on the Users page.
-    /// An empty directory means nobody can be identified and no administrator
-    /// exists, so the shell must present the one thing that can be done —
-    /// registering the workstation account — instead of dropping the operator on
-    /// a home page whose every action is refused. It is a navigation decision
-    /// only; the setup card, its validation and the write all belong to the
-    /// Users module, so there is exactly one implementation of the step.
+    /// First run. A directory with no users cannot be administered: nobody can be
+    /// identified, so no administrator can exist, and "ask an administrator" is
+    /// circular. The gate is shown before the shell is usable and registers the
+    /// Windows account this workstation already runs under as the first
+    /// Administrator. Every decision behind it lives in IFirstRunService.
     /// </summary>
     private async void OnShellLoaded(object sender, RoutedEventArgs e)
     {
@@ -53,17 +53,43 @@ public partial class MainWindow : Window
         try
         {
             var repository = new UserRepository();
-            await repository.InitializeAsync();
-            if (await repository.IsFirstRunRequiredAsync())
-                viewModel.SelectedWorkspace = 9;   // Users (MainWindow tab order)
+            firstRun = new FirstRunViewModel(new FirstRunService(repository));
+            FirstRunGate.DataContext = firstRun;
+            firstRun.Completed += OnFirstRunCompleted;
+            firstRun.Dismissed += OnFirstRunDismissed;
+
+            bool show = await firstRun.InitializeAsync();
+            FirstRunGate.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            if (show) FirstRunGate.FocusFirstField();
         }
         catch (Exception error)
         {
-            // Landing on the home page is a graceful fallback: the Users page
-            // reports the same failure with its own error surface, and no setup
-            // gate may bring the shell down.
-            System.Diagnostics.Debug.WriteLine("First-run check skipped: " + error);
+            // The gate must never take the shell down. If it cannot even be
+            // prepared, the Users page still offers the same step and reports
+            // the same failure in its own error surface.
+            FirstRunGate.Visibility = Visibility.Collapsed;
+            System.Diagnostics.Debug.WriteLine("First-run gate skipped: " + error);
         }
+    }
+
+    /// <summary>
+    /// Setup finished: close the gate and put the new administrator in front of
+    /// the register, which is the page they now need — adding the rest of the team.
+    /// </summary>
+    private void OnFirstRunCompleted(object? sender, EventArgs e)
+    {
+        FirstRunGate.Visibility = Visibility.Collapsed;
+        viewModel.SelectedWorkspace = 9;   // Users (MainWindow tab order)
+    }
+
+    /// <summary>
+    /// "Set up later": close the gate and land on the Users page, where the same
+    /// step is offered as a card. Deferring must never hide the only way in.
+    /// </summary>
+    private void OnFirstRunDismissed(object? sender, EventArgs e)
+    {
+        FirstRunGate.Visibility = Visibility.Collapsed;
+        viewModel.SelectedWorkspace = 9;   // Users
     }
 
     private void OnSpotlight(bool on)

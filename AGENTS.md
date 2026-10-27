@@ -157,6 +157,10 @@ These rules are mandatory for every WPF view in this repository — existing and
 * Empty states are actionable ("no users match this filter — clear the filters"), error states say what failed and what to do, and both are inside the region they describe.
 * Nothing critical is hidden behind hover, and no action is reachable only by right-click.
 * Every user-visible string comes from the view model or the catalogue, never from a hardcoded literal that could disagree with the stored data.
+* A dropdown, filter or input must say what it is for — a visible caption or a
+  placeholder — and its closed state must never be blank. A selection that cannot
+  be resolved (bound before its list was loaded, say) is a defect, not a cosmetic
+  detail: the operator cannot tell what the control does.
 
 ### F. Sidebar and navigation integrity
 
@@ -164,6 +168,10 @@ These rules are mandatory for every WPF view in this repository — existing and
 * Content reflows when the sidebar toggles; the content region must not paint over the sidebar column.
 * Preserve navigation order, selected-page behaviour and the active theme. A layout fix must not renumber workspaces or change which page opens at startup without an explicit decision.
 * Scrolling belongs to the content region, not to the shell.
+* A state that blocks the operator (no users, no administrator yet, unreadable
+  data) must present the way out of that state on the same screen. Telling someone
+  to "ask an administrator" in a directory that has no administrator is the defect
+  this rule exists to prevent.
 
 ### G. Dialogs, overlays and menus
 

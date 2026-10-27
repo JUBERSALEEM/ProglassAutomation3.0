@@ -19,7 +19,10 @@ They verify the properties that are cheap to get wrong and expensive to miss:
  10. the XAML obeys the theme contract: contract resources only, no literal
      colours or sizes, dynamic card roles, explicit implicit-style bindings;
  11. docs record step3 as implemented (registry, roadmap, spec, history);
- 12. the layout rules hold: a command bar that wraps instead of overlapping, a
+ 12. the first-run flow exists as one service, is reachable from the shell before
+     the app is usable, reads the Windows account instead of accepting one, and
+     verifies that the new row is really recognised;
+ 13. the layout rules hold: a command bar that wraps instead of overlapping, a
      visible caption on every filter dropdown, one page padding, one scroll
      region per screen, action buttons on the shared height/gap tokens, and a
      shell whose sidebar and content stay in their own columns with no floating
@@ -65,12 +68,16 @@ def require_files():
         "step3.b.3.UserDbContext.cs",
         "step3.b.4.UserRepository.cs",
         "step3.b.5.UserSession.cs",
+        "step3.b.6.FirstRunService.cs",
         "step3.c.1.UserEditorViewModel.cs",
         "step3.c.2.UserWorkspaceViewModel.cs",
+        "step3.c.3.FirstRunViewModel.cs",
         "step3.d.1.UserWorkspaceView.xaml",
         "step3.d.1.UserWorkspaceView.xaml.cs",
         "step3.d.2.UserEditorView.xaml",
         "step3.d.2.UserEditorView.xaml.cs",
+        "step3.d.3.FirstRunSetupView.xaml",
+        "step3.d.3.FirstRunSetupView.xaml.cs",
         "step3.e.docs/step3.e.1.UserManagement-README.md",
         "step3.f.tests/step3.f.UserTests.csproj",
         "step3.f.tests/step3.f.1.UserBehaviourChecks.cs",
@@ -290,6 +297,56 @@ def require_theme_contract():
                   f"{view.name}: ContentPresenter has no VerticalContentAlignment property")
 
 
+def require_first_run_flow():
+    """The first-run path must exist, be reachable before the app is used, and
+    have exactly one implementation."""
+    service = read(MODULE / "step3.b.6.FirstRunService.cs")
+    gate_vm = read(MODULE / "step3.c.3.FirstRunViewModel.cs")
+    gate_view = read(MODULE / "step3.d.3.FirstRunSetupView.xaml")
+    page = read(MODULE / "step3.c.2.UserWorkspaceViewModel.cs")
+    shell = read(ROOT / "MainWindow.xaml")
+    shell_code = read(ROOT / "MainWindow.xaml.cs")
+
+    # One implementation: the write goes through the repository's guarded
+    # bootstrap, and the Users page uses the same service instead of repeating it.
+    check("RegisterFirstAdministratorAsync" in service,
+          "the first-run service must use the repository's guarded bootstrap write")
+    check("IFirstRunService" in page and "new FirstRunService(" in page,
+          "the Users page must call the same first-run service, not its own copy")
+
+    # Not typed: the account registered is the one the process runs under.
+    check("CurrentOperator.Username" in service,
+          "the first-run service must read the Windows account, never accept one")
+    check("Binding Username" not in gate_view and "UsernameBox" not in gate_view,
+          "the first-run gate must not offer a username field to type")
+    check("OperatorUsername" in gate_view,
+          "the first-run gate must show the account it is about to register")
+
+    # Verified, not assumed.
+    check("FindCurrentUserAsync" in service,
+          "the first-run service must verify that the new row matches the workstation account")
+
+    # Reachable before the operator can use the database.
+    check("usr:FirstRunSetupView" in shell,
+          "the shell must host the first-run gate")
+    check("FirstRunGate.Visibility" in shell_code,
+          "the shell must show and hide the gate")
+    check("InitializeAsync" in shell_code and "FocusFirstField" in shell_code,
+          "the shell must ask the gate whether setup is required and focus its first field")
+
+    # Safe retry, useful failure, no credential.
+    check("Set up later" in gate_view, "the gate must allow deferring setup")
+    check("IsBusy" in gate_vm, "the gate must not allow a double submit")
+    for marker in ("PasswordBox", "PasswordChar", "AccessToken", "RefreshToken"):
+        check(marker not in service and marker not in gate_vm and marker not in gate_view,
+              f"the first-run flow must not introduce credential handling ({marker})")
+
+    # Rules J: the layout rules apply to this screen too.
+    for token in ("UiGapAction", "UiGapGroup", "UiActionMinHeight"):
+        check(token in gate_view, f"the first-run gate must use the shared spacing token {token}")
+    check("AutomationProperties.Name" in gate_view,
+          "the first-run gate must expose accessible names")
+
 def require_register_layout():
     view = read(MODULE / "step3.d.1.UserWorkspaceView.xaml")
     for column in ("Name", "Username", "Department", "Role", "Status", "Updated", "Actions"):
@@ -479,6 +536,7 @@ def main():
     require_attribution_is_by_id()
     require_theme_contract()
     require_register_layout()
+    require_first_run_flow()
     require_layout_contract()
     require_docs_recorded()
 

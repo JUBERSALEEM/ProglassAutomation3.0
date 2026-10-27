@@ -40,25 +40,41 @@ Inquiry integration and every document module remain unbuilt.
 ## First run (empty directory)
 
 A new installation has no users, so nobody can be identified and no administrator
-can exist. That state is handled explicitly instead of being reported as a refusal:
+can exist. The application therefore cannot be administered, and telling the
+operator to "ask an administrator" is circular. One service owns the whole flow —
+`step3.b.6.FirstRunService` — and two screens present it: the startup gate and the
+card on the Users page.
 
-1. The shell asks `IUserRepository.IsFirstRunRequiredAsync()` after it loads. When
-   the directory is empty it opens the Users workspace, so the first thing the
-   operator sees is the setup card, not a Home page whose actions are all refused.
-2. The setup card names the Windows account this session is already using (read,
-   never typed), asks for the person's full name and department, and offers one
-   action: register that account as the first Administrator.
-3. `UserRepository.RegisterFirstAdministratorAsync` re-checks that the directory is
-   empty **inside** its transaction, inserts the row as Administrator, and re-counts
-   before committing. Two workstations racing each other therefore produce one
-   administrator and one refusal, never two "first" administrators.
-4. On success the session re-reads the directory, the refusal notice stays gone
-   because the account now matches, and the register is usable for adding staff.
+1. **The gate comes first.** After the shell loads, `MainWindow` asks
+   `IFirstRunService.InspectAsync()`. When the directory is empty it shows
+   `step3.d.3.FirstRunSetupView` as an overlay over the whole shell (its dimmed
+   background swallows clicks, so nothing behind it can be used), with the caret in
+   the first field. `Set up later` dismisses the gate for this session; the Users
+   page keeps the same step.
+2. **The account is read, not typed.** The form shows the Windows account this
+   process runs under (`CurrentOperator.Username`) and offers no username field.
+   That is what makes "register me" actually work: the row created is the row this
+   workstation matches on the next launch. A typable username is how a first
+   administrator ends up with an account the workstation does not match — the
+   deadlock this gate exists to prevent.
+3. **The write is guarded twice.** `FirstRunService` refuses when the directory is
+   no longer empty; `UserRepository.RegisterFirstAdministratorAsync` re-checks
+   inside the insert transaction, inserts the Administrator row, re-counts before
+   committing, and aborts if the count is not one. Two workstations racing produce
+   one administrator and one refusal.
+4. **The result is verified, not assumed.** After the write the service re-reads the
+   directory and requires that the workstation account now matches an active row.
+   If it does not, the operator is told both account names and what to edit instead
+   of being left on a "not registered" screen.
+5. **Then the app opens as that Administrator.** The gate closes and the shell
+   selects the Users workspace, where the register is usable and further users can
+   be added.
 
-While the directory is empty the read-only notice is suppressed — that is what
-turned "ask an administrator" into a circular instruction. If the account matches
-an **inactive** user instead, the card does not appear and the notice says the
-person is inactive; the account is never silently re-activated.
+While the directory is empty the read-only notice is suppressed — the setup card is
+the message. If the account matches an **inactive** user instead, the gate does not
+appear and the notice says the person is inactive; the account is never silently
+re-activated. There is no password field, no default account and no anonymous
+access anywhere in this flow.
 
 ## Layout contract
 
@@ -98,10 +114,13 @@ check instead of returning the defect to the owner.
 | `step3.b.3.UserDbContext.cs` | EF Core mapping for `Users` only |
 | `step3.b.4.UserRepository.cs` | reads/writes, permission resolution inside the transaction |
 | `step3.b.5.UserSession.cs` | the running operator as a directory row; the Prepared-By stamp |
+| `step3.b.6.FirstRunService.cs` | the first-run flow: inspect, register the workstation account, verify it |
 | `step3.c.1.UserEditorViewModel.cs` | editor presentation state |
-| `step3.c.2.UserWorkspaceViewModel.cs` | register, filters, lifecycle commands, bootstrap |
+| `step3.c.2.UserWorkspaceViewModel.cs` | register, filters, lifecycle commands, bootstrap card |
+| `step3.c.3.FirstRunViewModel.cs` | presentation for the startup first-run gate |
 | `step3.d.1.UserWorkspaceView.xaml` | register + command bar + bootstrap card |
 | `step3.d.2.UserEditorView.xaml` | add/edit form |
+| `step3.d.3.FirstRunSetupView.xaml` | the startup gate shown while the directory is empty |
 | `step3.f.1.UserBehaviourChecks.cs` | behaviour checks against an isolated database |
 | `step3.f.2.UserSourceChecks.py` | portable source, contract and layout checks |
 

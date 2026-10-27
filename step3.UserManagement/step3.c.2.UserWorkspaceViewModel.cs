@@ -64,6 +64,7 @@ namespace ProGlassAutomation.ViewModels.Users
     {
         private readonly IUserRepository _repository;
         private readonly IUserSession _session;
+        private readonly IFirstRunService _firstRun;
         private readonly bool _ownsRepository;
         private CancellationTokenSource? _loadCts;
 
@@ -101,6 +102,9 @@ namespace ProGlassAutomation.ViewModels.Users
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _session = session ?? new UserSession(_repository);
+            // The shell's first-run gate and this card share one implementation
+            // of the step (step3.b.6), so the two can never drift apart.
+            _firstRun = new FirstRunService(_repository);
             _ownsRepository = ownsRepository;
 
             NewUserCommand = new DelegateCommand(() => OpenEditorForNew());
@@ -365,6 +369,20 @@ namespace ProGlassAutomation.ViewModels.Users
         }
 
         /// <summary>Re-reads the identity row and the catalogues after a change.</summary>
+        /// <summary>
+        /// Re-reads the operator and the register. The shell calls this when the
+        /// page becomes visible again — after the first-run gate has created the
+        /// administrator, the rows and the permission decision are stale until the
+        /// page looks again. Safe before initialization: it simply does nothing
+        /// until the one-time load has run.
+        /// </summary>
+        public async Task RefreshAsync()
+        {
+            if (!_isInitialized) return;
+            await RefreshOperatorAsync().ConfigureAwait(true);
+            await ReloadAsync().ConfigureAwait(true);
+        }
+
         public async Task RefreshOperatorAsync()
         {
             try
@@ -684,15 +702,22 @@ namespace ProGlassAutomation.ViewModels.Users
             IsBootstrapping = true;
             try
             {
-                var result = await _repository.RegisterFirstAdministratorAsync(
-                    BootstrapFullName, BootstrapDepartment, _session.OperatorUsername)
+                var result = await _firstRun.RegisterAsync(BootstrapFullName, BootstrapDepartment)
                     .ConfigureAwait(true);
 
                 if (!result.Succeeded)
                 {
-                    BootstrapError = string.IsNullOrWhiteSpace(result.Message)
+                    string message = string.IsNullOrWhiteSpace(result.Message)
                         ? "The first administrator could not be registered."
                         : result.Message;
+
+                    // If the directory is no longer empty, this card is about to
+                    // disappear (IsDirectoryEmpty false). The reason has to
+                    // survive that switch, so it goes to the always-visible
+                    // error surface instead of the card's own message slot.
+                    await ReloadAsync().ConfigureAwait(true);
+                    if (IsDirectoryEmpty) BootstrapError = message;
+                    else ErrorMessage = message;
                     return;
                 }
 

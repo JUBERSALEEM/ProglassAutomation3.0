@@ -12,6 +12,11 @@
 //     allowed, and the last-active-administrator guard;
 //   • migration 1013 against an ISOLATED database: tables created, catalogues
 //     seeded, Clients data untouched, user_version advanced, re-run is a no-op;
+//   • the first-run flow end to end through FirstRunService: an empty directory
+//     reports that setup is required, a blank name is refused without touching
+//     anything, the workstation account registers itself as Administrator, the
+//     gate closes, a second attempt is refused, and an inactive match is reported
+//     as inactive instead of being silently re-activated;
 //   • the repository round-trip: bootstrap, create, duplicate refusal, a
 //     non-administrator being refused by the write path itself, deactivation
 //     blocking attribution, last-administrator protection, filters, and a
@@ -47,6 +52,7 @@ internal static class UserBehaviourChecks
         Run("migration 1013 (isolated database)", CheckMigration);
         Run("repository round-trip (isolated database)", CheckRepository);
         Run("first-run gate and concurrent bootstrap", CheckFirstRunGate);
+        Run("first-run flow (service)", CheckFirstRunFlow);
 
         Console.WriteLine();
         Console.WriteLine($"step3 user checks: {_passed} passed, {Failures.Count} failed.");
@@ -438,6 +444,91 @@ internal static class UserBehaviourChecks
         var refreshed = await session.RefreshAsync();
         True(refreshed != null && !refreshed.IsActive,
             "the session does not reactivate an inactive match");
+    }
+
+    /// <summary>
+    /// The whole first-run path, not just the insert: what the gate sees, what it
+    /// refuses, what it creates, and what it reads back afterwards.
+    /// </summary>
+    private static void CheckFirstRunFlow()
+    {
+        string tempFolder = Path.Combine(
+            Path.GetTempPath(), "proglass-step3-firstrun-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tempFolder);
+        AppDataRoot.TestFolderOverride = tempFolder;
+        try
+        {
+            RunFirstRunFlowAsync().GetAwaiter().GetResult();
+        }
+        finally
+        {
+            AppDataRoot.TestFolderOverride = null;
+            try { Directory.Delete(tempFolder, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    private static async Task RunFirstRunFlowAsync()
+    {
+        var repository = new UserRepository();
+        var firstRun = new FirstRunService(repository);
+
+        FirstRunSnapshot empty = await firstRun.InspectAsync();
+        True(empty.DirectoryAvailable, "the directory is readable on a fresh install");
+        True(empty.IsSetupRequired, "an empty directory reports that setup is required");
+        Equal("0", empty.UserCount.ToString(), "no users exist yet");
+        True(empty.OperatorUsername.Trim().Length > 0,
+            "the workstation account name is available to the gate");
+        True(empty.MatchingUser == null, "nothing matches the workstation account yet");
+        Equal("7", empty.Departments.Count.ToString(), "the setup form can offer the departments");
+        True(!empty.IsOperatorAdministrator, "nobody is an administrator yet");
+
+        // A blank name must fail without writing anything and without closing setup.
+        UserSaveResult blank = await firstRun.RegisterAsync("   ", "Administration");
+        True(!blank.Succeeded, "a blank full name is refused");
+        True((await firstRun.InspectAsync()).IsSetupRequired,
+            "a refused attempt leaves the setup step open for a retry");
+
+        // The account registers itself. Note: no username argument exists.
+        UserSaveResult created = await firstRun.RegisterAsync("Ahmed   Al Balushi", "Administration");
+        True(created.Succeeded, "the workstation account can register itself: " + created.Message);
+        User admin = created.User!;
+        Equal("ADMINISTRATOR", admin.Role, "the first user is an Administrator");
+        Equal(empty.OperatorUsername, admin.Username,
+            "the stored username is exactly the workstation account");
+        Equal("Ahmed Al Balushi", admin.FullName, "the name is normalized");
+        True(admin.IsActive, "the first administrator is active");
+
+        FirstRunSnapshot after = await firstRun.InspectAsync();
+        True(!after.IsSetupRequired, "the setup step closes once an administrator exists");
+        Equal("1", after.UserCount.ToString(), "exactly one user exists");
+        True(after.MatchingUser != null, "the workstation account now matches a user row");
+        True(after.IsOperatorAdministrator, "and that row is an active Administrator");
+
+        // The path disappears: a second registration is refused and writes nothing.
+        UserSaveResult second = await firstRun.RegisterAsync("Someone Else", "Administration");
+        True(!second.Succeeded, "the first-administrator step is closed after setup");
+        Equal("1", (await repository.CountAsync()).ToString(), "the refused attempt wrote nothing");
+
+        // An inactive match is recognised and reported, never re-activated.
+        UserSaveResult secondAdmin = await repository.CreateAsync(new UserDraft
+        {
+            FullName = "Second Administrator", Username = "second.admin",
+            Department = "Administration", Role = "Administrator"
+        }, empty.OperatorUsername);
+        True(secondAdmin.Succeeded, "a second administrator can be added: " + secondAdmin.Message);
+
+        UserSaveResult deactivated = await repository.SetActiveAsync(
+            admin.Id, false, secondAdmin.User!.Username);
+        True(deactivated.Succeeded, "the first administrator can be deactivated by another");
+
+        FirstRunSnapshot inactive = await firstRun.InspectAsync();
+        True(inactive.MatchingUser != null, "an inactive account is still recognised");
+        True(!inactive.MatchingUser!.IsActive, "and is reported as inactive");
+        True(!inactive.IsOperatorAdministrator, "an inactive account is not an administrator");
+        True((await repository.GetAsync(admin.Id))!.IsActive == false,
+            "reading the directory does not silently re-activate the account");
+        True(!(await firstRun.RegisterAsync("Reactivation Attempt", "Administration")).Succeeded,
+            "a populated directory cannot be bootstrapped again");
     }
 
     private static async Task RunRepositoryChecks()

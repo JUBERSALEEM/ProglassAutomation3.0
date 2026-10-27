@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 18: first-run gate, one-row bar, captioned filters
+- **Phase:** `step3` corrections reported by the owner after running the build.
+- **Before:** the first-run path existed only as a card under a screen that also said user management was unavailable, and the account was registered from a form that could not prove it matched the workstation; the command bar read as two strips of oversized buttons; both filter dropdowns showed no text, so they could not be identified.
+- **Applied:** `step3.b.6.FirstRunService` (one implementation of the flow, verifying the result), `step3.c.3.FirstRunViewModel` + `step3.d.3.FirstRunSetupView` shown as a gate over the shell while the directory is empty, the Users page moved onto the same service, a one-row command bar of two wrapping clusters, visible captions + tooltips + accessible names on both filters, and a binding-order fix that re-applies the filter selections after the catalogue loads.
+- **Rules:** E now requires a caption and a non-blank closed state on every filter/input; F requires a blocking state to present its own way out. Both recorded in `AGENTS.md` and `docs/00.Project-Rules.md`.
+- **Verification:** the nine portable checkers PASS, with new checks for the gate. The C# behaviour executable (now covering the whole first-run flow) was not compiled, no WPF window was rendered, and Light/Dark was not inspected.
+- **Outstanding:** the owner's Windows build and visual review; a first-run attempt against a genuinely empty database is the acceptance test.
+
+---
 ## 2026-10-27 — User Management round 17: first-run gate, spacing and overlap fixes
 - **Phase:** `step3` — corrections reported by the owner.
 - **Before:** a fresh database showed "this workstation account is not registered, so user management is unavailable" above the very card that registers it (circular, and the app still opened on Home); the Add-user card left a band of empty space above its Save button; and in the normal view with the sidebar open, sections of the shell overlapped.

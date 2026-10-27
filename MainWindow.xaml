@@ -772,5 +772,19 @@
             <Border x:Name="SpotlightSnap" />
             <Border Background="{DynamicResource ApplicationBackground}" Opacity="0.35" />
         </Grid>
+        <!-- ── First-run gate ───────────────────────────────────────────
+             A database with no users cannot be administered, and telling the
+             operator to "ask an administrator" on a fresh install is circular.
+             This overlay is the way out: it shows the Windows account the
+             workstation already runs under and registers it as the first
+             Administrator. It is declared last so it covers the shell, and its
+             own dimmed background swallows clicks, so nothing behind it can be
+             used while setup is pending.
+
+             Visibility is decided in MainWindow.xaml.cs from
+             FirstRunViewModel.InitializeAsync, which asks IFirstRunService — the
+             same service the Users page uses, so there is one implementation of
+             the flow, not two. -->
+        <usr:FirstRunSetupView x:Name="FirstRunGate" Visibility="Collapsed" />
     </Grid>
 </Window>

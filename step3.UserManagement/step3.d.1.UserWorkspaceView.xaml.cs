@@ -29,6 +29,28 @@ public partial class UserWorkspaceView : UserControl
         _viewModel = new UserWorkspaceViewModel();
         DataContext = _viewModel;
         Loaded += OnWorkspaceLoaded;
+        IsVisibleChanged += OnWorkspaceVisibilityChanged;
+    }
+
+    /// <summary>
+    /// Coming back to the page re-reads the directory. The first-run gate may have
+    /// created the first administrator while this page was hidden, and a stale
+    /// "not registered" state on return would look exactly like the lock-out the
+    /// gate was built to remove.
+    /// </summary>
+    private async void OnWorkspaceVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (!IsVisible || !IsLoaded) return;
+        try
+        {
+            await _viewModel.RefreshAsync();
+        }
+        catch (Exception error)
+        {
+            // The view model surfaces its own failures; never rethrow from an
+            // async void handler.
+            System.Diagnostics.Debug.WriteLine("User workspace refresh failed: " + error);
+        }
     }
 
     private async void OnWorkspaceLoaded(object sender, RoutedEventArgs e)

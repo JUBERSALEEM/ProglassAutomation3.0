@@ -1,0 +1,206 @@
+<UserControl x:Class="ProGlassAutomation.Users.FirstRunSetupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         step3.d.3 — startup first-run gate.
+
+         A brand-new database has no users, so no administrator can exist and
+         the application cannot be administered. This screen is the way out:
+         the Windows account the workstation already runs under is shown (read,
+         never typed) and becomes the first Administrator.
+
+         It is an overlay inside the shell rather than a second window: the
+         theme keeps owning every surface, there is no window to size or place,
+         and the gate cannot be lost behind the main window.
+
+         Layout: one centred card. The account is a labelled read-only value, the
+         two inputs are stacked with the shared spacing tokens, the error plate
+         sits directly above the actions so the reason and the retry are together.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <Style x:Key="FirstRunLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+        <Style x:Key="FirstRunCaption" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Backdrop: dims the shell and swallows clicks, so nothing behind the gate
+         can be used while setup is pending. The card scrolls inside this region,
+         so a large Windows text scale or a short window cannot clip the actions. -->
+    <Grid Background="{DynamicResource OverlayBrush}"
+          AutomationProperties.Name="First-run setup">
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ContentControl Style="{DynamicResource Card}"
+                        MaxWidth="620"
+                        Margin="{DynamicResource UiPagePadding}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top">
+            <StackPanel Margin="{DynamicResource UiCardPadding}">
+
+                <TextBlock Text="Set up this installation"
+                           FontSize="{DynamicResource FontSizeTitle}"
+                           FontWeight="{DynamicResource FontWeightHeading}"
+                           Foreground="{DynamicResource TextPrimary}"
+                           Margin="{DynamicResource UiGapField}" />
+
+                <TextBlock Text="{Binding Explanation}"
+                           Style="{DynamicResource Caption}"
+                           TextWrapping="Wrap"
+                           Margin="{DynamicResource UiGapGroup}" />
+
+                <!-- The identity, before anything is created. -->
+                <Border Background="{DynamicResource StatusInformationSurface}"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Padding="{DynamicResource PaddingControl}"
+                        Margin="{DynamicResource UiGapGroup}">
+                    <StackPanel>
+                        <TextBlock Text="WINDOWS ACCOUNT ON THIS WORKSTATION"
+                                   Style="{StaticResource FirstRunLabel}" />
+                        <TextBlock Text="{Binding OperatorUsername}"
+                                   FontFamily="{DynamicResource FontFamilyMono}"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   TextWrapping="Wrap"
+                                   AutomationProperties.Name="Workstation Windows account" />
+                        <TextBlock Text="This account becomes the first Administrator. The application recognises people by this name, so it is read from Windows and cannot be typed."
+                                   Style="{StaticResource FirstRunCaption}"
+                                   Margin="{DynamicResource UiGapField}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Your name -->
+                <TextBlock Text="YOUR FULL NAME *" Style="{StaticResource FirstRunLabel}" />
+                <TextBox x:Name="FullNameBox"
+                         Style="{DynamicResource {x:Type TextBox}}"
+                         Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
+                         MinHeight="{DynamicResource UiActionMinHeight}"
+                         MaxLength="120"
+                         ToolTip="The name that appears in the user list and on records you prepare"
+                         AutomationProperties.Name="Your full name" />
+                <TextBlock Text="Shown in the user list and on records this administrator prepares."
+                           Style="{StaticResource FirstRunCaption}" />
+
+                <Border Background="{DynamicResource StatusErrorSurface}"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Padding="{DynamicResource PaddingCompact}"
+                        Margin="{DynamicResource UiGapGroup}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasFullNameError}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding FullNameError}"
+                               Foreground="{DynamicResource StatusError}"
+                               TextWrapping="Wrap"
+                               AutomationProperties.Name="Full name error" />
+                </Border>
+
+                <!-- Department -->
+                <TextBlock Text="DEPARTMENT" Style="{StaticResource FirstRunLabel}"
+                           Margin="{DynamicResource UiGapSection}" />
+                <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                          ItemsSource="{Binding Departments}"
+                          SelectedValuePath="Code"
+                          SelectedValue="{Binding SelectedDepartment, Mode=TwoWay}"
+                          MinHeight="{DynamicResource UiActionMinHeight}"
+                          ToolTip="The team this administrator belongs to"
+                          AutomationProperties.Name="Department">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <!-- Failure, with the retry directly below it. -->
+                <Border Background="{DynamicResource StatusErrorSurface}"
+                        BorderBrush="{DynamicResource StatusError}"
+                        BorderThickness="{DynamicResource BorderThicknessControl}"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Padding="{DynamicResource PaddingControl}"
+                        Margin="{DynamicResource UiGapGroup}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasErrorMessage}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="{DynamicResource StatusError}"
+                               TextWrapping="Wrap"
+                               AutomationProperties.Name="Setup error" />
+                </Border>
+
+                <Border Background="{DynamicResource StatusSuccessSurface}"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Padding="{DynamicResource PaddingControl}"
+                        Margin="{DynamicResource UiGapGroup}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasStatusMessage}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               TextWrapping="Wrap"
+                               AutomationProperties.Name="Setup status" />
+                </Border>
+
+                <!-- Actions: primary first, then the escape hatch. -->
+                <WrapPanel Margin="{DynamicResource UiGapSection}">
+                    <Button Style="{DynamicResource PrimaryButton}"
+                            Command="{Binding RegisterCommand}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            Margin="{DynamicResource UiGapAction}"
+                            AutomationProperties.Name="Register this account as the first administrator">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource UiGapAction}"
+                                              VerticalAlignment="Center" />
+                            <TextBlock Text="REGISTER ME AS ADMINISTRATOR" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding DismissCommand}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            Margin="{DynamicResource UiGapCluster}"
+                            ToolTip="Continue without an administrator; the Users page keeps this step available"
+                            AutomationProperties.Name="Set up later">
+                        <TextBlock Text="Set up later" VerticalAlignment="Center" />
+                    </Button>
+                </WrapPanel>
+            </StackPanel>
+        </ContentControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
