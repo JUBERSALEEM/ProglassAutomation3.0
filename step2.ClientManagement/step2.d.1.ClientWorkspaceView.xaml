@@ -538,6 +538,14 @@
             </Grid>
                                 </DataGridTextColumn.Header>
                             </DataGridTextColumn>
+                            <DataGridTextColumn Width="1.2*" Binding="{Binding RepresentativeText}" ElementStyle="{StaticResource ClientPlainCell}">
+                                <DataGridTextColumn.Header>
+            <Grid>
+                <TextBlock Text="Representative" Style="{StaticResource ClientHeaderLabel}" />
+                <Border Style="{StaticResource ClientHeaderRule}" />
+            </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Width="1.1*" Binding="{Binding Phone}" ElementStyle="{StaticResource ClientMonoCell}">
                                 <DataGridTextColumn.Header>
             <Grid>

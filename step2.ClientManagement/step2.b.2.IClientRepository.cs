@@ -6,8 +6,10 @@
 // Write path always normalizes through ClientRules before saving, and never
 // deletes a row: deactivation is the only lifecycle transition.
 //
-// There is no Inquiry dependency here and no representative reference. Both
-// arrive only in later, separately approved stages.
+// There is no Inquiry dependency here. The representative reference is a
+// nullable id into the Users directory (migration 1014); it is read and written
+// as an id, and the name is resolved for display only, so a rename never
+// rewrites a client row.
 // ═══════════════════════════════════════════════════════════════════════
 
 using ProGlassAutomation.Models.Clients;
@@ -43,6 +45,23 @@ namespace ProGlassAutomation.Services.Clients
         public bool IsActive { get; init; }
         public DateTime CreatedAt { get; init; }
         public DateTime UpdatedAt { get; init; }
+
+        /// <summary>Stable id of the client's representative, or null for none.</summary>
+        public int? RepresentativeUserId { get; init; }
+
+        /// <summary>
+        /// The representative's name as it reads today, resolved through the
+        /// user directory for display. Empty when there is no representative or
+        /// the referenced row is gone; the stored id is never rewritten because
+        /// a person was renamed.
+        /// </summary>
+        public string RepresentativeName { get; set; } = "";
+
+        /// <summary>Register wording for the representative column.</summary>
+        public string RepresentativeText =>
+            RepresentativeUserId is null
+                ? "—"
+                : (string.IsNullOrWhiteSpace(RepresentativeName) ? "(missing user)" : RepresentativeName);
 
         /// <summary>StatusBadge tag vocabulary: Success for active, neutral otherwise.</summary>
         public string StatusTag => IsActive ? "Success" : "";
@@ -96,6 +115,15 @@ namespace ProGlassAutomation.Services.Clients
             new() { Succeeded = false, Message = message };
     }
 
+    /// <summary>One selectable representative: a stable user id and its name.</summary>
+    public sealed class ClientRepresentative
+    {
+        public int Id { get; init; }
+        public string DisplayName { get; init; } = "";
+
+        public override string ToString() => DisplayName;
+    }
+
     /// <summary>Client directory persistence.</summary>
     public interface IClientRepository
     {
@@ -127,6 +155,13 @@ namespace ProGlassAutomation.Services.Clients
         /// </summary>
         Task<IReadOnlyList<ClientDuplicateMatch>> FindDuplicatesAsync(
             ClientDraft draft, int? excludeClientId = null, CancellationToken ct = default);
+
+        /// <summary>
+        /// Active users a client may be assigned to, named for the picker. The
+        /// list is the salesman role from the shared user catalogue, ordered by
+        /// name; a client may also have no representative at all.
+        /// </summary>
+        Task<IReadOnlyList<ClientRepresentative>> GetRepresentativesAsync(CancellationToken ct = default);
 
         /// <summary>True when the Clients table is present and shaped as expected.</summary>
         Task<bool> IsSchemaReadyAsync(CancellationToken ct = default);

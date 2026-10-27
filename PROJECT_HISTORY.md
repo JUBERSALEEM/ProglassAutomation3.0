@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 21: the client's representative, built
+
+- **Phase:** `step3`/`step2` — the last deferred item of the user stage, on the owner's instruction.
+- **Before:** `Clients` had no representative; `step2` had reserved the reference for the user stage and the audit listed it as the one deferred scope item.
+- **Applied:** migration **1014** adds `Clients.RepresentativeUserId` (`INTEGER NULL`, indexed, registered after 1013, with an orphan check in its verify step); the client editor gains a picker of active Salesman users with "No representative" as a real choice; the client register gains a representative column showing the resolved name; create/update refuse an id that names no user; the role code is read from `UserCatalog.SalesmanRole` so it is never retyped.
+- **Coverage:** `step2.f.1` rules/projection checks plus a repository round-trip (assign, rename, clear, refuse an unknown id, deactivate the salesman); `step2.f.2` source checks for the migration shape and order, the absent free-text name, the catalogue constant and the picker/column wiring.
+- **Verification:** nine portable checkers PASS. No compile and no migration execution here; the owner's database is protected by the existing pre-migration backup.
+
+---
 ## 2026-10-27 — Round 20: value-only filter faces, aligned cards, audit report
 
 - **Phase:** `step3` corrections from the owner's screenshot of the running build, plus a module audit.

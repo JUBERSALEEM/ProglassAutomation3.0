@@ -16,9 +16,11 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 using ProGlassAutomation.Models.Clients;
+using ProGlassAutomation.Models.Users;
 using ProGlassAutomation.Services.Clients;
 using ProGlassAutomation.Services.Database;
 using ProGlassAutomation.Services.Database.SchemaMigrations;
+using ProGlassAutomation.Services.Users;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,6 +41,7 @@ internal static class ClientRuleChecks
         Run("duplicates", CheckDuplicates);
         Run("row projection", CheckRowProjection);
         Run("migration 1012 preserves a legacy contact-person value", CheckAttentionNameMigration);
+        Run("representative reference rules", CheckRepresentativeRules);
         Run("repository round-trip (isolated database)", CheckRepository);
 
         Console.WriteLine();
@@ -141,6 +144,38 @@ internal static class ClientRuleChecks
         Equal("Mr Saleem", normalized.AttentionName, "normalized attention name stored");
         // The company and the person are separate values, never derived.
         True(normalized.ClientName != normalized.AttentionName, "attention name is not the company name");
+    }
+
+    private static void CheckRepresentativeRules()
+    {
+        // Null is a real state: every client that existed before migration 1014,
+        // and every client that genuinely has no salesman yet.
+        True(ClientRules.Validate(new ClientDraft { ClientName = "A", RepresentativeUserId = null }).Count == 0,
+            "no representative is valid");
+        True(ClientRules.Validate(new ClientDraft { ClientName = "A", RepresentativeUserId = 7 }).Count == 0,
+            "a positive user id is accepted by the rules");
+
+        var bad = new ClientDraft { ClientName = "A", RepresentativeUserId = 0 };
+        True(ClientRules.Validate(bad).ContainsKey(nameof(ClientDraft.RepresentativeUserId)),
+            "zero is refused: it names no user");
+
+        var negative = new ClientDraft { ClientName = "A", RepresentativeUserId = -3 };
+        True(ClientRules.Validate(negative).ContainsKey(nameof(ClientDraft.RepresentativeUserId)),
+            "a negative id is refused");
+
+        // Normalization keeps the reference but never invents one.
+        True(ClientRules.Normalize(new ClientDraft { ClientName = "A", RepresentativeUserId = 0 })
+            .RepresentativeUserId is null, "zero normalizes to none");
+        Equal("7", (ClientRules.Normalize(new ClientDraft { ClientName = "A", RepresentativeUserId = 7 })
+            .RepresentativeUserId ?? 0).ToString(), "a real reference survives normalization");
+
+        // The projection never prints a raw id.
+        Equal("—", new ClientListRow { RepresentativeUserId = null }.RepresentativeText,
+            "no representative reads as a dash");
+        Equal("Sara", new ClientListRow { RepresentativeUserId = 4, RepresentativeName = "Sara" }.RepresentativeText,
+            "the resolved name is what the register shows");
+        Equal("(missing user)", new ClientListRow { RepresentativeUserId = 4 }.RepresentativeText,
+            "a reference without a readable name is never mistaken for an empty cell");
     }
 
     private static void CheckDuplicates()
@@ -430,5 +465,106 @@ internal static class ClientRuleChecks
         True(second.Succeeded, "similar name is allowed (warning only, no block)");
         Equal("2", (await repository.QueryAsync(new ClientQuery())).Count.ToString(),
             "both clients retained as separate records");
+
+        // ── Representative reference (migration 1014) ────────────────────
+        // The picker's list comes from the user directory: active salesmen only.
+        var users = new UserRepository();
+        UserSaveResult admin = await users.RegisterFirstAdministratorAsync(
+            "Directory Admin", UserCatalog.AdministrationDepartment, @"MALIK\ADMIN");
+        True(admin.Succeeded, "a first administrator exists for the reference checks: " + admin.Message);
+
+        UserSaveResult salesman = await users.CreateAsync(new UserDraft
+        {
+            FullName = "Sara Sales",
+            Username = @"MALIK\SARA",
+            Department = UserCatalog.DefaultDepartment,
+            Role = UserCatalog.SalesmanRole
+        }, @"MALIK\ADMIN");
+        True(salesman.Succeeded, "a salesman was created: " + salesman.Message);
+
+        UserSaveResult estimator = await users.CreateAsync(new UserDraft
+        {
+            FullName = "Eddie Estimator",
+            Username = @"MALIK\EDDIE",
+            Department = UserCatalog.DefaultDepartment,
+            Role = UserCatalog.DefaultRole
+        }, @"MALIK\ADMIN");
+        True(estimator.Succeeded, "a non-salesman was created: " + estimator.Message);
+
+        IReadOnlyList<ClientRepresentative> representatives = await repository.GetRepresentativesAsync();
+        Equal("1", representatives.Count.ToString(), "only the salesman is offered as a representative");
+        Equal("Sara Sales", representatives[0].DisplayName, "the picker shows the person's name");
+
+        int salesId = salesman.User!.Id;
+
+        // Assign the reference and read it back through the register projection.
+        ClientSaveResult assigned = await repository.UpdateAsync(id, new ClientDraft
+        {
+            ClientName = "Al Noor Glass LLC",
+            RepresentativeUserId = salesId
+        });
+        True(assigned.Succeeded, "a client can be assigned a representative: " + assigned.Message);
+        Equal(salesId.ToString(), (assigned.Client!.RepresentativeUserId ?? 0).ToString(),
+            "the stored value is the user id, not a name");
+
+        IReadOnlyList<ClientListRow> withRep = await repository.QueryAsync(new ClientQuery());
+        ClientListRow alNoor = withRep.First(row => row.Id == id);
+        Equal("Sara Sales", alNoor.RepresentativeText, "the register resolves the name");
+
+        // A rename relabels the register without rewriting the client row.
+        User? sara = await users.FindCurrentUserAsync();
+        True(sara == null || sara.Id != salesId, "the saved reference is not the operator's own row");
+        UserSaveResult renamed = await users.UpdateAsync(new UserDraft
+        {
+            Id = salesId,
+            FullName = "Sara Al Saleh",
+            Username = @"MALIK\SARA",
+            Department = UserCatalog.DefaultDepartment,
+            Role = UserCatalog.SalesmanRole,
+            OriginalRole = UserCatalog.SalesmanRole,
+            OriginalIsActive = true
+        }, @"MALIK\ADMIN");
+        True(renamed.Succeeded, "the representative was renamed: " + renamed.Message);
+
+        ClientListRow afterRename = (await repository.QueryAsync(new ClientQuery()))
+            .First(row => row.Id == id);
+        Equal("Sara Al Saleh", afterRename.RepresentativeText, "the register shows the new name");
+        Equal(salesId.ToString(), (afterRename.RepresentativeUserId ?? 0).ToString(),
+            "the client row still stores the same id");
+
+        // A stale id is refused rather than written as an orphan.
+        ClientSaveResult stale = await repository.UpdateAsync(id, new ClientDraft
+        {
+            ClientName = "Al Noor Glass LLC",
+            RepresentativeUserId = 999999
+        });
+        True(!stale.Succeeded, "an unknown representative is refused");
+        True(stale.Message.Contains("no longer exists"), "the refusal says what to do");
+
+        // Clearing is valid and returns the row to the pre-1014 state.
+        ClientSaveResult cleared = await repository.UpdateAsync(id, new ClientDraft
+        {
+            ClientName = "Al Noor Glass LLC"
+        });
+        True(cleared.Succeeded, "the reference can be cleared");
+        True(cleared.Client!.RepresentativeUserId is null, "clearing stores null, not zero");
+        Equal("—", (await repository.QueryAsync(new ClientQuery())).First(row => row.Id == id).RepresentativeText,
+            "an unassigned client reads as a dash");
+
+        // A deactivated salesman disappears from the picker but keeps the client's
+        // stored reference: history is not rewritten by a status change.
+        True((await repository.UpdateAsync(id, new ClientDraft
+        {
+            ClientName = "Al Noor Glass LLC",
+            RepresentativeUserId = salesId
+        })).Succeeded, "reference restored for the deactivation case");
+        True((await users.SetActiveAsync(salesId, false, @"MALIK\ADMIN")).Succeeded,
+            "the salesman was deactivated");
+        Equal("0", (await repository.GetRepresentativesAsync()).Count.ToString(),
+            "an inactive salesman is no longer offered");
+        Equal(salesId.ToString(),
+            ((await repository.QueryAsync(new ClientQuery())).First(row => row.Id == id)
+                .RepresentativeUserId ?? 0).ToString(),
+            "the existing client keeps its reference");
     }
 }

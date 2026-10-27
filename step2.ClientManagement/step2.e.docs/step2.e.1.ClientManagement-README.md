@@ -84,18 +84,28 @@ values; neither is derived from the other, and the attention name is never
 required.
 
 **Attention name is not a sales representative.** It describes the client's own
-contact. Our sales representative (the person who owns the client relationship)
-remains deferred to the User Management stage — see below.
+contact. Our sales representative (the person who owns the client relationship) is
+the separate `RepresentativeUserId` reference described below.
 
-### Representative identity is deliberately absent
+### Representative identity is a reference, not a column of text
 
-Per owner decision D3 there is **no** `SalesRepresentativeId`, **no**
-`SalesRepresentativeName` and **no** `Salesmen` table in this stage. A free-text
-representative column is exactly the ADV defect this module avoids (ADV keeps
-`SavedClient.SalesRepresentative` as a string next to an unrelated name-only
-`Salesmen` table, so the same person exists twice). The User Management stage
-will add a canonical user identity and a stable nullable reference from
-`Clients`, by migration. Until then the client row is complete on its own.
+Per owner decision D3 there is **no** `SalesRepresentativeName` and **no**
+`Salesmen` table: a free-text representative column is exactly the ADV defect this
+module avoids (ADV keeps `SavedClient.SalesRepresentative` as a string next to an
+unrelated name-only `Salesmen` table, so the same person exists twice).
+
+What exists instead, added by **migration 1014** once `step3` had created the user
+directory:
+
+* `Clients.RepresentativeUserId` — a **nullable** id into `Users`, so every client
+  that existed before 1014 stays valid and unassigned;
+* one picker in the client editor, listing the **active users with the Salesman
+  role** (the role code comes from `UserCatalog.SalesmanRole`, never a retyped
+  literal), with "No representative" as a real choice;
+* one register column showing the resolved name — a rename relabels the register
+  and rewrites no client row;
+* a write that names no existing user is refused, and 1014's verify step fails the
+  upgrade if any stored reference is an orphan.
 
 ## 4. Database and migration
 

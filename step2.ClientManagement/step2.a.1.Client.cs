@@ -8,10 +8,11 @@
 // Deliberate design decisions (owner-approved 2026-10-27):
 //   • Id is the only identifier other modules may reference. The name is
 //     data, never a key.
-//   • There is NO sales-representative column and no representative name
-//     string. Representative assignment is deferred to the User Management
-//     stage, which will add a stable nullable user reference by migration.
-//     Adding a free-text rep name here is the ADV mistake this module avoids.
+//   • The representative is a STABLE USER REFERENCE, added by migration 1014
+//     once User Management existed: RepresentativeUserId is a nullable id into
+//     Users, never a typed name. It is nullable because the client rows that
+//     already exist have no representative, and a client may genuinely have
+//     none yet. A free-text rep name is the ADV mistake this module avoids.
 //   • ClientName is the company (the entity we invoice); AttentionName is the
 //     person at that company to address. Both are stored, and neither is
 //     derived from the other.
@@ -68,6 +69,13 @@ namespace ProGlassAutomation.Models.Clients
         public string Notes { get; set; } = "";
 
         /// <summary>
+        /// The salesman who owns this client, as a stable reference into the
+        /// Users directory (migration 1014). Null means "no representative yet",
+        /// which is the state every pre-1014 client row is in.
+        /// </summary>
+        public int? RepresentativeUserId { get; set; }
+
+        /// <summary>
         /// Inactive clients are retained for history and reporting. Nothing in
         /// this module physically deletes a client row.
         /// </summary>
@@ -96,6 +104,9 @@ namespace ProGlassAutomation.Models.Clients
         public string Notes { get; set; } = "";
         public bool IsActive { get; set; } = true;
 
+        /// <summary>Stable user id of the client's representative; null for none.</summary>
+        public int? RepresentativeUserId { get; set; }
+
         /// <summary>Builds a draft from an existing client (edit mode).</summary>
         public static ClientDraft FromClient(Client client)
         {
@@ -109,7 +120,8 @@ namespace ProGlassAutomation.Models.Clients
                 Trn = client.Trn,
                 Address = client.Address,
                 Notes = client.Notes,
-                IsActive = client.IsActive
+                IsActive = client.IsActive,
+                RepresentativeUserId = client.RepresentativeUserId
             };
         }
     }

@@ -16,14 +16,19 @@
 //   • Failures return a ClientSaveResult with an operator-facing message; the
 //     UI never sees a raw exception for an ordinary save failure.
 //   • Nothing here deletes a client or touches the Inquiry tables.
+//   • The representative is stored as a stable user id (migration 1014). The
+//     name is resolved for display from the Users table; a rename therefore
+//     relabels the register without rewriting a single client row.
 // ═══════════════════════════════════════════════════════════════════════
 
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using ProGlassAutomation.Models.Clients;
+using ProGlassAutomation.Models.Users;
 using ProGlassAutomation.Services.Database;
 using ProGlassAutomation.Services.Database.SchemaMigrations;
 using ProGlassAutomation.Services.Inquiry;
+using ProGlassAutomation.Services.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -149,7 +154,7 @@ namespace ProGlassAutomation.Services.Clients
 
             int limit = query.MaxRows <= 0 ? 5000 : query.MaxRows;
 
-            return await source
+            var rows = await source
                 .OrderByDescending(x => x.IsActive)
                 .ThenBy(x => x.ClientName)
                 .Take(limit)
@@ -163,10 +168,56 @@ namespace ProGlassAutomation.Services.Clients
                     Trn = x.Trn,
                     IsActive = x.IsActive,
                     CreatedAt = x.CreatedAt,
-                    UpdatedAt = x.UpdatedAt
+                    UpdatedAt = x.UpdatedAt,
+                    RepresentativeUserId = x.RepresentativeUserId
                 })
                 .ToListAsync(ct)
                 .ConfigureAwait(false);
+
+            await ResolveRepresentativeNamesAsync(rows, ct).ConfigureAwait(false);
+            return rows;
+        }
+
+        /// <summary>
+        /// Fills <see cref="ClientListRow.RepresentativeName"/> from the user
+        /// directory in one query. The register reads the Users table through its
+        /// own context, so this module keeps a single mapped entity and never
+        /// joins across two contexts.
+        /// </summary>
+        private static async Task ResolveRepresentativeNamesAsync(
+            IReadOnlyList<ClientListRow> rows, CancellationToken ct)
+        {
+            var ids = rows
+                .Where(row => row.RepresentativeUserId is int id && id > 0)
+                .Select(row => row.RepresentativeUserId!.Value)
+                .Distinct()
+                .ToList();
+            if (ids.Count == 0) return;
+
+            try
+            {
+                await using var users = new UserDbContext();
+                var names = await users.Users.AsNoTracking()
+                    .Where(user => ids.Contains(user.Id))
+                    .Select(user => new { user.Id, user.FullName, user.Username })
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false);
+
+                var byId = names.ToDictionary(
+                    entry => entry.Id,
+                    entry => string.IsNullOrWhiteSpace(entry.FullName) ? entry.Username : entry.FullName);
+
+                foreach (var row in rows)
+                {
+                    if (row.RepresentativeUserId is int id && byId.TryGetValue(id, out var name))
+                        row.RepresentativeName = name;
+                }
+            }
+            catch
+            {
+                // A name that cannot be read must not break the register: the row
+                // still shows its reference as unreadable rather than vanishing.
+            }
         }
 
         public async Task<Client?> GetAsync(int id, CancellationToken ct = default)
@@ -217,6 +268,11 @@ namespace ProGlassAutomation.Services.Clients
                 return ClientSaveResult.Fail(string.Join(" ", errors.Values));
 
             ClientDraft normalized = ClientRules.Normalize(draft);
+
+            string? representativeProblem = await ValidateRepresentativeAsync(
+                normalized.RepresentativeUserId, ct).ConfigureAwait(false);
+            if (representativeProblem != null) return ClientSaveResult.Fail(representativeProblem);
+
             var now = DateTime.UtcNow;
 
             var client = new Client
@@ -229,6 +285,7 @@ namespace ProGlassAutomation.Services.Clients
                 Address = normalized.Address,
                 Notes = normalized.Notes,
                 IsActive = normalized.IsActive,
+                RepresentativeUserId = normalized.RepresentativeUserId,
                 CreatedAt = now,
                 UpdatedAt = now
             };
@@ -259,6 +316,10 @@ namespace ProGlassAutomation.Services.Clients
 
             ClientDraft normalized = ClientRules.Normalize(draft);
 
+            string? representativeProblem = await ValidateRepresentativeAsync(
+                normalized.RepresentativeUserId, ct).ConfigureAwait(false);
+            if (representativeProblem != null) return ClientSaveResult.Fail(representativeProblem);
+
             try
             {
                 await using var db = CreateContext();
@@ -277,6 +338,7 @@ namespace ProGlassAutomation.Services.Clients
                 client.Address = normalized.Address;
                 client.Notes = normalized.Notes;
                 client.IsActive = normalized.IsActive;
+                client.RepresentativeUserId = normalized.RepresentativeUserId;
                 client.UpdatedAt = DateTime.UtcNow;
 
                 await SqliteResilience.SaveWithRetryAsync(
@@ -317,6 +379,62 @@ namespace ProGlassAutomation.Services.Clients
             {
                 string action = isActive ? "re-activated" : "deactivated";
                 return ClientSaveResult.Fail(DescribeWriteFailure($"The client could not be {action}", ex));
+            }
+        }
+
+        /// <summary>
+        /// Rejects a representative id that names no user row. Null is valid and
+        /// means "no representative"; a stale id is refused with wording the
+        /// operator can act on instead of being written as an orphan.
+        /// </summary>
+        private static async Task<string?> ValidateRepresentativeAsync(
+            int? representativeUserId, CancellationToken ct)
+        {
+            if (representativeUserId is not int id) return null;
+
+            try
+            {
+                await using var users = new UserDbContext();
+                bool exists = await users.Users.AsNoTracking()
+                    .AnyAsync(user => user.Id == id, ct)
+                    .ConfigureAwait(false);
+                return exists
+                    ? null
+                    : "That representative no longer exists in the user directory. Choose another, or none.";
+            }
+            catch (Exception ex)
+            {
+                return "The representative could not be verified (" +
+                    ex.GetType().Name + "). The client was not saved.";
+            }
+        }
+
+        public async Task<IReadOnlyList<ClientRepresentative>> GetRepresentativesAsync(
+            CancellationToken ct = default)
+        {
+            try
+            {
+                await using var users = new UserDbContext();
+                var rows = await users.Users.AsNoTracking()
+                    .Where(user => user.IsActive && user.Role == UserCatalog.SalesmanRole)
+                    .OrderBy(user => user.FullName)
+                    .ThenBy(user => user.Username)
+                    .Select(user => new ClientRepresentative
+                    {
+                        Id = user.Id,
+                        DisplayName = string.IsNullOrWhiteSpace(user.FullName)
+                            ? user.Username
+                            : user.FullName
+                    })
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false);
+                return rows;
+            }
+            catch
+            {
+                // The picker degrades to "no representative" rather than failing
+                // the whole editor when the user directory is unreadable.
+                return Array.Empty<ClientRepresentative>();
             }
         }
 

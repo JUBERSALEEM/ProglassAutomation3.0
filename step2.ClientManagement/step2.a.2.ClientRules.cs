@@ -210,6 +210,14 @@ namespace ProGlassAutomation.Models.Clients
             AddIfPresent(errors, nameof(ClientDraft.Trn), ValidateTrn(draft.Trn));
             AddIfPresent(errors, nameof(ClientDraft.Address), ValidateAddress(draft.Address));
 
+            // A representative is a reference, not free text: the only invalid
+            // shape is a non-null id that cannot name a row (zero or negative).
+            // Existence in Users is checked by the repository, which owns the
+            // database, and null is always valid ("no representative yet").
+            if (draft.RepresentativeUserId is int id && id <= 0)
+                errors[nameof(ClientDraft.RepresentativeUserId)] =
+                    "Choose a representative from the list.";
+
             return errors;
         }
 
@@ -230,7 +238,8 @@ namespace ProGlassAutomation.Models.Clients
                 Trn = NormalizeTrn(draft.Trn),
                 Address = NormalizeText(draft.Address),
                 Notes = NormalizeText(draft.Notes),
-                IsActive = draft.IsActive
+                IsActive = draft.IsActive,
+                RepresentativeUserId = draft.RepresentativeUserId is int id && id > 0 ? id : null
             };
         }
 

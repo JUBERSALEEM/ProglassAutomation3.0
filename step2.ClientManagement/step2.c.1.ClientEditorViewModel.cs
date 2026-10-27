@@ -17,6 +17,7 @@ using ProGlassAutomation.ThemeStudio;
 using ProGlassAutomation.ViewModels.Inquiry;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -37,6 +38,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private string _address = "";
         private string _notes = "";
         private bool _isActive = true;
+        private int _representativeId;
 
         private string _clientNameError = "";
         private string _phoneError = "";
@@ -44,6 +46,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private string _trnError = "";
         private string _attentionNameError = "";
         private string _addressError = "";
+        private string _representativeError = "";
 
         private string _duplicateWarning = "";
         private bool _duplicateWarningAcknowledged;
@@ -51,7 +54,11 @@ namespace ProGlassAutomation.ViewModels.Clients
         private string _errorMessage = "";
         private bool _isBusy;
 
-        public ClientEditorViewModel(IClientRepository repository, ClientDraft draft, int clientId = 0)
+        public ClientEditorViewModel(
+            IClientRepository repository,
+            ClientDraft draft,
+            int clientId = 0,
+            IReadOnlyList<ClientRepresentative>? representatives = null)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _clientId = clientId;
@@ -67,6 +74,16 @@ namespace ProGlassAutomation.ViewModels.Clients
                 _address = draft.Address;
                 _notes = draft.Notes;
                 _isActive = draft.IsActive;
+                _representativeId = draft.RepresentativeUserId ?? 0;
+            }
+
+            // The first entry is the explicit "none" choice. A client without a
+            // representative stays valid, which is why the column is nullable:
+            // every client that existed before migration 1014 is in that state.
+            Representatives.Add(new ClientRepresentative { Id = 0, DisplayName = "No representative" });
+            if (representatives != null)
+            {
+                foreach (var representative in representatives) Representatives.Add(representative);
             }
 
             // DelegateCommand requeries through CommandManager, so no explicit
@@ -232,6 +249,40 @@ namespace ProGlassAutomation.ViewModels.Clients
         public bool HasTrnError => TrnError.Length > 0;
         public bool HasAddressError => AddressError.Length > 0;
 
+        /// <summary>Selectable representatives, with a leading "No representative".</summary>
+        public ObservableCollection<ClientRepresentative> Representatives { get; } = new();
+
+        /// <summary>
+        /// The chosen representative as a stable user id; 0 means none. The editor
+        /// edits an id, never a name, so a rename cannot rewrite a client row.
+        /// </summary>
+        public int RepresentativeId
+        {
+            get => _representativeId;
+            set
+            {
+                if (!SetField(ref _representativeId, value)) return;
+                RepresentativeError = "";
+                ClearSaveFeedback();
+            }
+        }
+
+        public string RepresentativeError
+        {
+            get => _representativeError;
+            private set { if (SetField(ref _representativeError, value)) OnPropertyChanged(nameof(HasRepresentativeError)); }
+        }
+
+        public bool HasRepresentativeError => RepresentativeError.Length > 0;
+
+        /// <summary>True when at least one salesman exists to choose from.</summary>
+        public bool HasRepresentatives => Representatives.Count > 1;
+
+        /// <summary>Explains an empty picker instead of showing a dead dropdown.</summary>
+        public string RepresentativeHint => HasRepresentatives
+            ? "Optional. Only active users with the Salesman role are listed."
+            : "No active user has the Salesman role yet. Add or re-role one in Users first; a client can stay without a representative.";
+
         // ── Duplicate warning / feedback ─────────────────────────────────
 
         public string DuplicateWarning
@@ -285,7 +336,8 @@ namespace ProGlassAutomation.ViewModels.Clients
             Trn = Trn,
             Address = Address,
             Notes = Notes,
-            IsActive = IsActive
+            IsActive = IsActive,
+            RepresentativeUserId = RepresentativeId > 0 ? RepresentativeId : null
         };
 
         // ── Commands ─────────────────────────────────────────────────────
@@ -389,6 +441,9 @@ namespace ProGlassAutomation.ViewModels.Clients
             EmailError = errors.TryGetValue(nameof(ClientDraft.Email), out string? email) ? email : "";
             TrnError = errors.TryGetValue(nameof(ClientDraft.Trn), out string? trn) ? trn : "";
             AddressError = errors.TryGetValue(nameof(ClientDraft.Address), out string? address) ? address : "";
+            RepresentativeError = errors.TryGetValue(nameof(ClientDraft.RepresentativeUserId), out string? representative)
+                ? representative
+                : "";
         }
 
         private void ClearErrors()
@@ -399,6 +454,7 @@ namespace ProGlassAutomation.ViewModels.Clients
             EmailError = "";
             TrnError = "";
             AddressError = "";
+            RepresentativeError = "";
         }
 
         private void ClearSaveFeedback()

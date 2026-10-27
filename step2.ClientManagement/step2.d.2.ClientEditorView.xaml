@@ -120,6 +120,46 @@
                             <TextBlock Text="{Binding AttentionNameError}" Style="{StaticResource ClientFieldErrorText}" />
                         </Border>
 
+                        <!-- ── Representative (stable user reference) ────
+                             A reference, never a typed name: the picker lists the
+                             active users with the Salesman role and stores the
+                             user id (migration 1014). "No representative" is a
+                             real, valid choice — every client that existed before
+                             the reference was added is in that state. -->
+                        <TextBlock Text="Representative"
+                                   Style="{StaticResource ClientFieldLabel}"
+                                   Margin="{DynamicResource MarginSection}" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  MinHeight="{DynamicResource ControlMinHeight}"
+                                  ItemsSource="{Binding Representatives}"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding RepresentativeId, Mode=TwoWay}"
+                                  IsEnabled="{Binding HasRepresentatives}"
+                                  ToolTip="The salesman who owns this client"
+                                  AutomationProperties.Name="Client representative">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding RepresentativeHint}"
+                                   Style="{DynamicResource Caption}"
+                                   TextWrapping="Wrap"
+                                   Margin="{DynamicResource MarginInline}" />
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource ClientFieldErrorPlate}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasRepresentativeError}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding RepresentativeError}" Style="{StaticResource ClientFieldErrorText}" />
+                        </Border>
+
                         <!-- ── Phone | E-mail (shared rows) ─────────────
                              Equal halves. The paired row below uses the same
                              halves, so field edges line up as one 2x2 block. -->

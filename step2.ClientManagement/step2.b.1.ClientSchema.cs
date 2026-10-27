@@ -9,6 +9,10 @@
 //   • 1011 creates the directory and its indexes.
 //   • 1012 replaces the generic contact-person column with AttentionName —
 //     the person at the client to address, since ClientName is the company.
+//   • 1014 adds the client's representative as a NULLABLE REFERENCE into the
+//     Users directory. It runs after 1013 (Users), so a reference can never be
+//     created before the table it points at. Every pre-1014 client row is
+//     unassigned, which is why the column is nullable and no row is rewritten.
 //
 // 1011 is NOT rewritten. It has already run on the owner's database, so it
 // stays the immutable baseline; 1012 converges both an early 1011 database
@@ -43,6 +47,15 @@ namespace ProGlassAutomation.Services.Clients
 
         /// <summary>Migration version that renames the person column to AttentionName.</summary>
         public const int AttentionNameMigrationVersion = 1012;
+
+        /// <summary>Migration version that adds the representative reference.</summary>
+        public const int RepresentativeMigrationVersion = 1014;
+
+        /// <summary>The client's representative: a nullable id into Users.</summary>
+        public const string RepresentativeColumn = "RepresentativeUserId";
+
+        /// <summary>Table the representative reference points at.</summary>
+        private const string UsersTable = "Users";
 
         /// <summary>The superseded person column, kept only for convergence.</summary>
         private const string LegacyPersonColumn = "ContactPerson";
@@ -212,6 +225,58 @@ namespace ProGlassAutomation.Services.Clients
                     "attention-name convergence; two competing person columns must not survive.");
         }
 
+        /// <summary>
+        /// 1014 — adds <see cref="RepresentativeColumn"/>, a nullable reference
+        /// into the Users directory, plus the index the editor's picker uses.
+        ///
+        /// Additive and re-runnable: no existing column, index or row is
+        /// touched, and every stored client keeps its id and its values. The
+        /// orphan check runs only when the Users table is actually present, so a
+        /// database that predates User Management cannot fail here.
+        /// </summary>
+        public static void EnsureRepresentativeReference(SqliteConnection connection)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            SchemaMigrationSql.AddColumnIfMissing(connection, TableName, RepresentativeColumn, "INTEGER NULL");
+
+            SchemaMigrationSql.CreateIndexIfNotExists(connection,
+                $"CREATE INDEX IF NOT EXISTS \"IX_Clients_{RepresentativeColumn}\" " +
+                $"ON \"{TableName}\" (\"{RepresentativeColumn}\");");
+        }
+
+        /// <summary>
+        /// 1014's post-migration assertions: the column exists, no reference is
+        /// zero or negative, and every reference names a real user row.
+        /// </summary>
+        public static void AssertRepresentativeReference(SqliteConnection connection)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            foreach (string column in CurrentColumns)
+                SchemaMigrationSql.RequireColumn(connection, TableName, column);
+
+            SchemaMigrationSql.RequireIndex(connection, $"IX_Clients_{RepresentativeColumn}",
+                TableName, unique: false, expectedColumns: new[] { RepresentativeColumn });
+
+            long invalid = ScalarLong(connection,
+                $"SELECT COUNT(*) FROM \"{TableName}\" " +
+                $"WHERE \"{RepresentativeColumn}\" IS NOT NULL AND \"{RepresentativeColumn}\" <= 0;");
+            if (invalid != 0)
+                throw new InvalidOperationException(
+                    $"{invalid} client row(s) carry a representative reference that is not a real user id.");
+
+            if (!TableExists(connection, UsersTable)) return;
+
+            long orphans = ScalarLong(connection,
+                $"SELECT COUNT(*) FROM \"{TableName}\" c " +
+                $"WHERE c.\"{RepresentativeColumn}\" IS NOT NULL AND NOT EXISTS (" +
+                $"SELECT 1 FROM \"{UsersTable}\" u WHERE u.\"Id\" = c.\"{RepresentativeColumn}\");");
+            if (orphans != 0)
+                throw new InvalidOperationException(
+                    $"{orphans} client row(s) point at a user that does not exist in '{UsersTable}'.");
+        }
+
         /// <summary>Columns every version of the directory has (1011 assertions).</summary>
         public static readonly string[] BaselineColumns =
         {
@@ -219,11 +284,19 @@ namespace ProGlassAutomation.Services.Clients
             "IsActive", "CreatedAt", "UpdatedAt"
         };
 
-        /// <summary>Every column the EF model in step2.b.3 maps today.</summary>
+        /// <summary>Every column 1012 guarantees (the person-column contract).</summary>
         public static readonly string[] RequiredColumns =
         {
             "Id", "ClientName", PersonColumn, "Phone", "Email", "Trn",
             "Address", "Notes", "IsActive", "CreatedAt", "UpdatedAt"
+        };
+
+        /// <summary>Every column the EF model in step2.b.3 maps today.</summary>
+        public static readonly string[] CurrentColumns =
+        {
+            "Id", "ClientName", PersonColumn, "Phone", "Email", "Trn",
+            "Address", "Notes", "IsActive", "CreatedAt", "UpdatedAt",
+            RepresentativeColumn
         };
 
         // ── Helpers ──────────────────────────────────────────────────────
@@ -240,6 +313,10 @@ namespace ProGlassAutomation.Services.Clients
             }
             return columns;
         }
+
+        private static bool TableExists(SqliteConnection connection, string table) =>
+            ScalarLong(connection,
+                $"SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = '{table}';") != 0;
 
         private static long ScalarLong(SqliteConnection connection, string sql)
         {

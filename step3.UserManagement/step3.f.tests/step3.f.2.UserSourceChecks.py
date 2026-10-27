@@ -199,6 +199,8 @@ def require_single_catalogue_definition():
         check(f'"{role}"' in catalog, f"role '{role}' is not in the catalogue")
     check('new CatalogEntry("ESTIMATOR", "Estimator", isDefault: true)' in catalog,
           "Estimator must be the catalogue's default role")
+    check('public const string SalesmanRole = "SALESMAN";' in catalog,
+          "the salesman role code must be published once, for Client Management to read")
 
     # The wording must live in exactly one place; every other file refers to
     # the catalogue by code, so a rename cannot half-apply.

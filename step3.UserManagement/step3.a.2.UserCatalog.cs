@@ -99,6 +99,13 @@ namespace ProGlassAutomation.Models.Users
         /// <summary>The only role with user-management authority in this stage.</summary>
         public const string AdministratorRole = "ADMINISTRATOR";
 
+        /// <summary>
+        /// The role a client's representative is drawn from. Client Management
+        /// reads this constant instead of typing the code, so the one catalogue
+        /// stays the single source of the role vocabulary.
+        /// </summary>
+        public const string SalesmanRole = "SALESMAN";
+
         private static readonly string[] KnownRoles =
             Roles.Select(entry => entry.Code).ToArray();
 

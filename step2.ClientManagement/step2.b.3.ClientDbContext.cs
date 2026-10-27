@@ -50,6 +50,10 @@ namespace ProGlassAutomation.Services.Clients
                 e.HasIndex(x => x.Email);
                 e.HasIndex(x => x.Trn);
                 e.HasIndex(x => new { x.IsActive, x.ClientName });
+
+                // 1014's reference into Users, indexed to mirror the migration so
+                // a database created by either path has the same shape.
+                e.HasIndex(x => x.RepresentativeUserId);
             });
         }
     }

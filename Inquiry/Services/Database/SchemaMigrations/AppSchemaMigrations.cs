@@ -11,9 +11,9 @@
 // once 1001..1004 apply on first touch).
 //
 // One file ⇒ one PRAGMA user_version ⇒ exactly ONE chain. 1011 adds the
-// step2 Client Management table to this same chain and 1013 adds the step3
-// User Management tables; a second chain against the same file must never
-// be created.
+// step2 Client Management table to this same chain, 1013 adds the step3
+// User Management tables, and 1014 adds the client's representative reference
+// into them; a second chain against the same file must never be created.
 // ═══════════════════════════════════════════════════════════════════════
 
 using Microsoft.Data.Sqlite;
@@ -188,7 +188,15 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             new(UserSchema.MigrationVersion,
                 "Users: user directory with department and role catalogues (step3 User Management)",
                 connection => UserSchema.Ensure(connection),
-                connection => UserSchema.AssertShape(connection))
+                connection => UserSchema.AssertShape(connection)),
+            // ── step2 follow-up: the client's representative (owner-approved) ──
+            // The reference Client Management reserved for this stage: a nullable
+            // id into Users, added only now that 1013 has created that table. No
+            // client row is rewritten; unassigned stays valid.
+            new(ClientSchema.RepresentativeMigrationVersion,
+                "Clients: representative reference into the user directory",
+                connection => ClientSchema.EnsureRepresentativeReference(connection),
+                connection => ClientSchema.AssertRepresentativeReference(connection))
 
         };
 

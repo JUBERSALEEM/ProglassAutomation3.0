@@ -72,6 +72,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private string _statusMessage = "";
         private bool _isBusy;
         private bool _isInitialized;
+        private IReadOnlyList<ClientRepresentative> _representatives = Array.Empty<ClientRepresentative>();
         private int _activeCount;
         private int _inactiveCount;
 
@@ -280,6 +281,10 @@ namespace ProGlassAutomation.ViewModels.Clients
                     new ClientQuery { Search = SearchText, IncludeInactive = true },
                     cts.Token).ConfigureAwait(true);
 
+                // The editor's representative picker is filled from the same load,
+                // so opening the editor never waits on a second database read.
+                _representatives = await _repository.GetRepresentativesAsync(cts.Token).ConfigureAwait(true);
+
                 if (cts.IsCancellationRequested) return;
 
                 int selectedId = SelectedRow?.Id ?? 0;
@@ -368,7 +373,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private void OpenEditorForNew()
         {
             ClearEditorError();
-            OpenEditor(new ClientEditorViewModel(_repository, new ClientDraft(), 0));
+            OpenEditor(new ClientEditorViewModel(_repository, new ClientDraft(), 0, _representatives));
         }
 
         private void OpenEditorForSelected()
@@ -393,7 +398,8 @@ namespace ProGlassAutomation.ViewModels.Clients
                     await ReloadAsync().ConfigureAwait(true);
                     return;
                 }
-                OpenEditor(new ClientEditorViewModel(_repository, ClientDraft.FromClient(client), client.Id));
+                OpenEditor(new ClientEditorViewModel(
+                    _repository, ClientDraft.FromClient(client), client.Id, _representatives));
             }
             catch (Exception ex)
             {

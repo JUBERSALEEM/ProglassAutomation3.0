@@ -9,8 +9,9 @@ They verify the properties that are cheap to get wrong and expensive to miss:
   3. the shell hosts the workspace on exactly one tab and one navigation entry;
   4. migration 1011 is registered on the ONE existing chain, and no second
      chain, no Inquiry schema change and no Inquiry→Client foreign key exists;
-  5. the client directory has no representative column/table (deferred to the
-     User Management stage) and no delete path;
+  5. the client's representative is a stable user REFERENCE (migration 1014,
+     nullable, verified against the user directory), never a typed name, and
+     the directory still has no delete path;
   6. the XAML obeys the theme contract: contract resources only, no literal
      colours or sizes, dynamic card roles, explicit implicit-style bindings for
      theme-templated controls, no hardcoded padding on card content;
@@ -284,8 +285,8 @@ def require_attention_name():
         ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs")
     check("ClientSchema.AttentionNameMigrationVersion" in registry,
           "migration 1012 is not registered")
-    check(registry.count("new(ClientSchema.") == 2,
-          "both client migrations (1011 and 1012) must be on the one chain")
+    check(registry.count("new(ClientSchema.") == 3,
+          "all three client migrations (1011, 1012 and 1014) must be on the one chain")
     # 1011 stays the immutable baseline: it must keep creating what it shipped.
     check("LegacyPersonColumn" in schema and "MigrationVersion = 1011" in schema,
           "1011 must remain the untouched baseline that 1012 converges from")
@@ -476,17 +477,17 @@ def require_register_alignment():
               "to centre inside")
 
     columns = re.findall(r"<DataGridTextColumn\s[^>]*>", view, re.S)
-    check(len(columns) == 6, f"expected six text columns, found {len(columns)}")
+    check(len(columns) == 7, f"expected seven text columns, found {len(columns)}")
     for column in columns:
         check("ElementStyle=" in column, "a register text column has no cell style")
 
-    # Seven columns, so six rules: the last column closes the band with the grid's
-    # own edge instead of a divider hanging in mid-air.
-    check(view.count('Style="{StaticResource ClientHeaderLabel}"') == 8,
+    # Nine columns, so nine labels; each header carries its own rule and the
+    # last column closes the band with the grid's own edge.
+    check(view.count('Style="{StaticResource ClientHeaderLabel}"') == 9,
           "every register column must use the centred header label, including the "
           "row-menu column")
-    check(view.count('Style="{StaticResource ClientHeaderRule}"') == 7,
-          "one rule per column boundary: seven for eight columns; the last column "
+    check(view.count('Style="{StaticResource ClientHeaderRule}"') == 8,
+          "one rule per column boundary: eight for nine columns; the last column "
           "closes the band on the grid's own edge")
 
     for style_name in ("ClientNameCell", "ClientMonoCell", "ClientPlainCell"):
@@ -587,8 +588,8 @@ def require_command_bar():
     # open a headerless gap at the right edge of the band.
     check('Text="Actions"' in view,
           "the row-menu column needs a header; an empty one reads as a broken band")
-    check(view.count('Style="{StaticResource ClientHeaderLabel}"') == 8,
-          "eight header labels: seven columns plus the actions column")
+    check(view.count('Style="{StaticResource ClientHeaderLabel}"') == 9,
+          "nine header labels: eight columns plus the actions column")
 
     # Per-row actions: one quiet trigger, two themed menu items.
     check('Style="{StaticResource ClientRowMenuButton}"' in view,
@@ -702,13 +703,80 @@ def require_binding_integrity():
 
     targets = {
         "step2.d.1.ClientWorkspaceView.xaml": workspace_members | row_members,
-        "step2.d.2.ClientEditorView.xaml": editor_members,
+        # The representative picker renders ClientRepresentative items, whose
+        # members are declared in the repository contract file, not the view model.
+        "step2.d.2.ClientEditorView.xaml": editor_members | row_members,
     }
     for view_name, known in targets.items():
         names = binding_names(MODULE / view_name)
         check(len(names) > 20, f"{view_name}: expected the module's bindings, found {len(names)}")
         for name in sorted(names - known):
             check(False, f"{view_name}: binding to unknown member '{name}'")
+
+
+def require_representative_reference():
+    """The representative is a reference, added only after Users existed."""
+    schema = read(MODULE / "step2.b.1.ClientSchema.cs")
+    check("RepresentativeMigrationVersion = 1014" in schema,
+          "the representative reference must be migration 1014")
+    check('RepresentativeColumn = "RepresentativeUserId"' in schema,
+          "the representative column must be the user id, not a name")
+    check('AddColumnIfMissing(connection, TableName, RepresentativeColumn, "INTEGER NULL")' in schema,
+          "the representative column must be a NULLABLE integer reference")
+    check("AssertRepresentativeReference" in schema and "NOT EXISTS" in schema,
+          "the migration must refuse client rows that point at a missing user")
+    check("TableExists" in schema,
+          "the orphan check must tolerate a database that predates the Users table")
+
+    registry = read(ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs")
+    check("ClientSchema.RepresentativeMigrationVersion" in registry,
+          "migration 1014 is not registered on the existing chain")
+    users_at = registry.find("UserSchema.MigrationVersion")
+    representative_at = registry.find("ClientSchema.RepresentativeMigrationVersion")
+    check(0 <= users_at < representative_at,
+          "1014 must be registered AFTER 1013, or a client could reference a table that does not exist yet")
+
+    model = read(MODULE / "step2.a.1.Client.cs")
+    check("public int? RepresentativeUserId { get; set; }" in model,
+          "the client entity must carry a nullable user id")
+    check("RepresentativeName { get; set; }" not in model,
+          "the client entity must not store a representative NAME")
+
+    repository = read(MODULE / "step2.b.4.ClientRepository.cs")
+    def method_body(name):
+        start = repository.index(f"public async Task<ClientSaveResult> {name}(")
+        following = repository.find("public async Task<ClientSaveResult>", start + 10)
+        return repository[start:following if following != -1 else len(repository)]
+
+    for method in ("CreateAsync", "UpdateAsync"):
+        check("ValidateRepresentativeAsync(" in method_body(method),
+              f"{method} must verify that the chosen representative exists before writing")
+    check("UserCatalog.SalesmanRole" in repository,
+          "the picker must read the role code from the one catalogue")
+    others = "\n".join(
+        read(path) for path in sorted(MODULE.glob("*.cs")))
+    check('"SALESMAN"' not in others,
+          "the salesman role code must not be retyped outside the catalogue")
+
+    editor = read(MODULE / "step2.d.2.ClientEditorView.xaml")
+    check('ItemsSource="{Binding Representatives}"' in editor,
+          "the editor must offer the representative picker")
+    check('SelectedValuePath="Id"' in editor,
+          "the picker must select by the stable user id")
+    check("RepresentativeHint" in editor,
+          "an empty picker must explain itself instead of showing a dead dropdown")
+
+    register = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
+    check('Text="Representative"' in register,
+          "the register must show the representative column")
+    check('Binding="{Binding RepresentativeText}"' in register,
+          "the register column must render the resolved name, not an id")
+
+    spec = read(ROOT / "docs/12.Module-Specifications.md")
+    check("RepresentativeUserId" in spec and "1014" in spec,
+          "docs/12 must record the reference and its migration")
+    check("not added in this stage" not in spec,
+          "docs/12 still claims the representative reference is deferred")
 
 
 def require_docs_recorded():
@@ -764,6 +832,7 @@ def main():
     require_header_rules()
     require_paired_field_widths()
     require_binding_integrity()
+    require_representative_reference()
     require_docs_recorded()
 
     if FAILURES:
@@ -772,8 +841,8 @@ def main():
             print("  - " + failure)
         return 1
     print("PASS: step2 client management — naming, single migration chain, no Inquiry schema "
-          "change, no representative identity, no delete path, nine-theme contract, centred "
-          "register, header rules and manual resize, one command bar, equal "
+          "change, representative as a verified user reference, no delete path, nine-theme "
+          "contract, centred register, header rules and manual resize, one command bar, equal "
           "paired fields, docs recorded.")
     return 0
 
