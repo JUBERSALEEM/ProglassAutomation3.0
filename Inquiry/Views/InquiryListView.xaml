@@ -190,9 +190,10 @@
                 </StackPanel>
 
                 <!-- Module: the same dropdown idiom for the register set. A planned
-                     module is listed, painted muted, and refuses selection - the
-                     view model re-notifies its selection so the control snaps back
-                     instead of showing a module that is not routed anywhere. -->
+                     module is listed and painted muted with a "(soon)" tag; the view
+                     model refuses it in SelectedModuleTab and re-notifies on the
+                     dispatcher, so the control snaps back instead of displaying a
+                     module that is not routed anywhere. -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
                             Margin="{DynamicResource MarginInline}">
                     <TextBlock Text="Module" Style="{DynamicResource Caption}"

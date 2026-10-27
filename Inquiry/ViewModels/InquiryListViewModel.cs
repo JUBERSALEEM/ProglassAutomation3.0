@@ -179,9 +179,10 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                     // dispatcher: notifying inside the setter, while the ComboBox
                     // is still committing its own selection, is ignored, and the
                     // control would go on showing a module that is not routed.
-                    var self = this;
-                    Dispatcher.CurrentDispatcher.BeginInvoke(new Action(
-                        () => self.OnPropertyChanged(nameof(SelectedModuleTab))));
+                    // Same idiom as InquiryInboxViewModel: the Application's own
+                    // dispatcher, and nothing at all when there is no UI thread.
+                    var dispatcher = Application.Current?.Dispatcher;
+                    dispatcher?.BeginInvoke(new Action(() => OnPropertyChanged(nameof(SelectedModuleTab))));
                     return;
                 }
 

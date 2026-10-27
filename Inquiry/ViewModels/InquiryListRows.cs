@@ -54,9 +54,10 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public bool IsPlanned { get; init; }
 
         /// <summary>
-        /// ComboBox items disable themselves from this. A converter would work
-        /// here too, but this project has no app-level converter resources, and a
-        /// plain bool keeps the template free of one.
+        /// False for a planned module. The ComboBox itself cannot enforce this -
+        /// the theme owns the generated ComboBoxItem and this page sets no
+        /// ItemContainerStyle - so the view model's SelectedModuleTab setter
+        /// refuses the value and re-notifies, and the control snaps back.
         /// </summary>
         public bool IsEnabled => !IsPlanned;
         private bool _isSelected;

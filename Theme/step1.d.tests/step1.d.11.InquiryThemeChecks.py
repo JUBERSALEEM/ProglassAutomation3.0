@@ -339,4 +339,26 @@ assert 'OnMoreActionsClick' in list_xaml, "the overflow menu needs a handler, or
 code_behind = (ROOT / "Inquiry/Views/InquiryListView.xaml.cs").read_text(encoding="utf-8")
 assert 'private void OnMoreActionsClick(' in code_behind, "OnMoreActionsClick is not implemented"
 
+# ── Compile safety: the WPF namespaces the code assumes ────────────────────
+# Nothing here can build WPF, so the owner's MSBuild is the only compiler. That
+# is how `Dispatcher.CurrentDispatcher` reached him as CS0103: Dispatcher lives
+# in System.Windows.Threading, and `using System.Windows;` does not import it.
+# A bare `Dispatcher.` or `Application.` therefore has to be backed by its own
+# using - naming the class in full is equally fine, and is how the inbox
+# view model already does it.
+SKIP = {"tests", "bin", "obj", ".git"}
+for source_path in sorted(ROOT.rglob("*.cs")):
+    if SKIP & set(source_path.parts):
+        continue
+    source = source_path.read_text(encoding="utf-8", errors="ignore")
+    name = source_path.relative_to(ROOT)
+    if re.search(r"(?<![\w.])Dispatcher\s*[.(]", source):
+        assert ("using System.Windows.Threading;" in source
+                or "System.Windows.Threading.Dispatcher" in source), \
+            f"{name} calls Dispatcher without System.Windows.Threading (CS0103)"
+    if re.search(r"(?<![\w.])Application\s*\.", source):
+        assert ("using System.Windows;" in source
+                or "System.Windows.Application" in source), \
+            f"{name} calls Application without System.Windows (CS0103)"
+
 print("PASS: inquiry theme styles, inbox lifecycle, shared HTTP recovery, schema repair, and auth/authorization diagnostics")
