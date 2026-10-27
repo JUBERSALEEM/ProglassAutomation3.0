@@ -24,13 +24,26 @@
          no theme-specific branch and adds nothing to any theme package.
          ───────────────────────────────────────────────────────────────── -->
     <UserControl.Resources>
+        <!-- Register cells are centred to match the centred column headers
+             (owner feedback: left-aligned values under centred headers read as
+             misaligned). Trimming stays so a long company name cannot push a
+             column wider. -->
         <Style x:Key="ClientNameCell" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
         </Style>
         <Style x:Key="ClientMonoCell" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ClientPlainCell" TargetType="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
         </Style>
     </UserControl.Resources>
 
@@ -99,19 +112,26 @@
                     <TextBlock Text="Actions" Style="{DynamicResource Caption}" />
                     <Button Content="＋  NEW CLIENT" Style="{DynamicResource PrimaryButton}"
                             Command="{Binding NewClientCommand}" HorizontalAlignment="Stretch"
-                            Margin="{DynamicResource PaddingCompact}"
+                            Margin="{DynamicResource MarginInline}"
                             AutomationProperties.Name="New client" />
-                    <WrapPanel>
-                        <Button Content="Edit" Style="{DynamicResource SubtleButton}"
+                    <!-- Two equal-width secondary actions on one centred row. -->
+                    <Grid Margin="{DynamicResource MarginInline}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Edit" Style="{DynamicResource SubtleButton}"
                                 Command="{Binding EditSelectedCommand}"
+                                HorizontalAlignment="Stretch"
                                 Margin="{DynamicResource MarginInline}"
                                 IsEnabled="{Binding HasSelection}"
                                 AutomationProperties.Name="Edit selected client" />
-                        <Button Content="Refresh" Style="{DynamicResource SubtleButton}"
+                        <Button Grid.Column="1" Content="Refresh" Style="{DynamicResource SubtleButton}"
                                 Command="{Binding RefreshCommand}"
+                                HorizontalAlignment="Stretch"
                                 Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Refresh client list" />
-                    </WrapPanel>
+                    </Grid>
                 </StackPanel>
             </ContentControl>
         </Grid>
@@ -249,10 +269,12 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Client" Binding="{Binding ClientName}" Width="2*"
                                                     ElementStyle="{StaticResource ClientNameCell}" />
-                                <DataGridTextColumn Header="Attention" Binding="{Binding AttentionName}" Width="1.2*" />
+                                <DataGridTextColumn Header="Attention" Binding="{Binding AttentionName}" Width="1.2*"
+                                                    ElementStyle="{StaticResource ClientPlainCell}" />
                                 <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="1*"
                                                     ElementStyle="{StaticResource ClientMonoCell}" />
-                                <DataGridTextColumn Header="E-mail" Binding="{Binding Email}" Width="1.4*" />
+                                <DataGridTextColumn Header="E-mail" Binding="{Binding Email}" Width="1.4*"
+                                                    ElementStyle="{StaticResource ClientPlainCell}" />
                                 <DataGridTextColumn Header="TRN" Binding="{Binding Trn}" Width="0.9*"
                                                     ElementStyle="{StaticResource ClientMonoCell}" />
                                 <DataGridTemplateColumn Header="Status" Width="0.8*" CanUserSort="False">
@@ -260,7 +282,7 @@
                                         <DataTemplate>
                                             <Border Style="{DynamicResource StatusBadge}"
                                                     Tag="{Binding StatusTag}"
-                                                    HorizontalAlignment="Left">
+                                                    HorizontalAlignment="Center">
                                                 <TextBlock Text="{Binding StatusText}"
                                                            Style="{DynamicResource StatusText}"
                                                            Tag="{Binding StatusTag}" />
