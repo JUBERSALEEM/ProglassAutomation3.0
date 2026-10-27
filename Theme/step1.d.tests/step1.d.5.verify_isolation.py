@@ -70,6 +70,23 @@ for package in packages:
         extras = package / f'{stem}.{mode}.Extras.xaml'
         if extras.is_file():
             collect(extras, values, package)
+        # A page needs a surface ramp. If the page, the card and the well are one
+        # colour the screen reads as a single plain sheet - measured on the
+        # Neumorphism client screen, where all four tokens were #E6EBEF, so the
+        # cards, the buttons and the plates had no edge against the page. The page
+        # must differ from the card, and a package must expose at least three of
+        # the four steps.
+        ramp = {}
+        for token in ('ApplicationBackground', 'SurfacePrimary', 'SurfaceSecondary', 'SurfaceElevated'):
+            node = values.get(token)
+            assert node is not None, f'{package.name}/{mode} is missing the {token} token'
+            ramp[token] = node.attrib.get('Color')
+        assert ramp['ApplicationBackground'] != ramp['SurfacePrimary'], (
+            f'{package.name}/{mode}: page and card are both {ramp["ApplicationBackground"]}, '
+            'so every surface on the screen collapses into one flat sheet')
+        assert len(set(ramp.values())) >= 3, (
+            f'{package.name}/{mode}: only {len(set(ramp.values()))} distinct surface steps '
+            f'({ramp}); cards, buttons and wells need a visible ramp')
         if not components.is_file():
             continue
         collect(components, values, package)
@@ -83,10 +100,11 @@ for package in packages:
         # A plate is the recessed layer a toolbar, footer or well sits in, on top
         # of a card. Filling it with the card's own token makes every plate
         # disappear into its card and leaves the whole page one flat sheet —
-        # which is exactly how Claymorphism shipped. Two packages are exempt by
-        # design: Neumorphism is single-surface and shows depth through shadow
-        # alone, LiquidGlass is a transparent frost over the wallpaper.
-        if package.name not in {'ThemeNeumorphism', 'ThemeLiquidGlass'}:
+        # which is exactly how Claymorphism shipped. LiquidGlass stays exempt by
+        # design: it is a transparent frost over the wallpaper. Neumorphism used
+        # to be exempt as a single-surface skin; it no longer is - its plates sit
+        # on SurfaceSecondary now that the owner rejected the flat sheet.
+        if package.name not in {'ThemeLiquidGlass'}:
             card = background_of(values['Card'])
             plate = background_of(values['Plate'])
             assert card and plate, (package.name, mode, 'Card/Plate must set Background')

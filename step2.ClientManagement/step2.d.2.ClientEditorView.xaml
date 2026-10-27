@@ -176,8 +176,11 @@
                         </Grid>
 
                         <!-- ── TRN | Status (shared rows) ───────────────
-                             TRN and Status take one width each (owner feedback:
-                             the 1 : 1.4 split left a long empty TRN box). -->
+                             Four fields, one two-column grid: Phone | E-mail and
+                             TRN | Status each take one equal width, so the boxes
+                             stack in two clean columns instead of stepping in and
+                             out (owner feedback: "trn and status can come in one
+                             width"). -->
                         <Grid Margin="{DynamicResource MarginSection}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="1*" />

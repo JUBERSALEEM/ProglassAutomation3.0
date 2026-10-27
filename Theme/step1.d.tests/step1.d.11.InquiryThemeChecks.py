@@ -204,8 +204,7 @@ assert closed.index('StateChanged -= OnInboxStateChanged') < closed.index('Cance
 assert 'CellStyle="{StaticResource InquiryCell}"' in list_xaml, "the register cell style is not wired"
 assert 'ColumnHeaderStyle="{StaticResource InquiryColumnHeader}"' in list_xaml, "the register header style is not wired"
 assert 'Property="HorizontalContentAlignment" Value="Center"' in list_xaml, "cell content is not centred"
-assert 'Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in list_xaml, "header rules are not visible"
-assert 'VerticalGridLinesBrush' not in list_xaml, "row rules stay with the theme, not with this view"
+assert 'VerticalGridLinesBrush' not in list_xaml, "row rules stay with this view, not a brush override"
 assert 'CanUserResizeColumns="True"' in list_xaml, "columns must stay resizable by hand"
 assert 'MinColumnWidth="{DynamicResource ControlMinWidth}"' in list_xaml, "a resized column needs a floor"
 
@@ -227,5 +226,56 @@ for column in text_columns:
 
 assert 'Tag="{Binding StatusTag}"\n                                                HorizontalAlignment="Center"' in list_xaml, \
     "the status chip must centre in its column"
+
+# ── Register rules and geometry (owner rounds 5 and 6) ────────────────────
+# "grid lines only in the column header", "row data normal blank", and the
+# register values must read centred. The body rules came from two sources - the
+# view's own GridLinesVisibility and the package's per-cell border - so both are
+# stated here, and the header draws its own hairline rather than borrowing a
+# package's control weight.
+register_grid = list_xaml[list_xaml.index("<DataGrid "):]
+register_grid = register_grid[:register_grid.index(">")]
+assert 'GridLinesVisibility="None"' in register_grid, \
+    "the register must state GridLinesVisibility=\"None\" instead of leaving it to the package"
+assert register_grid.count('GridLinesVisibility="') == 1, \
+    "the register grid must not carry two competing line settings"
+assert 'VerticalGridLinesBrush="' not in list_xaml and 'HorizontalGridLinesBrush="' not in list_xaml, \
+    "a rule brush override is not wanted: the header carries the rules"
+header_rule = list_xaml[list_xaml.index('x:Key="InquiryHeaderRule"'):]
+header_rule = header_rule[:header_rule.index("</Style>")]
+assert 'Value="{DynamicResource BorderStrong}"' in header_rule, "the header rule must use a visible theme token"
+assert 'Value="{DynamicResource StrokeWidth}"' in header_rule, "the rule width must follow the theme, not a literal"
+assert list_xaml.count('Style="{StaticResource InquiryHeaderRule}"') == 11, \
+    "one rule per column boundary: eleven for twelve columns"
+assert list_xaml.count('Style="{StaticResource InquiryHeaderLabel}"') == 12, \
+    "every register column must use the centred header label"
+register_columns = list_xaml[list_xaml.index("<DataGrid.Columns>"):]
+register_columns = register_columns[:register_columns.index("</DataGrid.Columns>")]
+assert 'Header="' not in register_columns, \
+    "a plain string header cannot be centred or carry a rule"
+
+cell_style = list_xaml[list_xaml.index('x:Key="InquiryCell"'):]
+cell_style = cell_style[:cell_style.index("</Style>")]
+assert 'BasedOn="{StaticResource {x:Type DataGridCell}}"' in cell_style, "the cell style must derive from the package"
+assert 'HorizontalContentAlignment="Stretch"' in cell_style, \
+    "the cell presenter must stretch its content, or centred values render left-aligned"
+assert 'Property="BorderBrush" Value="{DynamicResource TransparentBrush}"' in cell_style, \
+    "the cell must not paint a border of its own"
+
+header_style = list_xaml[list_xaml.index('x:Key="InquiryColumnHeader"'):]
+header_style = header_style[:header_style.index("</Style>")]
+assert 'Property="BorderThickness" Value="0"' in header_style, \
+    "the package's header frame must be switched off, or its control weight boxes the band"
+assert 'PART_RightHeaderGripper' in header_style and 'PART_LeftHeaderGripper' in header_style, \
+    "a header template without the resize grippers silently disables column resizing"
+assert 'CellStyle="{StaticResource InquiryCell}"' in list_xaml
+assert 'ColumnHeaderStyle="{StaticResource InquiryColumnHeader}"' in list_xaml
+
+# The actions card: a WrapPanel sized each button to its label and dropped the
+# inbox action onto an orphan line, which read as a collapsed stack of chips.
+assert "<WrapPanel" not in list_xaml, \
+    "the actions card must lay its buttons out on a grid, not wrap them"
+assert list_xaml.count('<ColumnDefinition Width="1*" />') >= 3, \
+    "the three file actions must share one row of equal thirds"
 
 print("PASS: inquiry theme styles, inbox lifecycle, shared HTTP recovery, schema repair, and auth/authorization diagnostics")

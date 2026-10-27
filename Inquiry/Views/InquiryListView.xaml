@@ -52,14 +52,86 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <!-- Same geometry contract as the client register: the cell and header
+             templates are owned here so the theme cannot paint a rule per cell
+             (which boxed every data row) and so the presenter hands each value a
+             full-width slot — a left-aligned presenter is why centred values
+             still read as left-aligned. Every colour stays a TemplateBinding. -->
+        <Style x:Key="InquiryHeaderGripper" TargetType="Thumb">
+            <Setter Property="Width" Value="{DynamicResource SpacingMedium}" />
+            <Setter Property="Cursor" Value="SizeWE" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="Grip" Background="{DynamicResource TransparentBrush}" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Grip" Property="Background"
+                                        Value="{DynamicResource BorderStrong}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="InquiryCell" TargetType="DataGridCell"
                BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Stretch"
+                                              HorizontalContentAlignment="Stretch"
+                                              VerticalAlignment="Center"
+                                              SnapsToDevicePixels="True" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="InquiryColumnHeader" TargetType="DataGridColumnHeader"
                BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+            <!-- The view draws one hairline per column boundary and switches the
+                 theme's header frame off: that frame is a package-wide control
+                 weight (2px in Neumorphism, 4px in Claymorphism) and at that
+                 weight a header reads as a boxed grid. -->
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridColumnHeader">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Stretch"
+                                              HorizontalContentAlignment="Stretch"
+                                              VerticalAlignment="Center"
+                                              SnapsToDevicePixels="True" />
+                            <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left"
+                                   Style="{StaticResource InquiryHeaderGripper}" />
+                            <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right"
+                                   Style="{StaticResource InquiryHeaderGripper}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="InquiryHeaderLabel" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+        </Style>
+        <Style x:Key="InquiryHeaderRule" TargetType="Border">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Width" Value="{DynamicResource StrokeWidth}" />
+            <Setter Property="Background" Value="{DynamicResource BorderStrong}" />
         </Style>
         <Style x:Key="InquiryCellText" TargetType="TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -168,21 +240,39 @@
                                 Command="{Binding NewInquiryCommand}" HorizontalAlignment="Stretch"
                                 Margin="{DynamicResource PaddingCompact}" AutomationProperties.Name="New inquiry" />
                     </StackPanel>
-                    <WrapPanel Grid.Row="1" HorizontalAlignment="Left" Margin="{DynamicResource PaddingCompact}">
-                        <Button Content="Refresh" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding RefreshCommand}" Margin="{DynamicResource MarginInline}"
+                    <!-- Equal thirds, then the long inbox action on its own row.
+                         A WrapPanel sized every button to its label and dropped
+                         the last one onto an orphan line, which read as a
+                         collapsed stack of chips (owner feedback). -->
+                    <Grid Grid.Row="1" Margin="{DynamicResource PaddingCompact}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="1*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Button Grid.Row="0" Grid.Column="0" Content="Refresh" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding RefreshCommand}"
+                                HorizontalAlignment="Stretch" Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Refresh register" />
-                        <Button Content="Import" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding ImportCommand}" Margin="{DynamicResource MarginInline}"
+                        <Button Grid.Row="0" Grid.Column="1" Content="Import" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding ImportCommand}"
+                                HorizontalAlignment="Stretch" Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Import inquiries from CSV" />
-                        <Button Content="Export" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding ExportCommand}" Margin="{DynamicResource MarginInline}"
+                        <Button Grid.Row="0" Grid.Column="2" Content="Export" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding ExportCommand}"
+                                HorizontalAlignment="Stretch" Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Export inquiries to CSV" />
-                        <Button Content="Import from website inbox" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding OpenInboxCommand}" Margin="{DynamicResource MarginInline}"
+                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                Content="Import from website inbox" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding OpenInboxCommand}"
+                                HorizontalAlignment="Stretch" Margin="{DynamicResource MarginInline}"
                                 ToolTip="Open accepted website deliveries, verify/download files, then create local inquiries."
                                 AutomationProperties.Name="Open website inbox to import accepted deliveries" />
-                    </WrapPanel>
+                    </Grid>
                 </Grid>
             </ContentControl>
         </Grid>
@@ -345,6 +435,7 @@
                               CanUserSortColumns="False"
                               HeadersVisibility="Column"
                               CellStyle="{StaticResource InquiryCell}"
+                              GridLinesVisibility="None"
                               ColumnHeaderStyle="{StaticResource InquiryColumnHeader}"
                               CanUserResizeColumns="True"
                               CanUserResizeRows="False"
@@ -431,17 +522,58 @@
                             </Style>
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Inquiry" Binding="{Binding InquiryNumber}" Width="*"
-                                                ElementStyle="{StaticResource InquiryNumberCell}" />
-                            <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCustomerCell}" />
-                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCellText}" />
-                            <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCellText}" />
-                            <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCellText}" />
-                            <DataGridTemplateColumn Header="Status" Width="*" CanUserSort="False">
+                            <DataGridTextColumn Width="*" Binding="{Binding InquiryNumber}"
+                                                ElementStyle="{StaticResource InquiryNumberCell}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Inquiry" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding CustomerName}"
+                                                ElementStyle="{StaticResource InquiryCustomerCell}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Customer" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding Project}"
+                                                ElementStyle="{StaticResource InquiryCellText}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Project" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding Salesman}"
+                                                ElementStyle="{StaticResource InquiryCellText}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Salesman" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding PreparedBy}"
+                                                ElementStyle="{StaticResource InquiryCellText}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Prepared by" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Width="*" CanUserSort="False">
+                                <DataGridTemplateColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Status" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StatusTag}"
@@ -452,19 +584,59 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Value (AED)" Binding="{Binding ValueText}" Width="*"
-                                                ElementStyle="{StaticResource InquiryValueCell}" />
-                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedDateText}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCellText}" />
-                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCellText}" />
-                            <DataGridTextColumn Header="PI" Binding="{Binding ProformaCellText}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCellText}" />
-                            <DataGridTextColumn Header="JO" Binding="{Binding JobOrderCellText}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCellText}" />
-                            <DataGridTextColumn Header="Files" Binding="{Binding AttachmentChipText}" Width="*"
-                                                ElementStyle="{StaticResource InquiryCellText}"
-                                                CanUserSort="False" />
+                            <DataGridTextColumn Width="*" Binding="{Binding ValueText}"
+                                                ElementStyle="{StaticResource InquiryValueCell}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Value (AED)" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding ReceivedDateText}"
+                                                ElementStyle="{StaticResource InquiryCellText}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Received" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding UpdatedText}"
+                                                ElementStyle="{StaticResource InquiryCellText}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Updated" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding ProformaCellText}"
+                                                ElementStyle="{StaticResource InquiryCellText}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="PI" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding JobOrderCellText}"
+                                                ElementStyle="{StaticResource InquiryCellText}">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="JO" Style="{StaticResource InquiryHeaderLabel}" />
+                                        <Border Style="{StaticResource InquiryHeaderRule}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding AttachmentChipText}"
+                                                ElementStyle="{StaticResource InquiryCellText}" CanUserSort="False">
+                                <DataGridTextColumn.Header>
+                                    <Grid>
+                                        <TextBlock Text="Files" Style="{StaticResource InquiryHeaderLabel}" />
+                                    </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                     <!-- Empty state -->

@@ -404,56 +404,86 @@ def require_field_heights():
 def require_register_alignment():
     """Every register column is centred, header and value alike.
 
-    Alignment cannot be done from inside the content: a DataGridTextColumn's
-    cell gives its TextBlock a full-width slot, but a template column's cell
-    gives its content a content-sized one, so the Status badge ignored its own
-    HorizontalAlignment and hugged the left edge. Centring therefore belongs on
-    the cell and on the header, which is what these checks pin down.
+    Alignment cannot be done from inside the content and it cannot be delegated
+    either: the packages hand a DataGridCell a content-sized slot, so a value
+    with HorizontalAlignment="Center" or TextAlignment="Center" still rendered
+    hard against the left edge (measured on the Neumorphism client screen). The
+    same is true of the header. So the view owns both templates and stretches the
+    presenter; the value styles then centre inside a full-width slot. These
+    checks pin that arrangement down, because nothing else can.
     """
     view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
 
     cell = re.search(r'<Style x:Key="ClientCell" TargetType="DataGridCell"(.*?)</Style>', view, re.S)
     check(cell is not None, "the register has no cell style to centre its values")
     if cell:
-        check('Property="HorizontalContentAlignment" Value="Center"' in cell.group(0),
-              "the cell style must centre its content, otherwise the status badge "
-              "stays hard against the left edge")
-        check('BasedOn="{StaticResource {x:Type DataGridCell}}"' in cell.group(0),
+        body = cell.group(0)
+        check('BasedOn="{StaticResource {x:Type DataGridCell}}"' in body,
               "the cell style must derive from the theme's cell style, or the "
-              "register loses the theme's cell chrome")
+              "register loses the theme's selection and focus chrome")
+        check('Property="HorizontalContentAlignment" Value="Center"' in body,
+              "the cell style must centre its content as well, for the columns "
+              "whose value is a template rather than a text block")
+        check('HorizontalContentAlignment="Stretch"' in body and 'HorizontalAlignment="Stretch"' in body,
+              "the cell template's presenter must fill the cell and stretch its "
+              "content; a content-sized slot left-aligns every value no matter "
+              "what the value style says")
+        check('Property="BorderBrush" Value="{DynamicResource TransparentBrush}"' in body,
+              "the cell must not paint a border of its own; the packages drew one "
+              "per cell, which boxed every data row")
 
     header = re.search(r'<Style x:Key="ClientColumnHeader" TargetType="DataGridColumnHeader"(.*?)</Style>',
                        view, re.S)
     check(header is not None, "the register has no column-header style")
     if header:
-        check('Property="HorizontalContentAlignment" Value="Center"' in header.group(0),
-              "the column-header style must centre its label")
-        check('BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"' in header.group(0),
-              "the header style must derive from the theme's header style, or the "
-              "register loses the theme's header template and resize grippers")
+        body = header.group(0)
+        check('BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"' in body,
+              "the header style must derive from the theme's header style")
+        check('HorizontalContentAlignment="Stretch"' in body,
+              "the header template must stretch its presenter, or the label and "
+              "the column rule collapse to the width of the text")
+        check('Property="Padding" Value="0"' in body,
+              "the header's own padding must go: the label carries the theme inset")
 
     check('CellStyle="{StaticResource ClientCell}"' in view,
           "the register DataGrid does not use the centring cell style")
     check('ColumnHeaderStyle="{StaticResource ClientColumnHeader}"' in view,
           "the register DataGrid does not use the centring header style")
 
-    check(len(re.findall(r'\bHeader="[A-Za-z]', view)) == 7,
-          "all seven register columns must be present")
-
-    for style_name in ("ClientNameCell", "ClientMonoCell", "ClientPlainCell"):
-        style = re.search(r'<Style x:Key="' + style_name + r'"[^>]*>(.*?)</Style>', view, re.S)
-        check(style is not None, f"{style_name} is missing from the register")
-        if style:
-            body = style.group(1)
-            check('Property="TextAlignment" Value="Center"' in body,
-                  f"{style_name} must centre the text inside its own box")
-    check('Style="{DynamicResource StatusBadge}"' in view,
-          "the status badge must keep its themed style")
+    label = re.search(r'<Style x:Key="ClientHeaderLabel" TargetType="TextBlock">(.*?)</Style>', view, re.S)
+    check(label is not None, "the register has no header label style")
+    if label:
+        check('Property="TextAlignment" Value="Center"' in label.group(1),
+              "the header label must centre its text")
+        check('Property="HorizontalAlignment" Value="Stretch"' in label.group(1),
+              "the header label must fill the stretched presenter to have anything "
+              "to centre inside")
 
     columns = re.findall(r"<DataGridTextColumn\s[^>]*>", view, re.S)
     check(len(columns) == 6, f"expected six text columns, found {len(columns)}")
     for column in columns:
         check("ElementStyle=" in column, "a register text column has no cell style")
+
+    # Seven columns, so six rules: the last column closes the band with the grid's
+    # own edge instead of a divider hanging in mid-air.
+    check(view.count('Style="{StaticResource ClientHeaderLabel}"') == 7,
+          "every register column must use the centred header label")
+    check(view.count('Style="{StaticResource ClientHeaderRule}"') == 6,
+          "one rule per column boundary: six for seven columns")
+
+    for style_name in ("ClientNameCell", "ClientMonoCell", "ClientPlainCell"):
+        style = re.search(r'<Style x:Key="' + style_name + r'"[^>]*>(.*?)</Style>', view, re.S)
+        check(style is not None, f"{style_name} is missing from the register")
+        if style:
+            check('Property="TextAlignment" Value="Center"' in style.group(1),
+                  f"{style_name} must centre the text inside its own box")
+    check('Style="{DynamicResource StatusBadge}"' in view,
+          "the status badge must keep its themed style")
+    register_columns = view[view.index("<DataGrid.Columns>"):]
+    register_columns = register_columns[:register_columns.index("</DataGrid.Columns>")]
+    check('Header="' not in register_columns,
+          "a plain string header cannot be centred or carry a rule; every column "
+          "must use the header label template")
 
 
 def require_action_layout():
@@ -498,26 +528,53 @@ def require_paired_field_widths():
 def require_header_rules():
     """Column rules belong in the header row, not between the rows of the list.
 
-    Owner feedback: "grid line in top column not in the list". The theme owns
-    the row rules (it sets GridLinesVisibility and both brushes itself), so this
-    view must not override either — it only makes the header's own border
-    visible, which is what gives each column an edge to grab when resizing.
+    Owner feedback, three times: "grid lines only in the column header", "row
+    data normal blank". Two separate mechanisms drew the body rules - the view's
+    own GridLinesVisibility and the package's per-cell border - and clearing only
+    the first one left the rows boxed. The view now states both, and draws the
+    header rule itself so a package's header weight cannot decide how heavy the
+    table looks.
     """
     view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
+    # Read the attribute from the element itself: the doc comments above mention
+    # GridLinesVisibility by name, and a whole-file substring test passed happily
+    # on that comment after the attribute had been deleted.
+    datagrid = view[view.index("<DataGrid "):]
+    datagrid = datagrid[:datagrid.index(">")]
+    check('GridLinesVisibility="None"' in datagrid,
+          "the register must state GridLinesVisibility=\"None\"; leaving it unset "
+          "lets each package decide, and some of them draw horizontal rules")
+    check(datagrid.count('GridLinesVisibility="') == 1,
+          "the register grid must not carry two competing line settings")
+    check('VerticalGridLinesBrush="' not in view and 'HorizontalGridLinesBrush="' not in view,
+          "a rule brush override is not wanted: the header carries the rules")
+
+    rule = re.search(r'<Style x:Key="ClientHeaderRule" TargetType="Border">(.*?)</Style>', view, re.S)
+    check(rule is not None, "the header rule style is missing")
+    if rule:
+        body = rule.group(1)
+        check('Property="Background" Value="{DynamicResource BorderStrong}"' in body,
+              "the header rule must use a visible theme token")
+        check('Property="Width" Value="{DynamicResource StrokeWidth}"' in body,
+              "the rule width must follow the theme, not a literal")
+        check('Property="HorizontalAlignment" Value="Right"' in body,
+              "the rule belongs on the column boundary, so it sits at the right edge")
+    check('CanUserResizeColumns="True"' in view,
+          "columns must stay resizable by hand")
+    check('CanUserResizeRows="False"' in view,
+          "row height is the theme's business, not the user's")
+    check('MinColumnWidth="{DynamicResource ControlMinWidth}"' in view,
+          "a floor is needed, or a column can be dragged down to nothing")
     header = re.search(r'<Style x:Key="ClientColumnHeader" TargetType="DataGridColumnHeader"(.*?)</Style>',
                        view, re.S)
     check(header is not None, "the register has no column-header style")
     if header:
-        check('Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header.group(0),
-              "the header rule must be repainted in a visible theme token")
-    check('GridLinesVisibility="' not in view,
-          "the view must not override the theme's row rules")
-    check('VerticalGridLinesBrush="' not in view,
-          "vertical rules between rows are not wanted; the header carries them")
-    check('CanUserResizeColumns="True"' in view,
-          "columns must stay resizable by hand")
-    check('MinColumnWidth="{DynamicResource ControlMinWidth}"' in view,
-          "a floor is needed, or a column can be dragged down to nothing")
+        check('Property="BorderThickness" Value="0"' in header.group(0),
+              "the package's header frame must be switched off, or its control "
+              "weight (2px, 4px) boxes the header band")
+        check("PART_RightHeaderGripper" in header.group(0) and "PART_LeftHeaderGripper" in header.group(0),
+              "a header template without the resize grippers silently disables "
+              "column resizing")
 
 
 def require_binding_integrity():

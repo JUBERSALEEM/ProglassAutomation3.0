@@ -200,40 +200,57 @@ the older registry prose that still described themes 6–9 as unregistered.
 - Paired field rows are **equal halves** (`1*` / `1*`): Phone above TRN, E-mail
   above Status. The two rows therefore line up as one two-by-two block instead
   of the old `1 : 1.4` split, which left a long empty TRN box.
-- The register is centred end to end: cell values **and** column headers. A
-  `Header="Client"` string and a `DataGridCell`'s content presenter are both
-  left-aligned by default, so the headers are supplied as centred `TextBlock`s
-  (`ClientColumnHeader`) and every text cell carries a centring `ElementStyle`.
-  Centring the values while the headers stayed flush left reads as a bug, which
-  is exactly how it was reported.
+- The register is centred end to end: cell values **and** column headers, and
+  the view does the centring itself. Setting `HorizontalContentAlignment` on the
+  cell or `HorizontalAlignment` on the value was measured and does not work: the
+  package hands a cell a **content-sized** slot, so a centred value still
+  renders flush left (owner: "still data left side"). `ClientCell` and
+  `ClientColumnHeader` therefore own their `ControlTemplate`s and stretch the
+  presenter; the value styles then centre inside a full-width slot. Every colour
+  in both templates stays a `TemplateBinding`, so the package still owns
+  background, foreground, selection and the focus ring.
 - In the Actions card the primary action is one full-width row and Edit /
   Refresh share a second row of equal halves. The grid owns the inset and the
   buttons carry no margin of their own; nested margins made Edit narrower than
-  Refresh and made the pair look collapsed.
-- The rules live in the **header row only**. Row rules stay with the theme:
-  every package sets `GridLinesVisibility` itself and this view does not
-  override it (owner direction: "grid line in top column not in the list").
-- The header's column separators are the theme's own header border, repainted in
-  `BorderStrong`. In `BorderSubtle` it is all but the band colour — in
-  Claymorphism Light that is `#DDD6F0` on a `#C9DCF8` band — so the columns read
-  as one block, and after this change each column has an edge to aim at when
-  resizing by hand.
+  Refresh and made the pair look collapsed. The other half of "collapsed" was
+  colour: in Neumorphism a button, its card and the page were all the same
+  surface, so a secondary action had no fill of its own and read as a word on
+  the card. See the theme note below.
+- The rules live in the **header row only**, and the view draws them. Two
+  separate mechanisms put rules between the data rows: the view's own
+  `GridLinesVisibility` (round 4) and the package's per-cell border, which is
+  what still boxed the rows after `GridLinesVisibility` went. Both are now
+  stated: `GridLinesVisibility="None"` on the grid, and a cell template that
+  paints no border of its own. `step2.f.2` fails if either is removed.
+- The header's column separators are one hairline per boundary
+  (`ClientHeaderRule`: `BorderStrong`, width `StrokeWidth`, right-aligned), so
+  the header keeps the dividers the owner asked for without inheriting a
+  package's boxed header treatment. The last column has no rule — the band ends
+  on the grid's own edge.
 - Columns are resizable by hand (`CanUserResizeColumns`, floor
   `ControlMinWidth`). The rule is what makes the drag target visible: the
   theme's gripper is transparent until it is hovered.
-- Alignment is set on the **cell** and the **header**, not inside the content.
-  A `DataGridTextColumn` cell gives its `TextBlock` a full-width slot, but a
-  template cell (Status) gives its content a content-sized one, so the badge's
-  own `HorizontalAlignment="Center"` was ignored and it hugged the left edge.
-  `ClientCell` and `ClientColumnHeader` derive from the theme's implicit styles
-  and add `HorizontalContentAlignment="Center"`; every setter those theme styles
-  own resolves through `DynamicResource`, so a live theme switch still repaints
-  them. The header template is taken at load time — the nine packages define it
-  identically apart from Neumorphism's softer variant.
 - **Rebuild before judging the UI.** A WPF build does not pick up edited XAML in
   an already-running `bin` output, and a failed build leaves the previous
   executable in place, so an old window can look exactly like an unfixed bug.
   Confirm `git rev-parse HEAD` in the working copy and do a full rebuild.
+
+### Neumorphism depth (theme package, owner direction)
+
+The owner's screenshot was Neumorphism, not Claymorphism, and the complaint was
+that it "looks plain". Measured cause: `ApplicationBackground`, `SurfacePrimary`,
+`SurfaceSecondary` and `SurfaceElevated` were **all `#E6EBEF`** in Light (and all
+`#2A2F38` in Dark), so the page, the cards, the plates and the buttons had no
+edge against each other and the skin's soft shadow had nothing to describe. The
+package now has a ramp - page `#DFE5EA`, card `#E6EBEF`, well `#D7DFE6`,
+elevated `#EFF3F7` (Dark: `#24282F` / `#2A2F38` / `#232830` / `#323842`) - and a
+button takes the elevated step instead of the card colour. `Plate` moves to
+`SurfaceSecondary`, as seven of the nine packages already do. Contrast survives
+the move: the worst text-on-surface pair in either mode is 5.31:1.
+
+`step1.d.5` now fails any package whose page and card are the same colour, or
+that exposes fewer than three distinct surface steps, so a package cannot flatten
+back into one sheet without a decision being recorded.
 
 ## 9. Verification
 

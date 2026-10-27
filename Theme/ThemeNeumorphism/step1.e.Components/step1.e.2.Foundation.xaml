@@ -179,8 +179,13 @@
  <Style x:Key="BentoTile" TargetType="ContentControl" BasedOn="{StaticResource Card}">
   <Setter Property="Margin" Value="0" />
  </Style>
+ <!-- A plate is the recessed layer: toolbars, footers and wells sit in one, on
+      top of a Card. Filling it with SurfacePrimary - the card's own token - made
+      every plate disappear into its card. Neumorphism has depth to spare, but a
+      single flat colour for base, card and well is why the screens read as one
+      plain sheet (owner feedback). -->
  <Style x:Key="Plate" TargetType="ContentControl" BasedOn="{StaticResource Card}">
-  <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+  <Setter Property="Background" Value="{DynamicResource SurfaceSecondary}" />
   <Setter Property="Padding" Value="{DynamicResource PaddingPlate}" />
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContentControl">
    <neu:NeumorphSurface Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="{DynamicResource ControlCornerRadius}" Rank="Control">

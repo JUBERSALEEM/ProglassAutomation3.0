@@ -1,7 +1,13 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:neu="clr-namespace:ProGlassAutomation.ThemeNeumorphism">
+ <!-- A button takes SurfaceElevated, not SurfacePrimary. In this package the
+  card, the plate and the button were all SurfacePrimary, so a secondary action
+  had no fill of its own and read as a word floating on the card - measured on
+  the client screen, where Edit and Refresh appeared to collapse next to the
+  full-width primary. Lifting the pod onto the elevated step gives the control a
+  visible edge without adding a border, which is what the skin is for. -->
  <Style TargetType="Button">
   <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
-  <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+  <Setter Property="Background" Value="{DynamicResource SurfaceElevated}" />
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
   <Setter Property="BorderThickness" Value="0" />
@@ -29,7 +35,7 @@
   </Style.Triggers>
  </Style>
  <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-  <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+  <Setter Property="Background" Value="{DynamicResource SurfaceElevated}" />
   <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
   <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
   <Style.Triggers>
@@ -37,11 +43,11 @@
   </Style.Triggers>
  </Style>
  <Style x:Key="SubtleButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-  <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+  <Setter Property="Background" Value="{DynamicResource SurfaceElevated}" />
   <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
  </Style>
  <Style x:Key="DestructiveButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-  <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+  <Setter Property="Background" Value="{DynamicResource SurfaceElevated}" />
   <Setter Property="Foreground" Value="{DynamicResource StatusError}" />
   <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
   <Style.Triggers>
