@@ -297,6 +297,25 @@ def require_theme_contract():
                   f"{view.name}: ContentPresenter has no VerticalContentAlignment property")
 
 
+def require_command_namespace():
+    """`DelegateCommand` is declared in ProGlassAutomation.ThemeStudio.
+
+    A file that constructs one without that using does not compile, and the error
+    only appears on a real build (CS0246). This check keeps the step3 module from
+    shipping that mistake again: every .cs file that mentions DelegateCommand must
+    import the namespace that declares it.
+    """
+    for path in sorted(MODULE.rglob("*.cs")):
+        if "step3.f.tests" in path.parts:
+            continue
+        text = read(path)
+        if "new DelegateCommand" not in text and "DelegateCommand<" not in text:
+            continue
+        check("using ProGlassAutomation.ThemeStudio;" in text,
+              f"{path.name}: uses DelegateCommand without importing the namespace that "
+              "declares it (CS0246)")
+
+
 def require_first_run_flow():
     """The first-run path must exist, be reachable before the app is used, and
     have exactly one implementation."""
@@ -537,6 +556,7 @@ def main():
     require_theme_contract()
     require_register_layout()
     require_first_run_flow()
+    require_command_namespace()
     require_layout_contract()
     require_docs_recorded()
 

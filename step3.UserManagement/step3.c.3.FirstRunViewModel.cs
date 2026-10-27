@@ -19,6 +19,9 @@
 
 using ProGlassAutomation.Models.Users;
 using ProGlassAutomation.Services.Users;
+// DelegateCommand lives in the Theme Studio shell namespace (step1.b.4); the
+// Users module uses it for its commands exactly as step2 does.
+using ProGlassAutomation.ThemeStudio;
 using ProGlassAutomation.ViewModels.Inquiry;
 using System;
 using System.Collections.ObjectModel;
