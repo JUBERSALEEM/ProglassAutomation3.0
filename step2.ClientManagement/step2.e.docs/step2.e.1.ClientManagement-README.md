@@ -197,6 +197,23 @@ the older registry prose that still described themes 6–9 as unregistered.
 - Fields that share a row with a taller neighbour set `VerticalAlignment="Center"`
   (for example the TRN box beside the Status block). A stretched `TextBox`
   otherwise grows to its neighbour's height and looks oversized.
+- Paired field rows are **equal halves** (`1*` / `1*`): Phone above TRN, E-mail
+  above Status. The two rows therefore line up as one two-by-two block instead
+  of the old `1 : 1.4` split, which left a long empty TRN box.
+- The register is centred end to end: cell values **and** column headers. A
+  `Header="Client"` string and a `DataGridCell`'s content presenter are both
+  left-aligned by default, so the headers are supplied as centred `TextBlock`s
+  (`ClientColumnHeader`) and every text cell carries a centring `ElementStyle`.
+  Centring the values while the headers stayed flush left reads as a bug, which
+  is exactly how it was reported.
+- In the Actions card the primary action is one full-width row and Edit /
+  Refresh share a second row of equal halves. The grid owns the inset and the
+  buttons carry no margin of their own; nested margins made Edit narrower than
+  Refresh and made the pair look collapsed.
+- **Rebuild before judging the UI.** A WPF build does not pick up edited XAML in
+  an already-running `bin` output, and a failed build leaves the previous
+  executable in place, so an old window can look exactly like an unfixed bug.
+  Confirm `git rev-parse HEAD` in the working copy and do a full rebuild.
 
 ## 9. Verification
 

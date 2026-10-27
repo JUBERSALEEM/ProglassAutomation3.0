@@ -120,11 +120,13 @@
                             <TextBlock Text="{Binding AttentionNameError}" Style="{StaticResource ClientFieldErrorText}" />
                         </Border>
 
-                        <!-- ── Phone | E-mail (shared rows) ───────────── -->
+                        <!-- ── Phone | E-mail (shared rows) ─────────────
+                             Equal halves. The paired row below uses the same
+                             halves, so field edges line up as one 2x2 block. -->
                         <Grid Margin="{DynamicResource MarginSection}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="1*" />
-                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="1*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -173,11 +175,13 @@
                             </Border>
                         </Grid>
 
-                        <!-- ── TRN | Status (shared rows) ─────────────── -->
+                        <!-- ── TRN | Status (shared rows) ───────────────
+                             TRN and Status take one width each (owner feedback:
+                             the 1 : 1.4 split left a long empty TRN box). -->
                         <Grid Margin="{DynamicResource MarginSection}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="1*" />
-                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="1*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -188,10 +192,11 @@
                                        Style="{StaticResource ClientFieldLabel}" />
                             <TextBlock Grid.Row="0" Grid.Column="1" Text="Status"
                                        Style="{StaticResource ClientFieldLabel}" />
-                            <!-- VerticalAlignment=Center is deliberate: the neighbouring
-                                 Status cell is taller, and a stretched TextBox would
-                                 otherwise grow to its height (owner feedback: "TRN box
-                                 too big in height"). -->
+                            <!-- VerticalAlignment=Center is deliberate: the Status cell
+                                 beside it is taller (toggle + caption), and a stretched
+                                 TextBox would grow to that height (owner feedback: "TRN
+                                 box too big in height"). The box keeps its own height
+                                 and sits centred against the toggle. -->
                             <TextBox Grid.Row="1" Grid.Column="0"
                                      Style="{DynamicResource {x:Type TextBox}}"
                                      Margin="{DynamicResource MarginInline}"

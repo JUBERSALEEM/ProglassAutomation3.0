@@ -56,6 +56,16 @@
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
+        <!-- Column headers are centred with the same technique as the cells.
+             A DataGridColumnHeader's ContentPresenter is left-aligned, so a
+             plain Header="..." string would sit hard against the left edge and
+             read as misaligned above a centred value. Supplying the text as a
+             TextBlock lets it centre itself inside that presenter. Font family,
+             size and weight still inherit from the themed header. -->
+        <Style x:Key="ClientColumnHeader" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -132,7 +142,10 @@
                             <TextBlock Text="NEW CLIENT" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <!-- Two equal-width secondary actions on one centred row. -->
+                    <!-- Two equal-width secondary actions on one row. The grid
+                         owns the horizontal inset and the buttons fill their
+                         halves exactly, so Edit and Refresh are the same size —
+                         nested margins used to make Edit narrower than Refresh. -->
                     <Grid Margin="{DynamicResource MarginInline}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="1*" />
@@ -141,7 +154,6 @@
                         <Button Grid.Column="0" Style="{DynamicResource SubtleButton}"
                                 Command="{Binding EditSelectedCommand}"
                                 HorizontalAlignment="Stretch"
-                                Margin="{DynamicResource MarginInline}"
                                 IsEnabled="{Binding HasSelection}"
                                 AutomationProperties.Name="Edit selected client">
                             <StackPanel Orientation="Horizontal">
@@ -154,7 +166,6 @@
                         <Button Grid.Column="1" Style="{DynamicResource SubtleButton}"
                                 Command="{Binding RefreshCommand}"
                                 HorizontalAlignment="Stretch"
-                                Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Refresh client list">
                             <StackPanel Orientation="Horizontal">
                                 <studio:ShellMark Kind="Refresh" Width="{DynamicResource ChoiceMarkSize}"
@@ -305,17 +316,40 @@
                                   MouseDoubleClick="OnRowDoubleClick"
                                   KeyDown="OnGridKeyDown">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Client" Binding="{Binding ClientName}" Width="2*"
-                                                    ElementStyle="{StaticResource ClientNameCell}" />
-                                <DataGridTextColumn Header="Attention" Binding="{Binding AttentionName}" Width="1.2*"
-                                                    ElementStyle="{StaticResource ClientPlainCell}" />
-                                <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="1*"
-                                                    ElementStyle="{StaticResource ClientMonoCell}" />
-                                <DataGridTextColumn Header="E-mail" Binding="{Binding Email}" Width="1.4*"
-                                                    ElementStyle="{StaticResource ClientPlainCell}" />
-                                <DataGridTextColumn Header="TRN" Binding="{Binding Trn}" Width="0.9*"
-                                                    ElementStyle="{StaticResource ClientMonoCell}" />
-                                <DataGridTemplateColumn Header="Status" Width="0.8*" CanUserSort="False">
+                                <DataGridTextColumn Width="2*" Binding="{Binding ClientName}"
+                                                    ElementStyle="{StaticResource ClientNameCell}">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Client" Style="{StaticResource ClientColumnHeader}" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Width="1.2*" Binding="{Binding AttentionName}"
+                                                    ElementStyle="{StaticResource ClientPlainCell}">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Attention" Style="{StaticResource ClientColumnHeader}" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Width="1*" Binding="{Binding Phone}"
+                                                    ElementStyle="{StaticResource ClientMonoCell}">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Phone" Style="{StaticResource ClientColumnHeader}" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Width="1.4*" Binding="{Binding Email}"
+                                                    ElementStyle="{StaticResource ClientPlainCell}">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="E-mail" Style="{StaticResource ClientColumnHeader}" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Width="0.9*" Binding="{Binding Trn}"
+                                                    ElementStyle="{StaticResource ClientMonoCell}">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="TRN" Style="{StaticResource ClientColumnHeader}" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Width="0.8*" CanUserSort="False">
+                                    <DataGridTemplateColumn.Header>
+                                        <TextBlock Text="Status" Style="{StaticResource ClientColumnHeader}" />
+                                    </DataGridTemplateColumn.Header>
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Style="{DynamicResource StatusBadge}"
@@ -328,8 +362,12 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}" Width="1*"
-                                                    ElementStyle="{StaticResource ClientMonoCell}" />
+                                <DataGridTextColumn Width="1*" Binding="{Binding UpdatedText}"
+                                                    ElementStyle="{StaticResource ClientMonoCell}">
+                                    <DataGridTextColumn.Header>
+                                        <TextBlock Text="Updated" Style="{StaticResource ClientColumnHeader}" />
+                                    </DataGridTextColumn.Header>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 

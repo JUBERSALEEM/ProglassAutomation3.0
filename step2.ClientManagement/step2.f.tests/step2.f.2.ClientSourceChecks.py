@@ -263,7 +263,8 @@ def require_attention_name():
           "the required field must say it is the company")
 
     workspace_view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
-    check('Header="Attention" Binding="{Binding AttentionName}"' in workspace_view,
+    check(re.search(r'<DataGridTextColumn\s[^>]*Binding="\{Binding AttentionName\}"', workspace_view)
+          is not None,
           "the register must show the attention name")
     check(re.search(r"\bContactPerson\b", workspace_view) is None,
           "the register still binds the superseded column")
@@ -399,6 +400,80 @@ def require_field_heights():
               "height of the Status cell beside it")
 
 
+
+def require_register_alignment():
+    """Every register column is centred, header and value alike.
+
+    A DataGridColumnHeader and a DataGridCell both hand their content to a
+    presenter that is left-aligned by default, so a header string alone, or a
+    cell with no alignment, renders hard against the left edge. Both are checked
+    here because an owner sees a half-centred table as "not fixed".
+    """
+    view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
+    check(view.count('Style="{StaticResource ClientColumnHeader}"') == 7,
+          "all seven register headers must be supplied as centred TextBlocks")
+    check(not re.search(r'Header="[A-Za-z]', view),
+          "a bare Header=\"...\" string is left-aligned; the header needs a centred TextBlock")
+    check('<DataGridTemplateColumn.Header>' in view,
+          "the status column header must be centred too")
+    for style_name in ("ClientNameCell", "ClientMonoCell", "ClientPlainCell"):
+        style = re.search(r'<Style x:Key="' + style_name + r'"[^>]*>(.*?)</Style>', view, re.S)
+        check(style is not None, f"{style_name} is missing from the register")
+        if style:
+            body = style.group(1)
+            check('Property="HorizontalAlignment" Value="Center"' in body,
+                  f"{style_name} must centre its value horizontally")
+            check('Property="TextAlignment" Value="Center"' in body,
+                  f"{style_name} must centre the text inside its own box")
+    check('Style="{DynamicResource StatusBadge}"\n' in view
+          and 'HorizontalAlignment="Center"' in view,
+          "the status badge must centre inside its column")
+    # No text column may skip its centring style.
+    columns = re.findall(r"<DataGridTextColumn\s[^>]*>", view, re.S)
+    check(len(columns) == 6, f"expected six text columns, found {len(columns)}")
+    for column in columns:
+        check("ElementStyle=" in column, "a register text column has no cell style")
+
+
+def require_action_layout():
+    """The actions card must read as three equal, full-width buttons.
+
+    Owner feedback twice: the secondaries looked collapsed and unequal. Two
+    causes are guarded here - a secondary that does not stretch into its half,
+    and doubled margins (a margin on the button inside a grid that already has
+    one) which silently makes one button narrower than the other.
+    """
+    view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
+    primary = re.search(r'<Button Style="\{DynamicResource PrimaryButton\}"(.*?)>', view, re.S)
+    check(primary is not None, "the primary action button is missing")
+    if primary:
+        check('HorizontalAlignment="Stretch"' in primary.group(1),
+              "NEW CLIENT must fill the card width")
+    grid = re.search(r"<Grid Margin=\"\{DynamicResource MarginInline\}\">\s*"
+                     r"<Grid.ColumnDefinitions>\s*"
+                     r'<ColumnDefinition Width="1\*" />\s*'
+                     r'<ColumnDefinition Width="1\*" />', view)
+    check(grid is not None, "Edit and Refresh must share one row of equal halves")
+    for command in ("EditSelectedCommand", "RefreshCommand"):
+        block = re.search(r"<Button[^>]*Command=\"\{Binding " + command + r"\}\"[^>]*>", view, re.S)
+        check(block is not None, f"{command} has no button")
+        if block:
+            check('HorizontalAlignment="Stretch"' in block.group(0),
+                  f"{command} must stretch into its half instead of hugging its label")
+            check("Margin=" not in block.group(0),
+                  f"{command} carries a margin inside an already-inset grid, so the "
+                  "two secondaries cannot be the same width")
+
+
+def require_paired_field_widths():
+    """TRN and Status take one width each, and the rows above match."""
+    view = read(MODULE / "step2.d.2.ClientEditorView.xaml")
+    check('Width="1.4*"' not in view,
+          "a paired field row still uses a 1 : 1.4 split; the pairs are equal halves")
+    equal_pairs = re.findall(r'<ColumnDefinition Width="1\*" />\s*<ColumnDefinition Width="1\*" />', view)
+    check(len(equal_pairs) == 2,
+          f"both paired field rows must be equal halves, found {len(equal_pairs)}")
+
 def require_binding_integrity():
     """Every binding path must resolve to a real member of its view model.
 
@@ -463,6 +538,9 @@ def main():
     require_button_icons()
     require_icon_geometry_valid()
     require_field_heights()
+    require_register_alignment()
+    require_action_layout()
+    require_paired_field_widths()
     require_binding_integrity()
     require_docs_recorded()
 
@@ -472,7 +550,8 @@ def main():
             print("  - " + failure)
         return 1
     print("PASS: step2 client management — naming, single migration chain, no Inquiry schema "
-          "change, no representative identity, no delete path, nine-theme contract, docs recorded.")
+          "change, no representative identity, no delete path, nine-theme contract, centred "
+          "register, equal action buttons, equal paired fields, docs recorded.")
     return 0
 
 
