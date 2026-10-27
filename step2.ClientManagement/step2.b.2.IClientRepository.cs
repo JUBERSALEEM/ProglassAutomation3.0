@@ -31,6 +31,18 @@ namespace ProGlassAutomation.Services.Clients
 
         /// <summary>Safety cap; the directory is a local master list, not a ledger.</summary>
         public int MaxRows { get; init; } = 5000;
+
+        /// <summary>
+        /// Restricts the register to the clients one person represents.
+        /// </summary>
+        /// <remarks>
+        /// Set by the workspace for a signed-in non-administrator (owner
+        /// instruction: "user should be able to read the data related to them
+        /// only"). Null — the administrator's view — reads every client. A client
+        /// with no representative is therefore visible to administrators only,
+        /// which is the honest reading of "related to them".
+        /// </remarks>
+        public int? ScopeToRepresentativeUserId { get; init; }
     }
 
     /// <summary>Register row projection.</summary>

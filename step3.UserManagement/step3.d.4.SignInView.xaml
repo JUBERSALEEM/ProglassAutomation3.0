@@ -1,0 +1,230 @@
+<UserControl x:Class="ProGlassAutomation.Users.SignInView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         step3.d.4 — the sign-in gate.
+
+         Owner instruction (2026-10-27): every user has a password, and a normal
+         user must not be able to act as an administrator. This overlay is what
+         makes that true: the shell is behind it, and no repository write can
+         resolve an actor until a password has been verified.
+
+         It is an overlay inside the shell, exactly like the first-run gate, so
+         the theme keeps owning every surface and there is no second window to
+         place or lose behind the main window.
+
+         Passwords are entered in PasswordBox (masked, no clipboard binding) and
+         handed to the view model from the code-behind; nothing displays them.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <Style x:Key="SignInLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Backdrop: dims the shell and swallows clicks, so nothing behind the gate
+         can be used while signing in. -->
+    <Grid Background="{DynamicResource OverlayBrush}"
+          AutomationProperties.Name="Sign in">
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ContentControl Style="{DynamicResource Card}"
+                            Padding="{DynamicResource UiCardPadding}"
+                            MaxWidth="560"
+                            Margin="{DynamicResource UiPagePadding}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                <StackPanel>
+
+                    <TextBlock Text="Sign in"
+                               FontSize="{DynamicResource FontSizeTitle}"
+                               FontWeight="{DynamicResource FontWeightHeading}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               Margin="{DynamicResource UiGapField}" />
+
+                    <TextBlock Text="{Binding PasswordPrompt}"
+                               Style="{DynamicResource Caption}"
+                               TextWrapping="Wrap"
+                               Margin="{DynamicResource UiGapGroup}"
+                               AutomationProperties.Name="Sign-in instructions" />
+
+                    <!-- ── Step 1: username and password ─────────────────── -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsChangingPassword}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                        <TextBlock Text="Username *" Style="{StaticResource SignInLabel}" />
+                        <TextBox x:Name="UsernameBox"
+                                 Style="{DynamicResource {x:Type TextBox}}"
+                                 Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="{DynamicResource UiActionMinHeight}"
+                                 MaxLength="64"
+                                 Margin="{DynamicResource UiGapGroup}"
+                                 ToolTip="The username an administrator registered for you"
+                                 AutomationProperties.Name="Username" />
+
+                        <TextBlock Text="Password *" Style="{StaticResource SignInLabel}" />
+                        <PasswordBox x:Name="PasswordEntryBox"
+                                     Style="{DynamicResource {x:Type PasswordBox}}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     Margin="{DynamicResource UiGapGroup}"
+                                     PasswordChanged="OnPasswordChanged"
+                                     ToolTip="Your password"
+                                     AutomationProperties.Name="Password" />
+                    </StackPanel>
+
+                    <!-- ── Step 2: replace a temporary password ──────────── -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsChangingPassword}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                        <TextBlock Text="New password *" Style="{StaticResource SignInLabel}" />
+                        <PasswordBox x:Name="NewPasswordEntryBox"
+                                     Style="{DynamicResource {x:Type PasswordBox}}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     Margin="{DynamicResource UiGapGroup}"
+                                     PasswordChanged="OnNewPasswordChanged"
+                                     ToolTip="At least 8 characters, with a letter and a digit"
+                                     AutomationProperties.Name="New password" />
+
+                        <TextBlock Text="Confirm the new password *" Style="{StaticResource SignInLabel}" />
+                        <PasswordBox x:Name="NewPasswordConfirmEntryBox"
+                                     Style="{DynamicResource {x:Type PasswordBox}}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     Margin="{DynamicResource UiGapGroup}"
+                                     PasswordChanged="OnNewPasswordConfirmChanged"
+                                     ToolTip="Type the new password again"
+                                     AutomationProperties.Name="Confirm new password" />
+                    </StackPanel>
+
+                    <!-- The reason a sign-in was refused sits directly above the
+                         actions, so the message and the retry are together. -->
+                    <Border Background="{DynamicResource StatusErrorSurface}"
+                            BorderBrush="{DynamicResource StatusError}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{DynamicResource PaddingControl}"
+                            Margin="{DynamicResource UiGapGroup}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasErrorMessage}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{DynamicResource StatusError}"
+                                   TextWrapping="Wrap"
+                                   AutomationProperties.Name="Sign-in error" />
+                    </Border>
+
+                    <Border Background="{DynamicResource StatusInformationSurface}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{DynamicResource PaddingControl}"
+                            Margin="{DynamicResource UiGapGroup}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasStatusMessage}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   TextWrapping="Wrap"
+                                   AutomationProperties.Name="Sign-in status" />
+                    </Border>
+
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Button Command="{Binding SignInCommand}"
+                                MinHeight="{DynamicResource UiActionMinHeight}"
+                                Padding="{DynamicResource UiActionPadding}"
+                                Margin="{DynamicResource UiGapAction}"
+                                IsEnabled="{Binding IsIdle}"
+                                AutomationProperties.Name="Sign in">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChangingPassword}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <studio:ShellMark Kind="Inquiry"
+                                                  Width="{DynamicResource ChoiceMarkSize}"
+                                                  Height="{DynamicResource ChoiceMarkSize}"
+                                                  Margin="{DynamicResource UiGapAction}"
+                                                  VerticalAlignment="Center" />
+                                <TextBlock Text="SIGN IN" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding ChangePasswordCommand}"
+                                MinHeight="{DynamicResource UiActionMinHeight}"
+                                Padding="{DynamicResource UiActionPadding}"
+                                Margin="{DynamicResource UiGapAction}"
+                                IsEnabled="{Binding IsIdle}"
+                                AutomationProperties.Name="Set the new password">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsChangingPassword}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <studio:ShellMark Kind="Save"
+                                                  Width="{DynamicResource ChoiceMarkSize}"
+                                                  Height="{DynamicResource ChoiceMarkSize}"
+                                                  Margin="{DynamicResource UiGapAction}"
+                                                  VerticalAlignment="Center" />
+                                <TextBlock Text="SET PASSWORD" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+
+                    <TextBlock Text="{Binding WorkstationAccount, StringFormat=This workstation is signed in to Windows as {0}}"
+                               Style="{DynamicResource Caption}"
+                               TextWrapping="Wrap"
+                               Margin="{DynamicResource UiGapGroup}"
+                               AutomationProperties.Name="Workstation account" />
+                </StackPanel>
+            </ContentControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

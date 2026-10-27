@@ -42,6 +42,12 @@ internal static class UserBehaviourChecks
     private static int _passed;
     private static readonly List<string> Failures = new();
 
+    /// <summary>
+    /// The one password every fixture user gets. Round 24: a user only exists if
+    /// they can sign in, so every fixture that creates a row must supply one.
+    /// </summary>
+    private const string TestPassword = "Str0ng-Passw0rd!2026";
+
     public static int Main()
     {
         Run("normalization", CheckNormalization);
@@ -53,6 +59,7 @@ internal static class UserBehaviourChecks
         Run("repository round-trip (isolated database)", CheckRepository);
         Run("first-run gate and concurrent bootstrap", CheckFirstRunGate);
         Run("first-run flow (service)", CheckFirstRunFlow);
+        Run("credentials and read scope (isolated database)", CheckCredentials);
 
         Console.WriteLine();
         Console.WriteLine($"step3 user checks: {_passed} passed, {Failures.Count} failed.");
@@ -60,6 +67,128 @@ internal static class UserBehaviourChecks
         if (Failures.Count == 0)
             Console.WriteLine("PASS: user rules, permissions and isolated persistence.");
         return Failures.Count == 0 ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Round 24: a password decides who you are, and who you are decides what you
+    /// may read. These checks exercise the whole chain on an isolated database:
+    /// the right password signs in, the wrong one is told apart from an unknown
+    /// name, an administrator-set password is temporary, changing your own needs
+    /// the current one, and the register's scope follows the signed-in role.
+    /// </summary>
+    private static void CheckCredentials()
+    {
+        string tempFolder = Path.Combine(
+            Path.GetTempPath(), "proglass-step3-cred-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tempFolder);
+        AppDataRoot.TestFolderOverride = tempFolder;
+        try
+        {
+            CheckCredentialsAsync().GetAwaiter().GetResult();
+        }
+        finally
+        {
+            AuthenticationContext.SignOut();
+            AppDataRoot.TestFolderOverride = null;
+            try { Directory.Delete(tempFolder, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    private static async Task CheckCredentialsAsync()
+    {
+        var repository = new UserRepository();
+        await repository.InitializeAsync();
+
+        string operatorName = UserRules.NormalizeUsername(
+            ProGlassAutomation.Services.Audit.CurrentOperator.Username);
+
+        const string StaffPassword = "Staff-Passw0rd!2026";
+        const string TemporaryPassword = "Temp-Passw0rd!2026";
+        const string OwnPassword = "Own-Passw0rd!2026";
+
+        UserSaveResult bootstrap = await repository.RegisterFirstAdministratorAsync(
+            "Admin One", "Administration", TestPassword, operatorName);
+        True(bootstrap.Succeeded, "the first administrator is created with a password: " + bootstrap.Message);
+        User admin = bootstrap.User!;
+        True(!admin.MustChangePassword,
+            "a password the first administrator chose themselves is not temporary");
+
+        // ── Sign-in ──────────────────────────────────────────────────────
+        SignInResult right = await repository.SignInAsync(admin.Username, TestPassword);
+        True(right.Succeeded, "the right password signs in: " + right.Message);
+        True(!right.MustChangePassword, "a self-chosen password does not demand a change");
+        True(right.User != null && right.User.Id == admin.Id, "sign-in returns the row it verified");
+
+        SignInResult wrong = await repository.SignInAsync(admin.Username, "not-the-password");
+        Equal(nameof(SignInCode.WrongPassword), wrong.Code.ToString(),
+            "a wrong password is refused as a wrong password");
+        True(wrong.AttemptsLeft > 0, "the operator is told that attempts remain");
+
+        SignInResult unknownName = await repository.SignInAsync("no.such.person", TestPassword);
+        Equal(nameof(SignInCode.UnknownUser), unknownName.Code.ToString(),
+            "an unknown username is told apart from a wrong password");
+
+        // ── A normal user, and a temporary password ──────────────────────
+        UserSaveResult created = await repository.CreateAsync(new UserDraft
+        {
+            FullName = "Fatima Al Zaabi",
+            Username = "fatima.alzaabi",
+            Department = "Estimation",
+            Role = "Estimator",
+            Password = StaffPassword, PasswordConfirm = StaffPassword
+        }, operatorName);
+        True(created.Succeeded, "an administrator can add a user with a password: " + created.Message);
+        User estimator = created.User!;
+        True(estimator.MustChangePassword,
+            "a password an administrator set is marked temporary");
+
+        UserSaveResult reset = await repository
+            .ResetPasswordAsync(estimator.Id, TemporaryPassword, operatorName);
+        True(reset.Succeeded, "an administrator can reset somebody's password: " + reset.Message);
+
+        SignInResult temporary = await repository.SignInAsync(estimator.Username, TemporaryPassword);
+        True(temporary.Succeeded, "the temporary password works");
+        True(temporary.MustChangePassword, "and it must be replaced before the session is handed over");
+
+        // ── Changing your own password needs the current one ────────────
+        UserSaveResult withoutCurrent = await repository.ChangePasswordAsync(
+            estimator.Id, "", OwnPassword, estimator.Username);
+        True(!withoutCurrent.Succeeded,
+            "a password change without the current password is refused");
+
+        UserSaveResult wrongCurrent = await repository.ChangePasswordAsync(
+            estimator.Id, "still-not-it", OwnPassword, estimator.Username);
+        True(!wrongCurrent.Succeeded, "a password change with the wrong current password is refused");
+
+        UserSaveResult selfChange = await repository.ChangePasswordAsync(
+            estimator.Id, TemporaryPassword, OwnPassword, estimator.Username);
+        True(selfChange.Succeeded, "the person can replace their own password: " + selfChange.Message);
+
+        SignInResult own = await repository.SignInAsync(estimator.Username, OwnPassword);
+        True(own.Succeeded && !own.MustChangePassword,
+            "their own password no longer has to change");
+
+        // ── Read scope follows the signed-in role ───────────────────────
+        AuthenticationContext.SignIn(own.User!);
+        IReadOnlyList<UserListRow> mine = await repository.QueryAsync(new UserQuery());
+        Equal("1", mine.Count.ToString(), "a signed-in non-administrator reads exactly one row");
+        Equal(estimator.Id.ToString(), mine[0].Id.ToString(), "and that row is their own");
+
+        // The ceiling holds even when the caller asks for somebody else's row.
+        IReadOnlyList<UserListRow> widened = await repository
+            .QueryAsync(new UserQuery { ScopeToUserId = admin.Id });
+        Equal("1", widened.Count.ToString(), "asking for another row cannot widen a non-administrator's scope");
+        Equal(estimator.Id.ToString(), widened[0].Id.ToString(), "the requested row is still refused");
+
+        AuthenticationContext.SignIn(admin);
+        Equal("2", (await repository.QueryAsync(new UserQuery())).Count.ToString(),
+            "an administrator reads the whole directory");
+
+        AuthenticationContext.SignOut();
+        True(AuthenticationContext.UserId == null, "signing out clears the identity");
+        SignInResult afterSignOut = await repository.SignInAsync(estimator.Username, OwnPassword);
+        True(afterSignOut.Succeeded, "signing in again still works after a sign-out");
+        AuthenticationContext.SignOut();
     }
 
     // ── Harness ──────────────────────────────────────────────────────────
@@ -400,8 +529,8 @@ internal static class UserBehaviourChecks
             "an empty directory reports that first-run setup is required");
 
         // Two simultaneous attempts, as two workstations would arrive.
-        var first = repository.RegisterFirstAdministratorAsync("Racer One", "Administration", operatorName);
-        var second = repository.RegisterFirstAdministratorAsync("Racer Two", "Administration", operatorName);
+        var first = repository.RegisterFirstAdministratorAsync("Racer One", "Administration", TestPassword, operatorName);
+        var second = repository.RegisterFirstAdministratorAsync("Racer Two", "Administration", TestPassword, operatorName);
         UserSaveResult[] results = await Task.WhenAll(first, second);
 
         int succeeded = results.Count(result => result.Succeeded);
@@ -412,7 +541,7 @@ internal static class UserBehaviourChecks
             "the gate closes once an administrator exists");
 
         var late = await repository.RegisterFirstAdministratorAsync(
-            "Too Late", "Administration", operatorName);
+            "Too Late", "Administration", TestPassword, operatorName);
         True(!late.Succeeded, "the bootstrap path is closed after the first administrator");
 
         // An inactive match: recognised, refused, and left exactly as it was.
@@ -425,7 +554,8 @@ internal static class UserBehaviourChecks
         var otherAdmin = await repository.CreateAsync(new UserDraft
         {
             FullName = "Second Administrator", Username = "second.admin",
-            Department = "Administration", Role = "Administrator"
+            Department = "Administration", Role = "Administrator",
+            Password = TestPassword, PasswordConfirm = TestPassword
         }, operatorName);
         True(otherAdmin.Succeeded, "a second administrator exists for the guard to permit this");
 
@@ -513,7 +643,8 @@ internal static class UserBehaviourChecks
         UserSaveResult secondAdmin = await repository.CreateAsync(new UserDraft
         {
             FullName = "Second Administrator", Username = "second.admin",
-            Department = "Administration", Role = "Administrator"
+            Department = "Administration", Role = "Administrator",
+            Password = TestPassword, PasswordConfirm = TestPassword
         }, empty.OperatorUsername);
         True(secondAdmin.Succeeded, "a second administrator can be added: " + secondAdmin.Message);
 
@@ -547,7 +678,7 @@ internal static class UserBehaviourChecks
 
         // ── Bootstrap ────────────────────────────────────────────────────
         var bootstrap = await repository.RegisterFirstAdministratorAsync(
-            "  Ahmed   Al Balushi ", "Administration", operatorName);
+            "  Ahmed   Al Balushi ", "Administration", TestPassword, operatorName);
         True(bootstrap.Succeeded, "first administrator registered: " + bootstrap.Message);
         User admin = bootstrap.User!;
         Equal("ADMINISTRATOR", admin.Role, "bootstrap grants the Administrator role");
@@ -555,7 +686,7 @@ internal static class UserBehaviourChecks
         Equal("Ahmed Al Balushi", admin.FullName, "bootstrap normalizes the full name");
 
         var secondBootstrap = await repository.RegisterFirstAdministratorAsync(
-            "Someone Else", "Administration", operatorName);
+            "Someone Else", "Administration", TestPassword, operatorName);
         True(!secondBootstrap.Succeeded, "bootstrap closes once a user exists");
 
         // ── Create, default role, duplicate refusal ──────────────────────
@@ -564,7 +695,8 @@ internal static class UserBehaviourChecks
             FullName = "  Fatima   Al Zaabi ",
             Username = "fatima.alzaabi",
             Department = "Estimation",
-            Role = "Estimator"
+            Role = "Estimator",
+            Password = TestPassword, PasswordConfirm = TestPassword
         }, operatorName);
         True(created.Succeeded, "administrator can add a user: " + created.Message);
         User estimator = created.User!;
@@ -578,7 +710,8 @@ internal static class UserBehaviourChecks
             FullName = "Impostor",
             Username = "FATIMA.ALZAABI",
             Department = "Sales",
-            Role = "Salesman"
+            Role = "Salesman",
+            Password = TestPassword, PasswordConfirm = TestPassword
         }, operatorName);
         True(!duplicate.Succeeded, "a username differing only in case is refused");
         True(duplicate.Message.Contains("already belongs", StringComparison.Ordinal),
@@ -587,14 +720,16 @@ internal static class UserBehaviourChecks
         // ── Permission is enforced below the UI ──────────────────────────
         var refusedCreate = await repository.CreateAsync(new UserDraft
         {
-            FullName = "Should Not Exist", Username = "ghost", Department = "Sales", Role = "Salesman"
+            FullName = "Should Not Exist", Username = "ghost", Department = "Sales", Role = "Salesman",
+            Password = TestPassword, PasswordConfirm = TestPassword
         }, estimator.Username);
         True(!refusedCreate.Succeeded, "a non-administrator is refused by the write path");
         Equal(nameof(UserDecisionCode.NotAuthorized), refusedCreate.Code.ToString(), "refusal code");
 
         var refusedUnknown = await repository.CreateAsync(new UserDraft
         {
-            FullName = "Nobodys Account", Username = "nobody", Department = "Sales", Role = "Salesman"
+            FullName = "Nobodys Account", Username = "nobody", Department = "Sales", Role = "Salesman",
+            Password = TestPassword, PasswordConfirm = TestPassword
         }, @"MACHINE\no-such-account");
         Equal(nameof(UserDecisionCode.NotIdentified), refusedUnknown.Code.ToString(),
             "an unregistered workstation account is refused");
@@ -603,7 +738,8 @@ internal static class UserBehaviourChecks
         var secondAdmin = await repository.CreateAsync(new UserDraft
         {
             FullName = "Sara Al Marzooqi", Username = "sara.marzooqi",
-            Department = "Administration", Role = "Administrator"
+            Department = "Administration", Role = "Administrator",
+            Password = TestPassword, PasswordConfirm = TestPassword
         }, operatorName);
         True(secondAdmin.Succeeded, "a second administrator can be added: " + secondAdmin.Message);
 
@@ -635,7 +771,8 @@ internal static class UserBehaviourChecks
 
         var asInactive = await repository.CreateAsync(new UserDraft
         {
-            FullName = "While Inactive", Username = "while.inactive", Department = "Sales", Role = "Salesman"
+            FullName = "While Inactive", Username = "while.inactive", Department = "Sales", Role = "Salesman",
+            Password = TestPassword, PasswordConfirm = TestPassword
         }, estimator.Username);
         Equal(nameof(UserDecisionCode.Inactive), asInactive.Code.ToString(),
             "an inactive user cannot manage users");

@@ -23,6 +23,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 using ProGlassAutomation.Models.Users;
+using ProGlassAutomation.Services.Audit;
 using ProGlassAutomation.Services.Users;
 using ProGlassAutomation.ThemeStudio;
 using ProGlassAutomation.ViewModels.Inquiry;
@@ -86,6 +87,8 @@ namespace ProGlassAutomation.ViewModels.Users
         private int _totalCount;
 
         private string _bootstrapFullName = "";
+        private string _bootstrapPassword = "";
+        private string _bootstrapPasswordConfirm = "";
         private string _bootstrapDepartment = UserCatalog.AdministrationDepartment;
         private CatalogRow? _bootstrapDepartmentItem;
         private string _bootstrapError = "";
@@ -113,6 +116,7 @@ namespace ProGlassAutomation.ViewModels.Users
             NewUserCommand = new DelegateCommand(() => OpenEditorForNew());
             EditSelectedCommand = new DelegateCommand(() => OpenEditorForSelected());
             RefreshCommand = new DelegateCommand(() => _ = ReloadAsync());
+            SignOutCommand = new DelegateCommand(SignOut);
             ClearSearchCommand = new DelegateCommand(() =>
             {
                 SearchText = "";
@@ -304,7 +308,12 @@ namespace ProGlassAutomation.ViewModels.Users
 
         // ── Bootstrap ───────────────────────────────────────────────────
 
-        public string BootstrapOperatorUsername => _session.OperatorUsername;
+        /// <summary>
+        /// The account the bootstrap row will be registered under: the Windows
+        /// account running this process, never the session (a fresh directory has
+        /// nobody signed in, so the session would be empty).
+        /// </summary>
+        public string BootstrapOperatorUsername => CurrentOperator.Username;
 
         public string BootstrapFullName
         {
@@ -331,6 +340,19 @@ namespace ProGlassAutomation.ViewModels.Users
                 if (!SetField(ref _bootstrapDepartmentItem, value)) return;
                 BootstrapDepartment = value?.Code ?? "";
             }
+        }
+
+        /// <summary>Password chosen for the first administrator; never stored as text.</summary>
+        public string BootstrapPassword
+        {
+            get => _bootstrapPassword;
+            set { if (SetField(ref _bootstrapPassword, value ?? "")) BootstrapError = ""; }
+        }
+
+        public string BootstrapPasswordConfirm
+        {
+            get => _bootstrapPasswordConfirm;
+            set { if (SetField(ref _bootstrapPasswordConfirm, value ?? "")) BootstrapError = ""; }
         }
 
         public string BootstrapError
@@ -395,6 +417,22 @@ namespace ProGlassAutomation.ViewModels.Users
         public ICommand EditSelectedCommand { get; }
         public ICommand SelectStatusTabCommand { get; }
         public ICommand RefreshCommand { get; }
+
+        /// <summary>Ends the session; the shell puts the sign-in gate back.</summary>
+        public ICommand SignOutCommand { get; }
+
+        /// <summary>
+        /// Says whose data this page is showing. An administrator sees the whole
+        /// directory; everybody else sees only their own row, because the directory
+        /// is staff data and the read path enforces that, not the filter boxes.
+        /// </summary>
+        public string ScopeNote => _session.IsAdministrator || !_session.IsIdentified
+            ? ""
+            : $"Signed in as {_session.StatusSummary}. Only your own record is listed.";
+
+        public bool HasScopeNote => ScopeNote.Length > 0;
+
+        private void SignOut() => _session.SignOut();
         public ICommand ClearSearchCommand { get; }
         public ICommand ToggleActiveCommand { get; }
         public ICommand RegisterFirstAdministratorCommand { get; }
@@ -467,6 +505,19 @@ namespace ProGlassAutomation.ViewModels.Users
         }
 
         /// <summary>Reloads the register for the current filter. Cancels a previous load.</summary>
+        /// <summary>
+        /// The row id a non-administrator may read: their own, or null for an
+        /// administrator. Applied to every query this page makes.
+        /// </summary>
+        /// <remarks>
+        /// Nobody signed in is not the same as an administrator: before a
+        /// verified sign-in the id is 0, which matches no row, so a page that
+        /// somehow loads early shows nothing instead of the whole directory.
+        /// </remarks>
+        private int? ReadScope => AuthenticationContext.IsAdministrator
+            ? null
+            : AuthenticationContext.UserId ?? 0;
+
         public async Task ReloadAsync()
         {
             if (!_isInitialized) return;
@@ -486,7 +537,8 @@ namespace ProGlassAutomation.ViewModels.Users
                         Search = SearchText,
                         IsActive = true,
                         Department = SelectedDepartmentFilter,
-                        Role = SelectedRoleFilter
+                        Role = SelectedRoleFilter,
+                        ScopeToUserId = ReadScope
                     }, cts.Token).ConfigureAwait(true);
 
                 var inactiveRows = await _repository.QueryAsync(
@@ -495,7 +547,8 @@ namespace ProGlassAutomation.ViewModels.Users
                         Search = SearchText,
                         IsActive = false,
                         Department = SelectedDepartmentFilter,
-                        Role = SelectedRoleFilter
+                        Role = SelectedRoleFilter,
+                        ScopeToUserId = ReadScope
                     }, cts.Token).ConfigureAwait(true);
 
                 int total = await _repository.CountAsync(cts.Token).ConfigureAwait(true);
@@ -581,6 +634,10 @@ namespace ProGlassAutomation.ViewModels.Users
             // a choice the face is the catalogue's own wording, verbatim.
             DepartmentFilters.Clear();
             DepartmentFilters.Add(new CatalogRow { Code = "", DisplayName = "All departments" });
+            // The catalogue's own wording, verbatim. The field name is the
+            // label's job, not the value's: a row saying "Department: Cutting"
+            // is the same word twice, in a form that only makes sense in a
+            // toolbar and reads like a placeholder everywhere else.
             foreach (var department in departments) DepartmentFilters.Add(department);
 
             RoleFilters.Clear();
@@ -596,6 +653,8 @@ namespace ProGlassAutomation.ViewModels.Users
             OnPropertyChanged(nameof(SelectedRoleFilterItem));
             OnPropertyChanged(nameof(SelectedDepartmentFilterText));
             OnPropertyChanged(nameof(SelectedRoleFilterText));
+            OnPropertyChanged(nameof(ScopeNote));
+            OnPropertyChanged(nameof(HasScopeNote));
 
             // Re-apply the current filter selection now that the lists have
             // items. A ComboBox whose SelectedValue is set while its ItemsSource
@@ -671,6 +730,7 @@ namespace ProGlassAutomation.ViewModels.Users
                     _repository, UserDraft.From(user), Departments.ToList(), Roles.ToList(),
                     _session.OperatorUsername, user.Id);
                 OpenEditor(editor);
+                editor.ApplyPasswordState(user);
                 await editor.LoadAsync(user.CreatedByUserId, user.UpdatedByUserId, user.CreatedAt, user.UpdatedAt)
                     .ConfigureAwait(true);
             }
@@ -782,7 +842,23 @@ namespace ProGlassAutomation.ViewModels.Users
             IsBootstrapping = true;
             try
             {
-                var result = await _firstRun.RegisterAsync(BootstrapFullName, BootstrapDepartment)
+                // The same policy as every other password in the module: the
+                // card cannot create an administrator nobody could sign in as.
+                string? mismatch = string.IsNullOrEmpty(BootstrapPassword)
+                    ? "Choose a password for the first administrator."
+                    : UserPassword.Validate(BootstrapPassword)
+                      ?? (string.Equals(BootstrapPassword, BootstrapPasswordConfirm, StringComparison.Ordinal)
+                          ? null
+                          : "The two passwords do not match.");
+
+                if (mismatch != null)
+                {
+                    BootstrapError = mismatch;
+                    return;
+                }
+
+                var result = await _firstRun
+                    .RegisterAsync(BootstrapFullName, BootstrapDepartment, BootstrapPassword)
                     .ConfigureAwait(true);
 
                 if (!result.Succeeded)
@@ -802,6 +878,8 @@ namespace ProGlassAutomation.ViewModels.Users
                 }
 
                 BootstrapFullName = "";
+                BootstrapPassword = "";
+                BootstrapPasswordConfirm = "";
                 StatusMessage = result.Message;
                 await RefreshOperatorAsync().ConfigureAwait(true);
                 await ReloadAsync().ConfigureAwait(true);

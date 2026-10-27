@@ -267,9 +267,13 @@
                     <ColumnDefinition Width="*" MinWidth="0" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
                 <!-- ── Search, status, department, role ─────────────────── -->
-                <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <WrapPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
 
                     <Grid Width="190" MinWidth="140" VerticalAlignment="Center"
                           Margin="{DynamicResource UiGapAction}">
@@ -329,56 +333,70 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Department filter. The face carries the SELECTION only —
-                         "All departments" until something is chosen, then the
-                         catalogue's own wording ("Cutting Department"). No caption
-                         beside the box and no field name on the button: the owner
-                         has rejected both, twice each. The selection is bound as a
-                         ROW, not as a code string: a SelectedValue applied before
-                         the list exists is what left these boxes blank. -->
-                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              MinWidth="150"
-                              MinHeight="{DynamicResource UiActionMinHeight}"
-                              Margin="{DynamicResource UiGapAction}"
-                              ItemsSource="{Binding DepartmentFilters}"
-                              SelectedItem="{Binding SelectedDepartmentFilterItem, Mode=TwoWay}"
-                              VerticalAlignment="Center"
-                              ToolTip="Show only people from one department"
-                              AutomationProperties.Name="Department filter"
-                              AutomationProperties.HelpText="Filters the register by department; All departments shows every team">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                    <!-- Department filter. The label sits beside the box with the
+                         selection alone on the face ("All departments" until
+                         something is chosen, then the catalogue's own wording),
+                         which is the Inquiry toolbar's arrangement. Printing the
+                         field word inside the face was tried: in a form or a
+                         narrow bar it reads as a placeholder, and it doubles the
+                         word once the row already says "Cutting Department".
+                         The selection is bound as a ROW, not as a code string: a
+                         SelectedValue applied before the list exists is what left
+                         these boxes blank. -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="{DynamicResource UiGapAction}">
+                        <TextBlock Text="Department" Style="{DynamicResource Caption}"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource UiGapAction}" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  MinWidth="150"
+                                  MinHeight="{DynamicResource UiActionMinHeight}"
+                                  ItemsSource="{Binding DepartmentFilters}"
+                                  SelectedItem="{Binding SelectedDepartmentFilterItem, Mode=TwoWay}"
+                                  VerticalAlignment="Center"
+                                  ToolTip="Show only people from one department"
+                                  AutomationProperties.Name="Department filter"
+                                  AutomationProperties.HelpText="Filters the register by department; All departments shows every team">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
 
-                    <!-- Role filter, same idiom: "All roles" until a role is
-                         chosen, then the role's own name. Role is what a person may
-                         do; department never is a permission, which is why both
-                         filters exist. -->
-                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              MinWidth="130"
-                              MinHeight="{DynamicResource UiActionMinHeight}"
-                              Margin="{DynamicResource UiGapAction}"
-                              ItemsSource="{Binding RoleFilters}"
-                              SelectedItem="{Binding SelectedRoleFilterItem, Mode=TwoWay}"
-                              VerticalAlignment="Center"
-                              ToolTip="Show only people with one role"
-                              AutomationProperties.Name="Role filter"
-                              AutomationProperties.HelpText="Filters the register by role; All roles shows every role">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                    <!-- Role filter, same idiom: the label says which field, the
+                         face says the selection — "All roles" until a role is
+                         chosen, the role's own name after it. Role is what a
+                         person may do; department never is a permission, which is
+                         why both filters exist. -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="{DynamicResource UiGapAction}">
+                        <TextBlock Text="Role" Style="{DynamicResource Caption}"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource UiGapAction}" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  MinWidth="130"
+                                  MinHeight="{DynamicResource UiActionMinHeight}"
+                                  ItemsSource="{Binding RoleFilters}"
+                                  SelectedItem="{Binding SelectedRoleFilterItem, Mode=TwoWay}"
+                                  VerticalAlignment="Center"
+                                  ToolTip="Show only people with one role"
+                                  AutomationProperties.Name="Role filter"
+                                  AutomationProperties.HelpText="Filters the register by role; All roles shows every role">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
                 </WrapPanel>
 
                 <!-- ── Actions ─────────────────────────────────────────────
                      8 px between the buttons of the group, 16 px before the
                      primary action so it reads as its own decision. -->
-                <WrapPanel Grid.Column="1" Orientation="Horizontal"
+                <WrapPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
                            HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding EditSelectedCommand}"
@@ -436,6 +454,27 @@
                         </StackPanel>
                     </Button>
 
+                    <!-- Sign out is on the page because the session belongs to the
+                         person using it, not to the window: the next operator on this
+                         workstation must be able to end it. -->
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding SignOutCommand}"
+                            Margin="{DynamicResource UiGapAction}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            VerticalAlignment="Center"
+                            ToolTip="End this session and return to the sign-in screen"
+                            AutomationProperties.Name="Sign out">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Cancel"
+                                              Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource UiGapAction}"
+                                              VerticalAlignment="Center" />
+                            <TextBlock Text="Sign out" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
                     <Button Style="{DynamicResource PrimaryButton}"
                             Command="{Binding NewUserCommand}"
                             Margin="{DynamicResource UiGapCluster}"
@@ -452,6 +491,25 @@
                         </StackPanel>
                     </Button>
                 </WrapPanel>
+                <!-- Whose data this is. A non-administrator reads their own row
+                     only; saying so is the difference between "empty" and
+                     "restricted". -->
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                           Text="{Binding ScopeNote}"
+                           TextWrapping="Wrap"
+                           Margin="{DynamicResource UiGapField}"
+                           AutomationProperties.Name="Read scope">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{DynamicResource Caption}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasScopeNote}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
             </Grid>
         </ContentControl>
 
@@ -677,7 +735,7 @@
                  way out: the person at this workstation registers the Windows
                  account they are already using. The repository closes the door
                  as soon as any user exists. -->
-            <Grid>
+            <Grid x:Name="BootstrapCard">
                 <Grid.Style>
                     <Style TargetType="Grid">
                         <Setter Property="Visibility" Value="Collapsed" />
@@ -694,7 +752,7 @@
                 <ContentControl Style="{DynamicResource Card}"
                                 Padding="{DynamicResource UiCardPadding}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel Margin="{DynamicResource PaddingCard}" MaxWidth="620" HorizontalAlignment="Left">
+                        <StackPanel MaxWidth="620" HorizontalAlignment="Left">
                             <TextBlock Text="Register the first administrator"
                                        FontSize="{DynamicResource FontSizeTitle}"
                                        FontWeight="{DynamicResource FontWeightHeading}"
@@ -747,6 +805,34 @@
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
+
+                            <!-- Password, chosen here: without it the row would
+                                 exist and nobody could ever sign in as it. -->
+                            <TextBlock Text="Password *"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontSize="{DynamicResource FontSizeCaption}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Margin="{DynamicResource UiGapField}" />
+                            <PasswordBox x:Name="BootstrapPasswordBox"
+                                         Style="{DynamicResource {x:Type PasswordBox}}"
+                                         MinHeight="{DynamicResource UiActionMinHeight}"
+                                         Margin="{DynamicResource UiGapField}"
+                                         PasswordChanged="OnBootstrapPasswordChanged"
+                                         ToolTip="At least 8 characters, with a letter and a digit"
+                                         AutomationProperties.Name="First administrator password" />
+
+                            <TextBlock Text="Confirm the password *"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontSize="{DynamicResource FontSizeCaption}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Margin="{DynamicResource UiGapField}" />
+                            <PasswordBox x:Name="BootstrapPasswordConfirmBox"
+                                         Style="{DynamicResource {x:Type PasswordBox}}"
+                                         MinHeight="{DynamicResource UiActionMinHeight}"
+                                         Margin="{DynamicResource UiGapGroup}"
+                                         PasswordChanged="OnBootstrapPasswordConfirmChanged"
+                                         ToolTip="Type the same password again"
+                                         AutomationProperties.Name="Confirm first administrator password" />
 
                             <Border Background="{DynamicResource StatusErrorSurface}"
                                     CornerRadius="{DynamicResource ControlCornerRadius}"

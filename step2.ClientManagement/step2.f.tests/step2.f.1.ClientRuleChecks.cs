@@ -469,8 +469,11 @@ internal static class ClientRuleChecks
         // ── Representative reference (migration 1014) ────────────────────
         // The picker's list comes from the user directory: active salesmen only.
         var users = new UserRepository();
+        // Round 24: every user has a password, so the fixture administrator gets
+        // one too — the row is otherwise unusable and cannot be signed in as.
+        const string adminPassword = "Fixture-Admin!2026";
         UserSaveResult admin = await users.RegisterFirstAdministratorAsync(
-            "Directory Admin", UserCatalog.AdministrationDepartment, @"MALIK\ADMIN");
+            "Directory Admin", UserCatalog.AdministrationDepartment, adminPassword, @"MALIK\ADMIN");
         True(admin.Succeeded, "a first administrator exists for the reference checks: " + admin.Message);
 
         UserSaveResult salesman = await users.CreateAsync(new UserDraft
@@ -478,7 +481,8 @@ internal static class ClientRuleChecks
             FullName = "Sara Sales",
             Username = @"MALIK\SARA",
             Department = UserCatalog.DefaultDepartment,
-            Role = UserCatalog.SalesmanRole
+            Role = UserCatalog.SalesmanRole,
+            Password = "Fixture-Sales!2026", PasswordConfirm = "Fixture-Sales!2026"
         }, @"MALIK\ADMIN");
         True(salesman.Succeeded, "a salesman was created: " + salesman.Message);
 
@@ -487,7 +491,8 @@ internal static class ClientRuleChecks
             FullName = "Eddie Estimator",
             Username = @"MALIK\EDDIE",
             Department = UserCatalog.DefaultDepartment,
-            Role = UserCatalog.DefaultRole
+            Role = UserCatalog.DefaultRole,
+            Password = "Fixture-Estimate!2026", PasswordConfirm = "Fixture-Estimate!2026"
         }, @"MALIK\ADMIN");
         True(estimator.Succeeded, "a non-salesman was created: " + estimator.Message);
 
@@ -516,8 +521,10 @@ internal static class ClientRuleChecks
         Equal("Sara Sales", alNoor.RepresentativeText, "the register resolves the name");
 
         // A rename relabels the register without rewriting the client row.
+        // Round 24: "the current user" is the SIGNED-IN user, and this fixture
+        // never signs in — so there is none, which is the honest answer here.
         User? sara = await users.FindCurrentUserAsync();
-        True(sara == null || sara.Id != salesId, "the saved reference is not the operator's own row");
+        True(sara == null, "a fixture with nobody signed in has no current user");
         UserSaveResult renamed = await users.UpdateAsync(new UserDraft
         {
             Id = salesId,

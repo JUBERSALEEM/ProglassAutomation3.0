@@ -213,6 +213,103 @@
                                        AutomationProperties.Name="Role error" />
                         </Border>
 
+                        <!-- ── Password ─────────────────────────────────
+                             A user only exists if they can sign in. The password is
+                             masked and handed to the view model from the
+                             code-behind; it is never displayed, and only its hash is
+                             stored. Editing somebody else makes it a temporary
+                             reset; editing yourself asks for the current password. -->
+                        <TextBlock Text="{Binding PasswordSectionTitle}"
+                                   Style="{StaticResource UserFieldLabel}"
+                                   Margin="{DynamicResource UiGapSection}" />
+
+                        <TextBlock Text="{Binding PasswordSectionHint}"
+                                   Style="{DynamicResource Caption}"
+                                   TextWrapping="Wrap"
+                                   Margin="{DynamicResource UiGapField}" />
+
+                        <TextBlock Text="{Binding PasswordStateText}"
+                                   TextWrapping="Wrap"
+                                   Margin="{DynamicResource UiGapField}"
+                                   AutomationProperties.Name="Password state">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{DynamicResource Caption}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasPasswordStateText}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <StackPanel>
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ShowCurrentPassword}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+
+                            <TextBlock Text="Current password *" Style="{StaticResource UserFieldLabel}" />
+                            <PasswordBox x:Name="CurrentPasswordBox"
+                                         Style="{DynamicResource {x:Type PasswordBox}}"
+                                         MinHeight="{DynamicResource UiActionMinHeight}"
+                                         PasswordChanged="OnCurrentPasswordChanged"
+                                         ToolTip="Required to change your own password"
+                                         AutomationProperties.Name="Current password" />
+                            <Border>
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource UserFieldErrorPlate}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasCurrentPasswordError}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding CurrentPasswordError}"
+                                           Style="{StaticResource UserFieldErrorText}"
+                                           AutomationProperties.Name="Current password error" />
+                            </Border>
+                        </StackPanel>
+
+                        <TextBlock Text="New password" Style="{StaticResource UserFieldLabel}" />
+                        <PasswordBox x:Name="NewPasswordBox"
+                                     Style="{DynamicResource {x:Type PasswordBox}}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     PasswordChanged="OnNewPasswordChanged"
+                                     ToolTip="At least 8 characters, with a letter and a digit"
+                                     AutomationProperties.Name="New password" />
+
+                        <TextBlock Text="Confirm the new password" Style="{StaticResource UserFieldLabel}" />
+                        <PasswordBox x:Name="NewPasswordConfirmBox"
+                                     Style="{DynamicResource {x:Type PasswordBox}}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     PasswordChanged="OnNewPasswordConfirmChanged"
+                                     ToolTip="Type the new password again"
+                                     AutomationProperties.Name="Confirm new password" />
+
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource UserFieldErrorPlate}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasPasswordError}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding PasswordError}"
+                                       Style="{StaticResource UserFieldErrorText}"
+                                       AutomationProperties.Name="Password error" />
+                        </Border>
+
                         <!-- ── Status ─────────────────────────────────── -->
                         <TextBlock Text="Status" Style="{StaticResource UserFieldLabel}"
                                    Margin="{DynamicResource UiGapSection}" />

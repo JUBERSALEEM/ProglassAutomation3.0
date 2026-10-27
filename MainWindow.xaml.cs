@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using ProGlassAutomation.Services.Users;
 using ProGlassAutomation.Theming;
 using ProGlassAutomation.ThemeStudio;
@@ -15,6 +16,7 @@ public partial class MainWindow : Window
 {
     private readonly ThemeStudioViewModel viewModel;
     private FirstRunViewModel? firstRun;
+    private SignInViewModel? signIn;
     private PreviewWindow? preview;
     private readonly BlurEffect spotlightBlur = new() { Radius = 16, KernelType = KernelType.Gaussian, RenderingBias = RenderingBias.Performance };
 
@@ -30,8 +32,12 @@ public partial class MainWindow : Window
         {
             OverflowSpotlight.Changed -= OnSpotlight;
             viewModel.DialogRequested -= OpenPreview;
+            AuthenticationContext.SignedOut -= OnSignedOut;
             viewModel.Dispose();
         };
+
+        // Signing out (from the Users page) must bring the gate straight back.
+        AuthenticationContext.SignedOut += OnSignedOut;
 
         // First run is decided once the shell is up: the check reads the
         // database, and doing that before the window exists would delay startup
@@ -60,7 +66,16 @@ public partial class MainWindow : Window
 
             bool show = await firstRun.InitializeAsync();
             FirstRunGate.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            if (show) FirstRunGate.FocusFirstField();
+
+            if (show)
+            {
+                FirstRunGate.FocusFirstField();
+                return;
+            }
+
+            // A directory with users but no verified session: the gate is the way
+            // in. Nothing else is reachable until it hands the session over.
+            await BeginSignInAsync();
         }
         catch (Exception error)
         {
@@ -76,10 +91,69 @@ public partial class MainWindow : Window
     /// Setup finished: close the gate and put the new administrator in front of
     /// the register, which is the page they now need — adding the rest of the team.
     /// </summary>
-    private void OnFirstRunCompleted(object? sender, EventArgs e)
+    private async void OnFirstRunCompleted(object? sender, EventArgs e)
     {
         FirstRunGate.Visibility = Visibility.Collapsed;
+
+        // The administrator was just created with a password of their own; ask for
+        // it once, so the session is established by a real sign-in rather than by
+        // the act of creating the row.
+        await BeginSignInAsync(firstRun?.OperatorUsername);
+    }
+
+    /// <summary>
+    /// Shows the sign-in gate and waits for a verified password.
+    /// </summary>
+    /// <remarks>
+    /// The session object is shared with the Users page (same repository, same
+    /// process-wide authentication context), so once this returns a session the
+    /// whole shell is operating as that person.
+    /// </remarks>
+    private async Task BeginSignInAsync(string? prefillUsername = null)
+    {
+        try
+        {
+            if (signIn == null)
+            {
+                var repository = new UserRepository();
+                signIn = new SignInViewModel(repository, new UserSession(repository));
+                signIn.SignedIn += OnSignedIn;
+                SignInGate.DataContext = signIn;
+            }
+
+            await signIn.InitializeAsync(prefillUsername);
+            SignInGate.Visibility = Visibility.Visible;
+            SignInGate.FocusFirstField();
+        }
+        catch (Exception error)
+        {
+            // The gate must never take the shell down silently; the Users page
+            // reports the same failure in its own error surface once signed in.
+            SignInGate.Visibility = Visibility.Collapsed;
+            System.Diagnostics.Debug.WriteLine("Sign-in gate skipped: " + error);
+        }
+    }
+
+    private void OnSignedIn(object? sender, EventArgs e)
+    {
+        SignInGate.Visibility = Visibility.Collapsed;
+
+        // Land on the register: that is the page a person needs first, and it is
+        // the only page that depends on who is signed in.
         viewModel.SelectedWorkspace = 9;   // Users (MainWindow tab order)
+    }
+
+    private void OnSignedOut(object? sender, EventArgs e)
+    {
+        // Raised from the Users page; marshal to the UI thread before touching
+        // any control.
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => OnSignedOut(sender, e));
+            return;
+        }
+
+        _ = BeginSignInAsync();
     }
 
     /// <summary>

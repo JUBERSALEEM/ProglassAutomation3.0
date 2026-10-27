@@ -54,6 +54,12 @@ namespace ProGlassAutomation.ViewModels.Users
         private CatalogRow? _roleItem;
         private string _roleError = "";
 
+        private string _password = "";
+        private string _passwordConfirm = "";
+        private string _currentPassword = "";
+        private string _passwordError = "";
+        private string _currentPasswordError = "";
+        private string _passwordStateText = "";
         private string _statusMessage = "";
         private string _errorMessage = "";
         private string _auditText = "";
@@ -324,6 +330,94 @@ namespace ProGlassAutomation.ViewModels.Users
 
         public ICommand DeactivateCommand { get; }
 
+        // ── Password ─────────────────────────────────────────────────────
+        // Three cases, one section:
+        //   new user            → a password is required (the administrator sets it)
+        //   editing somebody else → reset is optional; the person must replace it
+        //   editing yourself    → change it, and prove the current one
+
+        /// <summary>True when the row being edited is the signed-in person.</summary>
+        public bool IsSelf => !_isNew && AuthenticationContext.UserId == _userId;
+
+        /// <summary>Only a person changing their own password must prove the old one.</summary>
+        public bool ShowCurrentPassword => IsSelf;
+
+        public string PasswordSectionTitle => _isNew
+            ? "Password *"
+            : IsSelf ? "Change my password" : "Reset this person's password";
+
+        public string PasswordSectionHint => _isNew
+            ? "The person signs in with this password the first time, then must choose their own."
+            : IsSelf
+                ? "Leave both boxes empty to keep the current password."
+                : "Optional. A reset password is temporary: the person must choose their own at the next sign-in.";
+
+        public string Password
+        {
+            get => _password;
+            set { if (SetField(ref _password, value ?? "")) { PasswordError = ""; ClearSaveFeedback(); } }
+        }
+
+        public string PasswordConfirm
+        {
+            get => _passwordConfirm;
+            set { if (SetField(ref _passwordConfirm, value ?? "")) { PasswordError = ""; ClearSaveFeedback(); } }
+        }
+
+        public string CurrentPassword
+        {
+            get => _currentPassword;
+            set { if (SetField(ref _currentPassword, value ?? "")) { CurrentPasswordError = ""; ClearSaveFeedback(); } }
+        }
+
+        public string PasswordError
+        {
+            get => _passwordError;
+            private set { if (SetField(ref _passwordError, value)) OnPropertyChanged(nameof(HasPasswordError)); }
+        }
+
+        public bool HasPasswordError => PasswordError.Length > 0;
+
+        public string CurrentPasswordError
+        {
+            get => _currentPasswordError;
+            private set { if (SetField(ref _currentPasswordError, value)) OnPropertyChanged(nameof(HasCurrentPasswordError)); }
+        }
+
+        public bool HasCurrentPasswordError => CurrentPasswordError.Length > 0;
+
+        /// <summary>"Password set on …" / "No password yet" for an existing row.</summary>
+        public string PasswordStateText
+        {
+            get => _passwordStateText;
+            private set { if (SetField(ref _passwordStateText, value)) OnPropertyChanged(nameof(HasPasswordStateText)); }
+        }
+
+        public bool HasPasswordStateText => PasswordStateText.Length > 0;
+
+        /// <summary>Fills the password state line for an existing row.</summary>
+        public void ApplyPasswordState(User user)
+        {
+            if (user == null || _isNew)
+            {
+                PasswordStateText = "";
+                return;
+            }
+
+            if (!user.HasPassword)
+            {
+                PasswordStateText = "No password yet — this person cannot sign in until one is set.";
+                return;
+            }
+
+            string when = user.PasswordUpdatedAt.HasValue
+                ? UserRules.FormatTimestamp(user.PasswordUpdatedAt.Value)
+                : "an unknown date";
+            PasswordStateText = user.MustChangePassword
+                ? $"Temporary password set {when}; the person must replace it at the next sign-in."
+                : $"Password set {when}.";
+        }
+
         /// <summary>Current field values as an un-normalized draft.</summary>
         public UserDraft ToDraft() => new()
         {
@@ -332,7 +426,10 @@ namespace ProGlassAutomation.ViewModels.Users
             Username = Username,
             Department = Department,
             Role = Role,
-            IsActive = IsActive
+            IsActive = IsActive,
+            Password = Password,
+            PasswordConfirm = PasswordConfirm,
+            CurrentPassword = CurrentPassword
         };
 
         // ── Load ─────────────────────────────────────────────────────────
@@ -385,6 +482,17 @@ namespace ProGlassAutomation.ViewModels.Users
                 ErrorMessage = "Correct the highlighted field(s) before saving.";
                 return false;
             }
+
+            // Changing your own password without knowing the current one would make
+            // the check pointless, so it is refused before anything is written.
+            if (ShowCurrentPassword && Password.Length > 0 && CurrentPassword.Length == 0)
+            {
+                CurrentPasswordError = "Enter your current password.";
+                ErrorMessage = CurrentPasswordError;
+                return false;
+            }
+
+            CurrentPasswordError = "";
             ClearErrors();
 
             IsBusy = true;
@@ -402,7 +510,35 @@ namespace ProGlassAutomation.ViewModels.Users
                     return false;
                 }
 
-                StatusMessage = _isNew ? "User added." : "User updated.";
+                // A new user's password travelled with the draft and was hashed by
+                // CreateAsync. For an existing row it is a separate, deliberate act:
+                // a reset for somebody else, a self-change for yourself.
+                if (!_isNew && (Password.Length > 0 || PasswordConfirm.Length > 0))
+                {
+                    UserSaveResult passwordResult = IsSelf
+                        ? await _repository.ChangePasswordAsync(
+                            result.User.Id, CurrentPassword, Password, _operatorUsername).ConfigureAwait(true)
+                        : await _repository.ResetPasswordAsync(
+                            result.User.Id, Password, _operatorUsername).ConfigureAwait(true);
+
+                    if (!passwordResult.Succeeded)
+                    {
+                        // The row is already saved; say exactly what did not happen
+                        // so the operator does not believe the password changed.
+                        ErrorMessage = "The user was saved, but the password was not changed: "
+                            + passwordResult.Message;
+                        PasswordError = passwordResult.Message;
+                        return false;
+                    }
+
+                    Password = "";
+                    PasswordConfirm = "";
+                    CurrentPassword = "";
+                }
+
+                StatusMessage = _isNew
+                    ? "User added. Give them the password you set, so they can sign in."
+                    : "User updated.";
                 Saved?.Invoke(this, result.User);
                 return true;
             }
@@ -473,6 +609,9 @@ namespace ProGlassAutomation.ViewModels.Users
             UsernameError = errors.TryGetValue(nameof(UserDraft.Username), out string? username) ? username : "";
             DepartmentError = errors.TryGetValue(nameof(UserDraft.Department), out string? department) ? department : "";
             RoleError = errors.TryGetValue(nameof(UserDraft.Role), out string? role) ? role : "";
+            PasswordError = errors.TryGetValue(nameof(UserDraft.Password), out string? password) ? password : "";
+            if (PasswordError.Length == 0)
+                PasswordError = errors.TryGetValue(nameof(UserDraft.PasswordConfirm), out string? confirm) ? confirm : "";
         }
 
         private void ClearErrors()
@@ -481,6 +620,8 @@ namespace ProGlassAutomation.ViewModels.Users
             UsernameError = "";
             DepartmentError = "";
             RoleError = "";
+            PasswordError = "";
+            CurrentPasswordError = "";
         }
 
         private void ClearSaveFeedback()

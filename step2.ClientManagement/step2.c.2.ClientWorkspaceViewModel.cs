@@ -14,6 +14,7 @@
 
 using ProGlassAutomation.Models.Clients;
 using ProGlassAutomation.Services.Clients;
+using ProGlassAutomation.Services.Users;
 using ProGlassAutomation.ThemeStudio;
 using ProGlassAutomation.ViewModels.Inquiry;
 using System;
@@ -189,8 +190,14 @@ namespace ProGlassAutomation.ViewModels.Clients
             private set => SetField(ref _inactiveCount, value);
         }
 
+        /// <summary>Why the register is narrower than the whole directory, if it is.</summary>
+        public string ScopeNote => AuthenticationContext.IsAdministrator
+            ? ""
+            : "only the clients you represent";
+
         public string RegisterSummary =>
-            $"{ActiveCount} active  ·  {InactiveCount} inactive  ·  {Rows.Count} shown";
+            $"{ActiveCount} active  ·  {InactiveCount} inactive  ·  {Rows.Count} shown"
+            + (ScopeNote.Length > 0 ? "  ·  " + ScopeNote : "");
 
         // ── Editor / feedback ───────────────────────────────────────────
 
@@ -278,7 +285,18 @@ namespace ProGlassAutomation.ViewModels.Clients
                 // what a tab would show, so they cannot be derived from an already
                 // filtered page. The tab then decides what reaches the register.
                 var rows = await _repository.QueryAsync(
-                    new ClientQuery { Search = SearchText, IncludeInactive = true },
+                    new ClientQuery
+                    {
+                        Search = SearchText,
+                        IncludeInactive = true,
+                        // Administrators read the whole directory; everybody else
+                        // reads the clients they represent. Nobody signed in is
+                        // not an administrator — id 0 matches no row, so an early
+                        // load shows nothing rather than everything.
+                        ScopeToRepresentativeUserId = AuthenticationContext.IsAdministrator
+                            ? null
+                            : AuthenticationContext.UserId ?? 0
+                    },
                     cts.Token).ConfigureAwait(true);
 
                 // The editor's representative picker is filled from the same load,

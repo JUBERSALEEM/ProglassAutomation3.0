@@ -110,6 +110,11 @@ namespace ProGlassAutomation.Services.Users
 
                 foreach (string required in UserSchema.RequiredColumns)
                     if (!columns.Contains(required)) return false;
+
+                // Credential columns come from 1015. Without them nobody can sign
+                // in, so the directory is not ready however healthy the rest looks.
+                foreach (string required in UserSchema.CredentialColumns)
+                    if (!columns.Contains(required)) return false;
                 return true;
             }
             catch (Exception)
@@ -134,6 +139,28 @@ namespace ProGlassAutomation.Services.Users
             query ??= new UserQuery();
             await using var db = CreateContext();
             IQueryable<User> source = db.Users.AsNoTracking();
+
+            // ── Read scope ──────────────────────────────────────────────
+            // Owner instruction: "user should be able to read the data related to
+            // them only". Two layers, on purpose:
+            //   • the CEILING — a signed-in non-administrator can never read
+            //     another person's row, whatever the caller asks for;
+            //   • the REQUEST — the workspace passes ScopeToUserId so the intent
+            //     is visible where the query is built.
+            // A process with nobody signed in is the bootstrap/fixture state; the
+            // sign-in gate makes it unreachable from the application.
+            if (AuthenticationContext.Current is { } viewer
+                && !AuthenticationContext.IsAdministrator)
+            {
+                // The ceiling wins first: a non-administrator cannot reach another
+                // row by asking for it.
+                int ownId = viewer.Id;
+                source = source.Where(x => x.Id == ownId);
+            }
+            else if (query.ScopeToUserId is int requestedId)
+            {
+                source = source.Where(x => x.Id == requestedId);
+            }
 
             if (query.IsActive.HasValue)
             {
@@ -207,7 +234,7 @@ namespace ProGlassAutomation.Services.Users
         }
 
         public async Task<User?> FindCurrentUserAsync(CancellationToken ct = default)
-            => await FindByUsernameAsync(CurrentOperatorUsername(), ct).ConfigureAwait(false);
+            => await FindUserRowAsync(CurrentOperatorUsername(), ct).ConfigureAwait(false);
 
         /// <summary>
         /// True when the directory has no users at all, i.e. the application still
@@ -282,6 +309,217 @@ namespace ProGlassAutomation.Services.Users
                 .ToList();
         }
 
+        // ── Credentials ──────────────────────────────────────────────────
+
+        /// <summary>Failures allowed before the account locks.</summary>
+        public const int MaxFailedSignIns = 5;
+
+        /// <summary>How long a locked account stays locked.</summary>
+        public const int LockoutSeconds = 60;
+
+        public async Task<User?> FindByUsernameAsync(string username, CancellationToken ct = default)
+        {
+            await using var db = CreateContext();
+            return await FindUserRowAsync(db, username, ct).ConfigureAwait(false);
+        }
+
+        public async Task<SignInResult> SignInAsync(
+            string username, string password, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return SignInResult.Fail(SignInCode.UnknownUser, "Enter your username.");
+
+            if (string.IsNullOrEmpty(password))
+                return SignInResult.Fail(SignInCode.WrongPassword, "Enter your password.");
+
+            try
+            {
+                await using var db = CreateContext();
+
+                User? user = await FindUserRowAsync(db, username, ct).ConfigureAwait(false);
+                if (user == null)
+                    return SignInResult.Fail(
+                        SignInCode.UnknownUser, "No account matches that username.");
+
+                if (!user.IsActive)
+                    return SignInResult.Fail(
+                        SignInCode.Inactive,
+                        "That account has been deactivated. Ask an administrator to re-activate it.");
+
+                DateTime now = DateTime.UtcNow;
+                if (user.LockedUntilUtc is DateTime lockedUntil && lockedUntil > now)
+                {
+                    int seconds = Math.Max(1, (int)Math.Ceiling((lockedUntil - now).TotalSeconds));
+                    return SignInResult.Fail(
+                        SignInCode.Locked,
+                        $"Too many failed attempts. Try again in {seconds} second(s).");
+                }
+
+                var stored = new PasswordHash
+                {
+                    Hash = user.PasswordHash,
+                    Salt = user.PasswordSalt,
+                    Iterations = user.PasswordIterations
+                };
+
+                if (stored.IsEmpty)
+                    return SignInResult.Fail(
+                        SignInCode.NoPassword,
+                        "This account has no password yet. Ask an administrator to set one.");
+
+                if (!UserPassword.Verify(password, stored))
+                {
+                    user.FailedSignInCount += 1;
+                    int left = Math.Max(0, MaxFailedSignIns - user.FailedSignInCount);
+
+                    if (user.FailedSignInCount >= MaxFailedSignIns)
+                    {
+                        user.FailedSignInCount = 0;
+                        user.LockedUntilUtc = now.AddSeconds(LockoutSeconds);
+                        await SqliteResilience.SaveWithRetryAsync(
+                            token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+
+                        return SignInResult.Fail(
+                            SignInCode.Locked,
+                            $"Too many failed attempts. The account is locked for {LockoutSeconds} seconds.");
+                    }
+
+                    await SqliteResilience.SaveWithRetryAsync(
+                        token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+
+                    return SignInResult.Fail(
+                        SignInCode.WrongPassword,
+                        $"Wrong password. {left} attempt(s) left before the account locks.",
+                        left);
+                }
+
+                // A good password clears the counters whether or not the password
+                // still has to be replaced.
+                user.FailedSignInCount = 0;
+                user.LockedUntilUtc = null;
+                await SqliteResilience.SaveWithRetryAsync(
+                    token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+
+                return SignInResult.Ok(user, user.MustChangePassword);
+            }
+            catch (Exception ex)
+            {
+                return SignInResult.Fail(
+                    SignInCode.UnknownUser, DescribeWriteFailure("Sign-in could not be completed", ex));
+            }
+        }
+
+        public async Task<UserSaveResult> ChangePasswordAsync(
+            int userId, string currentPassword, string newPassword,
+            string operatorUsername, CancellationToken ct = default)
+        {
+            string? policy = UserPassword.Validate(newPassword);
+            if (policy != null) return UserSaveResult.Fail(policy);
+            if (userId <= 0) return UserSaveResult.Fail("No user was selected.");
+
+            try
+            {
+                await using var db = CreateContext();
+                await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+                User? actor = await ResolveOperatorAsync(db, operatorUsername, ct).ConfigureAwait(false);
+                if (actor == null || !actor.IsActive)
+                    return UserSaveResult.Fail(
+                        "Sign in again before changing a password.", UserDecisionCode.NotIdentified);
+
+                if (actor.Id != userId)
+                    return UserSaveResult.Fail(
+                        "You can change your own password only. An administrator resets somebody else's.",
+                        UserDecisionCode.NotAuthorized);
+
+                User? target = await db.Users
+                    .FirstOrDefaultAsync(x => x.Id == userId, ct).ConfigureAwait(false);
+                if (target == null)
+                    return UserSaveResult.Fail("That user no longer exists in the directory.");
+
+                var stored = new PasswordHash
+                {
+                    Hash = target.PasswordHash,
+                    Salt = target.PasswordSalt,
+                    Iterations = target.PasswordIterations
+                };
+
+                // An account with no credential yet has nothing to prove: the person
+                // is already signed in, so they may choose the first password.
+                if (!stored.IsEmpty && !UserPassword.Verify(currentPassword, stored))
+                    return UserSaveResult.Fail("The current password is not correct.");
+
+                ApplyNewPassword(target, newPassword, DateTime.UtcNow, mustChange: false, actor.Id);
+
+                await SqliteResilience.SaveWithRetryAsync(
+                    token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+                await transaction.CommitAsync(ct).ConfigureAwait(false);
+                return UserSaveResult.Ok(target);
+            }
+            catch (Exception ex)
+            {
+                return UserSaveResult.Fail(DescribeWriteFailure("The password could not be changed", ex));
+            }
+        }
+
+        public async Task<UserSaveResult> ResetPasswordAsync(
+            int userId, string newPassword, string operatorUsername, CancellationToken ct = default)
+        {
+            string? policy = UserPassword.Validate(newPassword);
+            if (policy != null) return UserSaveResult.Fail(policy);
+            if (userId <= 0) return UserSaveResult.Fail("No user was selected.");
+
+            try
+            {
+                await using var db = CreateContext();
+                await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+                User? actor = await ResolveOperatorAsync(db, operatorUsername, ct).ConfigureAwait(false);
+                UserDecision permission = UserAuthorization.CanManageUsers(actor);
+                if (!permission.IsAllowed) return Refuse(permission);
+
+                User? target = await db.Users
+                    .FirstOrDefaultAsync(x => x.Id == userId, ct).ConfigureAwait(false);
+                if (target == null)
+                    return UserSaveResult.Fail("That user no longer exists in the directory.");
+
+                ApplyNewPassword(target, newPassword, DateTime.UtcNow,
+                    mustChange: actor!.Id != target.Id, operatorId: actor.Id);
+
+                await SqliteResilience.SaveWithRetryAsync(
+                    token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+                await transaction.CommitAsync(ct).ConfigureAwait(false);
+                return UserSaveResult.Ok(target);
+            }
+            catch (Exception ex)
+            {
+                return UserSaveResult.Fail(DescribeWriteFailure("The password could not be reset", ex));
+            }
+        }
+
+        /// <summary>
+        /// Writes a freshly hashed password onto a tracked row and clears the
+        /// lockout. The plain password is never stored, logged or echoed.
+        /// </summary>
+        private static void ApplyNewPassword(
+            User target, string newPassword, DateTime now, bool mustChange, int operatorId)
+        {
+            PasswordHash credential = UserPassword.Create(newPassword);
+            target.PasswordHash = credential.Hash;
+            target.PasswordSalt = credential.Salt;
+            target.PasswordIterations = credential.Iterations;
+            target.PasswordUpdatedAt = now;
+            target.MustChangePassword = mustChange;
+            target.FailedSignInCount = 0;
+            target.LockedUntilUtc = null;
+            target.UpdatedAt = now;
+
+            // 0 means "no earlier user to name" (the first-run bootstrap). Writing 0
+            // into UpdatedByUserId would break the rule that a stored audit id
+            // resolves to a real person, so the column stays null instead.
+            if (operatorId > 0) target.UpdatedByUserId = operatorId;
+        }
+
         // ── Writes ───────────────────────────────────────────────────────
 
         public async Task<UserSaveResult> CreateAsync(
@@ -323,6 +561,10 @@ namespace ProGlassAutomation.Services.Users
                     CreatedByUserId = actor!.Id,
                     UpdatedByUserId = actor.Id
                 };
+
+                // The administrator typed this password, so the person replaces it
+                // at their first sign-in. Only the hash is stored.
+                ApplyNewPassword(user, normalized.Password, now, mustChange: true, operatorId: actor.Id);
 
                 db.Users.Add(user);
                 await SqliteResilience.SaveWithRetryAsync(
@@ -481,8 +723,11 @@ namespace ProGlassAutomation.Services.Users
         }
 
         public async Task<UserSaveResult> RegisterFirstAdministratorAsync(
-            string fullName, string department, string operatorUsername, CancellationToken ct = default)
+            string fullName, string department, string password,
+            string operatorUsername, CancellationToken ct = default)
         {
+            string? policy = UserPassword.Validate(password);
+            if (policy != null) return UserSaveResult.Fail(policy);
             string username = UserRules.NormalizeUsername(operatorUsername);
             if (username.Length == 0)
                 return UserSaveResult.Fail(
@@ -536,6 +781,10 @@ namespace ProGlassAutomation.Services.Users
                     UpdatedByUserId = null
                 };
 
+                // The first administrator chooses their own password here, so it is
+                // not a temporary one: there is nobody to replace it for them.
+                ApplyNewPassword(user, password, now, mustChange: false, operatorId: 0);
+
                 db.Users.Add(user);
                 await SqliteResilience.SaveWithRetryAsync(
                     token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
@@ -573,7 +822,17 @@ namespace ProGlassAutomation.Services.Users
         // ── Helpers ──────────────────────────────────────────────────────
 
         /// <summary>The workstation account, from the application's one identity source.</summary>
-        private static string CurrentOperatorUsername() => CurrentOperator.Username;
+        /// <summary>
+        /// The account a write is attributed to: the user who signed in.
+        /// </summary>
+        /// <remarks>
+        /// It used to be the Windows workstation account. Since every user now has
+        /// a password (owner instruction, 2026-10-27) the signed-in user is the
+        /// only honest answer, and an empty string before sign-in means the write
+        /// path resolves no actor and refuses — the gate cannot be bypassed by
+        /// calling a repository method directly.
+        /// </remarks>
+        private static string CurrentOperatorUsername() => AuthenticationContext.Username;
 
         /// <summary>
         /// Resolves the operating user from the workstation username inside the
@@ -582,17 +841,19 @@ namespace ProGlassAutomation.Services.Users
         /// </summary>
         private static async Task<User?> ResolveOperatorAsync(
             UserDbContext db, string operatorUsername, CancellationToken ct)
-            => await FindByUsernameAsync(db, operatorUsername, ct).ConfigureAwait(false);
+            => await FindUserRowAsync(db, operatorUsername, ct).ConfigureAwait(false);
 
-        private static async Task<User?> FindByUsernameAsync(
-            string operatorUsername, CancellationToken ct)
+        /// <summary>One row by username, in its own context.</summary>
+        private static async Task<User?> FindUserRowAsync(
+            string username, CancellationToken ct)
         {
             await using var db = new UserDbContext();
-            return await FindByUsernameAsync(db, operatorUsername, ct).ConfigureAwait(false);
+            return await FindUserRowAsync(db, username, ct).ConfigureAwait(false);
         }
 
-        private static async Task<User?> FindByUsernameAsync(
-            UserDbContext db, string operatorUsername, CancellationToken ct)
+        /// <summary>One row by username inside the caller's context.</summary>
+        private static async Task<User?> FindUserRowAsync(
+            UserDbContext db, string username, CancellationToken ct)
         {
             string key = UserRules.UsernameKey(operatorUsername);
             if (key.Length == 0) return null;

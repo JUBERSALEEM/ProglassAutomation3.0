@@ -11,23 +11,30 @@ Inquiry integration and every document module remain unbuilt.
 
 - **Register** of users with search, status chips (All / Active / Inactive) and
   department and role filters.
-- **Add / edit** a user: full name, username, department, role, active flag.
+- **Add / edit** a user: full name, username, department, role, active flag, and
+  the password that lets them sign in.
 - **Activate / deactivate** — deactivation replaces deletion, so historical
   attribution keeps a target. There is no delete command anywhere.
+- **Sign in**: every user has a password. The shell shows a sign-in gate before
+  any page, and the verified row is the identity every write is attributed to.
 - **First run**: while the directory is empty, the person at the workstation
   registers the Windows account they are already using as the first
-  Administrator. The door closes as soon as any user exists.
+  Administrator, choosing a password on the same form. The door closes as soon as
+  any user exists.
 - **Guard rails**: only an active Administrator may change the directory; the
   last active Administrator cannot be deactivated or demoted; nobody can
-  deactivate their own account.
+  deactivate their own account; a non-administrator reads their own record only.
 
 ## What it deliberately does not do
 
-- **No password, hash, salt, token or login screen.** The application has no
-  credentialed login to authenticate against, and inventing one would be a
-  fabricated security feature. A user's username is expected to match their
-  Windows account name, which is what the app already reads through
-  `Inquiry/Services/Audit/CurrentOperator.cs`.
+- **No password reset by email, no external identity provider, no token.** The
+  credential is local, salted and hashed (PBKDF2-HMAC-SHA256, 210 000 iterations,
+  16-byte salt, 32-byte hash, constant-time compare — `step3.a.5.UserPassword`).
+  There is no "forgot password" link and no directory integration; an
+  administrator resets a password and the person replaces it at the next sign-in.
+- **No screen-hiding as security.** A screen that only an administrator may use is
+  refused by the repository as well, and the read scope is applied in the query
+  (see *Sign-in and read scope* below).
 - **No invented permission matrix.** Accountant, Salesman, Estimator, Foreman,
   Cutting and Double Glazing have no per-module rights in this stage because
   those modules do not exist. Only the rules stated by the owner are enforced.
@@ -71,10 +78,26 @@ card on the Users page.
    be added.
 
 While the directory is empty the read-only notice is suppressed — the setup card is
-the message. If the account matches an **inactive** user instead, the gate does not
-appear and the notice says the person is inactive; the account is never silently
-re-activated. There is no password field, no default account and no anonymous
-access anywhere in this flow.
+the message. If the account matches an **inactive** user instead, the sign-in gate
+refuses it with the inactive reason; the account is never silently re-activated.
+There is no default account and no anonymous access anywhere in this flow.
+
+## Sign-in and read scope
+
+`step3.d.4.SignInView` covers the shell on start-up; `step3.c.4.SignInViewModel`
+owns the two steps. First the username and password are verified against the
+directory. Then, when the password was one an administrator set, the same card asks
+for a new one before it hands the session over — a temporary password that can be
+used for a week is not temporary.
+
+- The identity is `AuthenticationContext` (`step3.b.7`), set only by a verified
+  sign-in. Every write resolves its operator from it, so a directory change without
+  a session is refused exactly like a directory change by a normal user.
+- A non-administrator's register is narrowed in the query, not in the view: the
+  repository applies the ceiling first (own row only) and the workspace passes the
+  same id, so the status counts cannot leak how many people exist either.
+- The Clients register applies the same rule to representatives: a normal user reads
+  the clients they represent, an Administrator reads the whole book.
 
 ## Layout contract
 
@@ -87,13 +110,15 @@ identically in all eighteen theme dictionaries:
   column, actions in a content-sized column. A `WrapPanel` wraps instead of
   overflowing, so nothing can be drawn over anything at any width (including with
   the sidebar open), yet at normal width the whole bar reads as a single strip;
-- each filter carries its **selection, and only that**: "All departments" / "All
-  roles" until something is chosen, then the catalogue's own wording verbatim. No
-  caption stands beside the box and no field name is printed on it — three rejected
-  arrangements are listed in `AGENTS.md` rule E — so the control is identified by its
-  accessible name and tooltip. The selection is bound as a **ROW**, because a
-  code-string `SelectedValue` applied before the rows exist is exactly what left these
-  boxes blank, and the box is pointed at a real row once the catalogue loads;
+- each filter carries a visible **label** on its left ("Department", "Role", the
+  Inquiry toolbar's arrangement) and its **selection, and only that**, on the face:
+  "All departments" / "All roles" until something is chosen, then the catalogue's
+  own wording verbatim. Printing the field word inside every row was tried and
+  rejected — it reads as a placeholder and doubles the word in "Cutting
+  Department"; `AGENTS.md` rule E records the whole sequence. The selection is
+  bound as a **ROW**, because a code-string `SelectedValue` applied before the rows
+  exist is exactly what left these boxes blank, and the box is pointed at a real row
+  once the catalogue loads;
 - every card on the page pins `UiCardPadding` (16 px in all eighteen theme
   dictionaries). `Card` and `Plate` ship different paddings per theme, which is what
   made the register's table start a few pixels right of the bar above it;

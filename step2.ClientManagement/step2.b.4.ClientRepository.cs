@@ -135,6 +135,27 @@ namespace ProGlassAutomation.Services.Clients
             if (!query.IncludeInactive)
                 source = source.Where(x => x.IsActive);
 
+            // ── Read scope ──────────────────────────────────────────────
+            // A non-administrator reads the clients they represent, and only
+            // those. The CEILING is enforced here — a signed-in salesman cannot
+            // read somebody else's book even if a caller forgets to narrow — and
+            // the workspace passes the same id explicitly so the intent is
+            // visible where the query is built. A process with nobody signed in
+            // is the fixture state; the sign-in gate makes it unreachable from
+            // the application.
+            if (AuthenticationContext.Current is { } viewer
+                && !AuthenticationContext.IsAdministrator)
+            {
+                // The ceiling wins first: a non-administrator cannot reach another
+                // person's clients by asking for them.
+                int ownId = viewer.Id;
+                source = source.Where(x => x.RepresentativeUserId == ownId);
+            }
+            else if (query.ScopeToRepresentativeUserId is int requestedRepresentative)
+            {
+                source = source.Where(x => x.RepresentativeUserId == requestedRepresentative);
+            }
+
             string term = ClientRules.NormalizeText(query.Search);
             if (term.Length > 0)
             {

@@ -12,6 +12,34 @@ namespace ProGlassAutomation.Users
         public FirstRunSetupView()
         {
             InitializeComponent();
+
+            // The gate can be shown again (sign-out while the directory is still
+            // empty is impossible, but the Users page offers the same step), so it
+            // must never come back holding a password somebody typed earlier.
+            IsVisibleChanged += (_, _) =>
+            {
+                if (!IsVisible) return;
+                PasswordEntryBox.Clear();
+                PasswordConfirmBox.Clear();
+                if (DataContext is ViewModels.Users.FirstRunViewModel vm)
+                {
+                    vm.Password = "";
+                    vm.PasswordConfirm = "";
+                }
+            };
+        }
+
+        private ViewModels.Users.FirstRunViewModel? ViewModel =>
+            DataContext as ViewModels.Users.FirstRunViewModel;
+
+        private void OnPasswordChanged(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (ViewModel != null) ViewModel.Password = PasswordEntryBox.Password;
+        }
+
+        private void OnPasswordConfirmChanged(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (ViewModel != null) ViewModel.PasswordConfirm = PasswordConfirmBox.Password;
         }
 
         /// <summary>

@@ -772,6 +772,14 @@
             <Border x:Name="SpotlightSnap" />
             <Border Background="{DynamicResource ApplicationBackground}" Opacity="0.35" />
         </Grid>
+        <!-- ── Sign-in gate ─────────────────────────────────────────────
+             Every user has a password (owner instruction 2026-10-27), so the
+             shell is unusable until one has been verified: no repository write
+             can resolve an actor before this gate hands the session over.
+             It is declared under the first-run gate, so an installation that
+             still has no users at all is set up first. -->
+        <usr:SignInView x:Name="SignInGate" Visibility="Collapsed" />
+
         <!-- ── First-run gate ───────────────────────────────────────────
              A database with no users cannot be administered, and telling the
              operator to "ask an administrator" on a fresh install is circular.
@@ -786,5 +794,6 @@
              same service the Users page uses, so there is one implementation of
              the flow, not two. -->
         <usr:FirstRunSetupView x:Name="FirstRunGate" Visibility="Collapsed" />
+
     </Grid>
 </Window>

@@ -54,6 +54,26 @@ namespace ProGlassAutomation.Services.Users
         /// <summary>Migration version that introduces the user directory.</summary>
         public const int MigrationVersion = 1013;
 
+        /// <summary>
+        /// Migration version that adds the credential columns (hash, salt, work
+        /// factor, must-change flag and lockout counters).
+        /// </summary>
+        public const int CredentialsMigrationVersion = 1015;
+
+        /// <summary>Credential columns, added by 1015 on top of <see cref="RequiredColumns"/>.</summary>
+        public static readonly string[] CredentialColumns =
+        {
+            "PasswordHash", "PasswordSalt", "PasswordIterations", "PasswordUpdatedAt",
+            "MustChangePassword", "FailedSignInCount", "LockedUntilUtc"
+        };
+
+        /// <summary>Credential columns that must never be NULL once 1015 has run.</summary>
+        public static readonly string[] CredentialNonNullColumns =
+        {
+            "PasswordHash", "PasswordSalt", "PasswordIterations",
+            "MustChangePassword", "FailedSignInCount"
+        };
+
         /// <summary>Columns the EF model in step3.b.3 maps today.</summary>
         public static readonly string[] RequiredColumns =
         {
@@ -192,6 +212,56 @@ namespace ProGlassAutomation.Services.Users
             SchemaMigrationSql.CreateIndexIfNotExists(connection,
                 $"CREATE UNIQUE INDEX IF NOT EXISTS \"UX_Users_NormalizedUsername\" " +
                 $"ON \"{UsersTable}\" (\"NormalizedUsername\");");
+        }
+
+        /// <summary>
+        /// Adds the credential columns. Each one is nullable or defaulted, so a
+        /// directory created before 1015 keeps every row: an existing user simply
+        /// has no credential until an administrator sets one — the sign-in screen
+        /// says that, rather than pretending the account works.
+        /// </summary>
+        public static void EnsureCredentials(SqliteConnection connection)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            SchemaMigrationSql.AddColumnIfMissing(connection, UsersTable, "PasswordHash", "TEXT NOT NULL DEFAULT ''");
+            SchemaMigrationSql.AddColumnIfMissing(connection, UsersTable, "PasswordSalt", "TEXT NOT NULL DEFAULT ''");
+            SchemaMigrationSql.AddColumnIfMissing(connection, UsersTable, "PasswordIterations", "INTEGER NOT NULL DEFAULT 0");
+            SchemaMigrationSql.AddColumnIfMissing(connection, UsersTable, "PasswordUpdatedAt", "TEXT NULL");
+            SchemaMigrationSql.AddColumnIfMissing(connection, UsersTable, "MustChangePassword", "INTEGER NOT NULL DEFAULT 0");
+            SchemaMigrationSql.AddColumnIfMissing(connection, UsersTable, "FailedSignInCount", "INTEGER NOT NULL DEFAULT 0");
+            SchemaMigrationSql.AddColumnIfMissing(connection, UsersTable, "LockedUntilUtc", "TEXT NULL");
+        }
+
+        /// <summary>Fails the upgrade if the credential columns are missing or malformed.</summary>
+        /// <remarks>
+        /// The hash itself is not inspected — it is opaque, and a rule about its
+        /// content would be a rule about the algorithm. What is asserted is that the
+        /// columns exist, hold no NULLs, carry no negative work factor, and that no
+        /// row has a hash without the salt and factor needed to check it.
+        /// </remarks>
+        public static void AssertCredentials(SqliteConnection connection)
+        {
+            if (connection == null) throw new ArgumentNullException(nameof(connection));
+
+            foreach (string column in CredentialColumns)
+                SchemaMigrationSql.RequireColumn(connection, UsersTable, column);
+
+            foreach (string column in CredentialNonNullColumns)
+                SchemaMigrationSql.RequireNoNullValues(connection, UsersTable, column);
+
+            long negative = ScalarLong(connection,
+                $"SELECT COUNT(*) FROM \"{UsersTable}\" WHERE \"PasswordIterations\" < 0;");
+            if (negative > 0)
+                throw new InvalidOperationException(
+                    $"Migration {CredentialsMigrationVersion}: {negative} user row(s) carry a negative password work factor.");
+
+            long halfWritten = ScalarLong(connection,
+                $"SELECT COUNT(*) FROM \"{UsersTable}\" WHERE " +
+                $"\"PasswordHash\" <> '' AND (\"PasswordSalt\" = '' OR \"PasswordIterations\" <= 0);");
+            if (halfWritten > 0)
+                throw new InvalidOperationException(
+                    $"Migration {CredentialsMigrationVersion}: {halfWritten} user row(s) hold a hash without its salt or work factor.");
         }
 
         /// <summary>Post-migration assertions.</summary>

@@ -30,6 +30,13 @@ public partial class UserWorkspaceView : UserControl
         DataContext = _viewModel;
         Loaded += OnWorkspaceLoaded;
         IsVisibleChanged += OnWorkspaceVisibilityChanged;
+
+        // PasswordBox has no bindable Password, so the two boxes on the
+        // first-administrator card hand their text over here. Clearing them when
+        // the card closes keeps a password off the screen after it is used.
+        BootstrapPasswordBox.PasswordChanged += OnBootstrapPasswordChanged;
+        BootstrapPasswordConfirmBox.PasswordChanged += OnBootstrapPasswordConfirmChanged;
+        BootstrapCard.IsVisibleChanged += OnBootstrapCardVisibilityChanged;
     }
 
     /// <summary>
@@ -72,6 +79,19 @@ public partial class UserWorkspaceView : UserControl
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
+    }
+
+    private void OnBootstrapPasswordChanged(object sender, RoutedEventArgs e) =>
+        _viewModel.BootstrapPassword = BootstrapPasswordBox.Password;
+
+    private void OnBootstrapPasswordConfirmChanged(object sender, RoutedEventArgs e) =>
+        _viewModel.BootstrapPasswordConfirm = BootstrapPasswordConfirmBox.Password;
+
+    private void OnBootstrapCardVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true) return;
+        BootstrapPasswordBox.Clear();
+        BootstrapPasswordConfirmBox.Clear();
     }
 
     private void OnRowDoubleClick(object sender, MouseButtonEventArgs e)

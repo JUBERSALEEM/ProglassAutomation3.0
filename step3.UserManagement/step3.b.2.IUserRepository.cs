@@ -44,6 +44,17 @@ namespace ProGlassAutomation.Services.Users
 
         /// <summary>Safety cap; this is a staff directory, not a ledger.</summary>
         public int MaxRows { get; init; } = 2000;
+
+        /// <summary>
+        /// Restricts the result to one person's own row.
+        /// </summary>
+        /// <remarks>
+        /// Set by the register for a signed-in non-administrator: a staff directory
+        /// is other people's data. Null — the administrator's view — reads the whole
+        /// directory. The write path is unaffected: permission there comes from
+        /// <see cref="UserAuthorization"/> and is checked in the repository itself.
+        /// </remarks>
+        public int? ScopeToUserId { get; init; }
     }
 
     /// <summary>Register row projection.</summary>
@@ -109,6 +120,62 @@ namespace ProGlassAutomation.Services.Users
             new() { Succeeded = false, Message = message, Code = code };
     }
 
+    /// <summary>Why a sign-in ended the way it did.</summary>
+    public enum SignInCode
+    {
+        Success,
+
+        /// <summary>No row carries that username.</summary>
+        UnknownUser,
+
+        /// <summary>The row exists but has no credential yet (created before 1015).</summary>
+        NoPassword,
+
+        /// <summary>The password did not match.</summary>
+        WrongPassword,
+
+        /// <summary>The row was deactivated.</summary>
+        Inactive,
+
+        /// <summary>Too many failures: sign-in is refused until the lock expires.</summary>
+        Locked
+    }
+
+    /// <summary>Outcome of a sign-in attempt, with wording for the gate.</summary>
+    public sealed class SignInResult
+    {
+        public bool Succeeded { get; init; }
+
+        public SignInCode Code { get; init; } = SignInCode.UnknownUser;
+
+        public string Message { get; init; } = "";
+
+        /// <summary>The authenticated row; null unless <see cref="Succeeded"/>.</summary>
+        public User? User { get; init; }
+
+        /// <summary>Attempts left before the account locks (0 when not applicable).</summary>
+        public int AttemptsLeft { get; init; }
+
+        /// <summary>True when the password works but must be replaced now.</summary>
+        public bool MustChangePassword { get; init; }
+
+        public static SignInResult Ok(User user, bool mustChangePassword) => new()
+        {
+            Succeeded = true,
+            Code = SignInCode.Success,
+            User = user,
+            MustChangePassword = mustChangePassword
+        };
+
+        public static SignInResult Fail(SignInCode code, string message, int attemptsLeft = 0) => new()
+        {
+            Succeeded = false,
+            Code = code,
+            Message = message,
+            AttemptsLeft = attemptsLeft
+        };
+    }
+
     /// <summary>User directory persistence.</summary>
     public interface IUserRepository
     {
@@ -139,6 +206,37 @@ namespace ProGlassAutomation.Services.Users
 
         /// <summary>Total users, needed to tell "empty directory" from "no match".</summary>
         Task<int> CountAsync(CancellationToken ct = default);
+
+        /// <summary>One row by username (case/width-insensitive), or null.</summary>
+        Task<User?> FindByUsernameAsync(string username, CancellationToken ct = default);
+
+        /// <summary>
+        /// Checks a username and password against the directory.
+        /// </summary>
+        /// <remarks>
+        /// This is the only place a password is compared. It refuses an inactive
+        /// row, refuses a row with no credential, and locks the account for a short
+        /// time after repeated failures so a workstation cannot be used to guess.
+        /// The returned row is the identity the session adopts.
+        /// </remarks>
+        Task<SignInResult> SignInAsync(
+            string username, string password, CancellationToken ct = default);
+
+        /// <summary>
+        /// Sets a new password for the signed-in user, who must supply the current
+        /// one. Their own change, so it clears the must-change flag.
+        /// </summary>
+        Task<UserSaveResult> ChangePasswordAsync(
+            int userId, string currentPassword, string newPassword,
+            string operatorUsername, CancellationToken ct = default);
+
+        /// <summary>
+        /// Administrator reset: sets somebody's password without knowing the old
+        /// one, and marks it temporary so the person must choose their own at the
+        /// next sign-in. Refused for anybody who is not an active Administrator.
+        /// </summary>
+        Task<UserSaveResult> ResetPasswordAsync(
+            int userId, string newPassword, string operatorUsername, CancellationToken ct = default);
 
         /// <summary>
         /// True when the directory has no users at all, so the application still
@@ -175,7 +273,8 @@ namespace ProGlassAutomation.Services.Users
         /// cannot be used to escalate later.
         /// </summary>
         Task<UserSaveResult> RegisterFirstAdministratorAsync(
-            string fullName, string department, string operatorUsername, CancellationToken ct = default);
+            string fullName, string department, string password,
+            string operatorUsername, CancellationToken ct = default);
 
         /// <summary>True when the step3 tables are present and shaped as expected.</summary>
         Task<bool> IsSchemaReadyAsync(CancellationToken ct = default);

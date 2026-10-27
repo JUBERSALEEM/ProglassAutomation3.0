@@ -42,6 +42,9 @@ namespace ProGlassAutomation.ViewModels.Users
         private string _fullName = "";
         private string _selectedDepartment = "";
         private CatalogRow? _selectedDepartmentItem;
+        private string _password = "";
+        private string _passwordConfirm = "";
+        private string _passwordError = "";
         private string _fullNameError = "";
         private string _errorMessage = "";
         private string _statusMessage = "";
@@ -126,6 +129,28 @@ namespace ProGlassAutomation.ViewModels.Users
                 OnPropertyChanged(nameof(SelectedDepartment));
             }
         }
+
+        /// <summary>The password the first administrator chooses for themselves.</summary>
+        public string Password
+        {
+            get => _password;
+            set { if (SetField(ref _password, value ?? "")) { PasswordError = ""; ErrorMessage = ""; } }
+        }
+
+        /// <summary>Confirmation; never stored, only compared.</summary>
+        public string PasswordConfirm
+        {
+            get => _passwordConfirm;
+            set { if (SetField(ref _passwordConfirm, value ?? "")) { PasswordError = ""; ErrorMessage = ""; } }
+        }
+
+        public string PasswordError
+        {
+            get => _passwordError;
+            private set { if (SetField(ref _passwordError, value)) OnPropertyChanged(nameof(HasPasswordError)); }
+        }
+
+        public bool HasPasswordError => PasswordError.Length > 0;
 
         public string FullNameError
         {
@@ -236,11 +261,25 @@ namespace ProGlassAutomation.ViewModels.Users
                 return false;
             }
 
+            // There is no round trip to set this later: the account is created with
+            // the password chosen here, and it is the only way in.
+            string? passwordError = UserPassword.Validate(Password);
+            if (passwordError == null &&
+                !string.Equals(Password, PasswordConfirm, StringComparison.Ordinal))
+                passwordError = "The two passwords do not match.";
+
+            PasswordError = passwordError ?? "";
+            if (passwordError != null)
+            {
+                ErrorMessage = passwordError;
+                return false;
+            }
+
             IsBusy = true;
             try
             {
                 UserSaveResult result = await _firstRun
-                    .RegisterAsync(FullName, SelectedDepartment)
+                    .RegisterAsync(FullName, SelectedDepartment, Password)
                     .ConfigureAwait(true);
 
                 if (!result.Succeeded || result.User == null)
@@ -251,8 +290,10 @@ namespace ProGlassAutomation.ViewModels.Users
                     return false;
                 }
 
+                // There is no automatic session: the shell asks for the password
+                // once, so a session always starts with a verified sign-in.
                 StatusMessage = string.IsNullOrWhiteSpace(result.Message)
-                    ? "You are now signed in as an Administrator."
+                    ? "The first administrator was created. Sign in with the password you just chose."
                     : result.Message;
 
                 // Only close the gate when the account is really recognised —

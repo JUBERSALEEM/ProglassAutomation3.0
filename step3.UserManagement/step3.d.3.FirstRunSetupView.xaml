@@ -131,6 +131,46 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
+                <!-- Password: chosen here, not mailed later. Without it the account
+                     would exist and nobody could sign in as it. -->
+                <TextBlock Text="Password *" Style="{StaticResource FirstRunLabel}" />
+                <PasswordBox x:Name="PasswordEntryBox"
+                             Style="{DynamicResource {x:Type PasswordBox}}"
+                             MinHeight="{DynamicResource UiActionMinHeight}"
+                             Margin="{DynamicResource UiGapGroup}"
+                             PasswordChanged="OnPasswordChanged"
+                             ToolTip="At least 8 characters, with a letter and a digit"
+                             AutomationProperties.Name="Password" />
+
+                <TextBlock Text="Confirm the password *" Style="{StaticResource FirstRunLabel}" />
+                <PasswordBox x:Name="PasswordConfirmBox"
+                             Style="{DynamicResource {x:Type PasswordBox}}"
+                             MinHeight="{DynamicResource UiActionMinHeight}"
+                             Margin="{DynamicResource UiGapGroup}"
+                             PasswordChanged="OnPasswordConfirmChanged"
+                             ToolTip="Type the password again"
+                             AutomationProperties.Name="Confirm password" />
+
+                <Border Background="{DynamicResource StatusErrorSurface}"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Padding="{DynamicResource PaddingControl}"
+                        Margin="{DynamicResource UiGapGroup}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasPasswordError}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding PasswordError}"
+                               Foreground="{DynamicResource StatusError}"
+                               TextWrapping="Wrap"
+                               AutomationProperties.Name="Password error" />
+                </Border>
+
                 <!-- Failure, with the retry directly below it. -->
                 <Border Background="{DynamicResource StatusErrorSurface}"
                         BorderBrush="{DynamicResource StatusError}"

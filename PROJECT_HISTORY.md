@@ -9,12 +9,27 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 23: passwords, a real session, and a read scope
+
+- **Phase:** `step3` (User Management) plus the read side of `step2` (Clients) — the owner's round-24 instruction on identity.
+- **Before:** identity was the Windows account name; anyone running the app was treated as whatever row carried that name. The owner's words: *"there should be a password so normal user should not be able to create admin account etc… but user should have password so user should be able to read the data related to them only."*
+- **Identity:** every user now has a password (PBKDF2-HMAC-SHA256, 210 000 iterations, per-row 16-byte salt, 32-byte hash, `FixedTimeEquals`); migration **1015** adds the credential columns without touching existing rows. `AuthenticationContext` is set only by a verified sign-in, and every write resolves its operator from it.
+- **Gate:** `step3.d.4.SignInView` covers the shell before any page, hosted **under** the first-run gate so an empty directory still wins. An administrator-set password is marked temporary and is replaced on the same card before the session is handed over; a self-change requires the current password and is refused before any write when it is missing. Five failures lock the account for 60 seconds, persisted on the row.
+- **First run:** the first administrator chooses their own password on the gate (and on the page's fallback card), so the row cannot exist without a way in. The workstation account is still what gets registered — it is the only identity available before anybody can sign in.
+- **Read scope:** the repository applies a ceiling before any requested scope — a signed-in non-administrator reads their own user row and only the clients they represent; an Administrator reads everything. The register's status counts are narrowed by the same query, so they cannot leak how many people exist.
+- **Filter wording:** the fourth and final arrangement. A visible label sits beside each box ("Department", "Role") and the face carries the selection only; the earlier "word inside the face" attempt is recorded as rejected in `AGENTS.md` rule E.
+- **Coverage:** `step3.f.2` gained a credential-policy check (PBKDF2, constant time, no plaintext column, gate under the first-run gate, scope in the query) and rewritten layout checks; `step3.f.1` gained a credential and read-scope suite (right/wrong/unknown password, temporary password, self-change with and without the current password, non-administrator reads one row and cannot widen it, Administrator reads all). Four mutations were put back on purpose and each failed as intended.
+- **Audit:** `docs/13.User-Management-Audit.md` §4.3 records what the credential does and does not claim.
+- **Verification:** nine portable checkers PASS. Nothing was compiled and no window was rendered here, so the sign-in gate and the first-run card remain unconfirmed visually.
+
+---
+
 ## 2026-10-27 — Round 22: no blank boxes, an editable representative, cards that line up
 
 - **Phase:** `step3`/`step2` corrections from the owner's report and screenshot of the running build.
 - **Before:** the department/role boxes could render with no text at all; the client's representative could not be edited on an existing client; and the cards on the Users page did not share their inset in every theme.
 - **Blank boxes:** the cause was a `SelectedValue` bound to a code string, applied before the item list exists — the control then has nothing to resolve and keeps an empty face. Every catalogue picker in the module (both register filters, the editor's department and role, the first-run card, the shell's start-up gate) now binds the **row object** and is pointed at a real row once its list loads. A stored code that is no longer in the catalogue gets its own labelled row rather than a blank face.
-- **Faces:** "All departments" / "All roles" when nothing is filtered, then the catalogue's own wording verbatim — no field name on the button, no caption beside it. This is the third arrangement the owner has ruled on; all three now appear as rejected in `AGENTS.md` rule E.
+- **Faces:** "All departments" / "All roles" when nothing is filtered, then the catalogue's own wording verbatim. A visible label was then put beside each box in the next round — the arrangement the owner settled on; the rejected ones are recorded in `AGENTS.md` rule E.
 - **Representative:** the picker offers every **active user** (salesmen first) instead of salesmen only, is seeded from the client's stored id so editing shows the current person, and gives a stored-but-unlisted reference its own "(inactive)" row so a save cannot silently clear it.
 - **Cards:** every page-level card pins `UiCardPadding`; the register's grid no longer carries `MarginItem` (4/8/10 px by theme); the editor footer is a hairline rule instead of a `Plate` nested inside the `Card`.
 - **Coverage:** `step3.f.2` fails on a `SelectedValue` binding, a field-name prefix, a filter row that loses its code, an unpinned card inset, or a nested card surface; `step2.f.1`/`step2.f.2` cover the representative wiring. Seven mutations were put back on purpose and each failed the checker as intended.

@@ -3,15 +3,16 @@
 // MODULE: step3 — the running operator, as a directory row.
 //
 // What this is for
-//   The application has no login screen and no password store, and this stage
-//   does not add one. The one identity the desktop app already has is the
-//   Windows workstation account, read by Inquiry/Services/Audit/CurrentOperator
-//   and used today to stamp PreparedByName / UploadedBy / AcknowledgedBy.
-//   UserSession turns that account into a directory row once, caches it, and
-//   answers the three questions the rest of the app needs:
+//   Since round 24 the identity is the account that **signed in with a password**
+//   (owner instruction 2026-10-27). AuthenticationContext holds that row for the
+//   life of the process; UserSession exposes it and answers the three questions
+//   the rest of the app needs:
 //     • who is operating (identity),
 //     • may they administer users (authorization),
 //     • may they author a record (attribution).
+//
+//   Before sign-in nothing is identified: CurrentUser is null, every write path
+//   resolves no actor and is refused, and the shell shows the gate.
 //
 // Prepared By
 //   CaptureAsync returns a PreparedByStamp: the stable user id, plus a snapshot
@@ -60,13 +61,13 @@ namespace ProGlassAutomation.Services.Users
     /// <summary>The current operator, resolved once against the user directory.</summary>
     public interface IUserSession
     {
-        /// <summary>The workstation account name the app will match on.</summary>
+        /// <summary>The signed-in username, or "" before sign-in.</summary>
         string OperatorUsername { get; }
 
         /// <summary>Last resolved row, or null when nobody matched.</summary>
         User? CurrentUser { get; }
 
-        /// <summary>True when the workstation account matches an active user row.</summary>
+        /// <summary>True when somebody has signed in and that row is active.</summary>
         bool IsIdentified { get; }
 
         /// <summary>True when the current user is an active Administrator.</summary>
@@ -78,7 +79,13 @@ namespace ProGlassAutomation.Services.Users
         /// <summary>One-line description for the chrome ("Not identified" when unmatched).</summary>
         string StatusSummary { get; }
 
-        /// <summary>Re-reads the directory. Pass true after the row may have changed.</summary>
+        /// <summary>Adopts an authenticated row as the session identity.</summary>
+        void SignIn(User user);
+
+        /// <summary>Ends the session; the shell shows the gate again.</summary>
+        void SignOut();
+
+        /// <summary>Re-reads the signed-in row, so a rename or role change takes effect.</summary>
         Task<User?> RefreshAsync(CancellationToken ct = default);
 
         /// <summary>Cached row, reading it once per process unless <paramref name="forceRefresh"/>.</summary>
@@ -99,7 +106,6 @@ namespace ProGlassAutomation.Services.Users
     public sealed class UserSession : IUserSession
     {
         private readonly IUserRepository _repository;
-        private User? _currentUser;
         private bool _loaded;
 
         public UserSession() : this(new UserRepository()) { }
@@ -109,36 +115,64 @@ namespace ProGlassAutomation.Services.Users
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public string OperatorUsername => CurrentOperator.Username;
+        public string OperatorUsername => AuthenticationContext.Username;
 
-        public User? CurrentUser => _currentUser;
+        public User? CurrentUser => AuthenticationContext.Current;
 
-        public bool IsIdentified => _currentUser != null && _currentUser.IsActive;
+        public bool IsIdentified => AuthenticationContext.Current is { IsActive: true };
 
-        public bool IsAdministrator =>
-            IsIdentified && UserCatalog.IsAdministrator(_currentUser!.Role);
+        public bool IsAdministrator => IsIdentified && AuthenticationContext.IsAdministrator;
 
-        public UserDecision ManagementDecision => UserAuthorization.CanManageUsers(_currentUser);
+        public UserDecision ManagementDecision => UserAuthorization.CanManageUsers(CurrentUser);
 
         public string StatusSummary
         {
             get
             {
-                if (_currentUser == null)
-                    return _loaded
-                        ? $"{OperatorUsername} is not registered"
-                        : "Checking operator…";
-                return _currentUser.IsActive
-                    ? $"{_currentUser.FullName} · {UserCatalog.RoleDisplayName(_currentUser.Role)}"
-                    : $"{_currentUser.FullName} · inactive";
+                User? user = CurrentUser;
+                if (user == null) return "Not signed in";
+                return user.IsActive
+                    ? $"{user.FullName} · {UserCatalog.RoleDisplayName(user.Role)}"
+                    : $"{user.FullName} · inactive";
             }
+        }
+
+        public void SignIn(User user)
+        {
+            if (user == null) throw new ArgumentNullException(nameof(user));
+            AuthenticationContext.SignIn(user);
+            _loaded = true;
+        }
+
+        public void SignOut()
+        {
+            AuthenticationContext.SignOut();
+            _loaded = false;
         }
 
         public async Task<User?> RefreshAsync(CancellationToken ct = default)
         {
-            _currentUser = await _repository.FindCurrentUserAsync(ct).ConfigureAwait(false);
+            int? id = AuthenticationContext.UserId;
+            if (id == null)
+            {
+                _loaded = true;
+                return null;
+            }
+
+            // Reload the signed-in row so a rename, a role change or a
+            // deactivation is reflected without signing out.
+            User? fresh = await _repository.GetAsync(id.Value, ct).ConfigureAwait(false);
+            if (fresh == null || !fresh.IsActive)
+            {
+                // The account vanished or was deactivated underneath the session.
+                AuthenticationContext.SignOut();
+                _loaded = true;
+                return null;
+            }
+
+            AuthenticationContext.Refresh(fresh);
             _loaded = true;
-            return _currentUser;
+            return fresh;
         }
 
         public async Task<User?> GetCurrentUserAsync(
@@ -146,7 +180,7 @@ namespace ProGlassAutomation.Services.Users
         {
             if (!_loaded || forceRefresh)
                 return await RefreshAsync(ct).ConfigureAwait(false);
-            return _currentUser;
+            return AuthenticationContext.Current;
         }
 
         public async Task<bool> IsDirectoryEmptyAsync(CancellationToken ct = default)

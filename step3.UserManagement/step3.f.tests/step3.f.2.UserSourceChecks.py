@@ -10,8 +10,9 @@ They verify the properties that are cheap to get wrong and expensive to miss:
      and the workspace index guard accepts it;
   4. migration 1013 is registered on the ONE existing chain, is additive, and
      creates no second schema authority over inquiries.db;
-  5. there is no password, hash, salt or login table anywhere — identity comes
-     from the workstation account;
+  5. a credential exists and has the right shape: PBKDF2 hash, per-row salt,
+     constant-time compare, a sign-in gate in front of the app, and a session
+     that only a verified sign-in can set;
   6. a department is never consulted as a permission;
   7. the departments and roles have exactly one definition, in step3.a.2;
   8. there is no delete path: deactivation is the lifecycle transition;
@@ -162,20 +163,72 @@ def require_migration_registration():
           "the user context must not become a second EnsureCreated owner")
 
 
-def require_no_password_storage():
-    """No credentialed login exists, so nothing may store a credential."""
-    sources = module_sources(include_tests=True)
-    for forbidden in (r"\bPassword\b\s*\{", r"\bPasswordHash\b", r"\bPasswordSalt\b",
-                      r"\bSalt\b\s*\{", r'"Password"', r'"PasswordHash"',
-                      r"\bVerifyPassword\b", r"\bHashedPassword\b"):
-        check(re.search(forbidden, sources) is None,
-              f"step3 must not store credentials; found /{forbidden}/")
-    for forbidden in (r"\bLoginViewModel\b", r"\bLoginView\b", r"\bSignIn\b",
-                      r"\bSignInAsync\b", r"\bPasswordBox\b", r"\bAuthenticate\b"):
-        check(re.search(forbidden, sources) is None,
-              f"step3 must not introduce a login flow; found /{forbidden}/")
-    check("CurrentOperator.Username" in sources,
-          "the current user must be derived from the existing CurrentOperator identity")
+def require_credential_policy():
+    """Owner instruction (round 24): every user has a password.
+
+    This replaces the earlier "no credential may exist anywhere" rule, which the
+    owner has since reversed. The property worth guarding is no longer the
+    absence of a credential but its SHAPE: a real PBKDF2 hash with a per-row
+    salt, a constant-time comparison, a sign-in gate in front of the app, and an
+    identity that only a verified sign-in can set.
+    """
+    password = read(MODULE / "step3.a.5.UserPassword.cs")
+    check("Rfc2898DeriveBytes.Pbkdf2" in password,
+          "the password hash must come from the platform PBKDF2 implementation, not hand-rolled")
+    check("HashAlgorithmName.SHA256" in password,
+          "the password hash must name its algorithm explicitly")
+    check("FixedTimeEquals" in password,
+          "password verification must compare in constant time")
+    check("MinimumLength = 8" in password,
+          "the password policy must state its minimum length")
+    check(re.search(r"Iterations\s*=\s*[\d_]{5,}", password) is not None,
+          "the password hash must state its iteration count")
+    for forbidden in ("Encoding.UTF8.GetString", "Convert.ToBase64String(Encoding"):
+        check(forbidden not in password,
+              f"nothing may turn a hash back into text ({forbidden})")
+
+    # Storage: a hash and a salt, never the password itself.
+    migration = read(MODULE / "step3.b.1.UserSchema.cs")
+    check("1015" in migration, "migration 1015 must add the credential columns")
+    check("PasswordHash" in migration and "PasswordSalt" in migration,
+          "the credential columns must be a hash and a salt")
+    check(re.search(r"\bPassword\s+TEXT", migration) is None,
+          "there must be no plaintext password column")
+    check("MustChangePassword" in migration,
+          "an administrator-set password must be able to require a change")
+
+    # Identity: set by a verified sign-in only, and read from there.
+    context = read(MODULE / "step3.b.7.AuthenticationContext.cs")
+    check("SignedOut" in context, "the session must be able to end")
+    check("IsAdministrator" in context,
+          "the session must distinguish an administrator from everybody else")
+    repository = read(MODULE / "step3.b.4.UserRepository.cs")
+    check("AuthenticationContext" in repository,
+          "the repository must read the signed-in identity from AuthenticationContext")
+    check("CurrentOperator.Username" in module_sources(),
+          "the first-run path still needs the workstation account as its starting identity")
+
+    # The gate itself, and the shell hosting it.
+    gate_vm = read(MODULE / "step3.c.4.SignInViewModel.cs")
+    gate_view = read(MODULE / "step3.d.4.SignInView.xaml")
+    shell = read(ROOT / "MainWindow.xaml")
+    check("SignInView" in shell, "the shell must host the sign-in gate")
+    check(shell.index("SignInGate") < shell.index("FirstRunGate"),
+          "sign-in must sit UNDER the first-run gate: a later sibling paints on top")
+    check("PasswordBox" in gate_view, "sign-in must ask for a password")
+    check("SignInAsync" in gate_vm, "the sign-in view model must verify the password")
+    check("MustChangePassword" in gate_vm,
+          "a temporary password must be replaced before the session is handed over")
+
+    # Read scope: a normal user reads their own row, an administrator reads all.
+    check("ScopeToUserId" in repository,
+          "the user query must be able to restrict itself to one person's row")
+    workspace = read(MODULE / "step3.c.2.UserWorkspaceViewModel.cs")
+    check(workspace.count("ScopeToUserId = ReadScope") == 2,
+          "both register queries (active and inactive) must ask for the same read "
+          f"scope; found {workspace.count('ScopeToUserId = ReadScope')}")
+    check("IsAdministrator" in workspace,
+          "the workspace must know whether the operator is an administrator")
 
 
 def require_department_is_not_a_permission():
@@ -358,9 +411,14 @@ def require_first_run_flow():
     # Safe retry, useful failure, no credential.
     check("Set up later" in gate_view, "the gate must allow deferring setup")
     check("IsBusy" in gate_vm, "the gate must not allow a double submit")
-    for marker in ("PasswordBox", "PasswordChar", "AccessToken", "RefreshToken"):
-        check(marker not in service and marker not in gate_vm and marker not in gate_view,
-              f"the first-run flow must not introduce credential handling ({marker})")
+    # Round 24: the first administrator chooses their own password here. Without
+    # it the row would exist and nobody could ever sign in as it.
+    check("PasswordBox" in gate_view, "the first-run gate must let the administrator choose a password")
+    check("PasswordConfirmBox" in gate_view, "the first-run gate must ask for the password twice")
+    check("UserPassword.Validate" in gate_vm,
+          "the first-run gate must apply the one password policy")
+    check("OperatingSystemAccounts" not in gate_view and "AccessToken" not in gate_view,
+          "no token or harvested credential may appear in the first-run flow")
 
     # Rules J: the layout rules apply to this screen too.
     for token in ("UiGapAction", "UiGapGroup", "UiActionMinHeight"):
@@ -386,8 +444,15 @@ def require_register_layout():
           "a fresh directory must offer the first-administrator step")
     check('Binding PermissionMessage' in view,
           "the read-only notice must explain why actions are unavailable")
-    # No literal password surface, and no free-text department entry.
-    check("Password" not in view, "the user screen must not show a password field")
+    # The register itself never shows a password; the first-administrator card
+    # that shares this view must, because the row it creates needs one.
+    check('ItemsSource="{Binding Rows}"' in view, "the register must bind the row collection")
+    grid_start = view.index("<DataGrid")
+    grid_end = view.index("</DataGrid>", grid_start)
+    check("Password" not in view[grid_start:grid_end],
+          "the register must not show a password column")
+    check("PasswordBox" in view,
+          "a fresh directory must ask the first administrator for a password")
     for match in re.finditer(r"<ComboBox[\s][^>]*>", view, flags=re.S):
         block = match.group(0)
         # The two register filters bind the row OBJECT (see A2a); every other
@@ -405,7 +470,16 @@ def require_register_layout():
     editor = read(MODULE / "step3.d.2.UserEditorView.xaml")
     for label in ("Full name *", "Username *", "Department *", "Role *", "Status"):
         check(f'Text="{label}"' in editor, f"the editor is missing the '{label}' field")
-    check("Password" not in editor, "the editor must not show a password field")
+    # Round 24: a user only exists if they can sign in, so the editor must offer
+    # the credential — a mandatory one for a new user, an optional reset for an
+    # existing one, and the current password when you are editing yourself.
+    check("PasswordBox" in editor, "the editor must offer a password field")
+    for label in ("New password", "Confirm the new password", "Current password *"):
+        check(f'Text="{label}"' in editor, f"the editor is missing the '{label}' field")
+    check("ShowCurrentPassword" in editor,
+          "the current-password box must only appear when you edit yourself")
+    check("HasPasswordError" in editor,
+          "a refused password must be able to show its reason")
     check('<Border Height="{DynamicResource StrokeWidth}"' in editor,
           "the action buttons must sit below the footer rule, not in a nested card")
 
@@ -425,9 +499,9 @@ def require_layout_contract():
     # flexible column, actions in the content-sized column. A StackPanel cannot
     # shrink and was what overlapped itself once the sidebar took its width; a
     # WrapPanel wraps instead, at any width.
-    check('<WrapPanel Grid.Column="0"' in view,
+    check('<WrapPanel Grid.Row="0" Grid.Column="0"' in view,
           "the filter cluster must be a WrapPanel so it wraps instead of overlapping")
-    check('<WrapPanel Grid.Column="1"' in view,
+    check('<WrapPanel Grid.Row="0" Grid.Column="1"' in view,
           "the action cluster must be a WrapPanel so it wraps instead of overlapping")
     check('StackPanel Grid.Column="1" Orientation="Horizontal"' not in view,
           "the old non-shrinking right-hand action stack must not come back")
@@ -476,14 +550,23 @@ def require_layout_contract():
         check('SelectedValuePath' not in text and "SelectedValue=" not in text,
               f"{path.name} must bind a row object; a code string can fail to resolve "
               "and leaves the box blank")
-    filter_start = view.index('<WrapPanel Grid.Column="0"')
+    filter_start = view.index('<WrapPanel Grid.Row="0" Grid.Column="0"')
     filter_end = view.index("</WrapPanel>", filter_start)
     filter_bar = view[filter_start:filter_end]
-    check('Text="Department"' not in filter_bar,
-          "no caption may stand beside the department filter")
-    check('Text="Role"' not in filter_bar,
-          "no caption may stand beside the role filter")
 
+    # A2a-2 — the field word is a LABEL beside the box, the way the Inquiry
+    # toolbar labels its status chips, and the face carries the selection only.
+    # Printing the word inside every row was tried and rejected: it reads as a
+    # placeholder and doubles the word once a row already says "Cutting
+    # Department".
+    for word, items in (("Department", "DepartmentFilters"), ("Role", "RoleFilters")):
+        check(f'<TextBlock Text="{word}"' in filter_bar,
+              f"the {word.lower()} filter must carry a visible '{word}' label")
+        box = re.search(r"<ComboBox\b[^>]*" + items + r"[\s\S]*?</ComboBox>", filter_bar)
+        check(box is not None, f"the {word.lower()} filter dropdown is missing")
+        if box:
+            check('{Binding DisplayName}' in box.group(0) and f'Text="{word}"' not in box.group(0),
+                  f"the {word.lower()} filter face must carry the selection only, not the field word")
     # A2b — a single action is a button, not an overflow menu. Refresh used to be
     # the only item inside a "⋯" menu on the command bar, so the action took two
     # clicks and read as a mystery. Row menus with two or more real choices are
@@ -641,7 +724,7 @@ def main():
     require_project_inclusion()
     require_shell_hosting()
     require_migration_registration()
-    require_no_password_storage()
+    require_credential_policy()
     require_department_is_not_a_permission()
     require_single_catalogue_definition()
     require_no_delete_path()

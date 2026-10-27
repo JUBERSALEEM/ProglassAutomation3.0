@@ -149,6 +149,29 @@ namespace ProGlassAutomation.Models.Users
             return null;
         }
 
+        /// <summary>
+        /// Password fields of a draft. A new user must be given one; an edit only
+        /// has to be valid when the operator actually typed something.
+        /// </summary>
+        public static string? ValidatePassword(UserDraft draft)
+        {
+            if (draft == null) throw new ArgumentNullException(nameof(draft));
+
+            bool isNew = draft.Id <= 0;
+            bool typed = draft.Password.Length > 0 || draft.PasswordConfirm.Length > 0;
+
+            if (isNew && !typed) return "Password is required for a new user.";
+            if (!typed) return null;
+
+            string? strength = UserPassword.Validate(draft.Password);
+            if (strength != null) return strength;
+
+            if (!string.Equals(draft.Password, draft.PasswordConfirm, StringComparison.Ordinal))
+                return "The two passwords do not match.";
+
+            return null;
+        }
+
         // ── Whole draft ──────────────────────────────────────────────────
 
         /// <summary>
@@ -164,6 +187,18 @@ namespace ProGlassAutomation.Models.Users
             AddIfPresent(errors, nameof(UserDraft.Username), ValidateUsername(draft.Username));
             AddIfPresent(errors, nameof(UserDraft.Department), ValidateDepartment(draft.Department));
             AddIfPresent(errors, nameof(UserDraft.Role), ValidateRole(draft.Role));
+
+            string? password = ValidatePassword(draft);
+            if (password != null)
+            {
+                // Reported against the field the operator must fix: the confirmation
+                // when it is the mismatch, the password box otherwise.
+                string field = draft.PasswordConfirm.Length > 0 &&
+                               !string.Equals(draft.Password, draft.PasswordConfirm, StringComparison.Ordinal)
+                    ? nameof(UserDraft.PasswordConfirm)
+                    : nameof(UserDraft.Password);
+                AddIfPresent(errors, field, password);
+            }
 
             return errors;
         }
@@ -185,7 +220,12 @@ namespace ProGlassAutomation.Models.Users
                 Role = NormalizeRole(draft.Role),
                 IsActive = draft.IsActive,
                 OriginalRole = draft.OriginalRole,
-                OriginalIsActive = draft.OriginalIsActive
+                OriginalIsActive = draft.OriginalIsActive,
+                // Passwords are not "normalized" — a password is taken exactly as
+                // typed, and only the hash is stored.
+                Password = draft.Password,
+                PasswordConfirm = draft.PasswordConfirm,
+                CurrentPassword = draft.CurrentPassword
             };
         }
 

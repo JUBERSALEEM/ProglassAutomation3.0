@@ -15,11 +15,14 @@
 //     A department is the team a person belongs to; a role is what they are
 //     authorized to do. Two people in Sales can hold different roles, and a
 //     role never implies a department.
-//   • There is NO password, hash, salt or token column. The application has no
-//     credentialed login to support, and inventing one would be a fabricated
-//     security feature. Identity is the Windows workstation account
-//     (Inquiry/Services/Audit/CurrentOperator.cs) matched to a user row;
-//     a password-based login is a separate, unapproved decision.
+//   • Every user signs in with a password. What is stored is a PBKDF2 hash, a
+//     per-user salt and the work factor — never the password itself, and never
+//     anything reversible (step3.a.5). Migration 1015 adds those columns; a row
+//     created before it exists has an empty credential and cannot sign in until
+//     an administrator sets one.
+//     (Until 2026-10-27 identity was the Windows workstation account alone.
+//     The owner rejected that: "user should have password so user should be able
+//     to read the data related to them only".)
 //   • IsActive replaces deletion: a person who leaves the company is
 //     deactivated, never deleted, so historical attribution keeps a target.
 //   • Timestamps are stored in UTC and displayed locally, matching the rest of
@@ -88,6 +91,42 @@ namespace ProGlassAutomation.Models.Users
         /// <summary>Stable id of the administrator who last changed this row.</summary>
         public int? UpdatedByUserId { get; set; }
 
+        // ── Credentials (migration 1015) ─────────────────────────────────
+        // Only the hash, its salt and the work factor are stored. See
+        // step3.a.5.UserPassword for how they are produced and checked.
+
+        /// <summary>PBKDF2-HMAC-SHA256 hash, base64. Empty = no credential yet.</summary>
+        [MaxLength(128)]
+        public string PasswordHash { get; set; } = "";
+
+        /// <summary>Per-user random salt, base64.</summary>
+        [MaxLength(64)]
+        public string PasswordSalt { get; set; } = "";
+
+        /// <summary>Work factor used for <see cref="PasswordHash"/>.</summary>
+        public int PasswordIterations { get; set; }
+
+        /// <summary>When the password was last set, UTC.</summary>
+        public DateTime? PasswordUpdatedAt { get; set; }
+
+        /// <summary>
+        /// True when an administrator set the password (or reset it): the person
+        /// must choose their own before the directory treats them as fully set up.
+        /// </summary>
+        public bool MustChangePassword { get; set; }
+
+        /// <summary>Consecutive failed sign-ins; reset on success.</summary>
+        public int FailedSignInCount { get; set; }
+
+        /// <summary>No sign-in is accepted before this instant, UTC.</summary>
+        public DateTime? LockedUntilUtc { get; set; }
+
+        /// <summary>True when a credential exists, so the editor can say so.</summary>
+        [NotMapped]
+        public bool HasPassword => !string.IsNullOrWhiteSpace(PasswordHash) &&
+                                   !string.IsNullOrWhiteSpace(PasswordSalt) &&
+                                   PasswordIterations > 0;
+
         /// <summary>"Active" / "Inactive" for the register and status badge.</summary>
         [NotMapped]
         public string StatusText => IsActive ? "Active" : "Inactive";
@@ -121,6 +160,22 @@ namespace ProGlassAutomation.Models.Users
 
         public bool OriginalIsActive { get; init; } = true;
 
+        // ── Passwords ────────────────────────────────────────────────────
+        // The draft carries a password only when one is being set; it is never
+        // read back from a stored row, so an edit cannot leak or re-save a hash.
+
+        /// <summary>A new password to set, or "" to leave the credential alone.</summary>
+        public string Password { get; set; } = "";
+
+        /// <summary>Confirmation of <see cref="Password"/>; never stored.</summary>
+        public string PasswordConfirm { get; set; } = "";
+
+        /// <summary>
+        /// The current password, required when a person changes their own
+        /// credential (an administrator resetting someone else's does not need it).
+        /// </summary>
+        public string CurrentPassword { get; set; } = "";
+
         public static UserDraft From(User user) => new()
         {
             Id = user.Id,
@@ -142,7 +197,10 @@ namespace ProGlassAutomation.Models.Users
             Role = Role,
             IsActive = IsActive,
             OriginalRole = OriginalRole,
-            OriginalIsActive = OriginalIsActive
+            OriginalIsActive = OriginalIsActive,
+            Password = Password,
+            PasswordConfirm = PasswordConfirm,
+            CurrentPassword = CurrentPassword
         };
     }
 }

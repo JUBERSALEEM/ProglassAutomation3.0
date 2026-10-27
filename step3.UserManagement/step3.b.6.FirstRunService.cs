@@ -80,7 +80,8 @@ namespace ProGlassAutomation.Services.Users
         /// Registers the workstation account as the first Administrator, then
         /// re-reads the directory to prove the account is now recognised.
         /// </summary>
-        Task<UserSaveResult> RegisterAsync(string fullName, string department, CancellationToken ct = default);
+        Task<UserSaveResult> RegisterAsync(
+            string fullName, string department, string password, CancellationToken ct = default);
     }
 
     /// <summary>Default implementation over <see cref="IUserRepository"/>.</summary>
@@ -128,7 +129,7 @@ namespace ProGlassAutomation.Services.Users
         }
 
         public async Task<UserSaveResult> RegisterAsync(
-            string fullName, string department, CancellationToken ct = default)
+            string fullName, string department, string password, CancellationToken ct = default)
         {
             FirstRunSnapshot before = await InspectAsync(ct).ConfigureAwait(false);
 
@@ -158,8 +159,15 @@ namespace ProGlassAutomation.Services.Users
             if (nameError != null)
                 return UserSaveResult.Fail(nameError, UserDecisionCode.InvalidTarget);
 
+            // A password is part of setup now, not an afterthought: the account is
+            // useless without one, and asking for it later would leave a working
+            // administrator row that nobody can sign in as.
+            string? passwordError = UserPassword.Validate(password);
+            if (passwordError != null)
+                return UserSaveResult.Fail(passwordError, UserDecisionCode.InvalidTarget);
+
             UserSaveResult result = await _repository
-                .RegisterFirstAdministratorAsync(fullName, department, account, ct)
+                .RegisterFirstAdministratorAsync(fullName, department, password, account, ct)
                 .ConfigureAwait(false);
 
             if (!result.Succeeded) return result;
@@ -167,7 +175,10 @@ namespace ProGlassAutomation.Services.Users
             // Prove it, do not assume it. The row must now be found by the very
             // account this process reports; if it is not, the operator would be
             // locked out of the page they just set up, so say exactly why.
-            User? matched = await _repository.FindCurrentUserAsync(ct).ConfigureAwait(false);
+            // Look the new row up by the account that was just registered. The
+            // process is not signed in yet at this point, so FindCurrentUserAsync —
+            // which answers "who is signed in" — would always be null here.
+            User? matched = await _repository.FindByUsernameAsync(account, ct).ConfigureAwait(false);
             if (matched == null || !matched.IsActive)
             {
                 return UserSaveResult.Fail(

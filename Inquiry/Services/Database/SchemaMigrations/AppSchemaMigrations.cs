@@ -196,8 +196,16 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             new(ClientSchema.RepresentativeMigrationVersion,
                 "Clients: representative reference into the user directory",
                 connection => ClientSchema.EnsureRepresentativeReference(connection),
-                connection => ClientSchema.AssertRepresentativeReference(connection))
+                connection => ClientSchema.AssertRepresentativeReference(connection)),
 
+            // Owner instruction 2026-10-27: every user signs in with a password.
+            // Storage only — the hash, the salt and the work factor. A row that
+            // predates this migration keeps working in the register and simply has
+            // no credential until an administrator sets one.
+            new(UserSchema.CredentialsMigrationVersion,
+                "Users: password credential (hash, salt, work factor, lockout state)",
+                connection => UserSchema.EnsureCredentials(connection),
+                connection => UserSchema.AssertCredentials(connection))
         };
 
         /// <summary>
