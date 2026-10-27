@@ -309,6 +309,29 @@ for path in files:
                 f'{expected} (via {attribute}); WPF refuses the assignment when '
                 f'the property is set')
 
+# 1g ── `BasedOn` must point at a style of the same type ─────────────────────
+# A derived style inherits its base's TargetType contract: `BasedOn` a TextBlock
+# style from a Border style throws at load ("Style object is not allowed to
+# affect ..."). Base-type styles are exempt, as in 1f.
+for path in files:
+    text = code_only(path.read_text(encoding='utf-8'))
+    for match in re.finditer(r'<Style\b([^>]*)>', text):
+        attributes = match.group(1)
+        own = re.search(r'TargetType="([^"{]+)"', attributes)
+        base = re.search(r'BasedOn="\{StaticResource\s+([^"{]+?)\s*\}"', attributes)
+        if not own or not base:
+            continue
+        own_type, key = _bare(own.group(1)), base.group(1).strip()
+        targets = STYLE_TARGETS.get(key)
+        if not targets:
+            continue
+        concrete = {t for t in targets if t not in BASE_STYLED_TYPES}
+        if concrete and own_type not in targets:
+            problems.append(
+                f'{path.relative_to(ROOT)}:{text[:match.start(1)].count(chr(10)) + 1}: '
+                f'a {own_type} style is BasedOn {key!r}, which targets '
+                f'{sorted(concrete)[0]}; WPF refuses to derive across types')
+
 # The two registers must actually use the mechanism these tests describe: the
 # presenter is stretched, and the content alignment lives on the cell, which is a
 # ContentControl and really does declare it.
