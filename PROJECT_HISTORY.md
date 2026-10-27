@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 26: the first boot that already has users
+
+- **Phase:** `step3` (User Management) — the dead end the owner's question about first-boot passwords uncovered.
+- **Before:** a fresh install asked for a password on the setup card before the row existed, and that part was sound. But a directory that already had users — created before migration 1015 — had no password on any row, so sign-in refused every account and told the operator to ask an administrator who could not sign in either. Every existing installation would have hit that on its first launch.
+- **Sign-in:** a row without a password still cannot be signed into. The refusal now distinguishes "this person has none" (an administrator sets it) from "nobody in this installation has one" (there is no administrator to ask).
+- **The door:** `SetFirstPasswordAsync` sets the first password once — refused when any row already has one, resolved from the workstation account inside the write transaction (no `userId` parameter), required to be an active Administrator, and not marked temporary.
+- **Surfaces:** the startup gate opens for this state with the name and department fields hidden, and the Users page card does the same when the gate was dismissed. After the page writes it, the shell is asked for the sign-in gate, because that page can be reached with no session.
+- **Coverage:** `step3.f.2.require_first_password_upgrade()` pins every guard; eight defects were re-introduced one at a time and each failed. `step3.f.1` walks the upgrade path on an isolated database by blanking the credential columns.
+- **Verification:** nine portable checkers PASS. No .NET SDK here, so the in-code suite and the rebuilt window are the owner's to run.
+
+---
 ## 2026-10-27 — Round 25: an app that opens (XamlParseException)
 
 - **Phase:** `step3` (User Management) views plus the XAML gate — the owner's crash report from the running build.

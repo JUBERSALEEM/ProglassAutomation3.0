@@ -14,12 +14,15 @@
 //   convenience only: the repository independently refuses the same writes, so
 //   hiding a button is never the enforcement (see step3.a.4).
 //
-// First run
-//   On a fresh database the directory is empty and nobody can be identified,
-//   so no administrator could ever exist. The bootstrap card is the single,
-//   explicit answer: the person at this workstation registers the Windows
-//   account they are already using as the first Administrator. The repository
-//   refuses that call the moment any user exists.
+// First run — two states, one card
+//   • On a fresh database the directory is empty and nobody can be identified,
+//     so no administrator could ever exist. The card registers the Windows
+//     account this workstation is already using as the first Administrator.
+//   • On a directory written before migration 1015 the rows exist but none has a
+//     password, so nobody can sign in and no administrator exists to set one.
+//     The same card then gives the workstation's own Administrator row its first
+//     password. Both doors are closed by the repository the moment they would
+//     stop being true, and neither is reachable from a second place.
 // ═══════════════════════════════════════════════════════════════════════
 
 using ProGlassAutomation.Models.Users;
@@ -93,6 +96,9 @@ namespace ProGlassAutomation.ViewModels.Users
         private CatalogRow? _bootstrapDepartmentItem;
         private string _bootstrapError = "";
         private bool _isBootstrapping;
+        private bool _isCredentialSetup;
+        private bool _canSetFirstPassword;
+        private string _firstPasswordAdministrator = "";
 
         private UserDecision _managementDecision = UserAuthority_NotLoaded;
 
@@ -369,10 +375,78 @@ namespace ProGlassAutomation.ViewModels.Users
             private set => SetField(ref _isBootstrapping, value);
         }
 
-        public string BootstrapExplanation =>
-            "This directory has no users yet, so nobody can administer it. Register the Windows account "
-            + "this workstation is already using as the first Administrator. This is only possible while the "
-            + "directory is empty.";
+        /// <summary>
+        /// True when the card is giving an existing administrator row its FIRST
+        /// password (a directory from before migration 1015), rather than creating
+        /// the first administrator.
+        /// </summary>
+        public bool IsCredentialSetup
+        {
+            get => _isCredentialSetup;
+            private set
+            {
+                if (!SetField(ref _isCredentialSetup, value)) return;
+                OnPropertyChanged(nameof(ShowBootstrapCard));
+                OnPropertyChanged(nameof(ShowBootstrapIdentityFields));
+                OnPropertyChanged(nameof(BootstrapTitle));
+                OnPropertyChanged(nameof(BootstrapExplanation));
+                OnPropertyChanged(nameof(BootstrapSubmitLabel));
+                OnPropertyChanged(nameof(BootstrapAccessibleName));
+            }
+        }
+
+        /// <summary>True when this workstation owns the row that needs the password.</summary>
+        public bool CanSetFirstPassword
+        {
+            get => _canSetFirstPassword;
+            private set => SetField(ref _canSetFirstPassword, value);
+        }
+
+        /// <summary>The administrator row waiting for its first password.</summary>
+        public string FirstPasswordAdministrator
+        {
+            get => _firstPasswordAdministrator;
+            private set => SetField(ref _firstPasswordAdministrator, value);
+        }
+
+        /// <summary>
+        /// The card shows when the directory is empty (create the first
+        /// administrator) or when nobody in it has a password yet (give the
+        /// workstation's own administrator row one). Without the second case an
+        /// upgraded installation has no way in at all.
+        /// </summary>
+        public bool ShowBootstrapCard => IsDirectoryEmpty || IsCredentialSetup;
+
+        public string BootstrapTitle => IsCredentialSetup
+            ? "Set the administrator's password"
+            : "Register the first administrator";
+
+        /// <summary>Nobody's identity is edited by the first-password step.</summary>
+        public bool ShowBootstrapIdentityFields => !IsCredentialSetup;
+
+        public string BootstrapSubmitLabel => IsCredentialSetup
+            ? "Set my password"
+            : "Register me as administrator";
+
+        public string BootstrapAccessibleName => IsCredentialSetup
+            ? "Set the first password for this administrator account"
+            : "Register this account as the first administrator";
+
+        public string BootstrapExplanation => IsCredentialSetup
+            ? (CanSetFirstPassword
+                ? "Every account in this directory was created before passwords existed, so nobody can sign "
+                  + "in and there is no administrator who could set one. Choose a password for the "
+                  + "Administrator below — it is yours, so it is not temporary. This closes as soon as any "
+                  + "account has a password."
+                : (FirstPasswordAdministrator.Length > 0
+                    ? $"No account in this directory has a password yet. Run the application from the Windows "
+                      + $"account \"{FirstPasswordAdministrator}\" — the first password can only be set by the "
+                      + "person it belongs to."
+                    : "No account in this directory has a password yet, and no active Administrator row exists "
+                      + "to set one for. Sign in from the machine that owns the administrator account."))
+            : "This directory has no users yet, so nobody can administer it. Register the Windows account "
+              + "this workstation is already using as the first Administrator. This is only possible while the "
+              + "directory is empty.";
 
         // ── Editor / feedback ───────────────────────────────────────────
 
@@ -491,6 +565,14 @@ namespace ProGlassAutomation.ViewModels.Users
                 var roles = await _repository.GetRolesAsync().ConfigureAwait(true);
                 ApplyCatalogueFilters(departments, roles);
 
+                // The same question the startup gate asks, asked again here: the
+                // gate can be dismissed or skipped, and the card below is then the
+                // only way into an installation that has no password yet.
+                FirstRunSnapshot firstRunState = await _firstRun.InspectAsync().ConfigureAwait(true);
+                CanSetFirstPassword = firstRunState.CanClaimFirstPassword;
+                FirstPasswordAdministrator = firstRunState.FirstAdministrator?.Username ?? "";
+                IsCredentialSetup = firstRunState.IsCredentialSetupRequired;
+
                 OnPropertyChanged(nameof(OperatorSummary));
                 OnPropertyChanged(nameof(CanManageUsers));
                 OnPropertyChanged(nameof(IsReadOnly));
@@ -578,6 +660,8 @@ namespace ProGlassAutomation.ViewModels.Users
 
                 OnPropertyChanged(nameof(RegisterSummary));
                 OnPropertyChanged(nameof(IsDirectoryEmpty));
+                // The bootstrap card shows for either first-run state.
+                OnPropertyChanged(nameof(ShowBootstrapCard));
                 // The refusal notice is suppressed while the directory is empty,
                 // so it has to be re-evaluated whenever that answer changes —
                 // including after the bootstrap row is created.
@@ -845,7 +929,9 @@ namespace ProGlassAutomation.ViewModels.Users
                 // The same policy as every other password in the module: the
                 // card cannot create an administrator nobody could sign in as.
                 string? mismatch = string.IsNullOrEmpty(BootstrapPassword)
-                    ? "Choose a password for the first administrator."
+                    ? (IsCredentialSetup
+                        ? "Choose a password for this administrator."
+                        : "Choose a password for the first administrator.")
                     : UserPassword.Validate(BootstrapPassword)
                       ?? (string.Equals(BootstrapPassword, BootstrapPasswordConfirm, StringComparison.Ordinal)
                           ? null
@@ -857,14 +943,21 @@ namespace ProGlassAutomation.ViewModels.Users
                     return;
                 }
 
-                var result = await _firstRun
-                    .RegisterAsync(BootstrapFullName, BootstrapDepartment, BootstrapPassword)
-                    .ConfigureAwait(true);
+                // One card, two writes: create the first administrator, or give the
+                // existing administrator row the first password. Neither can be
+                // reached twice — each closes as soon as it would stop being true.
+                var result = IsCredentialSetup
+                    ? await _firstRun.SetFirstPasswordAsync(BootstrapPassword).ConfigureAwait(true)
+                    : await _firstRun
+                        .RegisterAsync(BootstrapFullName, BootstrapDepartment, BootstrapPassword)
+                        .ConfigureAwait(true);
 
                 if (!result.Succeeded)
                 {
                     string message = string.IsNullOrWhiteSpace(result.Message)
-                        ? "The first administrator could not be registered."
+                        ? (IsCredentialSetup
+                            ? "The first password could not be set."
+                            : "The first administrator could not be registered.")
                         : result.Message;
 
                     // If the directory is no longer empty, this card is about to
@@ -880,13 +973,26 @@ namespace ProGlassAutomation.ViewModels.Users
                 BootstrapFullName = "";
                 BootstrapPassword = "";
                 BootstrapPasswordConfirm = "";
-                StatusMessage = result.Message;
+                StatusMessage = string.IsNullOrWhiteSpace(result.Message)
+                    ? (IsCredentialSetup
+                        ? "The password is set. Sign in with it now."
+                        : "The first administrator was created.")
+                    : result.Message;
+                bool askingToSignIn = IsCredentialSetup;
                 await RefreshOperatorAsync().ConfigureAwait(true);
                 await ReloadAsync().ConfigureAwait(true);
+
+                // The first password was set from this page, which means the gate
+                // was dismissed: there is no session yet, so ask the shell for the
+                // sign-in screen instead of leaving the operator on a page that
+                // cannot act.
+                if (askingToSignIn) AuthenticationContext.RequestSignIn();
             }
             catch (Exception ex)
             {
-                BootstrapError = "The first administrator could not be registered ("
+                BootstrapError = (IsCredentialSetup
+                        ? "The first password could not be set ("
+                        : "The first administrator could not be registered (")
                     + ex.GetType().Name + "): " + ex.Message;
             }
             finally

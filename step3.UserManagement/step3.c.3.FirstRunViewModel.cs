@@ -14,7 +14,15 @@
 // administrator whose username does not match the workstation is exactly the
 // deadlock this gate exists to prevent.
 //
-// Also absent: any password, token or "skip authorisation" switch.
+// Two states, one card
+//   1. An empty directory: register the workstation account as the first
+//      Administrator, with a password chosen on this card.
+//   2. A directory that has users but no password anywhere (created before
+//      migration 1015): give the workstation's own Administrator row its first
+//      password. Without this the upgrade would greet every existing
+//      installation with "ask an administrator" and no administrator able to
+//      sign in — the same circular instruction, one version later.
+// There is no "skip authorisation" switch in either state.
 // ═══════════════════════════════════════════════════════════════════════
 
 using ProGlassAutomation.Models.Users;
@@ -49,6 +57,9 @@ namespace ProGlassAutomation.ViewModels.Users
         private string _errorMessage = "";
         private string _statusMessage = "";
         private string _explanation = "";
+        private bool _isCredentialSetup;
+        private bool _canClaimFirstPassword;
+        private string _administratorUsername = "";
 
         public FirstRunViewModel(IFirstRunService firstRun)
         {
@@ -176,6 +187,67 @@ namespace ProGlassAutomation.ViewModels.Users
 
         public bool HasStatusMessage => StatusMessage.Length > 0;
 
+        /// <summary>
+        /// True when the card is setting a FIRST PASSWORD on an existing
+        /// administrator row, rather than registering the first administrator.
+        /// </summary>
+        public bool IsCredentialSetup
+        {
+            get => _isCredentialSetup;
+            private set
+            {
+                if (!SetField(ref _isCredentialSetup, value)) return;
+                OnPropertyChanged(nameof(ShowIdentityFields));
+                OnPropertyChanged(nameof(WindowAccountCaption));
+                OnPropertyChanged(nameof(Title));
+                OnPropertyChanged(nameof(SubmitLabel));
+                OnPropertyChanged(nameof(SubmitAccessibleName));
+            }
+        }
+
+        /// <summary>True when this workstation is the account that needs the password.</summary>
+        public bool CanClaimFirstPassword
+        {
+            get => _canClaimFirstPassword;
+            private set => SetField(ref _canClaimFirstPassword, value);
+        }
+
+        /// <summary>The administrator row waiting for its first password.</summary>
+        public string AdministratorUsername
+        {
+            get => _administratorUsername;
+            private set => SetField(ref _administratorUsername, value);
+        }
+
+        /// <summary>Name and department only exist when a row is being created.</summary>
+        public bool ShowIdentityFields => !IsCredentialSetup;
+
+        /// <summary>
+        /// What the read-only Windows-account plate means in the current state.
+        /// Saying "this account becomes the first Administrator" while it is
+        /// actually only receiving a password would be untrue.
+        /// </summary>
+        public string WindowAccountCaption => IsCredentialSetup
+            ? "This is the account the application will sign you in as. The password below is set on the "
+              + "administrator row this account already owns — nothing about the person changes."
+            : "This account becomes the first Administrator. The application recognises people by this name, "
+              + "so it is read from Windows and cannot be typed.";
+
+        public string Title => IsCredentialSetup
+            ? "Set the administrator's password"
+            : "Set up this installation";
+
+        /// <summary>
+        /// The primary button's wording. Sentence case; the theme owns casing.
+        /// </summary>
+        public string SubmitLabel => IsCredentialSetup
+            ? "Set my password"
+            : "Register me as administrator";
+
+        public string SubmitAccessibleName => IsCredentialSetup
+            ? "Set the first password for this administrator account"
+            : "Register this account as the first administrator";
+
         /// <summary>The button stays usable while a name is missing: the form
         /// explains what is wrong instead of silently doing nothing.</summary>
         public bool CanRegister => !IsBusy;
@@ -231,13 +303,30 @@ namespace ProGlassAutomation.ViewModels.Users
                 return false;
             }
 
-            IsVisible = snapshot.IsSetupRequired;
+            IsCredentialSetup = snapshot.IsCredentialSetupRequired;
+            CanClaimFirstPassword = snapshot.CanClaimFirstPassword;
+            AdministratorUsername = snapshot.FirstAdministrator?.Username ?? "";
+
+            IsVisible = snapshot.IsSetupRequired || snapshot.IsCredentialSetupRequired;
             Explanation = snapshot.IsSetupRequired
                 ? "This installation has no users yet, so there is no administrator to ask. "
                   + "The Windows account shown below is the account this workstation is already "
                   + "running under — register it as the first Administrator and you can add the "
                   + "rest of the team immediately."
-                : "";
+                : snapshot.IsCredentialSetupRequired
+                    ? (snapshot.CanClaimFirstPassword
+                        ? "Every account in this directory was created before passwords existed, so "
+                          + "nobody can sign in yet — and there is therefore no administrator who could "
+                          + "set one. Choose a password for the Administrator below; it is yours, so it "
+                          + "is not temporary. This step is offered only while no account has a password "
+                          + "and closes as soon as one does."
+                        : "No account in this installation has a password yet, so nobody can sign in. "
+                          + $"The Administrator waiting for its first password is \"{snapshot.FirstAdministrator?.Username}\". "
+                          + "Run the application from that Windows account — the password can only be set "
+                          + "on the machine that is signed in as it, never for somebody else.")
+                    : "";
+            // The second state is not a dead end: when this workstation is the
+            // wrong account, the card names the account to run from.
             return IsVisible;
         }
 
@@ -252,6 +341,8 @@ namespace ProGlassAutomation.ViewModels.Users
 
             ErrorMessage = "";
             StatusMessage = "";
+
+            if (IsCredentialSetup) return await SetFirstPasswordAsync();
 
             string? nameError = UserRules.ValidateFullName(FullName);
             FullNameError = nameError ?? "";
@@ -305,6 +396,71 @@ namespace ProGlassAutomation.ViewModels.Users
             catch (Exception ex)
             {
                 ErrorMessage = "The first administrator could not be registered ("
+                    + ex.GetType().Name + "): " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// The upgrade card: an existing administrator row gets its first password.
+        /// No name, no department — the row already exists, and this step must not
+        /// be able to change who a person is.
+        /// </summary>
+        private async Task<bool> SetFirstPasswordAsync()
+        {
+            if (!CanClaimFirstPassword)
+            {
+                ErrorMessage = string.IsNullOrEmpty(AdministratorUsername)
+                    ? "This directory has no active Administrator, so there is nobody the first password could belong to."
+                    : $"Run the application from the Windows account \"{AdministratorUsername}\" — the first password can only be set by the person it belongs to.";
+                return false;
+            }
+
+            string? passwordError = UserPassword.Validate(Password);
+            if (passwordError == null &&
+                !string.Equals(Password, PasswordConfirm, StringComparison.Ordinal))
+                passwordError = "The two passwords do not match.";
+
+            PasswordError = passwordError ?? "";
+            if (passwordError != null)
+            {
+                ErrorMessage = passwordError;
+                return false;
+            }
+
+            IsBusy = true;
+            try
+            {
+                UserSaveResult result = await _firstRun
+                    .SetFirstPasswordAsync(Password)
+                    .ConfigureAwait(true);
+
+                if (!result.Succeeded || result.User == null)
+                {
+                    ErrorMessage = string.IsNullOrWhiteSpace(result.Message)
+                        ? "The first password could not be set. Try again."
+                        : result.Message;
+                    return false;
+                }
+
+                StatusMessage = string.IsNullOrWhiteSpace(result.Message)
+                    ? "The password is set. Sign in with it now."
+                    : result.Message;
+
+                // Never hand the boxes back with a password in them.
+                Password = "";
+                PasswordConfirm = "";
+                IsVisible = false;
+                Completed?.Invoke(this, EventArgs.Empty);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "The first password could not be set ("
                     + ex.GetType().Name + "): " + ex.Message;
                 return false;
             }

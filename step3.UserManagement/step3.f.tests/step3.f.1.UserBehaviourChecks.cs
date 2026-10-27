@@ -60,6 +60,7 @@ internal static class UserBehaviourChecks
         Run("first-run gate and concurrent bootstrap", CheckFirstRunGate);
         Run("first-run flow (service)", CheckFirstRunFlow);
         Run("credentials and read scope (isolated database)", CheckCredentials);
+        Run("first password on an upgraded directory (isolated database)", CheckFirstPasswordUpgrade);
 
         Console.WriteLine();
         Console.WriteLine($"step3 user checks: {_passed} passed, {Failures.Count} failed.");
@@ -67,6 +68,170 @@ internal static class UserBehaviourChecks
         if (Failures.Count == 0)
             Console.WriteLine("PASS: user rules, permissions and isolated persistence.");
         return Failures.Count == 0 ? 0 : 1;
+    }
+
+    /// <summary>
+    /// The OTHER first boot (owner question, round 25): an installation that
+    /// already has users, all of them created before migration 1015, so none has a
+    /// password. Sign-in must refuse — and it must not say "ask an administrator"
+    /// while no administrator can sign in either. Exactly one door exists: the
+    /// workstation's own Administrator row may be given its first password, once.
+    /// </summary>
+    private static void CheckFirstPasswordUpgrade()
+    {
+        string tempFolder = Path.Combine(
+            Path.GetTempPath(), "proglass-step3-firstpass-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tempFolder);
+        AppDataRoot.TestFolderOverride = tempFolder;
+        try
+        {
+            CheckFirstPasswordUpgradeAsync().GetAwaiter().GetResult();
+        }
+        finally
+        {
+            AuthenticationContext.SignOut();
+            AppDataRoot.TestFolderOverride = null;
+            try { Directory.Delete(tempFolder, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    private static async Task CheckFirstPasswordUpgradeAsync()
+    {
+        var repository = new UserRepository();
+        await repository.InitializeAsync();
+
+        string operatorName = UserRules.NormalizeUsername(
+            ProGlassAutomation.Services.Audit.CurrentOperator.Username);
+
+        const string UpgradePassword = "First-Passw0rd!2026";
+        const string OtherPassword = "Second-Passw0rd!2026";
+
+        UserSaveResult seeded = await repository.RegisterFirstAdministratorAsync(
+            "Admin One", "Administration", TestPassword, operatorName);
+        True(seeded.Succeeded, "an administrator exists to blank: " + seeded.Message);
+
+        // Make the directory look exactly like one written before 1015: the rows
+        // are all here, and not one of them carries a credential.
+        BlankCredentials();
+        Equal("0", (await repository.CountCredentialedUsersAsync()).ToString(),
+            "the fixture has no password anywhere");
+
+        var firstRun = new FirstRunService(repository);
+        var page = new ProGlassAutomation.ViewModels.Users.UserWorkspaceViewModel(repository);
+        await page.EnsureInitializedAsync();
+
+        True(!await repository.IsFirstRunRequiredAsync(),
+            "a directory with users is not an empty first run");
+        FirstRunSnapshot state = await firstRun.InspectAsync();
+        True(state.IsCredentialSetupRequired,
+            "the service reports the upgrade state: users, but no password");
+        True(state.CanClaimFirstPassword,
+            "this workstation owns the administrator row that needs the password");
+        True(page.IsCredentialSetup && page.ShowBootstrapCard,
+            "the Users page offers the same step, because the gate can be dismissed");
+
+        // ── Nobody can sign in, and the message says why ──────────────────
+        SignInResult blocked = await repository.SignInAsync(operatorName, TestPassword);
+        Equal(nameof(SignInCode.NoPassword), blocked.Code.ToString(),
+            "an account with no password cannot be signed into");
+        True(blocked.Message.Contains("no account in this installation has a password",
+                StringComparison.OrdinalIgnoreCase),
+            "the refusal names the situation instead of telling the operator to ask "
+            + "an administrator who cannot sign in either: " + blocked.Message);
+
+        // ── Policy, and the one-shot door ────────────────────────────────
+        UserSaveResult weak = await firstRun.SetFirstPasswordAsync("short");
+        True(!weak.Succeeded, "the first password obeys the same policy as every other");
+
+        UserSaveResult notAnAdministrator = await repository
+            .SetFirstPasswordAsync(UpgradePassword, "someone.else");
+        True(!notAnAdministrator.Succeeded,
+            "a workstation account that matches no row cannot set a password for one");
+
+        UserSaveResult set = await firstRun.SetFirstPasswordAsync(UpgradePassword);
+        True(set.Succeeded, "the first password is set: " + set.Message);
+        Equal("1", (await repository.CountCredentialedUsersAsync()).ToString(),
+            "exactly one account gained a password");
+
+        SignInResult now = await repository.SignInAsync(operatorName, UpgradePassword);
+        True(now.Succeeded, "the new password signs in: " + now.Message);
+        True(!now.MustChangePassword,
+            "a password the person chose themselves is not temporary");
+
+        UserSaveResult again = await firstRun.SetFirstPasswordAsync(OtherPassword);
+        True(!again.Succeeded,
+            "the first-password step closes once any account has a password");
+        SignInResult stillOld = await repository.SignInAsync(operatorName, UpgradePassword);
+        True(stillOld.Succeeded, "the refused second attempt changed nothing");
+
+        // ── A normal user's row is never the one that gets it ────────────
+        UserSaveResult estimator = await repository.CreateAsync(new UserDraft
+        {
+            FullName = "Fatima Al Zaabi",
+            Username = "fatima.alzaabi",
+            Department = "Estimation",
+            Role = "ESTIMATOR",
+            IsActive = true,
+            Password = TestPassword,
+            PasswordConfirm = TestPassword
+        }, operatorName);
+        True(estimator.Succeeded, "an estimator is created: " + estimator.Message);
+
+        BlankCredentials();
+        UserSaveResult asStaff = await repository
+            .SetFirstPasswordAsync(UpgradePassword, "fatima.alzaabi");
+        True(!asStaff.Succeeded,
+            "a non-administrator row cannot be given the first password, even from "
+            + "the machine that owns it");
+
+        // ── The wrong workstation: refused, and told where to run from ───
+        // Rename the administrator so this workstation no longer owns the row: an
+        // upgraded directory on somebody else's machine must not be claimable.
+        int administratorId = (await repository.FindByUsernameAsync(operatorName))!.Id;
+        UserSaveResult renamed = await repository.UpdateAsync(new UserDraft
+        {
+            Id = administratorId,
+            FullName = "Admin One",
+            Username = "admin.one",
+            Department = "Administration",
+            Role = "ADMINISTRATOR",
+            IsActive = true,
+            OriginalRole = "ADMINISTRATOR",
+            OriginalIsActive = true
+        }, operatorName);
+        True(renamed.Succeeded, "the administrator is renamed: " + renamed.Message);
+
+        FirstRunSnapshot elsewhere = await firstRun.InspectAsync();
+        True(elsewhere.IsCredentialSetupRequired && !elsewhere.CanClaimFirstPassword,
+            "the upgrade state is reported, but this workstation is not the row that can claim it");
+        Equal("admin.one", elsewhere.FirstAdministrator?.Username ?? "",
+            "the state names the administrator account to run from, so it is not a dead end");
+
+        UserSaveResult wrongMachine = await firstRun.SetFirstPasswordAsync(OtherPassword);
+        True(!wrongMachine.Succeeded,
+            "a workstation that does not own the administrator row cannot set its password");
+    }
+
+    /// <summary>
+    /// Empties every credential column, which is the state migration 1015 leaves
+    /// a directory that predates it. Written through SQL on the isolated file so
+    /// the fixture is the real shape, not a mock.
+    /// </summary>
+    private static void BlankCredentials()
+    {
+        using var connection = new Microsoft.Data.Sqlite.SqliteConnection(
+            SqliteResilience.BuildConnectionString(UserDbContext.DatabaseFilePath));
+        connection.Open();
+        SqliteResilience.ApplyConnectionPolicy(connection);
+        SchemaMigrationSql.Execute(connection, @"
+            UPDATE ""Users""
+               SET ""PasswordHash"" = '',
+                   ""PasswordSalt"" = '',
+                   ""PasswordIterations"" = 0,
+                   ""PasswordUpdatedAt"" = NULL,
+                   ""MustChangePassword"" = 0,
+                   ""FailedSignInCount"" = 0,
+                   ""LockedUntilUtc"" = NULL;");
     }
 
     /// <summary>

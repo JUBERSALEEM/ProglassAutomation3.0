@@ -598,7 +598,7 @@
                             <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
-                            <DataTrigger Binding="{Binding IsDirectoryEmpty}" Value="True">
+                            <DataTrigger Binding="{Binding ShowBootstrapCard}" Value="True">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                         </Style.Triggers>
@@ -730,17 +730,21 @@
             </Grid>
 
             <!-- ── First-run bootstrap ─────────────────────────────────
-                 A fresh database has no users, so nobody can be identified and
-                 no administrator could exist. This card is the single explicit
-                 way out: the person at this workstation registers the Windows
-                 account they are already using. The repository closes the door
-                 as soon as any user exists. -->
+                 Two states, one card (ShowBootstrapCard):
+                 • no users at all — nobody can be identified and no
+                   administrator could exist, so the person at this workstation
+                   registers the Windows account they are already using;
+                 • users but no password anywhere — a directory written before
+                   migration 1015, where nobody can sign in and no administrator
+                   exists to set one, so the administrator row this workstation
+                   owns gets its first password here.
+                 Each door closes as soon as it would stop being true. -->
             <Grid x:Name="BootstrapCard">
                 <Grid.Style>
                     <Style TargetType="Grid">
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsDirectoryEmpty}" Value="True">
+                            <DataTrigger Binding="{Binding ShowBootstrapCard}" Value="True">
                                 <Setter Property="Visibility" Value="Visible" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
@@ -753,7 +757,7 @@
                                 Padding="{DynamicResource UiCardPadding}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel MaxWidth="620" HorizontalAlignment="Left">
-                            <TextBlock Text="Register the first administrator"
+                            <TextBlock Text="{Binding BootstrapTitle}"
                                        FontSize="{DynamicResource FontSizeTitle}"
                                        FontWeight="{DynamicResource FontWeightHeading}"
                                        Foreground="{DynamicResource TextPrimary}" />
@@ -780,25 +784,29 @@
                                        Foreground="{DynamicResource TextSecondary}"
                                        FontSize="{DynamicResource FontSizeCaption}"
                                        FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource UiGapField}" />
+                                       Margin="{DynamicResource UiGapField}"
+                                       Visibility="{Binding ShowBootstrapIdentityFields, Converter={StaticResource UserVisibility}}" />
                             <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                      Text="{Binding BootstrapFullName, UpdateSourceTrigger=PropertyChanged}"
                                      MinHeight="{DynamicResource UiActionMinHeight}"
                                      Margin="{DynamicResource UiGapGroup}"
                                      ToolTip="The name that will appear on documents this person prepares"
-                                     AutomationProperties.Name="First administrator full name" />
+                                     AutomationProperties.Name="First administrator full name"
+                                     Visibility="{Binding ShowBootstrapIdentityFields, Converter={StaticResource UserVisibility}}" />
 
                             <TextBlock Text="Department"
                                        Foreground="{DynamicResource TextSecondary}"
                                        FontSize="{DynamicResource FontSizeCaption}"
                                        FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource UiGapField}" />
+                                       Margin="{DynamicResource UiGapField}"
+                                       Visibility="{Binding ShowBootstrapIdentityFields, Converter={StaticResource UserVisibility}}" />
                             <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                       ItemsSource="{Binding Departments}"
                                       SelectedItem="{Binding BootstrapDepartmentItem, Mode=TwoWay}"
                                       MinHeight="{DynamicResource UiActionMinHeight}"
                                       Margin="{DynamicResource UiGapGroup}"
-                                      AutomationProperties.Name="First administrator department">
+                                      AutomationProperties.Name="First administrator department"
+                                      Visibility="{Binding ShowBootstrapIdentityFields, Converter={StaticResource UserVisibility}}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
@@ -858,12 +866,12 @@
                                     MinHeight="{DynamicResource UiActionMinHeight}"
                                     Padding="{DynamicResource UiActionPadding}"
                                     Margin="{DynamicResource UiGapSection}"
-                                    AutomationProperties.Name="Register as first administrator">
+                                    AutomationProperties.Name="{Binding BootstrapAccessibleName}">
                                 <StackPanel Orientation="Horizontal">
                                     <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
                                                       Height="{DynamicResource ChoiceMarkSize}"
                                                       Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                    <TextBlock Text="REGISTER ME AS ADMINISTRATOR" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding BootstrapSubmitLabel}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>

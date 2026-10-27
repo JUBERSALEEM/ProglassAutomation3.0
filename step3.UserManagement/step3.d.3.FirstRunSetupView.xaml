@@ -23,6 +23,12 @@
          sits directly above the actions so the reason and the retry are together.
          ───────────────────────────────────────────────────────────────── -->
     <UserControl.Resources>
+        <!-- The card has two states (see step3.c.3): registering the first
+             administrator, and giving an existing administrator row its first
+             password. The identity fields only exist in the first. A converter
+             is used rather than a Style trigger, because a Style with
+             BasedOn="{DynamicResource ...}" throws at load. -->
+        <BooleanToVisibilityConverter x:Key="FirstRunVisibility" />
         <Style x:Key="FirstRunLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
@@ -51,7 +57,7 @@
                         VerticalAlignment="Top">
             <StackPanel Margin="{DynamicResource UiCardPadding}">
 
-                <TextBlock Text="Set up this installation"
+                <TextBlock Text="{Binding Title}"
                            FontSize="{DynamicResource FontSizeTitle}"
                            FontWeight="{DynamicResource FontWeightHeading}"
                            Foreground="{DynamicResource TextPrimary}"
@@ -75,47 +81,44 @@
                                    Foreground="{DynamicResource TextPrimary}"
                                    TextWrapping="Wrap"
                                    AutomationProperties.Name="Workstation Windows account" />
-                        <TextBlock Text="This account becomes the first Administrator. The application recognises people by this name, so it is read from Windows and cannot be typed."
+                        <TextBlock Text="{Binding WindowAccountCaption}"
                                    Style="{StaticResource FirstRunCaption}"
                                    Margin="{DynamicResource UiGapField}" />
                     </StackPanel>
                 </Border>
 
-                <!-- Your name -->
-                <TextBlock Text="YOUR FULL NAME *" Style="{StaticResource FirstRunLabel}" />
+                <!-- Your name. Only when a row is being created: the first-password
+                     state edits nobody's identity, it only gives an existing
+                     administrator a way in. -->
+                <TextBlock Text="YOUR FULL NAME *" Style="{StaticResource FirstRunLabel}"
+                           Visibility="{Binding ShowIdentityFields, Converter={StaticResource FirstRunVisibility}}" />
                 <TextBox x:Name="FullNameBox"
                          Style="{DynamicResource {x:Type TextBox}}"
                          Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
                          MinHeight="{DynamicResource UiActionMinHeight}"
                          MaxLength="120"
                          ToolTip="The name that appears in the user list and on records you prepare"
-                         AutomationProperties.Name="Your full name" />
+                         AutomationProperties.Name="Your full name"
+                         Visibility="{Binding ShowIdentityFields, Converter={StaticResource FirstRunVisibility}}" />
                 <TextBlock Text="Shown in the user list and on records this administrator prepares."
-                           Style="{StaticResource FirstRunCaption}" />
+                           Style="{StaticResource FirstRunCaption}"
+                           Visibility="{Binding ShowIdentityFields, Converter={StaticResource FirstRunVisibility}}" />
 
                 <Border Background="{DynamicResource StatusErrorSurface}"
                         CornerRadius="{DynamicResource ControlCornerRadius}"
                         Padding="{DynamicResource PaddingCompact}"
-                        Margin="{DynamicResource UiGapGroup}">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasFullNameError}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
+                        Margin="{DynamicResource UiGapGroup}"
+                        Visibility="{Binding HasFullNameError, Converter={StaticResource FirstRunVisibility}}">
                     <TextBlock Text="{Binding FullNameError}"
                                Foreground="{DynamicResource StatusError}"
                                TextWrapping="Wrap"
                                AutomationProperties.Name="Full name error" />
                 </Border>
 
-                <!-- Department -->
+                <!-- Department: identity, so only when the row is being created. -->
                 <TextBlock Text="DEPARTMENT" Style="{StaticResource FirstRunLabel}"
-                           Margin="{DynamicResource UiGapSection}" />
+                           Margin="{DynamicResource UiGapSection}"
+                           Visibility="{Binding ShowIdentityFields, Converter={StaticResource FirstRunVisibility}}" />
                 <!-- Bound by ROW: the catalogue arrives after this view binds, and a
                      SelectedValue resolved too early leaves the box with no text. -->
                 <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
@@ -123,7 +126,8 @@
                           SelectedItem="{Binding SelectedDepartmentItem, Mode=TwoWay}"
                           MinHeight="{DynamicResource UiActionMinHeight}"
                           ToolTip="The team this administrator belongs to"
-                          AutomationProperties.Name="Department">
+                          AutomationProperties.Name="Department"
+                          Visibility="{Binding ShowIdentityFields, Converter={StaticResource FirstRunVisibility}}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
@@ -221,13 +225,13 @@
                             MinHeight="{DynamicResource UiActionMinHeight}"
                             Padding="{DynamicResource UiActionPadding}"
                             Margin="{DynamicResource UiGapAction}"
-                            AutomationProperties.Name="Register this account as the first administrator">
+                            AutomationProperties.Name="{Binding SubmitAccessibleName}">
                         <StackPanel Orientation="Horizontal">
                             <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
                                               Height="{DynamicResource ChoiceMarkSize}"
                                               Margin="{DynamicResource UiGapAction}"
                                               VerticalAlignment="Center" />
-                            <TextBlock Text="REGISTER ME AS ADMINISTRATOR" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding SubmitLabel}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                     <Button Style="{DynamicResource SubtleButton}"

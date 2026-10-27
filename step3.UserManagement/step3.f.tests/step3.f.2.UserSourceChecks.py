@@ -504,6 +504,127 @@ def require_first_run_flow():
     check("AutomationProperties.Name" in gate_view,
           "the first-run gate must expose accessible names")
 
+def require_first_password_upgrade():
+    """An upgraded directory must still have a way in.
+
+    Owner question (round 25): "first boot how can have a password when until now
+    there was no password in username?" On a fresh install the setup card asks for
+    one before the row exists, so the two appear together. The case that was
+    missing is the OTHER first boot — an installation that already has users, all
+    of them created before migration 1015, so none has a password. There, sign-in
+    refuses every account and "ask an administrator" is circular again.
+
+    These checks pin the single door out of that state, and its narrowness.
+    """
+    repo = read(MODULE / "step3.b.4.UserRepository.cs")
+    contract = read(MODULE / "step3.b.2.IUserRepository.cs")
+    service = read(MODULE / "step3.b.6.FirstRunService.cs")
+    gate_vm = read(MODULE / "step3.c.3.FirstRunViewModel.cs")
+    gate_view = read(MODULE / "step3.d.3.FirstRunSetupView.xaml")
+    page = read(MODULE / "step3.c.2.UserWorkspaceViewModel.cs")
+    page_view = read(MODULE / "step3.d.1.UserWorkspaceView.xaml")
+
+    # 1. A row with no credential cannot sign in. There must be no path where an
+    #    empty hash is treated as "no password needed".
+    start = repo.find("if (stored.IsEmpty)")
+    check(start >= 0,
+          "sign-in must refuse a row that has no password instead of falling "
+          "through to a successful sign-in")
+    if start >= 0:
+        refusal = repo[start:start + 1200]
+        check("SignInCode.NoPassword" in refusal,
+              "the refusal must be reported as 'no password', not as a wrong password")
+        # 2. The refusal must name the situation: one person missing a password is
+        #    an administrator's job; nobody having one is not.
+        check("credentialed == 0" in refusal,
+              "the no-password refusal must tell apart 'this person has none' from "
+              "'nobody in this installation has one', or an upgraded directory is "
+              "told to ask an administrator who cannot sign in either")
+
+    # 3. Exactly one door, in the service, not in a view model.
+    check("SetFirstPasswordAsync" in contract,
+          "the repository contract must expose the one-time first-password step")
+    method = repo.find("public async Task<UserSaveResult> SetFirstPasswordAsync(")
+    check(method >= 0, "the first-password write is missing from the repository")
+    if method >= 0:
+        body = repo[method:method + 5000]
+
+        # One shot: closed the moment any row has a credential, so it can never be
+        # used to take over an installation that already has passwords.
+        check('CountAsync(x => x.PasswordHash != ""' in body and "if (credentialed > 0)" in body,
+              "the first-password step must refuse once ANY account has a password")
+
+        # Aimed by the workstation account, resolved inside the write transaction,
+        # so a caller cannot name somebody else's row.
+        check("FindUserRowAsync(db, operatorUsername" in body,
+              "the first-password step must resolve the row from the workstation "
+              "account inside its own transaction, never from a caller-supplied id")
+        check("int userId" not in body,
+              "the first-password step must not take a user id: that would let a "
+              "caller aim it at another person's row")
+
+        check("!target.IsActive" in body,
+              "an inactive row must not be given the first password")
+        check("UserCatalog.IsAdministrator(target.Role)" in body,
+              "only an Administrator may be given the first password; otherwise any "
+              "normal user's row could be claimed at the machine")
+
+        # Their own password, so no forced change at the next sign-in.
+        check("mustChange: false" in body,
+              "the first password is the person's own choice, so it must not be "
+              "marked temporary")
+
+    # 4. The state is computed once, and both surfaces ask the same question.
+    check("CountCredentialedUsersAsync" in contract and "CountCredentialedUsersAsync" in service,
+          "the 'nobody has a password' state must come from the credential count")
+    check("IsCredentialSetupRequired" in service and "CanClaimFirstPassword" in service,
+          "the first-run service must report the upgrade state and whether this "
+          "workstation may claim it")
+
+    # 5. The startup gate opens for it — otherwise the operator meets the sign-in
+    #    wall with no way past it.
+    check("snapshot.IsSetupRequired || snapshot.IsCredentialSetupRequired" in gate_vm,
+          "the startup gate must be visible for the upgrade state as well as the "
+          "empty directory")
+    check("SetFirstPasswordAsync" in gate_vm,
+          "the startup gate must be able to set the first password")
+    check("ShowIdentityFields" in gate_vm and
+          'Visibility="{Binding ShowIdentityFields' in gate_view,
+          "the first-password step must hide the name and department fields: it "
+          "gives an existing row a way in, it does not edit who somebody is")
+
+    # 6. The Users page offers the same step, because the gate can be dismissed.
+    shown = re.search(r"public bool ShowBootstrapCard\s*=>([^;]+);", page)
+    check(shown is not None, "the Users page must decide when its first-run card shows")
+    if shown is not None:
+        check("IsDirectoryEmpty" in shown.group(1) and "IsCredentialSetup" in shown.group(1),
+              "the Users page card must show for both first-run states: an empty "
+              "directory AND a directory where nobody has a password")
+    check('Binding ShowBootstrapCard' in page_view,
+          "the Users page card's visibility must be bound to that decision")
+    check("SetFirstPasswordAsync" in page,
+          "the Users page card must be able to set the first password")
+    check("ShowBootstrapIdentityFields" in page and
+          "Converter={StaticResource UserVisibility}" in page_view,
+          "the Users page card must hide the identity fields in the upgrade state")
+    check("string.Equals(Password, PasswordConfirm, StringComparison.Ordinal)" in gate_vm,
+          "the first-password step must compare the two typed passwords before writing")
+    check("SetFirstPasswordAsync(BootstrapPassword)" in page,
+          "the Users page card must pass the typed password to the first-password step")
+
+    # 7. After that write on the page there is still no session, so the page must
+    #    ask the shell for the sign-in gate rather than leave the operator on a
+    #    page that cannot act.
+    context = read(MODULE / "step3.b.7.AuthenticationContext.cs")
+    shell_code = read(ROOT / "MainWindow.xaml.cs")
+    check("public static void RequestSignIn()" in context,
+          "there must be one way to ask for the sign-in gate while nobody is signed in")
+    check("AuthenticationContext.RequestSignIn()" in page,
+          "setting the first password from the page must ask for the sign-in gate")
+    check("AuthenticationContext.SignInRequested += OnSignInRequested" in shell_code,
+          "the shell must show the sign-in gate when it is asked for")
+
+
 def require_register_layout():
     view = read(MODULE / "step3.d.1.UserWorkspaceView.xaml")
     for column in ("Name", "Username", "Department", "Role", "Status", "Updated", "Actions"):
@@ -811,6 +932,7 @@ def main():
     require_register_layout()
     require_operator_lookup_uses_its_own_parameter()
     require_first_run_flow()
+    require_first_password_upgrade()
     require_command_namespace()
     require_layout_contract()
     require_docs_recorded()

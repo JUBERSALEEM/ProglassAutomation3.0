@@ -33,11 +33,18 @@ public partial class MainWindow : Window
             OverflowSpotlight.Changed -= OnSpotlight;
             viewModel.DialogRequested -= OpenPreview;
             AuthenticationContext.SignedOut -= OnSignedOut;
+            AuthenticationContext.SignInRequested -= OnSignInRequested;
             viewModel.Dispose();
         };
 
         // Signing out (from the Users page) must bring the gate straight back.
         AuthenticationContext.SignedOut += OnSignedOut;
+
+        // ... and so must setting the first password from the page: the page is
+        // reachable with no session when the first-run gate was dismissed, and
+        // after that write the next step is to sign in, not to stay on a page
+        // that cannot act.
+        AuthenticationContext.SignInRequested += OnSignInRequested;
 
         // First run is decided once the shell is up: the check reads the
         // database, and doing that before the window exists would delay startup
@@ -141,6 +148,17 @@ public partial class MainWindow : Window
         // Land on the register: that is the page a person needs first, and it is
         // the only page that depends on who is signed in.
         viewModel.SelectedWorkspace = 9;   // Users (MainWindow tab order)
+    }
+
+    private void OnSignInRequested(object? sender, EventArgs e)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => OnSignInRequested(sender, e));
+            return;
+        }
+
+        _ = BeginSignInAsync();
     }
 
     private void OnSignedOut(object? sender, EventArgs e)

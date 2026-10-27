@@ -207,6 +207,26 @@ namespace ProGlassAutomation.Services.Users
         /// <summary>Total users, needed to tell "empty directory" from "no match".</summary>
         Task<int> CountAsync(CancellationToken ct = default);
 
+        /// <summary>
+        /// Rows that actually have a password. Zero means nobody in this
+        /// installation can sign in yet — the state every directory created before
+        /// migration 1015 starts in.
+        /// </summary>
+        /// <remarks>
+        /// This is what separates "this one person has no password yet"
+        /// (an administrator sets it on the Users page) from "nobody has one"
+        /// (there is no administrator who could sign in to set anything, so the
+        /// first password must be claimable at the machine itself).
+        /// </remarks>
+        Task<int> CountCredentialedUsersAsync(CancellationToken ct = default);
+
+        /// <summary>
+        /// The first active Administrator, in id order — the row that can be given
+        /// the first password, and the name to tell the operator when this
+        /// workstation does not match it.
+        /// </summary>
+        Task<User?> FirstActiveAdministratorAsync(CancellationToken ct = default);
+
         /// <summary>One row by username (case/width-insensitive), or null.</summary>
         Task<User?> FindByUsernameAsync(string username, CancellationToken ct = default);
 
@@ -275,6 +295,26 @@ namespace ProGlassAutomation.Services.Users
         Task<UserSaveResult> RegisterFirstAdministratorAsync(
             string fullName, string department, string password,
             string operatorUsername, CancellationToken ct = default);
+
+        /// <summary>
+        /// Upgrade path: gives the workstation's own Administrator row its first
+        /// password, and closes the moment ANY row has one.
+        /// </summary>
+        /// <remarks>
+        /// Migration 1015 deliberately kept every existing row, which left a
+        /// directory where nobody could sign in and no administrator existed who
+        /// could set a password — "ask an administrator" with no administrator.
+        /// This is the one door out of that state, and it is deliberately narrow:
+        ///   • it only works while no row anywhere has a credential, so it can
+        ///     never be used to take over an installation that has passwords;
+        ///   • the row must be the workstation account itself (resolved inside the
+        ///     write transaction), so it cannot be aimed at somebody else;
+        ///   • the row must be active and an Administrator.
+        /// The password chosen here is the person's own, so it is not temporary and
+        /// no change is forced at the next sign-in.
+        /// </remarks>
+        Task<UserSaveResult> SetFirstPasswordAsync(
+            string password, string operatorUsername, CancellationToken ct = default);
 
         /// <summary>True when the step3 tables are present and shaped as expected.</summary>
         Task<bool> IsSchemaReadyAsync(CancellationToken ct = default);

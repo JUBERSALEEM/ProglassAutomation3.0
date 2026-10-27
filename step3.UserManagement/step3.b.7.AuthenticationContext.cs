@@ -32,6 +32,18 @@ namespace ProGlassAutomation.Services.Users
         /// <summary>Raised after the session ends, so the shell can show the gate.</summary>
         public static event EventHandler? SignedOut;
 
+        /// <summary>
+        /// Raised when something needs the gate shown while nobody is signed in.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="SignedOut"/> cannot carry this: it only fires when a session
+        /// actually ended. The case that needs this one is the first password on an
+        /// upgraded directory being set from the Users page — the operator is not
+        /// signed in yet, so "sign out" would be a lie, and without the gate the
+        /// page would sit there with no way to become a session.
+        /// </remarks>
+        public static event EventHandler? SignInRequested;
+
         /// <summary>The signed-in user, or null when nobody is signed in.</summary>
         public static User? Current
         {
@@ -67,6 +79,9 @@ namespace ProGlassAutomation.Services.Users
                 if (_current != null && _current.Id == user.Id) _current = user;
             }
         }
+
+        /// <summary>Asks the shell to show its sign-in gate.</summary>
+        public static void RequestSignIn() => SignInRequested?.Invoke(null, EventArgs.Empty);
 
         /// <summary>Ends the session and tells the shell.</summary>
         public static void SignOut()

@@ -29,7 +29,17 @@
 //     state is the deadlock the owner hit, and it must never be silent.
 //   • It never reactivates an inactive person, never creates a default account
 //     and never grants anonymous access.
-//   • It owns no credential: there is no password, hash or token in this flow.
+//   • It owns no stored credential: it never reads a hash and never writes one
+//     except in the one upgrade case below.
+//
+// The upgrade case (round 24, found by the owner's question)
+//   Migration 1015 kept every existing row and gave it no password. On such a
+//   directory nobody can sign in, and "ask an administrator" is circular again —
+//   the deadlock the bootstrap exists to prevent, one version later. The service
+//   therefore reports TWO first-run states: an empty directory (register the
+//   workstation account) and a directory where nobody has a password yet (give
+//   the workstation's own Administrator row its first password). Both close the
+//   instant they would stop being true.
 // ═══════════════════════════════════════════════════════════════════════
 
 using ProGlassAutomation.Models.Users;
@@ -65,9 +75,37 @@ namespace ProGlassAutomation.Services.Users
         /// <summary>Operator-facing wording when the directory could not be read.</summary>
         public string Problem { get; init; } = "";
 
+        /// <summary>
+        /// Rows that already have a password. Zero on a directory created before
+        /// migration 1015, which is the state where nobody can sign in.
+        /// </summary>
+        public int CredentialedUserCount { get; init; }
+
+        /// <summary>
+        /// The directory has users but no credential anywhere: the first password
+        /// must be set at the machine, because no administrator can sign in to set
+        /// it from the page.
+        /// </summary>
+        public bool IsCredentialSetupRequired { get; init; }
+
+        /// <summary>The active Administrator whose password is missing, if any.</summary>
+        public User? FirstAdministrator { get; init; }
+
         /// <summary>True when the workstation account is an active Administrator.</summary>
         public bool IsOperatorAdministrator =>
             MatchingUser is { IsActive: true } && UserCatalog.IsAdministrator(MatchingUser.Role);
+
+        /// <summary>
+        /// True when this workstation may set the first password: the row it
+        /// matches is the active Administrator that needs one. False is not a dead
+        /// end — <see cref="FirstAdministrator"/> names the account to run from.
+        /// </summary>
+        public bool CanClaimFirstPassword =>
+            IsCredentialSetupRequired
+            && MatchingUser is { IsActive: true }
+            && UserCatalog.IsAdministrator(MatchingUser.Role)
+            && FirstAdministrator != null
+            && FirstAdministrator.Id == MatchingUser.Id;
     }
 
     /// <summary>The first-run flow: inspect, then register the workstation account.</summary>
@@ -82,6 +120,12 @@ namespace ProGlassAutomation.Services.Users
         /// </summary>
         Task<UserSaveResult> RegisterAsync(
             string fullName, string department, string password, CancellationToken ct = default);
+
+        /// <summary>
+        /// Gives the workstation's own Administrator row its first password, when
+        /// the directory has users but no password anywhere. Refused otherwise.
+        /// </summary>
+        Task<UserSaveResult> SetFirstPasswordAsync(string password, CancellationToken ct = default);
     }
 
     /// <summary>Default implementation over <see cref="IUserRepository"/>.</summary>
@@ -111,6 +155,16 @@ namespace ProGlassAutomation.Services.Users
                     .FindByUsernameAsync(account, ct).ConfigureAwait(false);
                 var departments = await _repository.GetDepartmentsAsync(ct).ConfigureAwait(false);
 
+                int credentialed = await _repository
+                    .CountCredentialedUsersAsync(ct).ConfigureAwait(false);
+
+                // Users but no password anywhere: the directory predates 1015, so
+                // nobody can sign in and no administrator exists who could set one.
+                bool credentialSetup = count > 0 && credentialed == 0;
+                User? firstAdministrator = credentialSetup
+                    ? await _repository.FirstActiveAdministratorAsync(ct).ConfigureAwait(false)
+                    : null;
+
                 return new FirstRunSnapshot
                 {
                     DirectoryAvailable = true,
@@ -118,7 +172,10 @@ namespace ProGlassAutomation.Services.Users
                     UserCount = count,
                     OperatorUsername = account,
                     MatchingUser = matching,
-                    Departments = departments
+                    Departments = departments,
+                    CredentialedUserCount = credentialed,
+                    IsCredentialSetupRequired = credentialSetup,
+                    FirstAdministrator = firstAdministrator
                 };
             }
             catch (Exception ex)
@@ -192,6 +249,70 @@ namespace ProGlassAutomation.Services.Users
                     + "Open Users, edit that row, and set its username to the value this workstation reports.",
                     UserDecisionCode.NotIdentified);
             }
+
+            return result;
+        }
+
+        public async Task<UserSaveResult> SetFirstPasswordAsync(
+            string password, CancellationToken ct = default)
+        {
+            FirstRunSnapshot before = await InspectAsync(ct).ConfigureAwait(false);
+
+            if (!before.DirectoryAvailable)
+                return UserSaveResult.Fail(
+                    string.IsNullOrWhiteSpace(before.Problem)
+                        ? "The user directory could not be read, so the first password cannot be set. Try again."
+                        : before.Problem,
+                    UserDecisionCode.InvalidTarget);
+
+            if (before.IsSetupRequired)
+                return UserSaveResult.Fail(
+                    "This installation has no users yet, so there is no administrator to give a password to. "
+                    + "Register the first administrator instead.",
+                    UserDecisionCode.InvalidTarget);
+
+            if (!before.IsCredentialSetupRequired)
+                return UserSaveResult.Fail(
+                    "This installation already has a password on file. Sign in with that account instead.",
+                    UserDecisionCode.NotAuthorized);
+
+            if (!before.CanClaimFirstPassword)
+                return UserSaveResult.Fail(
+                    before.FirstAdministrator == null
+                        ? "This directory has no active Administrator row, so there is nobody the first password "
+                          + "could belong to. Open Users as an administrator on the machine that owns that row."
+                        : $"This workstation reports \"{before.OperatorUsername}\", but the Administrator waiting for "
+                          + $"its first password is \"{before.FirstAdministrator.Username}\". Run the application from "
+                          + "that Windows account.",
+                    UserDecisionCode.NotIdentified);
+
+            string? passwordError = UserPassword.Validate(password);
+            if (passwordError != null)
+                return UserSaveResult.Fail(passwordError, UserDecisionCode.InvalidTarget);
+
+            UserSaveResult result = await _repository
+                .SetFirstPasswordAsync(password, before.OperatorUsername, ct)
+                .ConfigureAwait(false);
+
+            if (!result.Succeeded) return result;
+
+            // Prove it: the row must now have a credential, and no other row may
+            // have gained one (this step sets exactly one password).
+            int credentialed = await _repository
+                .CountCredentialedUsersAsync(ct).ConfigureAwait(false);
+            if (credentialed != 1)
+                return UserSaveResult.Fail(
+                    $"The password was written, but the directory now reports {credentialed} account(s) with a "
+                    + "password. Sign in with the one you just set; if that fails, report this message.",
+                    UserDecisionCode.InvalidTarget);
+
+            User? matched = await _repository
+                .FindByUsernameAsync(before.OperatorUsername, ct).ConfigureAwait(false);
+            if (matched == null || !matched.HasPassword)
+                return UserSaveResult.Fail(
+                    "The password was written, but this workstation's account does not read it back. "
+                    + "Restart the application and try signing in with it.",
+                    UserDecisionCode.NotIdentified);
 
             return result;
         }

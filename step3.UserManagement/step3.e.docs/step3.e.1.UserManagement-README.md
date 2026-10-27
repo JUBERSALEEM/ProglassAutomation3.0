@@ -44,7 +44,7 @@ Inquiry integration and every document module remain unbuilt.
   the owner scoped this round to User Management only; the dependency is recorded
   in `docs/05` rather than half-built.
 
-## First run (empty directory)
+## First run — two states, one card
 
 A new installation has no users, so nobody can be identified and no administrator
 can exist. The application therefore cannot be administered, and telling the
@@ -73,6 +73,31 @@ card on the Users page.
    directory and requires that the workstation account now matches an active row.
    If it does not, the operator is told both account names and what to edit instead
    of being left on a "not registered" screen.
+
+### The second state: users, but no password anywhere
+
+A directory created before migration **1015** keeps every row and gives none of them
+a password. That is a different dead end from an empty directory, and it has a
+different answer:
+
+* **Sign-in refuses, and says which case it is.** `SignInAsync` returns
+  `SignInCode.NoPassword`. If **no** row has a password, the message says so — it
+  does not send the operator to an administrator who cannot sign in either.
+* **The gate opens for it too.** `IFirstRunService.InspectAsync()` reports
+  `IsCredentialSetupRequired` plus `CanClaimFirstPassword`, and the startup gate
+  appears with the name and department fields **hidden**: this step gives an
+  existing row a way in, it does not edit who somebody is.
+* **One door, deliberately narrow.** `IUserRepository.SetFirstPasswordAsync` works
+  only while **no** row anywhere has a credential, resolves the row from the
+  workstation account **inside the write transaction** (so it cannot be aimed at
+  somebody else), requires that row to be active and an Administrator, and writes a
+  **non-temporary** password — the person chose it, and there is no administrator
+  above them to force a change.
+* **Wrong machine? Not a dead end.** The card names the administrator account to run
+  the application from, and refuses every other row.
+* **Then sign in.** The password is verified by a real sign-in, never assumed: on the
+  Users page the shell is asked for the gate (`AuthenticationContext.RequestSignIn`)
+  as soon as the write succeeds.
 5. **Then the app opens as that Administrator.** The gate closes and the shell
    selects the Users workspace, where the register is usable and further users can
    be added.

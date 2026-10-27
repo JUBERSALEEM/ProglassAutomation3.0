@@ -249,6 +249,28 @@ namespace ProGlassAutomation.Services.Users
             return await db.Users.AsNoTracking().CountAsync(ct).ConfigureAwait(false);
         }
 
+        public async Task<int> CountCredentialedUsersAsync(CancellationToken ct = default)
+        {
+            await using var db = CreateContext();
+            return await db.Users.AsNoTracking()
+                .CountAsync(x => x.PasswordHash != "", ct).ConfigureAwait(false);
+        }
+
+        public async Task<User?> FirstActiveAdministratorAsync(CancellationToken ct = default)
+        {
+            await using var db = CreateContext();
+
+            // Role is compared in memory against the catalogue constant rather than
+            // in SQL: a directory written by an older build may carry a role the
+            // catalogue now spells differently, and a staff table is small.
+            var active = await db.Users.AsNoTracking()
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.Id)
+                .ToListAsync(ct).ConfigureAwait(false);
+
+            return active.FirstOrDefault(x => UserCatalog.IsAdministrator(x.Role));
+        }
+
         public async Task<IReadOnlyList<CatalogRow>> GetDepartmentsAsync(CancellationToken ct = default)
             => await ReadCatalogueAsync(UserSchema.DepartmentsTable, ct).ConfigureAwait(false);
 
@@ -363,9 +385,25 @@ namespace ProGlassAutomation.Services.Users
                 };
 
                 if (stored.IsEmpty)
-                    return SignInResult.Fail(
-                        SignInCode.NoPassword,
-                        "This account has no password yet. Ask an administrator to set one.");
+                {
+                    // Two very different situations, and telling them apart is the
+                    // difference between "ask the administrator" and a dead end:
+                    // if NO row has a password (a directory from before 1015),
+                    // there is no administrator who could sign in to set one.
+                    int credentialed = await db.Users
+                        .CountAsync(x => x.PasswordHash != "", ct).ConfigureAwait(false);
+
+                    return credentialed == 0
+                        ? SignInResult.Fail(
+                            SignInCode.NoPassword,
+                            "No account in this installation has a password yet, because the directory was "
+                            + "created before passwords were added. Run the application from the Windows account "
+                            + "named on an active Administrator row, and the setup screen will let you choose its "
+                            + "first password.")
+                        : SignInResult.Fail(
+                            SignInCode.NoPassword,
+                            "This account has no password yet. Sign in as an Administrator and set one on this page.");
+                }
 
                 if (!UserPassword.Verify(password, stored))
                 {
@@ -816,6 +854,89 @@ namespace ProGlassAutomation.Services.Users
             {
                 return UserSaveResult.Fail(DescribeWriteFailure(
                     "The first administrator could not be registered", ex));
+            }
+        }
+
+        public async Task<UserSaveResult> SetFirstPasswordAsync(
+            string password, string operatorUsername, CancellationToken ct = default)
+        {
+            string? policy = UserPassword.Validate(password);
+            if (policy != null) return UserSaveResult.Fail(policy);
+
+            if (UserRules.UsernameKey(operatorUsername).Length == 0)
+                return UserSaveResult.Fail(
+                    "The Windows account this workstation is running under could not be read, so no row can "
+                    + "be matched to it. Restart the application from a signed-in Windows session.",
+                    UserDecisionCode.NotIdentified);
+
+            DateTime now = DateTime.UtcNow;
+
+            try
+            {
+                await using var db = CreateContext();
+                await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+                // One-shot: the door closes the instant any credential exists, so
+                // this can never be used on an installation that already has
+                // passwords. Read inside the transaction, so it sees committed state.
+                int credentialed = await db.Users
+                    .CountAsync(x => x.PasswordHash != "", ct).ConfigureAwait(false);
+                if (credentialed > 0)
+                    return UserSaveResult.Fail(
+                        "This installation already has a password on file, so setting a first password is "
+                        + "closed. Sign in with an account that has one.",
+                        UserDecisionCode.NotAuthorized);
+
+                User? target = await FindUserRowAsync(db, operatorUsername, ct).ConfigureAwait(false);
+                if (target == null)
+                {
+                    var activeRows = await db.Users.AsNoTracking()
+                        .Where(x => x.IsActive)
+                        .OrderBy(x => x.Id)
+                        .ToListAsync(ct).ConfigureAwait(false);
+                    User? administrator = activeRows
+                        .FirstOrDefault(x => UserCatalog.IsAdministrator(x.Role));
+
+                    return UserSaveResult.Fail(
+                        administrator == null
+                            ? "This workstation's account does not match a user row, and this directory has no "
+                              + "active Administrator to set a password for. Open Users as an administrator on the "
+                              + "machine that owns that row."
+                            : $"This workstation reports \"{UserRules.NormalizeUsername(operatorUsername)}\", but the only "
+                              + $"Administrator without a password is \"{administrator.Username}\". Run the application "
+                              + "from that Windows account to set its first password.",
+                        UserDecisionCode.NotIdentified);
+                }
+
+                if (!target.IsActive)
+                    return UserSaveResult.Fail(
+                        "That administrator row is deactivated, so it cannot be given a password. "
+                        + "Re-activate it from an administrator account.",
+                        UserDecisionCode.NotAuthorized);
+
+                if (!UserCatalog.IsAdministrator(target.Role))
+                    return UserSaveResult.Fail(
+                        "Only an Administrator can be given the first password: this account is "
+                        + $"\"{UserCatalog.RoleDisplayName(target.Role)}\". Sign in from the workstation account "
+                        + "named on an Administrator row.",
+                        UserDecisionCode.NotAuthorized);
+
+                // Their own choice, not a temporary one: there is nobody who could
+                // hand them a reset later, and no administrator to be forced out of.
+                ApplyNewPassword(target, password, now, mustChange: false, operatorId: 0);
+                target.UpdatedByUserId = target.Id;
+
+                await SqliteResilience.SaveWithRetryAsync(
+                    token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+                await transaction.CommitAsync(ct).ConfigureAwait(false);
+
+                return UserSaveResult.Ok(target,
+                    "The password is set. Sign in with it now — this step will not be offered again.");
+            }
+            catch (Exception ex)
+            {
+                return UserSaveResult.Fail(DescribeWriteFailure(
+                    "The first password could not be set", ex));
             }
         }
 

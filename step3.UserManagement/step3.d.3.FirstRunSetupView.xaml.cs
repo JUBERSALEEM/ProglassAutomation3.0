@@ -48,8 +48,17 @@ namespace ProGlassAutomation.Users
         /// </summary>
         internal void FocusFirstField()
         {
-            FullNameBox.Focus();
-            FullNameBox.CaretIndex = FullNameBox.Text?.Length ?? 0;
+            // The card has two states: a new row (name first) and an existing
+            // administrator's first password (the name fields are hidden, so
+            // focusing one would silently do nothing).
+            if (ViewModel is { ShowIdentityFields: true })
+            {
+                FullNameBox.Focus();
+                FullNameBox.CaretIndex = FullNameBox.Text?.Length ?? 0;
+                return;
+            }
+
+            PasswordEntryBox.Focus();
         }
     }
 }
