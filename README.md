@@ -315,7 +315,7 @@ each module's scope in
 | Order | Module | State |
 | --- | --- | --- |
 | — | `step1` Theme Studio · `step2` Client Management | completed for their approved scope (Windows runtime/visual verification outstanding) |
-| 1 | `step3` User Management | allocated; implementation needs owner approval |
+| 1 | `step3` User Management | implemented 2026-10-27 for its approved scope (Windows runtime/visual verification outstanding) |
 | 2 | `step4` Company Profile | allocated; needs approval |
 | 3 | `step5` Project Records & Inquiry Integration | allocated; needs approval |
 | — | **`G1` Foundation Review** | gate — no document module starts until the owner accepts it |

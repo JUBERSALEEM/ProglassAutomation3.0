@@ -1,0 +1,747 @@
+<UserControl x:Class="ProGlassAutomation.Users.UserWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:users="clr-namespace:ProGlassAutomation.Users"
+             xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         step3 — User Management workspace.
+
+         Theme rules obeyed by this view (docs/02 + step1.d.11 / step1.d.17):
+           • every colour, brush, metric, radius and font comes from the
+             shared contract through DynamicResource — no literals;
+           • theme-owned card roles (Card / HeroCard / MetricCard) are looked
+             up dynamically and never BasedOn a StaticResource;
+           • controls with theme-owned templates (TextBox, ComboBox, DataGrid)
+             bind the active implicit style explicitly, so a theme switch
+             replaces the template as well as the tokens;
+           • visibility is driven by Style DataTriggers, so no converter or
+             code-behind is needed for the register/editor switch.
+
+         Layout: the same one-bar register as step2 Client Management — filter
+         state and the chips on the left, search and actions on the right, and
+         nothing under the list except the rows themselves.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <Style x:Key="UserNameCell" TargetType="TextBlock">
+            <Setter Property="ToolTip" Value="{Binding FullName}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="UserMonoCell" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="UserPlainCell" TargetType="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+        <!-- The bar's status action flips meaning with the SELECTED row, so the
+             mark flips with it: cross = deactivate, plus = re-activate. It is
+             bound through SelectedRow because the button's data context is the
+             workspace, not a row. -->
+        <Style x:Key="UserToggleIcon" TargetType="studio:ShellMark">
+            <Setter Property="Kind" Value="Cancel" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedRow.IsActive}" Value="False">
+                    <Setter Property="Kind" Value="Add" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- ── Filter chips ────────────────────────────────────────────
+             All / Active / Inactive, each carrying its own count. Idle is the
+             theme's BorderSubtle on SurfacePrimary; selected takes AccentPrimary
+             with TextOnAccent, exactly as the Inquiry and Client registers do,
+             so the three registers cannot drift apart. -->
+        <Style x:Key="UserFilterChip" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ChipCornerRadius}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StatePressed}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- The per-row menu trigger. Transparent until hovered, so twenty rows
+             do not read as twenty buttons; still hit-testable and named for
+             assistive tech. -->
+        <Style x:Key="UserRowMenuButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+            <Setter Property="Width" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="Height" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{DynamicResource BorderThicknessControl}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="UserHeaderGripper" TargetType="Thumb">
+            <Setter Property="Width" Value="{DynamicResource SpacingMedium}" />
+            <Setter Property="Cursor" Value="SizeWE" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="Grip" Background="{DynamicResource TransparentBrush}" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Grip" Property="Background"
+                                        Value="{DynamicResource BorderStrong}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Same cell geometry as step2: the template keeps every colour a
+             TemplateBinding so the theme still owns background, foreground,
+             selection and the focus ring, and it cannot draw a border the theme
+             has not asked for. Alignment on ContentPresenter is expressed with
+             HorizontalAlignment / VerticalAlignment, never the ContentControl
+             property of the same family. -->
+        <Style x:Key="UserCell" TargetType="DataGridCell"
+               BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="True" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="UserColumnHeader" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridColumnHeader">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="True" />
+                            <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left"
+                                   Style="{StaticResource UserHeaderGripper}" />
+                            <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right"
+                                   Style="{StaticResource UserHeaderGripper}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="UserHeaderLabel" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+        </Style>
+        <Style x:Key="UserHeaderRule" TargetType="Border">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Width" Value="{DynamicResource StrokeWidth}" />
+            <Setter Property="Background" Value="{DynamicResource BorderStrong}" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ── One command bar ─────────────────────────────────────────
+             Left: what the register is showing (a sentence and three chips that
+             carry their counts). Right: search and the actions. The page title
+             is not repeated here — the shell banner already names the page. -->
+        <ContentControl Grid.Row="0" Style="{DynamicResource Plate}" Margin="{DynamicResource PaddingPage}">
+            <Grid Margin="{DynamicResource PaddingCompact}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center"
+                            Margin="{DynamicResource MarginInline}">
+                    <TextBlock Text="{Binding RegisterSummary}" Style="{DynamicResource Caption}"
+                               Margin="{DynamicResource MarginInline}" />
+                    <StackPanel Orientation="Horizontal">
+                        <ItemsControl ItemsSource="{Binding StatusTabs}" Focusable="False"
+                                      AutomationProperties.Name="User status filters">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource UserFilterChip}"
+                                            Command="{Binding DataContext.SelectStatusTabCommand,
+                                                              RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Content="{Binding LabelWithCount}"
+                                            AutomationProperties.Name="{Binding Label}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Department filter. Selection is by catalogue code, so a
+                             department renamed in the catalogue still filters the
+                             same rows. -->
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  MinWidth="170"
+                                  ItemsSource="{Binding DepartmentFilters}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding SelectedDepartmentFilter, Mode=TwoWay}"
+                                  Margin="{DynamicResource MarginInline}"
+                                  VerticalAlignment="Center"
+                                  ToolTip="Filter by department"
+                                  AutomationProperties.Name="Filter by department">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <!-- Role filter: the same idiom, because role decides what a
+                             person may do and department never does. -->
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  MinWidth="150"
+                                  ItemsSource="{Binding RoleFilters}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding SelectedRoleFilter, Mode=TwoWay}"
+                                  Margin="{DynamicResource MarginInline}"
+                                  VerticalAlignment="Center"
+                                  ToolTip="Filter by role"
+                                  AutomationProperties.Name="Filter by role">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <Button Style="{DynamicResource SubtleButton}"
+                                Command="{Binding ClearFiltersCommand}"
+                                Margin="{DynamicResource MarginInline}"
+                                VerticalAlignment="Center"
+                                IsEnabled="{Binding HasActiveFilters}"
+                                ToolTip="Clear the department and role filters"
+                                AutomationProperties.Name="Clear filters">
+                            <StackPanel Orientation="Horizontal">
+                                <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                                  Height="{DynamicResource ChoiceMarkSize}"
+                                                  Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                <TextBlock Text="Filters" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <studio:ShellMark Kind="Search" Width="{DynamicResource ChoiceMarkSize}"
+                                      Height="{DynamicResource ChoiceMarkSize}"
+                                      Margin="{DynamicResource MarginInline}"
+                                      VerticalAlignment="Center" />
+                    <Grid Width="260" VerticalAlignment="Center"
+                          Margin="{DynamicResource MarginInline}">
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 VerticalAlignment="Center"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Search by name, username, role or department"
+                                 AutomationProperties.Name="Search users" />
+                        <TextBlock Text="Search users…" IsHitTestVisible="False"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource PaddingCompact}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SearchText}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding ClearSearchCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            ToolTip="Clear the search"
+                            AutomationProperties.Name="Clear search">
+                        <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                          Height="{DynamicResource ChoiceMarkSize}" />
+                    </Button>
+
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding EditSelectedCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            IsEnabled="{Binding CanManageUsers}"
+                            ToolTip="Edit the selected person"
+                            AutomationProperties.Name="Edit selected user">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Edit" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                            <TextBlock Text="Edit" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding ToggleActiveCommand}"
+                            CommandParameter="{Binding SelectedRow}"
+                            Margin="{DynamicResource MarginInline}"
+                            IsEnabled="{Binding CanManageUsers}"
+                            ToolTip="Activate or deactivate the selected person"
+                            AutomationProperties.Name="Activate or deactivate selected user">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Style="{StaticResource UserToggleIcon}"
+                                              Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding SelectedToggleLabel}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{DynamicResource PrimaryButton}"
+                            Command="{Binding NewUserCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            IsEnabled="{Binding CanManageUsers}"
+                            AutomationProperties.Name="Add user">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Add" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                            <TextBlock Text="NEW USER" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Content="⋯"
+                            Click="OnMoreActionsClick"
+                            ToolTip="More actions"
+                            AutomationProperties.Name="More user actions">
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{DynamicResource {x:Type ContextMenu}}">
+                                <MenuItem Header="Refresh" Command="{Binding RefreshCommand}" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </ContentControl>
+
+        <Grid Grid.Row="1" Margin="{DynamicResource PaddingPage}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Failure surface: a refused write says why. -->
+            <Border Grid.Row="0" Background="{DynamicResource StatusErrorSurface}"
+                    BorderBrush="{DynamicResource StatusError}"
+                    BorderThickness="{DynamicResource BorderThicknessControl}"
+                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                    Margin="{DynamicResource MarginItem}"
+                    Padding="{DynamicResource PaddingControl}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasError}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StatusError}"
+                           TextWrapping="Wrap" AutomationProperties.Name="User error" />
+            </Border>
+
+            <!-- Status line -->
+            <Border Grid.Row="1" Background="{DynamicResource StatusInformationSurface}"
+                    BorderBrush="{DynamicResource BorderSubtle}"
+                    BorderThickness="{DynamicResource BorderThicknessControl}"
+                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                    Margin="{DynamicResource MarginItem}"
+                    Padding="{DynamicResource PaddingControl}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasStatus}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"
+                           TextWrapping="Wrap" AutomationProperties.Name="User status" />
+            </Border>
+
+            <!-- Read-only notice. It explains WHY the buttons are disabled; it is
+                 not the enforcement — the repository refuses the same writes
+                 independently of this view. -->
+            <Border Grid.Row="2" Background="{DynamicResource StatusWarningSurface}"
+                    BorderBrush="{DynamicResource StatusWarning}"
+                    BorderThickness="{DynamicResource BorderThicknessControl}"
+                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                    Margin="{DynamicResource MarginItem}"
+                    Padding="{DynamicResource PaddingControl}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasPermissionMessage}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding PermissionMessage}" Foreground="{DynamicResource TextPrimary}"
+                           TextWrapping="Wrap" AutomationProperties.Name="Permission notice" />
+            </Border>
+        </Grid>
+
+        <!-- ── Register, first-run bootstrap, and editor share the last row ── -->
+        <Grid Grid.Row="2" Margin="{DynamicResource PaddingPage}">
+
+            <!-- Register card -->
+            <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsDirectoryEmpty}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <ContentControl Style="{DynamicResource Card}">
+                    <DataGrid Style="{DynamicResource {x:Type DataGrid}}"
+                              ItemsSource="{Binding Rows}"
+                              SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              SelectionUnit="FullRow"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserReorderColumns="False"
+                              CanUserSortColumns="False"
+                              HeadersVisibility="Column"
+                              CellStyle="{StaticResource UserCell}"
+                              GridLinesVisibility="None"
+                              ColumnHeaderStyle="{StaticResource UserColumnHeader}"
+                              CanUserResizeColumns="True"
+                              CanUserResizeRows="False"
+                              MinColumnWidth="{DynamicResource ControlMinWidth}"
+                              Margin="{DynamicResource MarginItem}"
+                              AutomationProperties.Name="User directory"
+                              MouseDoubleClick="OnRowDoubleClick"
+                              KeyDown="OnGridKeyDown">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Width="2*" Binding="{Binding FullName}" ElementStyle="{StaticResource UserNameCell}">
+                                <DataGridTextColumn.Header>
+            <Grid>
+                <TextBlock Text="Name" Style="{StaticResource UserHeaderLabel}" />
+                <Border Style="{StaticResource UserHeaderRule}" />
+            </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="1.4*" Binding="{Binding Username}" ElementStyle="{StaticResource UserMonoCell}">
+                                <DataGridTextColumn.Header>
+            <Grid>
+                <TextBlock Text="Username" Style="{StaticResource UserHeaderLabel}" />
+                <Border Style="{StaticResource UserHeaderRule}" />
+            </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="1.4*" Binding="{Binding DepartmentText}" ElementStyle="{StaticResource UserPlainCell}">
+                                <DataGridTextColumn.Header>
+            <Grid>
+                <TextBlock Text="Department" Style="{StaticResource UserHeaderLabel}" />
+                <Border Style="{StaticResource UserHeaderRule}" />
+            </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="1.4*" Binding="{Binding RoleText}" ElementStyle="{StaticResource UserPlainCell}">
+                                <DataGridTextColumn.Header>
+            <Grid>
+                <TextBlock Text="Role" Style="{StaticResource UserHeaderLabel}" />
+                <Border Style="{StaticResource UserHeaderRule}" />
+            </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Width="0.8*" CanUserSort="False">
+                                <DataGridTemplateColumn.Header>
+            <Grid>
+                <TextBlock Text="Status" Style="{StaticResource UserHeaderLabel}" />
+                <Border Style="{StaticResource UserHeaderRule}" />
+            </Grid>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{DynamicResource StatusBadge}"
+                                                Tag="{Binding StatusTag}"
+                                                HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding StatusText}"
+                                                       Style="{DynamicResource StatusText}"
+                                                       Tag="{Binding StatusTag}" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Width="1*" Binding="{Binding UpdatedText}" ElementStyle="{StaticResource UserMonoCell}">
+                                <DataGridTextColumn.Header>
+            <Grid>
+                <TextBlock Text="Updated" Style="{StaticResource UserHeaderLabel}" />
+                <Border Style="{StaticResource UserHeaderRule}" />
+            </Grid>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <!-- One trigger per row instead of three icons: twenty
+                                 rows of pencil/cross/dots read as noise. -->
+                            <DataGridTemplateColumn Width="Auto" CanUserSort="False">
+                                <DataGridTemplateColumn.Header>
+            <Grid>
+                <TextBlock Text="Actions" Style="{StaticResource UserHeaderLabel}" />
+            </Grid>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource UserRowMenuButton}"
+                                                Content="⋯"
+                                                Click="OnRowMenuClick"
+                                                Tag="{Binding DataContext,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                ToolTip="Row actions"
+                                                AutomationProperties.Name="User row actions">
+                                            <Button.ContextMenu>
+                                                <ContextMenu Style="{DynamicResource {x:Type ContextMenu}}"
+                                                             DataContext="{Binding PlacementTarget.DataContext,
+                                                                           RelativeSource={RelativeSource Self}}">
+                                                    <MenuItem Header="Edit user…"
+                                                              Command="{Binding PlacementTarget.Tag.EditUserCommand,
+                                                                                RelativeSource={RelativeSource AncestorType={x:Type ContextMenu}}}"
+                                                              CommandParameter="{Binding}" />
+                                                    <Separator />
+                                                    <MenuItem Header="{Binding ToggleLabel}"
+                                                              Command="{Binding PlacementTarget.Tag.ToggleActiveCommand,
+                                                                                RelativeSource={RelativeSource AncestorType={x:Type ContextMenu}}}"
+                                                              CommandParameter="{Binding}" />
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </ContentControl>
+            </Grid>
+
+            <!-- ── First-run bootstrap ─────────────────────────────────
+                 A fresh database has no users, so nobody can be identified and
+                 no administrator could exist. This card is the single explicit
+                 way out: the person at this workstation registers the Windows
+                 account they are already using. The repository closes the door
+                 as soon as any user exists. -->
+            <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsDirectoryEmpty}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <ContentControl Style="{DynamicResource Card}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="{DynamicResource PaddingCard}" MaxWidth="620" HorizontalAlignment="Left">
+                            <TextBlock Text="Register the first administrator"
+                                       FontSize="{DynamicResource FontSizeTitle}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Text="{Binding BootstrapExplanation}"
+                                       Style="{DynamicResource Caption}"
+                                       TextWrapping="Wrap"
+                                       Margin="{DynamicResource MarginSection}" />
+
+                            <TextBlock Text="Windows account (this workstation)"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontSize="{DynamicResource FontSizeCaption}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Margin="{DynamicResource MarginInline}" />
+                            <TextBlock Text="{Binding BootstrapOperatorUsername}"
+                                       FontFamily="{DynamicResource FontFamilyMono}"
+                                       Foreground="{DynamicResource TextPrimary}"
+                                       AutomationProperties.Name="Workstation account" />
+
+                            <TextBlock Text="Full name *"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontSize="{DynamicResource FontSizeCaption}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Margin="{DynamicResource MarginSection}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding BootstrapFullName, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="The name that will appear on documents this person prepares"
+                                     AutomationProperties.Name="First administrator full name" />
+
+                            <TextBlock Text="Department"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       FontSize="{DynamicResource FontSizeCaption}"
+                                       FontWeight="{DynamicResource FontWeightHeading}"
+                                       Margin="{DynamicResource MarginSection}" />
+                            <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                      ItemsSource="{Binding Departments}"
+                                      SelectedValuePath="Code"
+                                      SelectedValue="{Binding BootstrapDepartment, Mode=TwoWay}"
+                                      AutomationProperties.Name="First administrator department">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <Border Background="{DynamicResource StatusErrorSurface}"
+                                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                                    Padding="{DynamicResource PaddingControl}"
+                                    Margin="{DynamicResource MarginItem}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasBootstrapError}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Text="{Binding BootstrapError}" Foreground="{DynamicResource StatusError}"
+                                           TextWrapping="Wrap" AutomationProperties.Name="Bootstrap error" />
+                            </Border>
+
+                            <Button Style="{DynamicResource PrimaryButton}"
+                                    Command="{Binding RegisterFirstAdministratorCommand}"
+                                    HorizontalAlignment="Left"
+                                    Margin="{DynamicResource MarginItem}"
+                                    AutomationProperties.Name="Register as first administrator">
+                                <StackPanel Orientation="Horizontal">
+                                    <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
+                                                      Height="{DynamicResource ChoiceMarkSize}"
+                                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                    <TextBlock Text="REGISTER ME AS ADMINISTRATOR" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                </ContentControl>
+            </Grid>
+
+            <!-- Editor host: shown instead of the register while editing.
+                 Visibility is driven from a wrapper Grid bound to the workspace
+                 view model, so the editor keeps its own DataContext. -->
+            <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <users:UserEditorView DataContext="{Binding Editor}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

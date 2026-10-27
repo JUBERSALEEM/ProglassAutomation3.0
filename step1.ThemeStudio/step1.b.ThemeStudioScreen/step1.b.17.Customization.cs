@@ -362,7 +362,7 @@ public sealed partial class ThemeStudioViewModel
         get => selectedWorkspace;
         set
         {
-            if (value is >= 0 and <= 8)
+            if (value is >= 0 and <= 9)
             {
                 selectedWorkspace = value;
                 Changed(nameof(SelectedWorkspace));
@@ -375,6 +375,7 @@ public sealed partial class ThemeStudioViewModel
                 Changed(nameof(IsIcons));
                 Changed(nameof(IsPages));
                 Changed(nameof(IsClients));
+                Changed(nameof(IsUsers));
                 Changed(nameof(WorkspaceTitle));
                 Changed(nameof(WorkspaceSubtitle));
                 Changed(nameof(WorkspaceIcon));
@@ -392,6 +393,9 @@ public sealed partial class ThemeStudioViewModel
     /// <summary>step2 Client Management workspace (index 8; appended so the
     /// existing workspace indexes 0–7 keep their meaning).</summary>
     public bool IsClients { get => selectedWorkspace == 8; set { if (value) SelectedWorkspace = 8; } }
+    /// <summary>step3 User Management workspace (index 9; appended for the same
+    /// reason — every earlier index keeps its meaning).</summary>
+    public bool IsUsers { get => selectedWorkspace == 9; set { if (value) SelectedWorkspace = 9; } }
     public IconKind WorkspaceIcon => selectedWorkspace switch
     {
         0 => IconKind.Theme,
@@ -402,7 +406,12 @@ public sealed partial class ThemeStudioViewModel
         5 => IconKind.About,
         6 => IconKind.Marks,
         7 => IconKind.Layout,
-        8 => IconKind.Author,
+        // Clients moved from the person mark to the briefcase when step3 added
+        // the user directory: a filled person silhouette now means "the people
+        // who use this application", and a briefcase means "the companies we
+        // work for". One icon per concept, no duplicates in the rail.
+        8 => IconKind.Work,
+        9 => IconKind.Author,
         _ => IconKind.Home
     };
     public string WorkspaceTitle => selectedWorkspace switch
@@ -416,6 +425,7 @@ public sealed partial class ThemeStudioViewModel
         6 => "Icons Studio",
         7 => "Pages Studio",
         8 => "Clients",
+        9 => "Users",
         _ => "Home"
     };
     public string WorkspaceSubtitle => selectedWorkspace switch
@@ -429,6 +439,7 @@ public sealed partial class ThemeStudioViewModel
         6 => "Settings · Navigation marks",
         7 => "Settings · Page sizing",
         8 => "Business · Client directory",
+        9 => "Administration · Users, departments and roles",
         _ => "Home"
     };
     public bool IsMenuOpen { get => isMenuOpen; set { isMenuOpen = value; Changed(nameof(IsMenuOpen)); } }
@@ -446,6 +457,7 @@ public sealed partial class ThemeStudioViewModel
     public ICommand ResetIcons { get; private set; } = null!;
     public ICommand ShowPages { get; private set; } = null!;
     public ICommand ShowClients { get; private set; } = null!;
+    public ICommand ShowUsers { get; private set; } = null!;
     public ICommand ResetPages { get; private set; } = null!;
     public ICommand SelectColorPlate { get; private set; } = null!;
     public ICommand ApplyPreview { get; private set; } = null!;
@@ -519,6 +531,7 @@ public sealed partial class ThemeStudioViewModel
         ShowIcons = new DelegateCommand(() => SelectedWorkspace = 6);
         ShowPages = new DelegateCommand(() => SelectedWorkspace = 7);
         ShowClients = new DelegateCommand(() => SelectedWorkspace = 8);
+        ShowUsers = new DelegateCommand(() => SelectedWorkspace = 9);
         SelectColorPlate = new DelegateCommand<string>(name => { if (!string.IsNullOrWhiteSpace(name)) SelectedColorPlate = name; });
         ApplyPreview = new DelegateCommand(() => { try { themes.Apply(SelectedTheme, themes.ActiveAppearance, LiveConfigure()); ThemeError=""; Feedback="Preview applied — unsaved changes present."; } catch(Exception ex){ ThemeError=ex.Message; } Changed(nameof(ThemeError)); }, () => CanCustomize || CanCustomizeGeometry);
         SaveCustomization = new DelegateCommand(() =>

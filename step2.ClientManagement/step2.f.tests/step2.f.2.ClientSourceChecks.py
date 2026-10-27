@@ -93,7 +93,12 @@ def require_shell_hosting():
     check("public ICommand ShowClients" in view_model, "ShowClients command is missing")
     check("ShowClients = new DelegateCommand" in view_model,
           "ShowClients command is not initialised")
-    check("if (value is >= 0 and <= 8)" in view_model,
+    # The upper bound is a number, not a fixed literal: step3 appended index 9,
+    # and the check must keep proving that index 8 is reachable without pinning
+    # the file to a bound that the next stage legitimately raises.
+    bound = re.search(r"if \(value is >= 0 and <= (\d+)\)", view_model)
+    check(bound is not None, "the workspace index guard is missing")
+    check(bound is not None and int(bound.group(1)) >= 8,
           "the workspace index guard must accept the appended client workspace")
 
 

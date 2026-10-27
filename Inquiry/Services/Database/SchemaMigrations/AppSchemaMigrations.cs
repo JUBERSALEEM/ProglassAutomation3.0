@@ -11,12 +11,14 @@
 // once 1001..1004 apply on first touch).
 //
 // One file ⇒ one PRAGMA user_version ⇒ exactly ONE chain. 1011 adds the
-// step2 Client Management table to this same chain; a second chain against
-// the same file must never be created.
+// step2 Client Management table to this same chain and 1013 adds the step3
+// User Management tables; a second chain against the same file must never
+// be created.
 // ═══════════════════════════════════════════════════════════════════════
 
 using Microsoft.Data.Sqlite;
 using ProGlassAutomation.Services.Clients;
+using ProGlassAutomation.Services.Users;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -176,7 +178,17 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             new(ClientSchema.AttentionNameMigrationVersion,
                 "Clients: attention name replaces the generic contact-person column",
                 connection => ClientSchema.EnsureAttentionName(connection),
-                connection => ClientSchema.AssertAttentionName(connection))
+                connection => ClientSchema.AssertAttentionName(connection)),
+            // ── step3 User Management (owner-approved 2026-10-27) ────────
+            // Adds Users plus the Departments and Roles catalogues to this
+            // same chain. Purely additive: no existing table, column, index or
+            // row is dropped or rewritten, so client ids and inquiry history
+            // are untouched. The migration stores no password and creates no
+            // login table — identity comes from the workstation account.
+            new(UserSchema.MigrationVersion,
+                "Users: user directory with department and role catalogues (step3 User Management)",
+                connection => UserSchema.Ensure(connection),
+                connection => UserSchema.AssertShape(connection))
 
         };
 

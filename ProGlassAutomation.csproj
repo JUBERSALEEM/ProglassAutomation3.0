@@ -29,16 +29,19 @@
   <!-- Explicit inclusion keeps the application and verification executable separate. -->
   <ItemGroup>
     <Compile Include="App.xaml.cs;MainWindow.xaml.cs;AssemblyInfo.cs" />
-    <Compile Include="Theme/step1.a.ThemeEngine/**/*.cs;Theme/ThemeBento/**/*.cs;Theme/ThemeClaymorphism/**/*.cs;Theme/ThemeFluent/**/*.cs;Theme/ThemeNeumorphism/**/*.cs;Theme/ThemeLiquidGlass/**/*.cs;Theme/ThemeGlassmorphism/**/*.cs;Theme/ThemeSpatial/**/*.cs;Theme/ThemeSwiss/**/*.cs;Theme/ThemeHolographic/**/*.cs;Theme/step1.f.Analytics/**/*.cs;Theme/step1.g.Customization/**/*.cs;step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.cs;Inquiry/**/*.cs;step2.ClientManagement/**/*.cs" />
-    <Page Include="MainWindow.xaml;Theme/ThemeBento/**/*.xaml;Theme/ThemeClaymorphism/**/*.xaml;Theme/ThemeFluent/**/*.xaml;Theme/ThemeNeumorphism/**/*.xaml;Theme/ThemeLiquidGlass/**/*.xaml;Theme/ThemeGlassmorphism/**/*.xaml;Theme/ThemeSpatial/**/*.xaml;Theme/ThemeSwiss/**/*.xaml;Theme/ThemeHolographic/**/*.xaml;step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.xaml;Inquiry/**/*.xaml;step2.ClientManagement/**/*.xaml" />
+    <Compile Include="Theme/step1.a.ThemeEngine/**/*.cs;Theme/ThemeBento/**/*.cs;Theme/ThemeClaymorphism/**/*.cs;Theme/ThemeFluent/**/*.cs;Theme/ThemeNeumorphism/**/*.cs;Theme/ThemeLiquidGlass/**/*.cs;Theme/ThemeGlassmorphism/**/*.cs;Theme/ThemeSpatial/**/*.cs;Theme/ThemeSwiss/**/*.cs;Theme/ThemeHolographic/**/*.cs;Theme/step1.f.Analytics/**/*.cs;Theme/step1.g.Customization/**/*.cs;step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.cs;Inquiry/**/*.cs;step2.ClientManagement/**/*.cs;step3.UserManagement/**/*.cs" />
+    <Page Include="MainWindow.xaml;Theme/ThemeBento/**/*.xaml;Theme/ThemeClaymorphism/**/*.xaml;Theme/ThemeFluent/**/*.xaml;Theme/ThemeNeumorphism/**/*.xaml;Theme/ThemeLiquidGlass/**/*.xaml;Theme/ThemeGlassmorphism/**/*.xaml;Theme/ThemeSpatial/**/*.xaml;Theme/ThemeSwiss/**/*.xaml;Theme/ThemeHolographic/**/*.xaml;step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.xaml;Inquiry/**/*.xaml;step2.ClientManagement/**/*.xaml;step3.UserManagement/**/*.xaml" />
   </ItemGroup>
-  <!-- step2 verification executable is its own project (like step1.d):
-       keep its sources out of the application build so the app never gains a
-       second entry point. -->
+  <!-- The step2 and step3 verification executables are their own projects
+       (like step1.d): keep their sources out of the application build so the
+       app never gains a second entry point. -->
   <ItemGroup>
     <Compile Remove="step2.ClientManagement/step2.f.tests/**/*.cs" />
     <Page Remove="step2.ClientManagement/step2.f.tests/**/*.xaml" />
     <None Remove="step2.ClientManagement/step2.f.tests/**/*.py" />
+    <Compile Remove="step3.UserManagement/step3.f.tests/**/*.cs" />
+    <Page Remove="step3.UserManagement/step3.f.tests/**/*.xaml" />
+    <None Remove="step3.UserManagement/step3.f.tests/**/*.py" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.4" />

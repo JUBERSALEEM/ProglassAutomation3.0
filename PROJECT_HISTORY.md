@@ -9,6 +9,16 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — User Management (`step3`) implemented
+- **Phase:** `step3` — the user directory
+- **Before:** `step3` was allocated and specified but not authorized; no user, department or role storage existed, and the application had no way to say which person was operating beyond the Windows account name.
+- **Applied:** user domain, the seven departments and seven roles as seeded catalogue tables, normalization/validation rules, authorization decisions, migration **1013** on the existing `inquiries.db` chain (purely additive), EF context and repository, the current-user session and Prepared-By stamp, register and editor view models, register and editor views, shell navigation entry (workspace index 9), first-administrator bootstrap, and the verification harness (`step3.f.1` behaviour, `step3.f.2` source checks).
+- **Owner-visible result:** a working Users page — search and filter, add and edit, activate/deactivate, department and role selection, permission-guarded actions with an explanation when the workstation account is not an administrator. No password field exists, because there is no login to secure.
+- **Preserved:** Clients and Inquiries tables, ids and rows are untouched; `step2`'s duplicate-warning behaviour and the Clients page are unchanged apart from its navigation icon.
+- **Verification:** portable source checks PASS; Windows build/runtime and nine-theme Light/Dark verification NOT RUN by the agent (no C# compiler in this environment). Migration 1013 and the behaviour executable await the owner's MSBuild.
+- **Outstanding:** owner review; the client representative reference remains deferred (recorded in `docs/05`).
+
+---
 ## 2026-10-27 — Roadmap established for the remaining application (documentation only)
 - **Phase:** governance, no feature implemented
 - **Before:** Client Management was complete for its scope, but nothing in the repository ordered what came next. The earlier planning order could not be recovered: no commit exists dated 2026-10-25 or 2026-10-26, and `step2.0`–`step2.4` / "Foundation Review" appear in no commit, branch, PR, issue or blob.

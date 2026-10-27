@@ -4,6 +4,7 @@
         xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
         xmlns:inq="clr-namespace:ProGlassAutomation.Inquiry"
         xmlns:cli="clr-namespace:ProGlassAutomation.Clients"
+        xmlns:usr="clr-namespace:ProGlassAutomation.Users"
         Title="ProGlass Automation" Height="1000" Width="1700"
         MinHeight="{DynamicResource WindowMinHeight}" MinWidth="{DynamicResource WindowMinWidth}"
         WindowStartupLocation="CenterScreen"
@@ -343,8 +344,56 @@
                                 </Style>
                             </Button.Style>
                             <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Author" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                <!-- Briefcase: the companies we work for. The person mark moved to
+                                     Users when step3 added the directory. -->
+                                <studio:ShellMark Kind="Work" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
                                 <TextBlock Text="Clients" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <!-- step3 — User Management. Same nav pattern as Inquiries;
+                             the workspace index (9) is appended for the same
+                             reason: every earlier index keeps its meaning. -->
+                        <Button Command="{Binding ShowUsers}" AutomationProperties.Name="Users page">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsUsers}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                                        </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
+                                                <Condition Binding="{Binding IsUsers}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
+                                                <Condition Binding="{Binding IsUsers}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsGlass}" Value="True" />
+                                                <Condition Binding="{Binding IsUsers}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Person mark: the people who use the application,
+                                     as opposed to the companies they work for. -->
+                                <studio:ShellMark Kind="Author" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                <TextBlock Text="Users" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                         <TextBlock Text="Settings" Style="{StaticResource ShellSectionLabel}" FontWeight="{DynamicResource FontWeightHeading}" />
@@ -689,6 +738,8 @@
                 <TabItem Header="_Pages Studio"><studio:PagesStudioView /></TabItem>
                 <!-- step2 — Client Management workspace (index 8). -->
                 <TabItem Header="_Clients"><cli:ClientWorkspaceView /></TabItem>
+                <!-- step3 — User Management workspace (index 9). -->
+                <TabItem Header="_Users"><usr:UserWorkspaceView /></TabItem>
             </TabControl>
         </Grid>
         <Button Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top" Content="☰" Command="{Binding ToggleMenu}" ToolTip="Open menu" AutomationProperties.Name="Toggle menu" Panel.ZIndex="2" Margin="{DynamicResource PaddingPage}">
