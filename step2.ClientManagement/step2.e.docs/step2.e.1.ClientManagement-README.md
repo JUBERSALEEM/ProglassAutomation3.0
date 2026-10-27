@@ -99,9 +99,12 @@ directory:
 
 * `Clients.RepresentativeUserId` — a **nullable** id into `Users`, so every client
   that existed before 1014 stays valid and unassigned;
-* one picker in the client editor, listing the **active users with the Salesman
-  role** (the role code comes from `UserCatalog.SalesmanRole`, never a retyped
-  literal), with "No representative" as a real choice;
+* one picker in the client editor, listing **every active user — salesmen first**
+  (the role code comes from `UserCatalog.SalesmanRole`, never a retyped literal),
+  with "No representative" as a real choice. The picker binds the row object and is
+  seeded from the client's stored id, so it works on **edit** as well as on create;
+  a stored reference whose user is no longer active keeps its own "(inactive)" row
+  rather than blanking the box and being cleared by the next save;
 * one register column showing the resolved name — a rename relabels the register
   and rewrites no client row;
 * a write that names no existing user is refused, and 1014's verify step fails the

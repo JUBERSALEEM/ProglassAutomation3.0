@@ -116,10 +116,11 @@
                 <!-- Department -->
                 <TextBlock Text="DEPARTMENT" Style="{StaticResource FirstRunLabel}"
                            Margin="{DynamicResource UiGapSection}" />
+                <!-- Bound by ROW: the catalogue arrives after this view binds, and a
+                     SelectedValue resolved too early leaves the box with no text. -->
                 <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                           ItemsSource="{Binding Departments}"
-                          SelectedValuePath="Code"
-                          SelectedValue="{Binding SelectedDepartment, Mode=TwoWay}"
+                          SelectedItem="{Binding SelectedDepartmentItem, Mode=TwoWay}"
                           MinHeight="{DynamicResource UiActionMinHeight}"
                           ToolTip="The team this administrator belongs to"
                           AutomationProperties.Name="Department">

@@ -57,8 +57,12 @@
         <!-- The banner and the card share the page's own edges: no extra margin
              on either, so the editor lines up with the command bar and the
              register it replaces in every theme. -->
+        <!-- The banner and the form card below it pin the SAME inset token, so the
+             title sits on the same vertical line as the fields in all nine themes
+             instead of following each theme's PaddingCard. -->
         <ContentControl Grid.Row="0" Style="{DynamicResource HeroCard}"
-                        Background="{DynamicResource AccentPrimary}">
+                        Background="{DynamicResource AccentPrimary}"
+                        Padding="{DynamicResource UiCardPadding}">
             <StackPanel>
                 <TextBlock Text="{Binding Title}" FontSize="{DynamicResource FontSizeTitle}"
                            FontWeight="{DynamicResource FontWeightHeading}"
@@ -143,11 +147,13 @@
                         <!-- ── Department ─────────────────────────────── -->
                         <TextBlock Text="Department *" Style="{StaticResource UserFieldLabel}"
                                    Margin="{DynamicResource UiGapSection}" />
+                        <!-- Bound by ROW: the code list arrives with the view model,
+                             so a SelectedValue resolved before it exists would show a
+                             blank box for a person who already has a department. -->
                         <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                   ItemsSource="{Binding Departments}"
-                                  SelectedValuePath="Code"
                                   MinHeight="{DynamicResource UiActionMinHeight}"
-                                  SelectedValue="{Binding Department, Mode=TwoWay}"
+                                  SelectedItem="{Binding DepartmentItem, Mode=TwoWay}"
                                   ToolTip="The team this person belongs to. A department is not a permission."
                                   AutomationProperties.Name="Department">
                             <ComboBox.ItemTemplate>
@@ -179,9 +185,8 @@
                                    Margin="{DynamicResource UiGapSection}" />
                         <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                   ItemsSource="{Binding Roles}"
-                                  SelectedValuePath="Code"
                                   MinHeight="{DynamicResource UiActionMinHeight}"
-                                  SelectedValue="{Binding Role, Mode=TwoWay}"
+                                  SelectedItem="{Binding RoleItem, Mode=TwoWay}"
                                   ToolTip="What this person is authorised to do"
                                   AutomationProperties.Name="Role">
                             <ComboBox.ItemTemplate>
@@ -284,51 +289,60 @@
                          floating at the bottom of a stretched one. Order is
                          primary → status → cancel, and the gaps are the module's
                          action gap (8 px). -->
-                    <ContentControl Style="{DynamicResource Plate}"
-                                    Margin="{DynamicResource UiGapSection}">
-                        <WrapPanel HorizontalAlignment="Right">
-                            <Button Style="{DynamicResource PrimaryButton}"
-                                    Command="{Binding SaveCommand}"
-                                    MinHeight="{DynamicResource UiActionMinHeight}"
-                                    Padding="{DynamicResource UiActionPadding}"
-                                    Margin="{DynamicResource UiGapAction}"
-                                    AutomationProperties.Name="Save user">
-                                <StackPanel Orientation="Horizontal">
-                                    <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
-                                                      Height="{DynamicResource ChoiceMarkSize}"
-                                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                    <TextBlock Text="SAVE USER" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                            <Button Style="{DynamicResource SubtleButton}"
-                                    Command="{Binding DeactivateCommand}"
-                                    MinHeight="{DynamicResource UiActionMinHeight}"
-                                    Padding="{DynamicResource UiActionPadding}"
-                                    Margin="{DynamicResource UiGapAction}"
-                                    IsEnabled="{Binding CanChangeStatus}"
-                                    AutomationProperties.Name="Activate or deactivate user">
-                                <StackPanel Orientation="Horizontal">
-                                    <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
-                                                      Height="{DynamicResource ChoiceMarkSize}"
-                                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding DeactivateCommandText}" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                            <Button Style="{DynamicResource SubtleButton}"
-                                    Command="{Binding CancelCommand}"
-                                    MinHeight="{DynamicResource UiActionMinHeight}"
-                                    Padding="{DynamicResource UiActionPadding}"
-                                    Margin="{DynamicResource UiGapAction}"
-                                    AutomationProperties.Name="Cancel editing">
-                                <StackPanel Orientation="Horizontal">
-                                    <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
-                                                      Height="{DynamicResource ChoiceMarkSize}"
-                                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                    <TextBlock Text="Cancel" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                        </WrapPanel>
-                    </ContentControl>
+                    <!-- A rule, not a plate. A surface nested inside a surface is
+                         what made the footer's padding differ from the fields'
+                         padding in every theme (the inner Plate carries PaddingPlate,
+                         the outer card carries UiCardPadding), so the buttons sat a
+                         few pixels in from the fields above them. A hairline in the
+                         section gap separates the actions without adding a second
+                         surface. -->
+                    <Border Height="{DynamicResource StrokeWidth}"
+                            Background="{DynamicResource BorderStrong}"
+                            HorizontalAlignment="Stretch"
+                            Margin="{DynamicResource UiGapSection}" />
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Button Style="{DynamicResource PrimaryButton}"
+                                Command="{Binding SaveCommand}"
+                                MinHeight="{DynamicResource UiActionMinHeight}"
+                                Padding="{DynamicResource UiActionPadding}"
+                                Margin="{DynamicResource UiGapAction}"
+                                AutomationProperties.Name="Save user">
+                            <StackPanel Orientation="Horizontal">
+                                <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
+                                                  Height="{DynamicResource ChoiceMarkSize}"
+                                                  Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                <TextBlock Text="SAVE USER" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{DynamicResource SubtleButton}"
+                                Command="{Binding DeactivateCommand}"
+                                MinHeight="{DynamicResource UiActionMinHeight}"
+                                Padding="{DynamicResource UiActionPadding}"
+                                Margin="{DynamicResource UiGapAction}"
+                                IsEnabled="{Binding CanChangeStatus}"
+                                AutomationProperties.Name="Activate or deactivate user">
+                            <StackPanel Orientation="Horizontal">
+                                <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                                  Height="{DynamicResource ChoiceMarkSize}"
+                                                  Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding DeactivateCommandText}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{DynamicResource SubtleButton}"
+                                Command="{Binding CancelCommand}"
+                                MinHeight="{DynamicResource UiActionMinHeight}"
+                                Padding="{DynamicResource UiActionPadding}"
+                                Margin="{DynamicResource UiGapAction}"
+                                AutomationProperties.Name="Cancel editing">
+                            <StackPanel Orientation="Horizontal">
+                                <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                                  Height="{DynamicResource ChoiceMarkSize}"
+                                                  Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                <TextBlock Text="Cancel" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+
                     </StackPanel>
             </ScrollViewer>
         </ContentControl>

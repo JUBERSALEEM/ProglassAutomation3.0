@@ -9,6 +9,20 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 22: no blank boxes, an editable representative, cards that line up
+
+- **Phase:** `step3`/`step2` corrections from the owner's report and screenshot of the running build.
+- **Before:** the department/role boxes could render with no text at all; the client's representative could not be edited on an existing client; and the cards on the Users page did not share their inset in every theme.
+- **Blank boxes:** the cause was a `SelectedValue` bound to a code string, applied before the item list exists — the control then has nothing to resolve and keeps an empty face. Every catalogue picker in the module (both register filters, the editor's department and role, the first-run card, the shell's start-up gate) now binds the **row object** and is pointed at a real row once its list loads. A stored code that is no longer in the catalogue gets its own labelled row rather than a blank face.
+- **Faces:** "All departments" / "All roles" when nothing is filtered, then the catalogue's own wording verbatim — no field name on the button, no caption beside it. This is the third arrangement the owner has ruled on; all three now appear as rejected in `AGENTS.md` rule E.
+- **Representative:** the picker offers every **active user** (salesmen first) instead of salesmen only, is seeded from the client's stored id so editing shows the current person, and gives a stored-but-unlisted reference its own "(inactive)" row so a save cannot silently clear it.
+- **Cards:** every page-level card pins `UiCardPadding`; the register's grid no longer carries `MarginItem` (4/8/10 px by theme); the editor footer is a hairline rule instead of a `Plate` nested inside the `Card`.
+- **Coverage:** `step3.f.2` fails on a `SelectedValue` binding, a field-name prefix, a filter row that loses its code, an unpinned card inset, or a nested card surface; `step2.f.1`/`step2.f.2` cover the representative wiring. Seven mutations were put back on purpose and each failed the checker as intended.
+- **Audit:** `docs/13.User-Management-Audit.md` rewritten as a full done/missing report with a risk table and a ranked fix list.
+- **Verification:** nine portable checkers PASS. No compile and no rendered window here; the appearance is the owner's to confirm.
+
+---
+
 ## 2026-10-27 — Round 21: the client's representative, built
 
 - **Phase:** `step3`/`step2` — the last deferred item of the user stage, on the owner's instruction.

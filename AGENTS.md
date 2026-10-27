@@ -168,11 +168,14 @@ These rules are mandatory for every WPF view in this repository — existing and
   placeholder — and its closed state must never be blank. A selection that cannot
   be resolved (bound before its list was loaded, say) is a defect, not a cosmetic
   detail: the operator cannot tell what the control does.
-* A filter's face carries its **selection**, not its field name. Both a caption
-  standing beside the box and a field name printed on the button ("Department:
-  All") were rejected by the owner; the unfiltered row names what it covers ("All
-  departments", "All roles") so a closed box is never blank, and the control is
-  identified by its accessible name and tooltip.
+* A filter's face carries its **selection, and only that**. Three arrangements have
+  been rejected by the owner, in this order: a caption standing beside the box
+  (round 18), the field name printed on the button — "Department: All" (round 20),
+  and the field name prefixed onto every row (round 23, reverted the same round) —
+  "remove department and roles from each dropdowns". So the unfiltered row names
+  what it covers ("All departments", "All roles"), a chosen row is the catalogue's
+  own wording verbatim, and the control's identity lives in `AutomationProperties`
+  and its tooltip, never on the button.
 
 ### F. Sidebar and navigation integrity
 

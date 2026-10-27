@@ -50,6 +50,8 @@ namespace ProGlassAutomation.ViewModels.Users
         private string _fullNameError = "";
         private string _usernameError = "";
         private string _departmentError = "";
+        private CatalogRow? _departmentItem;
+        private CatalogRow? _roleItem;
         private string _roleError = "";
 
         private string _statusMessage = "";
@@ -70,9 +72,6 @@ namespace ProGlassAutomation.ViewModels.Users
             _userId = userId;
             _isNew = userId <= 0;
 
-            Departments = departments ?? Array.Empty<CatalogRow>();
-            Roles = roles ?? Array.Empty<CatalogRow>();
-
             if (draft != null)
             {
                 _fullName = draft.FullName;
@@ -92,6 +91,17 @@ namespace ProGlassAutomation.ViewModels.Users
                 _role = DefaultRoleCode();
             }
 
+            // The pickers are bound by ROW, not by code string: a SelectedValue
+            // resolved before ItemsSource is filled leaves the box blank, which is
+            // the defect the owner reported on the register filters. The lists are
+            // built here — after the draft has been read — so the stored code is
+            // already known when the rows are matched, and an unknown code still
+            // gets a row of its own instead of an empty face.
+            Departments = BuildCatalogue(departments, _department);
+            Roles = BuildCatalogue(roles, _role);
+            _departmentItem = Departments.FirstOrDefault(row => row.Code == _department);
+            _roleItem = Roles.FirstOrDefault(row => row.Code == _role);
+
             SaveCommand = new DelegateCommand(async () => await SaveAsync());
             CancelCommand = new DelegateCommand(() => Cancelled?.Invoke(this, EventArgs.Empty));
             DeactivateCommand = new DelegateCommand(async () => await SetActiveAsync(!IsActive));
@@ -110,9 +120,54 @@ namespace ProGlassAutomation.ViewModels.Users
 
         public int UserId => _userId;
 
-        public IReadOnlyList<CatalogRow> Departments { get; }
+        public IReadOnlyList<CatalogRow> Departments { get; private set; } = Array.Empty<CatalogRow>();
 
-        public IReadOnlyList<CatalogRow> Roles { get; }
+        public IReadOnlyList<CatalogRow> Roles { get; private set; } = Array.Empty<CatalogRow>();
+
+        /// <summary>The department row the picker shows; the code is what is saved.</summary>
+        public CatalogRow? DepartmentItem
+        {
+            get => _departmentItem;
+            set
+            {
+                if (!SetField(ref _departmentItem, value) || value == null) return;
+                Department = value.Code;
+            }
+        }
+
+        /// <summary>The role row the picker shows; the code is what is saved.</summary>
+        public CatalogRow? RoleItem
+        {
+            get => _roleItem;
+            set
+            {
+                if (!SetField(ref _roleItem, value) || value == null) return;
+                Role = value.Code;
+            }
+        }
+
+        /// <summary>
+        /// Copies the catalogue and guarantees the stored code has a row.
+        /// </summary>
+        /// <remarks>
+        /// A code that is no longer in the catalogue (a hand-edited database, or a
+        /// catalogue that lost a row) would otherwise leave the picker blank and
+        /// silently rewrite the person's department on save. The row is labelled
+        /// so the state is visible rather than silent.
+        /// </remarks>
+        private static IReadOnlyList<CatalogRow> BuildCatalogue(
+            IReadOnlyList<CatalogRow>? catalogue, string selectedCode)
+        {
+            var rows = new List<CatalogRow>(catalogue ?? Array.Empty<CatalogRow>());
+            if (rows.Count == 0 || rows.Any(row => row.Code == selectedCode)) return rows;
+
+            rows.Add(new CatalogRow
+            {
+                Code = selectedCode,
+                DisplayName = selectedCode + " (not in the catalogue)",
+            });
+            return rows;
+        }
 
         public string Title => _isNew ? "Add user" : "Edit user";
 

@@ -41,6 +41,7 @@ namespace ProGlassAutomation.ViewModels.Users
         private string _operatorUsername = "";
         private string _fullName = "";
         private string _selectedDepartment = "";
+        private CatalogRow? _selectedDepartmentItem;
         private string _fullNameError = "";
         private string _errorMessage = "";
         private string _statusMessage = "";
@@ -103,6 +104,27 @@ namespace ProGlassAutomation.ViewModels.Users
         {
             get => _selectedDepartment;
             set => SetField(ref _selectedDepartment, value ?? "");
+        }
+
+        /// <summary>
+        /// The department row the first-run picker shows.
+        /// </summary>
+        /// <remarks>
+        /// The box is bound to the ROW, not to the code string: the catalogue is
+        /// filled after the view binds, and a `SelectedValue` that cannot be
+        /// resolved yet leaves the control with no face at all — the blank box the
+        /// owner reported on the register filters. The row setter keeps the code in
+        /// step, so everything downstream (validation, registration) is unchanged.
+        /// </remarks>
+        public CatalogRow? SelectedDepartmentItem
+        {
+            get => _selectedDepartmentItem;
+            set
+            {
+                if (!SetField(ref _selectedDepartmentItem, value)) return;
+                _selectedDepartment = value?.Code ?? "";
+                OnPropertyChanged(nameof(SelectedDepartment));
+            }
         }
 
         public string FullNameError
@@ -172,6 +194,11 @@ namespace ProGlassAutomation.ViewModels.Users
                 _selectedDepartment = administration.Code;
                 OnPropertyChanged(nameof(SelectedDepartment));
             }
+
+            // Point the picker at its row once the catalogue exists.
+            _selectedDepartmentItem = Departments.FirstOrDefault(d => d.Code == _selectedDepartment)
+                ?? Departments.FirstOrDefault();
+            OnPropertyChanged(nameof(SelectedDepartmentItem));
 
             if (!snapshot.DirectoryAvailable)
             {

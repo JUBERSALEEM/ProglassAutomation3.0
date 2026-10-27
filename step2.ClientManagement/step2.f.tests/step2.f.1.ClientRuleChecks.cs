@@ -491,9 +491,13 @@ internal static class ClientRuleChecks
         }, @"MALIK\ADMIN");
         True(estimator.Succeeded, "a non-salesman was created: " + estimator.Message);
 
+        // Every active user can be assigned — a company that has no salesman yet
+        // must still be able to record who owns a client. Salesmen come first.
         IReadOnlyList<ClientRepresentative> representatives = await repository.GetRepresentativesAsync();
-        Equal("1", representatives.Count.ToString(), "only the salesman is offered as a representative");
-        Equal("Sara Sales", representatives[0].DisplayName, "the picker shows the person's name");
+        Equal("3", representatives.Count.ToString(), "every active user is offered as a representative");
+        Equal("Sara Sales", representatives[0].DisplayName, "the salesman is offered first");
+        True(representatives.Any(row => row.DisplayName == "Eddie Estimator"),
+            "a non-salesman is still selectable");
 
         int salesId = salesman.User!.Id;
 
@@ -560,8 +564,10 @@ internal static class ClientRuleChecks
         })).Succeeded, "reference restored for the deactivation case");
         True((await users.SetActiveAsync(salesId, false, @"MALIK\ADMIN")).Succeeded,
             "the salesman was deactivated");
-        Equal("0", (await repository.GetRepresentativesAsync()).Count.ToString(),
-            "an inactive salesman is no longer offered");
+        IReadOnlyList<ClientRepresentative> stillOffered = await repository.GetRepresentativesAsync();
+        Equal("2", stillOffered.Count.ToString(), "an inactive user drops out of the picker");
+        True(!stillOffered.Any(row => row.Id == salesId),
+            "the deactivated salesman is no longer offered");
         Equal(salesId.ToString(),
             ((await repository.QueryAsync(new ClientQuery())).First(row => row.Id == id)
                 .RepresentativeUserId ?? 0).ToString(),

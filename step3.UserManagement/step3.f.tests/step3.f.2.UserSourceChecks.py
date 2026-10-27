@@ -390,8 +390,15 @@ def require_register_layout():
     check("Password" not in view, "the user screen must not show a password field")
     for match in re.finditer(r"<ComboBox[\s][^>]*>", view, flags=re.S):
         block = match.group(0)
-        check('SelectedValuePath="Code"' in block,
-              "catalogue dropdowns must select by stable code")
+        # The two register filters bind the row OBJECT (see A2a); every other
+        # catalogue dropdown selects by the stable code, never by display text.
+        if "SelectedDepartmentFilterItem" in block or "SelectedRoleFilterItem" in block \
+                or "BootstrapDepartmentItem" in block:
+            check('SelectedValuePath' not in block,
+                  "a filter that binds an item must not also resolve a value path")
+        else:
+            check('SelectedValuePath="Code"' in block,
+                  "catalogue dropdowns must select by stable code")
         check("IsEditable=\"True\"" not in block,
               "a department or role must be chosen from the list, not typed")
 
@@ -399,8 +406,8 @@ def require_register_layout():
     for label in ("Full name *", "Username *", "Department *", "Role *", "Status"):
         check(f'Text="{label}"' in editor, f"the editor is missing the '{label}' field")
     check("Password" not in editor, "the editor must not show a password field")
-    check('Style="{DynamicResource Plate}"' in editor,
-          "the action buttons must sit in a themed footer plate")
+    check('<Border Height="{DynamicResource StrokeWidth}"' in editor,
+          "the action buttons must sit below the footer rule, not in a nested card")
 
 
 def require_layout_contract():
@@ -427,17 +434,18 @@ def require_layout_contract():
     check('<ColumnDefinition Width="*" MinWidth="0" />' in view,
           "the filter cluster must sit in a shrinkable column beside the actions")
 
-    # A2 — a filter shows its selection and nothing else. Two arrangements were
-    # rejected by the owner: a field caption standing beside the box, and the field
-    # name printed on the button ("Department: All"). What the box carries is the
-    # value — "All departments" / "All roles" when nothing is filtered, then the
-    # catalogue's own wording — so it is never blank and never a label.
-    check('"All departments"' in vm and '"All roles"' in vm,
+    # A2 — a filter's face carries its SELECTION and nothing else. Three earlier
+    # arrangements were rejected by the owner: a caption standing beside the box, the
+    # field name printed on the button ("Department: All"), and then the field name
+    # back again as a prefix on every row. What the box shows is the value — "All
+    # departments" / "All roles" when nothing is filtered, so a closed box is never
+    # blank and never a riddle, then the catalogue's own wording, verbatim.
+    check('DisplayName = "All departments"' in vm and 'DisplayName = "All roles"' in vm,
           "each filter needs an unfiltered row that says what it covers")
     check('"Department: "' not in vm and '"Role: "' not in vm,
           "the field name must not be printed on the filter buttons")
     check("DepartmentFilters.Add(department);" in vm and "RoleFilters.Add(role);" in vm,
-          "filter rows must reuse the catalogue wording verbatim")
+          "filter rows must reuse the catalogue row verbatim, code and wording")
     filter_body = vm[vm.index("private void ApplyCatalogueFilters("):]
     next_member = filter_body.find("\n        private ", 10)
     if next_member != -1:
@@ -446,6 +454,28 @@ def require_layout_contract():
     check(literals == {'"All departments"', '"All roles"'},
           "the only labels the filters may invent are the two 'All …' rows; every "
           f"other entry is the catalogue's own wording (found {sorted(literals)})")
+
+    # A2a — the selection is bound as an ITEM. A string SelectedValue set before
+    # the item list exists leaves the ComboBox unselected, which is the blank box
+    # the owner reported twice; binding the row object removes the lookup.
+    check('SelectedItem="{Binding SelectedDepartmentFilterItem, Mode=TwoWay}"' in view
+          and 'SelectedItem="{Binding SelectedRoleFilterItem, Mode=TwoWay}"' in view,
+          "the filters must bind their selection as an item, not as a code string")
+    check("_selectedDepartmentFilterItem = DepartmentFilters[0];" in vm
+          and "_selectedRoleFilterItem = RoleFilters[0];" in vm,
+          "the boxes must be pointed at their default row once the catalogues load")
+
+    # The same defect in this module's other catalogue pickers: the editor's
+    # department and role boxes, the first-run card's department box, and the shell
+    # gate's department box (its view model lives here too) must all bind a row.
+    # A SelectedValue in any of them is the blank face coming back.
+    for path in (MODULE / "step3.d.1.UserWorkspaceView.xaml",
+                 MODULE / "step3.d.2.UserEditorView.xaml",
+                 MODULE / "step3.d.3.FirstRunSetupView.xaml"):
+        text = read(path)
+        check('SelectedValuePath' not in text and "SelectedValue=" not in text,
+              f"{path.name} must bind a row object; a code string can fail to resolve "
+              "and leaves the box blank")
     filter_start = view.index('<WrapPanel Grid.Column="0"')
     filter_end = view.index("</WrapPanel>", filter_start)
     filter_bar = view[filter_start:filter_end]
@@ -477,7 +507,8 @@ def require_layout_contract():
             tag = match.group(0)
             is_card = 'Style="{DynamicResource Card}"' in tag
             is_page_plate = 'Style="{DynamicResource Plate}"' in tag and 'Grid.Row="0"' in tag
-            if not (is_card or is_page_plate):
+            is_banner = 'Style="{DynamicResource HeroCard}"' in tag
+            if not (is_card or is_page_plate or is_banner):
                 continue
             check('Padding="{DynamicResource UiCardPadding}"' in tag,
                   f"{path.name}: a page-level card must pin UiCardPadding, or its "
@@ -543,9 +574,19 @@ def require_layout_contract():
 
     # Adjacent buttons inside one cluster use the 8 px action gap: SAVE USER,
     # the status action and Cancel sit in the same footer cluster.
-    footer = editor[editor.index('Style="{DynamicResource Plate}"'):]
+    footer = editor[editor.index("<WrapPanel HorizontalAlignment=\"Right\">"):]
     check(footer.count('Margin="{DynamicResource UiGapAction}"') >= 3,
           "the editor footer buttons must be separated by the shared action gap")
+
+    # B6 — no surface inside a surface. The footer used to be a Plate inside the
+    # Card, and because Plate ships PaddingPlate while the card pins UiCardPadding
+    # the buttons sat a few pixels in from the fields above them — in every theme.
+    # A hairline at the section gap is the separator now.
+    check('Style="{DynamicResource Plate}"' not in editor,
+          "the editor must not nest a card surface inside its card")
+    check('<Border Height="{DynamicResource StrokeWidth}"' in editor
+          and 'Background="{DynamicResource BorderStrong}"' in editor,
+          "the editor footer must be separated by a hairline rule, not a nested card")
 
     # B5 — the shared scale is a contract, not a module-local dictionary.
     contract = read(ROOT / "Theme/step1.a.ThemeEngine/step1.a.1.ThemeContract.cs")

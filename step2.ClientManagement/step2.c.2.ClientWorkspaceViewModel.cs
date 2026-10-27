@@ -398,8 +398,20 @@ namespace ProGlassAutomation.ViewModels.Clients
                     await ReloadAsync().ConfigureAwait(true);
                     return;
                 }
-                OpenEditor(new ClientEditorViewModel(
-                    _repository, ClientDraft.FromClient(client), client.Id, _representatives));
+                var editor = new ClientEditorViewModel(
+                    _repository, ClientDraft.FromClient(client), client.Id, _representatives);
+
+                // A stored reference must be visible in the picker even when that
+                // person is no longer active: an unlisted id would render blank and
+                // a save would clear the assignment by accident.
+                if (client.RepresentativeUserId is int representativeId)
+                {
+                    string displayName = Rows
+                        .FirstOrDefault(row => row.Id == client.Id)?.RepresentativeName ?? "";
+                    editor.EnsureRepresentativeOption(representativeId, displayName);
+                }
+
+                OpenEditor(editor);
             }
             catch (Exception ex)
             {

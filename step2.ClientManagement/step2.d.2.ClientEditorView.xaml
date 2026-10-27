@@ -122,18 +122,19 @@
 
                         <!-- ── Representative (stable user reference) ────
                              A reference, never a typed name: the picker lists the
-                             active users with the Salesman role and stores the
-                             user id (migration 1014). "No representative" is a
-                             real, valid choice — every client that existed before
-                             the reference was added is in that state. -->
+                             ACTIVE users (salesmen first) and stores the user id
+                             (migration 1014). "No representative" is a real, valid
+                             choice — every client that existed before the
+                             reference was added is in that state — and the list is
+                             bound by row, because a SelectedValue resolved before
+                             the rows exist renders blank. -->
                         <TextBlock Text="Representative"
                                    Style="{StaticResource ClientFieldLabel}"
                                    Margin="{DynamicResource MarginSection}" />
                         <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                   MinHeight="{DynamicResource ControlMinHeight}"
                                   ItemsSource="{Binding Representatives}"
-                                  SelectedValuePath="Id"
-                                  SelectedValue="{Binding RepresentativeId, Mode=TwoWay}"
+                                  SelectedItem="{Binding SelectedRepresentative, Mode=TwoWay}"
                                   IsEnabled="{Binding HasRepresentatives}"
                                   ToolTip="The salesman who owns this client"
                                   AutomationProperties.Name="Client representative">

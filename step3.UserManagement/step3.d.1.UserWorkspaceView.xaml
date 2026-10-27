@@ -329,19 +329,19 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Department filter: the button carries the selection and
-                         nothing else — "All departments" before anything is
-                         chosen, then the team's own name. No field label is
-                         printed on the face and none stands beside the box; the
-                         control is identified by its accessible name, its tooltip
-                         and the list it opens. -->
+                    <!-- Department filter. The face carries the SELECTION only —
+                         "All departments" until something is chosen, then the
+                         catalogue's own wording ("Cutting Department"). No caption
+                         beside the box and no field name on the button: the owner
+                         has rejected both, twice each. The selection is bound as a
+                         ROW, not as a code string: a SelectedValue applied before
+                         the list exists is what left these boxes blank. -->
                     <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                               MinWidth="150"
                               MinHeight="{DynamicResource UiActionMinHeight}"
                               Margin="{DynamicResource UiGapAction}"
                               ItemsSource="{Binding DepartmentFilters}"
-                              SelectedValuePath="Code"
-                              SelectedValue="{Binding SelectedDepartmentFilter, Mode=TwoWay}"
+                              SelectedItem="{Binding SelectedDepartmentFilterItem, Mode=TwoWay}"
                               VerticalAlignment="Center"
                               ToolTip="Show only people from one department"
                               AutomationProperties.Name="Department filter"
@@ -353,17 +353,16 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
-                    <!-- Role filter, same idiom: the face shows the role or
-                         "All roles". Role is what a person may do; department
-                         never is a permission, which is why both filters
-                         exist. -->
+                    <!-- Role filter, same idiom: "All roles" until a role is
+                         chosen, then the role's own name. Role is what a person may
+                         do; department never is a permission, which is why both
+                         filters exist. -->
                     <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                               MinWidth="130"
                               MinHeight="{DynamicResource UiActionMinHeight}"
                               Margin="{DynamicResource UiGapAction}"
                               ItemsSource="{Binding RoleFilters}"
-                              SelectedValuePath="Code"
-                              SelectedValue="{Binding SelectedRoleFilter, Mode=TwoWay}"
+                              SelectedItem="{Binding SelectedRoleFilterItem, Mode=TwoWay}"
                               VerticalAlignment="Center"
                               ToolTip="Show only people with one role"
                               AutomationProperties.Name="Role filter"
@@ -738,8 +737,7 @@
                                        Margin="{DynamicResource UiGapField}" />
                             <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                       ItemsSource="{Binding Departments}"
-                                      SelectedValuePath="Code"
-                                      SelectedValue="{Binding BootstrapDepartment, Mode=TwoWay}"
+                                      SelectedItem="{Binding BootstrapDepartmentItem, Mode=TwoWay}"
                                       MinHeight="{DynamicResource UiActionMinHeight}"
                                       Margin="{DynamicResource UiGapGroup}"
                                       AutomationProperties.Name="First administrator department">

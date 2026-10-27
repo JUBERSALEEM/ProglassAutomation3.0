@@ -69,6 +69,8 @@ namespace ProGlassAutomation.ViewModels.Users
         private CancellationTokenSource? _loadCts;
 
         private string _searchText = "";
+        private CatalogRow? _selectedDepartmentFilterItem;
+        private CatalogRow? _selectedRoleFilterItem;
         private string _selectedDepartmentFilter = "";
         private string _selectedRoleFilter = "";
         private UserListRow? _selectedRow;
@@ -85,6 +87,7 @@ namespace ProGlassAutomation.ViewModels.Users
 
         private string _bootstrapFullName = "";
         private string _bootstrapDepartment = UserCatalog.AdministrationDepartment;
+        private CatalogRow? _bootstrapDepartmentItem;
         private string _bootstrapError = "";
         private bool _isBootstrapping;
 
@@ -225,6 +228,47 @@ namespace ProGlassAutomation.ViewModels.Users
             }
         }
 
+        /// <summary>
+        /// The department box's selection as an ITEM, not as a code.
+        /// </summary>
+        /// <remarks>
+        /// Binding <c>SelectedValue</c> to a string put the empty "everything"
+        /// code in front of the item list while that list was still loading; a
+        /// ComboBox resolves SelectedValue only when it has items, so the control
+        /// stayed unselected and rendered blank — twice reported by the owner.
+        /// Selecting the row object itself removes the lookup entirely: the box
+        /// shows whatever item the view model points at, or nothing if the list
+        /// is genuinely empty.
+        /// </remarks>
+        public CatalogRow? SelectedDepartmentFilterItem
+        {
+            get => _selectedDepartmentFilterItem;
+            set
+            {
+                if (!SetField(ref _selectedDepartmentFilterItem, value)) return;
+                SelectedDepartmentFilter = value?.Code ?? "";
+                OnPropertyChanged(nameof(SelectedDepartmentFilterText));
+            }
+        }
+
+        /// <summary>The role box's selection as an ITEM; see the department note.</summary>
+        public CatalogRow? SelectedRoleFilterItem
+        {
+            get => _selectedRoleFilterItem;
+            set
+            {
+                if (!SetField(ref _selectedRoleFilterItem, value)) return;
+                SelectedRoleFilter = value?.Code ?? "";
+                OnPropertyChanged(nameof(SelectedRoleFilterText));
+            }
+        }
+
+        /// <summary>What the department box shows; "" when the list is empty.</summary>
+        public string SelectedDepartmentFilterText => SelectedDepartmentFilterItem?.DisplayName ?? "";
+
+        /// <summary>What the role box shows; "" when the list is empty.</summary>
+        public string SelectedRoleFilterText => SelectedRoleFilterItem?.DisplayName ?? "";
+
         public UserListRow? SelectedRow
         {
             get => _selectedRow;
@@ -272,6 +316,21 @@ namespace ProGlassAutomation.ViewModels.Users
         {
             get => _bootstrapDepartment;
             set => SetField(ref _bootstrapDepartment, value ?? "");
+        }
+
+        /// <summary>
+        /// The first-run card's department box, bound as an item for the same
+        /// reason the register filters are: the code list arrives after the view
+        /// binds, and a SelectedValue resolved too early renders blank.
+        /// </summary>
+        public CatalogRow? BootstrapDepartmentItem
+        {
+            get => _bootstrapDepartmentItem;
+            set
+            {
+                if (!SetField(ref _bootstrapDepartmentItem, value)) return;
+                BootstrapDepartment = value?.Code ?? "";
+            }
         }
 
         public string BootstrapError
@@ -514,12 +573,12 @@ namespace ProGlassAutomation.ViewModels.Users
             Roles.Clear();
             foreach (var role in roles) Roles.Add(role);
 
-            // The button carries the selection and nothing else: no field name is
-            // glued in front of the value, because the owner reads "Department:
-            // All" as a label sitting on the button rather than as a filter. The
-            // catalogue's own wording is used verbatim, and the unfiltered row
-            // says "All departments" / "All roles" so a closed box still states
-            // what it covers before anything has been chosen (rule E).
+            // The face shows the SELECTION and nothing else — the owner's
+            // direction: "remove department and roles from each dropdowns". The
+            // field's identity lives in its accessible name and tooltip, not on the
+            // button. The unfiltered row names what it covers ("All departments" /
+            // "All roles") so a closed box is never blank and never a riddle; after
+            // a choice the face is the catalogue's own wording, verbatim.
             DepartmentFilters.Clear();
             DepartmentFilters.Add(new CatalogRow { Code = "", DisplayName = "All departments" });
             foreach (var department in departments) DepartmentFilters.Add(department);
@@ -527,6 +586,16 @@ namespace ProGlassAutomation.ViewModels.Users
             RoleFilters.Clear();
             RoleFilters.Add(new CatalogRow { Code = "", DisplayName = "All roles" });
             foreach (var role in roles) RoleFilters.Add(role);
+
+            // Point the boxes at their "everything" rows as OBJECTS. Assigning the
+            // backing fields directly keeps the current filter values (a raise of
+            // SelectedDepartmentFilter here would re-run the query for nothing).
+            _selectedDepartmentFilterItem = DepartmentFilters[0];
+            _selectedRoleFilterItem = RoleFilters[0];
+            OnPropertyChanged(nameof(SelectedDepartmentFilterItem));
+            OnPropertyChanged(nameof(SelectedRoleFilterItem));
+            OnPropertyChanged(nameof(SelectedDepartmentFilterText));
+            OnPropertyChanged(nameof(SelectedRoleFilterText));
 
             // Re-apply the current filter selection now that the lists have
             // items. A ComboBox whose SelectedValue is set while its ItemsSource
@@ -544,6 +613,11 @@ namespace ProGlassAutomation.ViewModels.Users
                 _bootstrapDepartment = administration?.Code ?? Departments[0].Code;
                 OnPropertyChanged(nameof(BootstrapDepartment));
             }
+
+            // Point the card's box at its row object once the catalogue exists.
+            _bootstrapDepartmentItem = Departments.FirstOrDefault(d => d.Code == _bootstrapDepartment)
+                ?? Departments.FirstOrDefault();
+            OnPropertyChanged(nameof(BootstrapDepartmentItem));
         }
 
         private void SelectStatusTab(UserStatusTab? tab)

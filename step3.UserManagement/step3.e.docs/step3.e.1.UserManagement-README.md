@@ -87,11 +87,13 @@ identically in all eighteen theme dictionaries:
   column, actions in a content-sized column. A `WrapPanel` wraps instead of
   overflowing, so nothing can be drawn over anything at any width (including with
   the sidebar open), yet at normal width the whole bar reads as a single strip;
-- each filter carries its **selection** on the button and no field name: the
-  closed box reads "All departments" / "All roles" until something is chosen, then
-  the catalogue's own wording ("Estimation", "Estimator"). No caption stands beside
-  the box, and each filter keeps an accessible name and a tooltip; its selection is
-  re-applied after the catalogue loads, so a closed box is never blank;
+- each filter carries its **selection, and only that**: "All departments" / "All
+  roles" until something is chosen, then the catalogue's own wording verbatim. No
+  caption stands beside the box and no field name is printed on it — three rejected
+  arrangements are listed in `AGENTS.md` rule E — so the control is identified by its
+  accessible name and tooltip. The selection is bound as a **ROW**, because a
+  code-string `SelectedValue` applied before the rows exist is exactly what left these
+  boxes blank, and the box is pointed at a real row once the catalogue loads;
 - every card on the page pins `UiCardPadding` (16 px in all eighteen theme
   dictionaries). `Card` and `Plate` ship different paddings per theme, which is what
   made the register's table start a few pixels right of the bar above it;

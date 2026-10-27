@@ -141,9 +141,14 @@ def require_no_inquiry_schema_change():
                       "REFERENCES \"Clients\""):
         check(forbidden not in module_text,
               f"step2 must not modify the Inquiry schema or add a foreign key ({forbidden})")
-    for table in ("Salesmen", "SalesmenTable", "SalesRepresentativeName"):
-        check(table not in module_text,
-              f"representative identity must stay deferred to the User Management stage ({table})")
+    # The representative is a reference into the user directory (1014). A second
+    # people table or a typed representative name is what this forbids — the word
+    # "salesman" in prose is fine.
+    for forbidden_artifact in ("SalesmenTable", "SalesRepresentativeName",
+                               'CREATE TABLE "Salesmen"', "SalesRepresentativeId"):
+        check(forbidden_artifact not in module_text,
+              "representative identity must be a reference into Users, not a second "
+              f"people table or a typed name ({forbidden_artifact})")
 
 
 def require_no_delete_path():
@@ -753,6 +758,11 @@ def require_representative_reference():
               f"{method} must verify that the chosen representative exists before writing")
     check("UserCatalog.SalesmanRole" in repository,
           "the picker must read the role code from the one catalogue")
+    picker = repository[repository.index("GetRepresentativesAsync("):]
+    picker = picker[:picker.index("public async Task<ClientSaveResult>") if "public async Task<ClientSaveResult>" in picker else len(picker)]
+    check("Where(user => user.IsActive)" in picker,
+          "the picker must offer the active users, not only one role: a business "
+          "with no salesman yet still has to be able to assign somebody")
     others = "\n".join(
         read(path) for path in sorted(MODULE.glob("*.cs")))
     check('"SALESMAN"' not in others,
@@ -761,8 +771,8 @@ def require_representative_reference():
     editor = read(MODULE / "step2.d.2.ClientEditorView.xaml")
     check('ItemsSource="{Binding Representatives}"' in editor,
           "the editor must offer the representative picker")
-    check('SelectedValuePath="Id"' in editor,
-          "the picker must select by the stable user id")
+    check('SelectedItem="{Binding SelectedRepresentative, Mode=TwoWay}"' in editor,
+          "the picker must bind the row itself, not an id that can fail to resolve")
     check("RepresentativeHint" in editor,
           "an empty picker must explain itself instead of showing a dead dropdown")
 

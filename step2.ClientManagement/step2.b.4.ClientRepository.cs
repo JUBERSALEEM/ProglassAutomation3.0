@@ -415,9 +415,14 @@ namespace ProGlassAutomation.Services.Clients
             try
             {
                 await using var users = new UserDbContext();
+                // Salesmen first, then everybody else who is active. The client's
+                // representative is normally a salesman, but a business that has
+                // not created one yet must still be able to assign somebody — an
+                // empty picker is not an acceptable answer to "add a client".
                 var rows = await users.Users.AsNoTracking()
-                    .Where(user => user.IsActive && user.Role == UserCatalog.SalesmanRole)
-                    .OrderBy(user => user.FullName)
+                    .Where(user => user.IsActive)
+                    .OrderBy(user => user.Role == UserCatalog.SalesmanRole ? 0 : 1)
+                    .ThenBy(user => user.FullName)
                     .ThenBy(user => user.Username)
                     .Select(user => new ClientRepresentative
                     {

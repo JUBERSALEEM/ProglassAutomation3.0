@@ -18,6 +18,7 @@ using ProGlassAutomation.ViewModels.Inquiry;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -39,6 +40,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private string _notes = "";
         private bool _isActive = true;
         private int _representativeId;
+        private ClientRepresentative? _selectedRepresentative;
 
         private string _clientNameError = "";
         private string _phoneError = "";
@@ -85,6 +87,12 @@ namespace ProGlassAutomation.ViewModels.Clients
             {
                 foreach (var representative in representatives) Representatives.Add(representative);
             }
+
+            // Bind the row OBJECT, not its id: a SelectedValue resolved before the
+            // list exists leaves a ComboBox blank, which is the defect the owner
+            // reported on the register filters.
+            _selectedRepresentative =
+                Representatives.FirstOrDefault(row => row.Id == _representativeId) ?? Representatives[0];
 
             // DelegateCommand requeries through CommandManager, so no explicit
             // CanExecuteChanged plumbing is needed; each command also guards on
@@ -253,18 +261,52 @@ namespace ProGlassAutomation.ViewModels.Clients
         public ObservableCollection<ClientRepresentative> Representatives { get; } = new();
 
         /// <summary>
-        /// The chosen representative as a stable user id; 0 means none. The editor
-        /// edits an id, never a name, so a rename cannot rewrite a client row.
+        /// The chosen representative row; the first entry means "none". The editor
+        /// carries an id, never a name, so a rename cannot rewrite a client row.
         /// </summary>
-        public int RepresentativeId
+        public ClientRepresentative? SelectedRepresentative
         {
-            get => _representativeId;
+            get => _selectedRepresentative;
             set
             {
-                if (!SetField(ref _representativeId, value)) return;
+                var next = value ?? Representatives.FirstOrDefault();
+                if (!SetField(ref _selectedRepresentative, next) || next == null) return;
+                _representativeId = next.Id;
                 RepresentativeError = "";
+                OnPropertyChanged(nameof(RepresentativeId));
                 ClearSaveFeedback();
             }
+        }
+
+        /// <summary>The chosen representative's stable user id; 0 means none.</summary>
+        public int RepresentativeId => _selectedRepresentative?.Id ?? 0;
+
+        /// <summary>
+        /// Makes sure a stored reference can still be shown and kept.
+        /// </summary>
+        /// <remarks>
+        /// A client may point at somebody who is no longer active, or no longer in
+        /// the list for any other reason. Without an entry for that id the box would
+        /// render blank and a save would silently clear the reference, so the row is
+        /// added and labelled "(inactive)" rather than dropped.
+        /// </remarks>
+        public void EnsureRepresentativeOption(int representativeId, string displayName)
+        {
+            if (representativeId <= 0) return;
+            if (Representatives.Any(row => row.Id == representativeId))
+            {
+                SelectedRepresentative = Representatives.First(row => row.Id == representativeId);
+                return;
+            }
+
+            var label = string.IsNullOrWhiteSpace(displayName)
+                ? $"User #{representativeId} (not available)"
+                : displayName.Trim() + " (inactive)";
+            var option = new ClientRepresentative { Id = representativeId, DisplayName = label };
+            Representatives.Add(option);
+            OnPropertyChanged(nameof(HasRepresentatives));
+            OnPropertyChanged(nameof(RepresentativeHint));
+            SelectedRepresentative = option;
         }
 
         public string RepresentativeError
@@ -280,8 +322,8 @@ namespace ProGlassAutomation.ViewModels.Clients
 
         /// <summary>Explains an empty picker instead of showing a dead dropdown.</summary>
         public string RepresentativeHint => HasRepresentatives
-            ? "Optional. Only active users with the Salesman role are listed."
-            : "No active user has the Salesman role yet. Add or re-role one in Users first; a client can stay without a representative.";
+            ? "Optional. Salesmen are listed first, then the other active users."
+            : "There is no active user to assign yet. Add one in Users; a client can stay without a representative.";
 
         // ── Duplicate warning / feedback ─────────────────────────────────
 
