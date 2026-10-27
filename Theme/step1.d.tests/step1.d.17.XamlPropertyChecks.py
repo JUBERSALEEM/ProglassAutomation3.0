@@ -84,7 +84,11 @@ ALLOW = {
                   'Background', 'Padding', 'LineHeight', 'Margin', 'MinWidth',
                   'MinHeight', 'MaxWidth', 'MaxHeight', 'Width', 'Height',
                   'HorizontalAlignment', 'VerticalAlignment', 'Style', 'Tag',
-                  'ToolTip', 'Visibility', 'x:Name', 'Grid.Row', 'Grid.Column',
+                  # IsHitTestVisible is UIElement's, and a TextBlock overlay needs
+                  # it so clicks fall through to the TextBox underneath (the
+                  # search hint). Reviewed, not invented.
+                  'ToolTip', 'Visibility', 'IsHitTestVisible', 'x:Name',
+                  'Grid.Row', 'Grid.Column',
                   'Grid.RowSpan', 'Grid.ColumnSpan', 'DockPanel.Dock',
                   'AutomationProperties.Name', 'AutomationProperties.LiveSetting',
                   'AutomationProperties.AutomationId', 'AutomationProperties.HelpText'},

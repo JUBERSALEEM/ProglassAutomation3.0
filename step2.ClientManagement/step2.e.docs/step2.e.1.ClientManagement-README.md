@@ -295,6 +295,31 @@ Implementation notes worth keeping:
 - **Measured cost:** the chrome above the register drops from roughly 240 px to
   about 96 px, which is where the extra four to seven visible rows come from.
 
+### Round 8 — one bar, one row of actions, no strip
+
+Owner feedback on the built page (screenshot annotated four times): *"this
+section didn't have proper spacing in texts"*, *"why this section become ugly,
+where are the filtered and other things gone"*, *"why three dot didn't have
+column header"*, *"move these to top so this space can be extra … duplicated
+section row data name"*.
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Bar looked crowded/ugly | it repeated the page title the shell banner already shows ("Clients" + a `Caption` jammed beside it at a different size), and both blocks hugged the top with no rhythm | the title is gone from the bar; the summary line sits above the chips, every control is `VerticalAlignment="Center"`, and the line spacing comes from `MarginInline`'s own bottom inset |
+| Filtered things looked missing | the chips were pushed under a large heading in a three-column grid, so they read as clutter rather than as the filter | chips are the first thing in the bar, with the live count directly above them |
+| Action column had no header | the column header was an empty `TextBlock` | it reads **Actions** |
+| Strip under the register was wasted space | it printed `SelectedSummary`, which repeated the row already on screen, and it cost ~60 px of register height | the strip is deleted; **Edit** and **Deactivate** moved into the bar (disabled without a selection, tooltipped) and the register took the pixels |
+| Wide empty area inside the register | the footer strip plus a `Card` wrapper put a floor on the visible area | the register now runs to the bottom of the page; the remaining space is genuinely empty rows, which is what a register should look like |
+| `BAKAR MOHAMMED TECHNICAL SERVICES…` truncated | `ClientName` at `2*` inside a 1 400 px grid could not hold a 37-character company name | weights re-balanced (`2.6*` name, `1.1*` attention, `1.1*` phone, `1.3*` e-mail, `1*` TRN, `0.9*` status, `1*` updated) and the name cell carries `ToolTip="{Binding ClientName}"` so the full value is one hover away |
+| Search field looked empty, not empty-*able* | `TextBox` has no placeholder property | a `TextBlock` overlay with a `DataTrigger` on `SearchText` shows "Search clients…" until something is typed (no converter resource needed) |
+
+Guards: `step2.f.2` now fails if the strip returns, if `SelectedSummary` is bound
+on the page, if the actions column loses its header, or if either selection
+command disappears from the bar; three mutations verified failing.
+`step1.d.17` refused `IsHitTestVisible` on the new hint `TextBlock` until it was
+reviewed into the allow-set — the property is `UIElement`'s and the overlay needs
+it so clicks fall through to the field.
+
 ### Neumorphism depth (theme package, owner direction)
 
 The owner's screenshot was Neumorphism, not Claymorphism, and the complaint was

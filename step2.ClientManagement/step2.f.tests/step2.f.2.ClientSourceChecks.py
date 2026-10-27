@@ -527,8 +527,6 @@ def require_command_bar():
     check(bar is not None, "the page needs one command bar - a Plate on row 0")
     if bar:
         body = bar.group(0)
-        check('Text="Clients"' in body and 'Style="{DynamicResource PageHeading}"' in body,
-              "the command bar owns the page heading")
         check('Text="{Binding RegisterSummary}"' in body,
               "the command bar carries the live count sentence")
         check('Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"' in body,
@@ -560,16 +558,32 @@ def require_command_bar():
     check('Text="Show"' not in view,
           "the filter card and its headings are gone")
 
-    footer = re.search(r'<ContentControl Grid.Row="1" Style="\{DynamicResource Plate\}".*?</ContentControl>',
-                       view, re.S)
-    check(footer is not None, "selection actions belong to a footer strip, not a card")
-    if footer:
-        body = footer.group(0)
-        check('Text="{Binding SelectedSummary}"' in body,
-              "the footer states what is selected")
-        check('Command="{Binding EditSelectedCommand}"' in body and
-              'Command="{Binding ToggleActiveCommand}"' in body,
-              "the footer keeps both selection actions")
+    # The strip under the register is gone. Owner direction: "move these to top
+    # so this space can be extra" - the selection actions moved into the bar and
+    # the register gets those pixels back as rows. The strip also printed
+    # SelectedSummary, which repeated the row already on screen ("duplicated
+    # section row data name").
+    check('Grid.Row="1" Style="{DynamicResource Plate}"' not in view,
+          "no action strip under the register: its buttons belong in the command "
+          "bar and its space belongs to the register")
+    check('Text="{Binding SelectedSummary}"' not in view,
+          "the page must not repeat the selected row's data outside the register")
+    for command in ("EditSelectedCommand", "ToggleActiveCommand"):
+        check(f'Command="{{Binding {command}}}"' in view,
+              f"{command} must stay reachable from the command bar")
+
+    # The bar no longer repeats the page title: the shell banner already carries
+    # it, and the duplicate was the crowding the owner rejected.
+    check('Style="{DynamicResource PageHeading}"' not in view,
+          "the page title lives in the shell banner; repeating it in the command "
+          "bar is what made that corner look crowded")
+
+    # Every column has a header, including the row-menu column, which used to
+    # open a headerless gap at the right edge of the band.
+    check('Text="Actions"' in view,
+          "the row-menu column needs a header; an empty one reads as a broken band")
+    check(view.count('Style="{StaticResource ClientHeaderLabel}"') == 8,
+          "eight header labels: seven columns plus the actions column")
 
     # Per-row actions: one quiet trigger, two themed menu items.
     check('Style="{StaticResource ClientRowMenuButton}"' in view,
