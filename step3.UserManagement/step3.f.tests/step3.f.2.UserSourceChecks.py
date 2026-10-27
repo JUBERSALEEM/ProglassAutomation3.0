@@ -208,6 +208,21 @@ def require_credential_policy():
     check("CurrentOperator.Username" in module_sources(),
           "the first-run path still needs the workstation account as its starting identity")
 
+    # A password is typed into a masked box, never a plain TextBox and never a
+    # binding that would put it in the visual tree twice.
+    for name in ("step3.d.1.UserWorkspaceView.xaml", "step3.d.2.UserEditorView.xaml",
+                 "step3.d.3.FirstRunSetupView.xaml", "step3.d.4.SignInView.xaml"):
+        text = read(MODULE / name)
+        secret = re.search(
+            r'Text="\{Binding\s+(?:Path=)?(?:Password|PasswordConfirm|NewPassword'
+            r'|NewPasswordConfirm|CurrentPassword)\b', text)
+        check(secret is None,
+              f"{name}: the password itself must never be bound as text "
+              "(the error and prompt strings are fine)")
+        for tag in re.findall(r"<TextBox\b[^>]*>", text):
+            check("Password" not in tag,
+                  f"{name}: a TextBox must never carry a password")
+
     # The gate itself, and the shell hosting it.
     gate_vm = read(MODULE / "step3.c.4.SignInViewModel.cs")
     gate_view = read(MODULE / "step3.d.4.SignInView.xaml")
@@ -366,22 +381,49 @@ def require_theme_contract():
 
 
 def require_command_namespace():
-    """`DelegateCommand` is declared in ProGlassAutomation.ThemeStudio.
+    """Types declared elsewhere need their namespace, or the build breaks.
 
-    A file that constructs one without that using does not compile, and the error
-    only appears on a real build (CS0246). This check keeps the step3 module from
-    shipping that mistake again: every .cs file that mentions DelegateCommand must
-    import the namespace that declares it.
+    `DelegateCommand` lives in ProGlassAutomation.ThemeStudio and `ViewModelBase`
+    in ProGlassAutomation.ViewModels.Inquiry. A file that uses one without the
+    using does not compile (CS0246), and this environment has no compiler, so the
+    error would only appear on the owner's machine — which is exactly what
+    happened to step3.c.4.SignInViewModel. Every .cs file in the throwaway-free
+    part of the tree is checked, not just step3, so the same mistake cannot come
+    back in step2 or the shell.
     """
-    for path in sorted(MODULE.rglob("*.cs")):
-        if "step3.f.tests" in path.parts:
-            continue
+    declared = (
+        # (marker in the file, using line that must be present, type name)
+        ("DelegateCommand", "using ProGlassAutomation.ThemeStudio;", "DelegateCommand"),
+        ("ViewModelBase", "using ProGlassAutomation.ViewModels.Inquiry;", "ViewModelBase"),
+    )
+
+    paths = [p for p in sorted(ROOT.rglob("*.cs"))
+             if not any(part in ("bin", "obj", ".git") or part.endswith(".tests") for part in p.parts)]
+
+    for path in paths:
         text = read(path)
-        if "new DelegateCommand" not in text and "DelegateCommand<" not in text:
+        namespace = re.search(r"^namespace\s+([\w.]+)", text, re.M)
+        if namespace is None:
             continue
-        check("using ProGlassAutomation.ThemeStudio;" in text,
-              f"{path.name}: uses DelegateCommand without importing the namespace that "
-              "declares it (CS0246)")
+        own_namespace = namespace.group(1)
+        for marker, using_line, type_name in declared:
+            if not re.search(r"\b" + type_name + r"\b", text):
+                continue
+            if using_line in text:
+                continue
+            # Declared in this very file, or reachable through the file's own
+            # namespace (the Inquiry view models share it), or fully qualified.
+            if f"class {type_name}" in text or f"interface {type_name}" in text:
+                continue
+            declared_in = using_line[len("using "):-1]
+            if own_namespace == declared_in or own_namespace.startswith(declared_in + ".") \
+                    or declared_in.startswith(own_namespace + "."):
+                continue
+            if using_line[len("using "):-1] + "." + type_name in text:
+                continue
+            check(False,
+                  f"{path.relative_to(ROOT).as_posix()}: uses {type_name} without "
+                  f"'{using_line}' (CS0246 on a real build)")
 
 
 def require_first_run_flow():

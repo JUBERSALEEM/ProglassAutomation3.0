@@ -103,7 +103,12 @@ namespace ProGlassAutomation.Services.Users
                 await _repository.InitializeAsync(ct).ConfigureAwait(false);
 
                 int count = await _repository.CountAsync(ct).ConfigureAwait(false);
-                User? matching = await _repository.FindCurrentUserAsync(ct).ConfigureAwait(false);
+
+                // "Which row belongs to this workstation" — not "who is signed in".
+                // Nobody can be signed in while the directory is being set up, so
+                // FindCurrentUserAsync would always answer null here.
+                User? matching = await _repository
+                    .FindByUsernameAsync(account, ct).ConfigureAwait(false);
                 var departments = await _repository.GetDepartmentsAsync(ct).ConfigureAwait(false);
 
                 return new FirstRunSnapshot

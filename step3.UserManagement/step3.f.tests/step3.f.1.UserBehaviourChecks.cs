@@ -545,7 +545,7 @@ internal static class UserBehaviourChecks
         True(!late.Succeeded, "the bootstrap path is closed after the first administrator");
 
         // An inactive match: recognised, refused, and left exactly as it was.
-        User? winner = await repository.FindCurrentUserAsync();
+        User? winner = await repository.FindByUsernameAsync(operatorName);
         True(winner != null, "the workstation account matches the bootstrap row");
 
         var deactivation = await repository.SetActiveAsync(winner!.Id, false, operatorName);
@@ -562,7 +562,7 @@ internal static class UserBehaviourChecks
         var deactivated = await repository.SetActiveAsync(winner.Id, false, otherAdmin.User!.Username);
         True(deactivated.Succeeded, "the matched account can be deactivated by another administrator");
 
-        User? afterDeactivation = await repository.FindCurrentUserAsync();
+        User? afterDeactivation = await repository.FindByUsernameAsync(operatorName);
         True(afterDeactivation != null, "an inactive account is still recognised, not treated as unknown");
         True(!afterDeactivation!.IsActive, "signing in again does not silently re-activate the account");
 
@@ -570,10 +570,10 @@ internal static class UserBehaviourChecks
         Equal(nameof(UserDecisionCode.Inactive), decision.Code.ToString(),
             "an inactive match is refused with the inactive reason");
 
+        // The session answers "who is signed in", so it is empty here — nobody has
+        // signed in in this fixture. That is the round-24 contract, not a regression.
         var session = new UserSession(repository);
-        var refreshed = await session.RefreshAsync();
-        True(refreshed != null && !refreshed.IsActive,
-            "the session does not reactivate an inactive match");
+        True(!session.IsIdentified, "no session exists before a password is verified");
     }
 
     /// <summary>
@@ -613,13 +613,21 @@ internal static class UserBehaviourChecks
         True(!empty.IsOperatorAdministrator, "nobody is an administrator yet");
 
         // A blank name must fail without writing anything and without closing setup.
-        UserSaveResult blank = await firstRun.RegisterAsync("   ", "Administration");
+        UserSaveResult noPassword = await firstRun.RegisterAsync(
+            "No Password", "Administration", "");
+        True(!noPassword.Succeeded, "a first administrator without a password is refused");
+
+        UserSaveResult weak = await firstRun.RegisterAsync("Weak Password", "Administration", "short");
+        True(!weak.Succeeded, "a password below the policy is refused: " + weak.Message);
+
+        UserSaveResult blank = await firstRun.RegisterAsync("   ", "Administration", TestPassword);
         True(!blank.Succeeded, "a blank full name is refused");
         True((await firstRun.InspectAsync()).IsSetupRequired,
             "a refused attempt leaves the setup step open for a retry");
 
         // The account registers itself. Note: no username argument exists.
-        UserSaveResult created = await firstRun.RegisterAsync("Ahmed   Al Balushi", "Administration");
+        UserSaveResult created = await firstRun.RegisterAsync(
+            "Ahmed   Al Balushi", "Administration", TestPassword);
         True(created.Succeeded, "the workstation account can register itself: " + created.Message);
         User admin = created.User!;
         Equal("ADMINISTRATOR", admin.Role, "the first user is an Administrator");
@@ -635,7 +643,8 @@ internal static class UserBehaviourChecks
         True(after.IsOperatorAdministrator, "and that row is an active Administrator");
 
         // The path disappears: a second registration is refused and writes nothing.
-        UserSaveResult second = await firstRun.RegisterAsync("Someone Else", "Administration");
+        UserSaveResult second = await firstRun.RegisterAsync(
+            "Someone Else", "Administration", TestPassword);
         True(!second.Succeeded, "the first-administrator step is closed after setup");
         Equal("1", (await repository.CountAsync()).ToString(), "the refused attempt wrote nothing");
 
@@ -658,7 +667,8 @@ internal static class UserBehaviourChecks
         True(!inactive.IsOperatorAdministrator, "an inactive account is not an administrator");
         True((await repository.GetAsync(admin.Id))!.IsActive == false,
             "reading the directory does not silently re-activate the account");
-        True(!(await firstRun.RegisterAsync("Reactivation Attempt", "Administration")).Succeeded,
+        True(!(await firstRun.RegisterAsync(
+                "Reactivation Attempt", "Administration", TestPassword)).Succeeded,
             "a populated directory cannot be bootstrapped again");
     }
 

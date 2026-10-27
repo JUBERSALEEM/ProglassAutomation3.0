@@ -25,6 +25,7 @@ using ProGlassAutomation.Models.Users;
 using ProGlassAutomation.Services.Audit;
 using ProGlassAutomation.Services.Users;
 using ProGlassAutomation.ThemeStudio;
+using ProGlassAutomation.ViewModels.Inquiry;
 using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
