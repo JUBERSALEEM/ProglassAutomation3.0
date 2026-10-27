@@ -52,20 +52,50 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="InquiryCell" TargetType="DataGridCell"
+               BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="InquiryColumnHeader" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+        </Style>
+        <Style x:Key="InquiryCellText" TargetType="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="Margin" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
         <!-- Filter dropdowns bind the active theme's implicit ComboBox style
              directly so changing themes replaces the template as well as its tokens. -->
-        <Style x:Key="InquiryCustomerCell" TargetType="TextBlock">
+        <Style x:Key="InquiryCustomerCell" TargetType="TextBlock"
+               BasedOn="{StaticResource InquiryCellText}">
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
-        <Style x:Key="InquiryNumberCell" TargetType="TextBlock">
+        <!-- ── Register reading rules ───────────────────────────────────
+             Owner feedback: values sat hard against the column edges and read
+             as left-aligned even when the eye expects them centred.
+
+             A DataGridTextColumn hands its cell a full-width slot, but a
+             template column (Status) hands it a content-sized one, so alignment
+             belongs on the cell. The cell also ignores the themed Padding (the
+             stock cell template does not bind it), so each value carries the
+             theme's compact inset as a margin and trims with an ellipsis — a
+             twelve-column register has no room for text that runs into its
+             neighbour.
+
+             Both derived styles keep the theme's own cell chrome, header
+             template and resize grippers; the header is repainted in
+             BorderStrong so each column has a visible edge, matching the client
+             register. -->
+        <Style x:Key="InquiryNumberCell" TargetType="TextBlock"
+               BasedOn="{StaticResource InquiryCellText}">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
-        <Style x:Key="InquiryValueCell" TargetType="TextBlock">
+        <Style x:Key="InquiryValueCell" TargetType="TextBlock"
+               BasedOn="{StaticResource InquiryCellText}">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
     </UserControl.Resources>
     <Grid>
@@ -314,6 +344,11 @@
                               CanUserReorderColumns="False"
                               CanUserSortColumns="False"
                               HeadersVisibility="Column"
+                              CellStyle="{StaticResource InquiryCell}"
+                              ColumnHeaderStyle="{StaticResource InquiryColumnHeader}"
+                              CanUserResizeColumns="True"
+                              CanUserResizeRows="False"
+                              MinColumnWidth="{DynamicResource ControlMinWidth}"
                               AutomationProperties.Name="Inquiry register"
                               MouseDoubleClick="OnRowDoubleClick"
                               KeyDown="OnGridKeyDown">
@@ -400,14 +435,17 @@
                                                 ElementStyle="{StaticResource InquiryNumberCell}" />
                             <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}" Width="*"
                                                 ElementStyle="{StaticResource InquiryCustomerCell}" />
-                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="*" />
-                            <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}" Width="*" />
-                            <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}" Width="*" />
+                            <DataGridTextColumn Header="Project" Binding="{Binding Project}" Width="*"
+                                                ElementStyle="{StaticResource InquiryCellText}" />
+                            <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}" Width="*"
+                                                ElementStyle="{StaticResource InquiryCellText}" />
+                            <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}" Width="*"
+                                                ElementStyle="{StaticResource InquiryCellText}" />
                             <DataGridTemplateColumn Header="Status" Width="*" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StatusTag}"
-                                                HorizontalAlignment="Left">
+                                                HorizontalAlignment="Center">
                                             <TextBlock Text="{Binding Status}" Style="{DynamicResource StatusText}"
                                                        Tag="{Binding StatusTag}" />
                                         </Border>
@@ -416,11 +454,16 @@
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Value (AED)" Binding="{Binding ValueText}" Width="*"
                                                 ElementStyle="{StaticResource InquiryValueCell}" />
-                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedDateText}" Width="*" />
-                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}" Width="*" />
-                            <DataGridTextColumn Header="PI" Binding="{Binding ProformaCellText}" Width="*" />
-                            <DataGridTextColumn Header="JO" Binding="{Binding JobOrderCellText}" Width="*" />
+                            <DataGridTextColumn Header="Received" Binding="{Binding ReceivedDateText}" Width="*"
+                                                ElementStyle="{StaticResource InquiryCellText}" />
+                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}" Width="*"
+                                                ElementStyle="{StaticResource InquiryCellText}" />
+                            <DataGridTextColumn Header="PI" Binding="{Binding ProformaCellText}" Width="*"
+                                                ElementStyle="{StaticResource InquiryCellText}" />
+                            <DataGridTextColumn Header="JO" Binding="{Binding JobOrderCellText}" Width="*"
+                                                ElementStyle="{StaticResource InquiryCellText}" />
                             <DataGridTextColumn Header="Files" Binding="{Binding AttachmentChipText}" Width="*"
+                                                ElementStyle="{StaticResource InquiryCellText}"
                                                 CanUserSort="False" />
                         </DataGrid.Columns>
                     </DataGrid>

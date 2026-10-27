@@ -111,11 +111,17 @@
  <Style x:Key="BentoTile" TargetType="ContentControl" BasedOn="{StaticResource Card}">
   <Setter Property="Margin" Value="0" />
  </Style>
+ <!-- A plate is the recessed layer: toolbars, footers and inset wells sit in
+      one, on top of a Card. Seven of the nine packages fill it with
+      SurfaceSecondary; Claymorphism used SurfacePrimary, the same token its Card
+      uses, so every plate disappeared into the card that held it and the whole
+      page read as one flat surface (owner feedback). Filled and lit the way the
+      theme already lights its own inset tab strip. -->
  <Style x:Key="Plate" TargetType="ContentControl" BasedOn="{StaticResource Card}">
-  <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+  <Setter Property="Background" Value="{DynamicResource SurfaceSecondary}" />
   <Setter Property="Padding" Value="{DynamicResource PaddingPlate}" />
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContentControl">
-   <clay:ClaySurface Rank="Control" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="{DynamicResource ControlCornerRadius}" DropBrush="{DynamicResource ClayDropBrush}" ShadeBrush="{DynamicResource ClayInsetShadeBrush}" LightBrush="{DynamicResource ClayInsetLightBrush}">
+   <clay:ClaySurface Concave="True" Rank="Control" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="{DynamicResource ControlCornerRadius}" DropBrush="{DynamicResource ClayDropBrush}" ShadeBrush="{DynamicResource ClayInsetShadeBrush}" LightBrush="{DynamicResource ClayInsetLightBrush}">
     <ContentPresenter />
    </clay:ClaySurface>
   </ControlTemplate></Setter.Value></Setter>

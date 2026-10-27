@@ -56,24 +56,23 @@
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
-        <!-- ── Register alignment and rules ─────────────────────────────
-             The theme draws this table's rules in BorderSubtle and, in the body,
-             horizontal rules only — every package sets GridLinesVisibility to
-             Horizontal. Claymorphism Light paints a #DDD6F0 rule on a #E4DCF4
-             surface, so the columns read as one flat block with no way to see
-             where one ends and the next begins (owner feedback), and with no
-             edge to grab when resizing by hand.
+        <!-- ── Register alignment and header rules ──────────────────────
+             Owner feedback: the rules belong in the header row, not between the
+             rows of the list. Row rules stay with the theme — it sets
+             GridLinesVisibility itself and this view does not override it.
 
-             So the grid is given rules of its own. Brush and width are still
-             theme tokens; only the decision to show them belongs to this view.
+             In the header the theme's own border is drawn, but in BorderSubtle:
+             in Claymorphism Light that is #DDD6F0 on a #C9DCF8 header band, so
+             the column separators read as gaps. Repainting that border in
+             BorderStrong gives each column a visible edge to aim at when
+             resizing by hand, instead of inventing a second divider.
+
              Both styles derive from the active theme's implicit style, because
-             the alternative — defining a DataGridCell/DataGridColumnHeader style
-             from scratch — would drop the theme's cell chrome and, for the
-             header, its template and grippers.
-
-             The derivation is safe for the reasons that matter here: no theme
-             gives DataGridCell a Template, and every setter either style owns
-             resolves through DynamicResource, so a live theme switch still
+             the alternative — defining a DataGridCell/DataGridColumnHeader
+             style from scratch — would drop the theme's cell chrome and, for
+             the header, its template and grippers. The derivation is safe: no
+             theme gives DataGridCell a Template, and every setter either style
+             owns resolves through DynamicResource, so a live theme switch still
              repaints both. The header's template is the one thing taken at load
              time; the nine packages define it identically apart from
              Neumorphism's softer variant. -->
@@ -337,9 +336,6 @@
                                   HeadersVisibility="Column"
                                   CellStyle="{StaticResource ClientCell}"
                                   ColumnHeaderStyle="{StaticResource ClientColumnHeader}"
-                                  GridLinesVisibility="All"
-                                  HorizontalGridLinesBrush="{DynamicResource BorderStrong}"
-                                  VerticalGridLinesBrush="{DynamicResource BorderStrong}"
                                   CanUserResizeColumns="True"
                                   CanUserResizeRows="False"
                                   MinColumnWidth="{DynamicResource ControlMinWidth}"

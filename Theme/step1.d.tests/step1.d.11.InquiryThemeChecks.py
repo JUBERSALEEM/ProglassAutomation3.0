@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -193,5 +194,38 @@ assert 'UpsertState' not in service[permission_start:permission_end]
 assert 'get_my_inquiry_access_v1' in (ROOT / "Theme/step1.d.tests/step1.d.13.InquiryInboxAuthorizationChecks.cs").read_text(encoding="utf-8")
 closed = workspace.split('private void OnOwnerWindowClosed', 1)[1]
 assert closed.index('StateChanged -= OnInboxStateChanged') < closed.index('CancelSynchronization()') < closed.index('_inboxService.Dispose()') < closed.index('ShutdownProcessHttpClient()')
+
+# ── Register readability ────────────────────────────────────────────────────
+# Owner feedback: the twelve-column register showed values hard against the
+# column edges and reading left-aligned. Alignment belongs on the cell — a
+# template cell hands its content a content-sized slot, so the Status chip's own
+# HorizontalAlignment is ignored — and the themed cell Padding never reaches the
+# stock cell template, so each value carries the inset as a margin and trims.
+assert 'CellStyle="{StaticResource InquiryCell}"' in list_xaml, "the register cell style is not wired"
+assert 'ColumnHeaderStyle="{StaticResource InquiryColumnHeader}"' in list_xaml, "the register header style is not wired"
+assert 'Property="HorizontalContentAlignment" Value="Center"' in list_xaml, "cell content is not centred"
+assert 'Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in list_xaml, "header rules are not visible"
+assert 'VerticalGridLinesBrush' not in list_xaml, "row rules stay with the theme, not with this view"
+assert 'CanUserResizeColumns="True"' in list_xaml, "columns must stay resizable by hand"
+assert 'MinColumnWidth="{DynamicResource ControlMinWidth}"' in list_xaml, "a resized column needs a floor"
+
+readability = list_xaml[list_xaml.index('x:Key="InquiryCellText"'):]
+readability = readability[:readability.index("</Style>")]
+assert 'Value="CharacterEllipsis"' in readability, "long values must trim instead of running into the next column"
+assert 'Value="Center"' in readability, "values must be centred"
+assert 'Value="{DynamicResource PaddingCompact}"' in readability, "values need the theme's inset, because the cell template drops Padding"
+
+# StaticResource has no forward references: the shared style must be declared
+# before the first style that derives from it.
+assert list_xaml.index('x:Key="InquiryCellText"') < list_xaml.index('BasedOn="{StaticResource InquiryCellText}"'), \
+    "InquiryCellText is used before it is declared"
+
+text_columns = re.findall(r"<DataGridTextColumn\b[\s\S]*?/>", list_xaml)
+assert len(text_columns) == 11, f"expected eleven text columns, found {len(text_columns)}"
+for column in text_columns:
+    assert "ElementStyle=" in column, f"a register column has no reading style: {column[:60]}"
+
+assert 'Tag="{Binding StatusTag}"\n                                                HorizontalAlignment="Center"' in list_xaml, \
+    "the status chip must centre in its column"
 
 print("PASS: inquiry theme styles, inbox lifecycle, shared HTTP recovery, schema repair, and auth/authorization diagnostics")

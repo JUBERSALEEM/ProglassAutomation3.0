@@ -21,6 +21,14 @@ def normalized_type(value):
     return value.removeprefix('{x:Type ').removesuffix('}').removeprefix('analytics:')
 
 
+
+def background_of(style):
+    for child in style:
+        if child.tag.endswith('}Setter') and child.attrib.get('Property') == 'Background':
+            return child.attrib.get('Value')
+    return None
+
+
 def key_of(node):
     explicit = node.attrib.get(X + 'Key')
     if explicit:
@@ -72,6 +80,19 @@ for package in packages:
         for path in package.rglob('*.xaml'):
             for reference in re.findall(r'\{DynamicResource ([^{}]+)\}', path.read_text()):
                 assert reference in values, f'{package.name} borrows external resource: {reference}'
+        # A plate is the recessed layer a toolbar, footer or well sits in, on top
+        # of a card. Filling it with the card's own token makes every plate
+        # disappear into its card and leaves the whole page one flat sheet —
+        # which is exactly how Claymorphism shipped. Two packages are exempt by
+        # design: Neumorphism is single-surface and shows depth through shadow
+        # alone, LiquidGlass is a transparent frost over the wallpaper.
+        if package.name not in {'ThemeNeumorphism', 'ThemeLiquidGlass'}:
+            card = background_of(values['Card'])
+            plate = background_of(values['Plate'])
+            assert card and plate, (package.name, mode, 'Card/Plate must set Background')
+            assert card != plate, (
+                f'{package.name}/{mode}: Plate is filled with the card token {card}, '
+                'so the recessed layer is invisible')
 
 service = (ENGINE / 'step1.a.2.ThemeService.cs').read_text()
 assert 'definition.LoadResources(appearance)' in service, 'Engine must delegate visual composition'

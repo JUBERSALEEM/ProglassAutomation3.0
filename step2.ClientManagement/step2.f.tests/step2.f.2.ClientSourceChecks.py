@@ -456,21 +456,6 @@ def require_register_alignment():
         check("ElementStyle=" in column, "a register text column has no cell style")
 
 
-def require_grid_rules():
-    """The register shows column rules and can be resized by hand."""
-    view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
-    check('GridLinesVisibility="All"' in view,
-          "the register must draw column rules, not horizontal ones only")
-    check('VerticalGridLinesBrush="{DynamicResource BorderStrong}"' in view,
-          "vertical rules must take their colour from the theme, and a visible one: "
-          "BorderSubtle is all but the surface colour in several packages")
-    check('HorizontalGridLinesBrush="{DynamicResource BorderStrong}"' in view,
-          "horizontal rules must use the same visible token as the vertical ones")
-    check('CanUserResizeColumns="True"' in view,
-          "columns must stay resizable by hand")
-    check('MinColumnWidth="{DynamicResource ControlMinWidth}"' in view,
-          "a floor is needed, or a column can be dragged down to nothing")
-
 def require_action_layout():
     """The actions card must read as three equal, full-width buttons.
 
@@ -509,6 +494,31 @@ def require_paired_field_widths():
     equal_pairs = re.findall(r'<ColumnDefinition Width="1\*" />\s*<ColumnDefinition Width="1\*" />', view)
     check(len(equal_pairs) == 2,
           f"both paired field rows must be equal halves, found {len(equal_pairs)}")
+
+def require_header_rules():
+    """Column rules belong in the header row, not between the rows of the list.
+
+    Owner feedback: "grid line in top column not in the list". The theme owns
+    the row rules (it sets GridLinesVisibility and both brushes itself), so this
+    view must not override either — it only makes the header's own border
+    visible, which is what gives each column an edge to grab when resizing.
+    """
+    view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
+    header = re.search(r'<Style x:Key="ClientColumnHeader" TargetType="DataGridColumnHeader"(.*?)</Style>',
+                       view, re.S)
+    check(header is not None, "the register has no column-header style")
+    if header:
+        check('Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header.group(0),
+              "the header rule must be repainted in a visible theme token")
+    check('GridLinesVisibility="' not in view,
+          "the view must not override the theme's row rules")
+    check('VerticalGridLinesBrush="' not in view,
+          "vertical rules between rows are not wanted; the header carries them")
+    check('CanUserResizeColumns="True"' in view,
+          "columns must stay resizable by hand")
+    check('MinColumnWidth="{DynamicResource ControlMinWidth}"' in view,
+          "a floor is needed, or a column can be dragged down to nothing")
+
 
 def require_binding_integrity():
     """Every binding path must resolve to a real member of its view model.
@@ -576,7 +586,7 @@ def main():
     require_field_heights()
     require_register_alignment()
     require_action_layout()
-    require_grid_rules()
+    require_header_rules()
     require_paired_field_widths()
     require_binding_integrity()
     require_docs_recorded()
@@ -588,7 +598,7 @@ def main():
         return 1
     print("PASS: step2 client management — naming, single migration chain, no Inquiry schema "
           "change, no representative identity, no delete path, nine-theme contract, centred "
-          "register, visible rules and manual resize, equal action buttons, equal "
+          "register, header rules and manual resize, equal action buttons, equal "
           "paired fields, docs recorded.")
     return 0
 

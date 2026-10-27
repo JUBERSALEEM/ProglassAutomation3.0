@@ -210,13 +210,14 @@ the older registry prose that still described themes 6–9 as unregistered.
   Refresh share a second row of equal halves. The grid owns the inset and the
   buttons carry no margin of their own; nested margins made Edit narrower than
   Refresh and made the pair look collapsed.
-- The register draws its own column rules. Every theme package sets
-  `GridLinesVisibility="Horizontal"` and paints its rules in `BorderSubtle`,
-  which in Claymorphism Light is `#DDD6F0` on an `#E4DCF4` surface — the columns
-  read as one flat block and there is no edge to grab. The view asks for
-  `All` rules in `BorderStrong`, and the header keeps a rule of its own by
-  repainting the theme's header border in the same token. Brush and width are
-  still theme tokens; only the decision to show them belongs to the view.
+- The rules live in the **header row only**. Row rules stay with the theme:
+  every package sets `GridLinesVisibility` itself and this view does not
+  override it (owner direction: "grid line in top column not in the list").
+- The header's column separators are the theme's own header border, repainted in
+  `BorderStrong`. In `BorderSubtle` it is all but the band colour — in
+  Claymorphism Light that is `#DDD6F0` on a `#C9DCF8` band — so the columns read
+  as one block, and after this change each column has an edge to aim at when
+  resizing by hand.
 - Columns are resizable by hand (`CanUserResizeColumns`, floor
   `ControlMinWidth`). The rule is what makes the drag target visible: the
   theme's gripper is transparent until it is hovered.
