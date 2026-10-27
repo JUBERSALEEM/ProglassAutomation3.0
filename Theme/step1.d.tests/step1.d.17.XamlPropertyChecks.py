@@ -264,6 +264,51 @@ for path in files:
             f'{path.relative_to(ROOT)}: {key!r} is used as a Style but is declared as '
             f'{sorted(kinds)[0]}; assigning it throws when the property is set')
 
+# 1f ── A Style may only be applied to the type it targets ───────────────────
+# Applying a TextBlock style to a Button, or a Button style to a Border, throws
+# when the property is set. Base types are exempt: a style written for Control
+# is meant to be inherited, and the derived element is the point.
+STYLE_TARGETS = {}
+BASE_STYLED_TYPES = {'FrameworkElement', 'Control', 'ContentControl', 'ButtonBase',
+                     'UserControl', 'ItemsControl', 'Panel', 'RangeBase',
+                     'Selector', 'TextBoxBase', 'HeaderedContentControl',
+                     'HeaderedItemsControl', 'Decorator', 'Adorner'}
+PART_STYLED_TYPES = {'CellStyle': 'DataGridCell', 'RowStyle': 'DataGridRow',
+                     'ColumnHeaderStyle': 'DataGridColumnHeader',
+                     'RowHeaderStyle': 'DataGridRowHeader'}
+def _bare(name):
+    return name.split(':')[-1].strip()
+for path in files:
+    text = code_only(path.read_text(encoding='utf-8'))
+    for match in re.finditer(r'<Style\b([^>]*)>', text):
+        attributes = match.group(1)
+        key = re.search(r'x:Key="([^":]+)"', attributes)
+        target = re.search(r'TargetType="([^"{]+)"', attributes)
+        if key and target:
+            STYLE_TARGETS.setdefault(key.group(1).strip(), set()).add(_bare(target.group(1)))
+for path in files:
+    text = code_only(path.read_text(encoding='utf-8'))
+    # `Style` on an element takes that element's style; the DataGrid's other
+    # style properties each take a specific part, so the expected type is the
+    # property's, not the element's.
+    for match in re.finditer(r'<([A-Za-z:.]+)([^>]*?)\b(Style|CellStyle|RowStyle|'
+                             r'ColumnHeaderStyle|RowHeaderStyle)\s*=\s*'
+                             r'"\{(?:Dynamic|Static)Resource\s+([^}]+?)\s*\}"', text):
+        element, attribute, key = _bare(match.group(1)), match.group(3), match.group(4).strip()
+        expected = PART_STYLED_TYPES.get(attribute, element)
+        if key.startswith('{x:'):
+            continue
+        targets = STYLE_TARGETS.get(key)
+        if not targets:
+            continue
+        concrete = {t for t in targets if t not in BASE_STYLED_TYPES}
+        if concrete and expected not in targets:
+            problems.append(
+                f'{path.relative_to(ROOT)}:{text[:match.start(3)].count(chr(10)) + 1}: '
+                f'style {key!r} targets {sorted(concrete)[0]} but is applied to '
+                f'{expected} (via {attribute}); WPF refuses the assignment when '
+                f'the property is set')
+
 # The two registers must actually use the mechanism these tests describe: the
 # presenter is stretched, and the content alignment lives on the cell, which is a
 # ContentControl and really does declare it.
