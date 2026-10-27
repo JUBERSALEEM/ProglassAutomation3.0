@@ -161,6 +161,12 @@ These rules are mandatory for every WPF view in this repository — existing and
   placeholder — and its closed state must never be blank. A selection that cannot
   be resolved (bound before its list was loaded, say) is a defect, not a cosmetic
   detail: the operator cannot tell what the control does.
+* The caption may ride on the control instead of standing beside it: a closed
+  dropdown that reads "Department: Estimation" is labelled, and a caption next to
+  that box is redundant. If the label is on the control it must still name the
+  field after a value is chosen — a box that degrades to the bare value has lost
+  its label. The theme owns a ComboBox's closed-state template, so for one of
+  those the item text is the only place the wording can live.
 
 ### F. Sidebar and navigation integrity
 

@@ -87,9 +87,13 @@ identically in all eighteen theme dictionaries:
   column, actions in a content-sized column. A `WrapPanel` wraps instead of
   overflowing, so nothing can be drawn over anything at any width (including with
   the sidebar open), yet at normal width the whole bar reads as a single strip;
-- each filter dropdown carries a visible caption ("Department", "Role"), an
-  accessible name and a tooltip, and its selection is re-applied after the
-  catalogue loads, so a closed box is never blank;
+- each filter carries its field name **on the button**: the closed box reads
+  "Department: All" / "Department: Estimation" and "Role: All" / "Role: Estimator",
+  so the label stays visible after a selection is made and no caption stands beside
+  the box. The wording is built in `ApplyCatalogueFilters` because the theme owns
+  the ComboBox's closed-state template; each filter keeps an accessible name and a
+  tooltip, and its selection is re-applied after the catalogue loads, so a closed
+  box is never blank;
 - page padding is applied once on the view, so hidden message rows leave no gap;
 - action buttons are at least 36 px high, 8 px apart inside a cluster and 16 px
   apart between clusters;

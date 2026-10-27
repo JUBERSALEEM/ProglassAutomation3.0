@@ -410,6 +410,7 @@ def require_layout_contract():
     """
     view = read(MODULE / "step3.d.1.UserWorkspaceView.xaml")
     editor = read(MODULE / "step3.d.2.UserEditorView.xaml")
+    vm = read(MODULE / "step3.c.2.UserWorkspaceViewModel.cs")
 
     # A1 — the command bar is one row made of two WrapPanels: filters in the
     # flexible column, actions in the content-sized column. A StackPanel cannot
@@ -424,11 +425,26 @@ def require_layout_contract():
     check('<ColumnDefinition Width="*" MinWidth="0" />' in view,
           "the filter cluster must sit in a shrinkable column beside the actions")
 
-    # A2 — a dropdown must say what it filters. Both catalogue filters carry a
-    # visible caption and an accessible name; a bare box is a riddle, which is
-    # exactly what the owner reported.
-    check('Text="Department"' in view, "the department filter needs a visible caption")
-    check('Text="Role"' in view, "the role filter needs a visible caption")
+    # A2 — a dropdown must say what it filters, and the owner wants that wording
+    # ON the button rather than in a caption standing beside it (the Inquiry
+    # page's register dropdown reads that way). The theme owns the closed box's
+    # template, so the only text that reaches it is the selected item's, which is
+    # why the view model prefixes every filter entry with the field name and the
+    # toolbar no longer sets a caption next to these two boxes.
+    check('DepartmentFilterPrefix = "Department: "' in vm,
+          "the department filter must name its field on the button, not beside it")
+    check('RoleFilterPrefix = "Role: "' in vm,
+          "the role filter must name its field on the button, not beside it")
+    for prefix in ("DepartmentFilterPrefix", "RoleFilterPrefix"):
+        check(f"DisplayName = {prefix} + " in vm,
+              f"every {prefix} entry must carry the field name, including a chosen value")
+    filter_start = view.index('<WrapPanel Grid.Column="0"')
+    filter_end = view.index("</WrapPanel>", filter_start)
+    filter_bar = view[filter_start:filter_end]
+    check('Text="Department"' not in filter_bar,
+          "the department caption must sit on the button, not beside it")
+    check('Text="Role"' not in filter_bar,
+          "the role caption must sit on the button, not beside it")
     for match in re.finditer(r"<ComboBox\b[^>]*>", view, flags=re.S):
         tag = match.group(0)
         if 'Filters}"' not in tag:
@@ -442,7 +458,6 @@ def require_layout_contract():
     # ItemsSource is still empty stays unselected and is never re-applied by
     # itself, so the view model must re-raise the selection after the catalogue
     # arrives (that was the empty box in the owner's screenshot).
-    vm = read(MODULE / "step3.c.2.UserWorkspaceViewModel.cs")
     check("OnPropertyChanged(nameof(SelectedDepartmentFilter));" in vm
           and "OnPropertyChanged(nameof(SelectedRoleFilter));" in vm,
           "the filter selections must be re-applied after the catalogue loads")

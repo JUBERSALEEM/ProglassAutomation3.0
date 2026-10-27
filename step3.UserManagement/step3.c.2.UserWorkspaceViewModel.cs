@@ -146,10 +146,10 @@ namespace ProGlassAutomation.ViewModels.Users
         /// <summary>Roles for the editor's selector (catalogue rows).</summary>
         public ObservableCollection<CatalogRow> Roles { get; }
 
-        /// <summary>Departments for the register filter, with a leading "All departments".</summary>
+        /// <summary>Departments for the register filter, labelled "Department: …" on the button, with a leading "Department: All".</summary>
         public ObservableCollection<CatalogRow> DepartmentFilters { get; }
 
-        /// <summary>Roles for the register filter, with a leading "All roles".</summary>
+        /// <summary>Roles for the register filter, labelled "Role: …" on the button, with a leading "Role: All".</summary>
         public ObservableCollection<CatalogRow> RoleFilters { get; }
 
         // ── Operator identity (this stage's read-only banner) ────────────
@@ -503,6 +503,34 @@ namespace ProGlassAutomation.ViewModels.Users
             }
         }
 
+        // ── Filter labels (the field name rides on the button) ──────────
+
+        /// <summary>Prefix the department filter carries on its own button.</summary>
+        private const string DepartmentFilterPrefix = "Department: ";
+
+        /// <summary>Prefix the role filter carries on its own button.</summary>
+        private const string RoleFilterPrefix = "Role: ";
+
+        /// <summary>
+        /// Catalogue display name as it appears inside a filter list.
+        /// </summary>
+        /// <remarks>
+        /// Two catalogue entries carry the word "Department" in their own name.
+        /// That name stays untouched in the register, the editor and the stored
+        /// code; in a dropdown that already prints "Department:" in front of
+        /// every entry the trailing word is pure repetition and the one thing
+        /// that pushes the button past its neighbours, so it is dropped here —
+        /// and only here.
+        /// </remarks>
+        private static string FilterLabel(string displayName)
+        {
+            var name = (displayName ?? string.Empty).Trim();
+            const string suffix = " Department";
+            return name.EndsWith(suffix, StringComparison.Ordinal)
+                ? name.Substring(0, name.Length - suffix.Length).TrimEnd()
+                : name;
+        }
+
         // ── Lifecycle ───────────────────────────────────────────────────
 
         private void ApplyCatalogueFilters(
@@ -514,13 +542,33 @@ namespace ProGlassAutomation.ViewModels.Users
             Roles.Clear();
             foreach (var role in roles) Roles.Add(role);
 
+            // The field name lives ON the button, not in a caption beside it. A
+            // closed ComboBox renders its selected item through the theme's own
+            // template, so the only way to label the control is the item text:
+            // "Department: Estimation". That reads as a labelled filter both
+            // closed and open, and it still says what it filters after a
+            // department has been chosen (rule E in docs/00.Project-Rules.md).
             DepartmentFilters.Clear();
-            DepartmentFilters.Add(new CatalogRow { Code = "", DisplayName = "All departments" });
-            foreach (var department in departments) DepartmentFilters.Add(department);
+            DepartmentFilters.Add(new CatalogRow { Code = "", DisplayName = DepartmentFilterPrefix + "All" });
+            foreach (var department in departments)
+            {
+                DepartmentFilters.Add(new CatalogRow
+                {
+                    Code = department.Code,
+                    DisplayName = DepartmentFilterPrefix + FilterLabel(department.DisplayName)
+                });
+            }
 
             RoleFilters.Clear();
-            RoleFilters.Add(new CatalogRow { Code = "", DisplayName = "All roles" });
-            foreach (var role in roles) RoleFilters.Add(role);
+            RoleFilters.Add(new CatalogRow { Code = "", DisplayName = RoleFilterPrefix + "All" });
+            foreach (var role in roles)
+            {
+                RoleFilters.Add(new CatalogRow
+                {
+                    Code = role.Code,
+                    DisplayName = RoleFilterPrefix + FilterLabel(role.DisplayName)
+                });
+            }
 
             // Re-apply the current filter selection now that the lists have
             // items. A ComboBox whose SelectedValue is set while its ItemsSource
@@ -528,7 +576,7 @@ namespace ProGlassAutomation.ViewModels.Users
             // changed afterwards nothing re-applies it: the box renders blank and
             // the operator cannot tell which filter it is. Raising the property
             // pushes the (unchanged) code back into the control, which now finds
-            // its item — including the "" row that means "All departments/roles".
+            // its item — including the "" row that means "All" on either filter.
             OnPropertyChanged(nameof(SelectedDepartmentFilter));
             OnPropertyChanged(nameof(SelectedRoleFilter));
 

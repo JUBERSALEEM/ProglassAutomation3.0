@@ -245,9 +245,10 @@
              stacked strips of unrelated controls. This version keeps the safety
              of wrapping (both groups are WrapPanels, so a narrow window wraps
              instead of overlapping) while fitting on one line at normal width:
-             the two dropdowns carry their own captions, the search box holds its
-             own clear button, and the redundant "Filters" reset button is gone —
-             choosing "All departments" or "All roles" already clears a filter.
+             each dropdown carries its field name on its own face ("Department:
+             All"), the search box holds its own clear button, and the redundant
+             "Filters" reset button is gone — choosing Department: All or Role: All
+             already clears a filter.
              ─────────────────────────────────────────────────────────────── -->
         <ContentControl Grid.Row="0" Style="{DynamicResource Plate}"
                         Margin="{DynamicResource UiGapGroup}">
@@ -321,57 +322,53 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Department filter, named in front of the box: a dropdown
-                         with no caption and no selection is a riddle. -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
-                                Margin="{DynamicResource UiGapAction}">
-                        <TextBlock Text="Department"
-                                   Style="{DynamicResource Caption}"
-                                   VerticalAlignment="Center"
-                                   Margin="{DynamicResource UiGapField}" />
-                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                                  MinWidth="150"
-                                  MinHeight="{DynamicResource UiActionMinHeight}"
-                                  ItemsSource="{Binding DepartmentFilters}"
-                                  SelectedValuePath="Code"
-                                  SelectedValue="{Binding SelectedDepartmentFilter, Mode=TwoWay}"
-                                  VerticalAlignment="Center"
-                                  ToolTip="Show only people from one department"
-                                  AutomationProperties.Name="Department filter"
-                                  AutomationProperties.HelpText="Choose a department, or All departments">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
+                    <!-- Department filter. The field name is ON the button —
+                         the closed box reads "Department: All" or "Department:
+                         Estimation" — not in a caption standing beside it. One
+                         control, one hit target, and the wording survives a
+                         selection: after choosing a department the button still
+                         says what it filters. The label is built in
+                         ApplyCatalogueFilters, because the theme owns the closed
+                         box's template and only the item text reaches it. -->
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              MinWidth="200"
+                              MinHeight="{DynamicResource UiActionMinHeight}"
+                              Margin="{DynamicResource UiGapAction}"
+                              ItemsSource="{Binding DepartmentFilters}"
+                              SelectedValuePath="Code"
+                              SelectedValue="{Binding SelectedDepartmentFilter, Mode=TwoWay}"
+                              VerticalAlignment="Center"
+                              ToolTip="Show only people from one department"
+                              AutomationProperties.Name="Department filter"
+                              AutomationProperties.HelpText="The box names the field first, then the department being filtered; Department: All shows every department">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
-                    <!-- Role filter: what a person may do. Department never is a
-                         permission, which is why both filters exist. -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
-                                Margin="{DynamicResource UiGapAction}">
-                        <TextBlock Text="Role"
-                                   Style="{DynamicResource Caption}"
-                                   VerticalAlignment="Center"
-                                   Margin="{DynamicResource UiGapField}" />
-                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                                  MinWidth="130"
-                                  MinHeight="{DynamicResource UiActionMinHeight}"
-                                  ItemsSource="{Binding RoleFilters}"
-                                  SelectedValuePath="Code"
-                                  SelectedValue="{Binding SelectedRoleFilter, Mode=TwoWay}"
-                                  VerticalAlignment="Center"
-                                  ToolTip="Show only people with one role"
-                                  AutomationProperties.Name="Role filter"
-                                  AutomationProperties.HelpText="Choose a role, or All roles">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
+                    <!-- Role filter, same idiom: "Role: All" / "Role: Estimator"
+                         sits on the button. Role is what a person may do;
+                         department never is a permission, which is why both
+                         filters exist. -->
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              MinWidth="150"
+                              MinHeight="{DynamicResource UiActionMinHeight}"
+                              Margin="{DynamicResource UiGapAction}"
+                              ItemsSource="{Binding RoleFilters}"
+                              SelectedValuePath="Code"
+                              SelectedValue="{Binding SelectedRoleFilter, Mode=TwoWay}"
+                              VerticalAlignment="Center"
+                              ToolTip="Show only people with one role"
+                              AutomationProperties.Name="Role filter"
+                              AutomationProperties.HelpText="The box names the field first, then the role being filtered; Role: All shows every role">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </WrapPanel>
 
                 <!-- ── Actions ─────────────────────────────────────────────

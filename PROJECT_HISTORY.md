@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 19: filter field names on the button
+
+- **Phase:** `step3` correction reported by the owner after reviewing the bar.
+- **Before:** `Department` and `Role` stood as captions beside their dropdowns; the owner wants the field name on the button itself, as the inquiry page's register dropdown reads.
+- **Applied:** the two filter lists are labelled `Department: …` and `Role: …` in `ApplyCatalogueFilters` (the theme owns the closed-state template, so item text is the only channel), the two caption `TextBlock`s are gone from the command bar, and `FilterLabel` drops the redundant trailing word "Department" inside the filter list only. Rule E in `AGENTS.md` / `docs/00.Project-Rules.md` now permits the caption on the control and requires it to keep naming the field after a selection.
+- **Also fixed:** a missing `using ProGlassAutomation.ThemeStudio;` in `step3.c.3.FirstRunViewModel` (CS0246 on the owner's build), guarded by a new `step3.f.2` check that any step3 source constructing a `DelegateCommand` imports its namespace.
+- **Verification:** nine portable checkers PASS; the new layout and namespace checks were mutation-tested. No compile and no rendered window here, so the button widths remain unverified visually.
+
+---
 ## 2026-10-27 — Round 18: first-run gate, one-row bar, captioned filters
 - **Phase:** `step3` corrections reported by the owner after running the build.
 - **Before:** the first-run path existed only as a card under a screen that also said user management was unavailable, and the account was registered from a form that could not prove it matched the workstation; the command bar read as two strips of oversized buttons; both filter dropdowns showed no text, so they could not be identified.
