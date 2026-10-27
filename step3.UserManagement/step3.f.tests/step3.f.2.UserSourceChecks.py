@@ -556,9 +556,14 @@ def require_first_password_upgrade():
 
         # Aimed by the workstation account, resolved inside the write transaction,
         # so a caller cannot name somebody else's row.
-        check("FindUserRowAsync(db, operatorUsername" in body,
+        check("FindUserRowTrackedAsync(db, operatorUsername" in body,
               "the first-password step must resolve the row from the workstation "
-              "account inside its own transaction, never from a caller-supplied id")
+              "account inside its own transaction, never from a caller-supplied id, "
+              "and it must be a TRACKED row or the update is dropped")
+        check("FindUserRowAsync(db, operatorUsername" not in body,
+              "the first-password write must not use the read-only lookup for the "
+              "row it saves: the assignment succeeds in memory and SaveChanges "
+              "writes nothing")
         check("int userId" not in body,
               "the first-password step must not take a user id: that would let a "
               "caller aim it at another person's row")
@@ -623,6 +628,81 @@ def require_first_password_upgrade():
           "setting the first password from the page must ask for the sign-in gate")
     check("AuthenticationContext.SignInRequested += OnSignInRequested" in shell_code,
           "the shell must show the sign-in gate when it is asked for")
+
+
+def require_writes_are_tracked():
+    """A write path must never be handed a no-tracking row.
+
+    Owner report (round 27, from the running build): the first-password card
+    answered "The password was written, but the directory now reports 0
+    account(s) with a password." The write had returned success and stored
+    nothing — the row came from a read-only (`AsNoTracking`) lookup, so
+    `SaveChangesAsync` wrote zero rows. The same mistake was already in the
+    sign-in path, which means the failed-attempt counter and the 60-second
+    lockout were silently never persisted: five wrong passwords locked nothing.
+
+    These checks pin the rule rather than the two call sites.
+    """
+    repo = read(MODULE / "step3.b.4.UserRepository.cs")
+
+    # The two lookups, and the difference between them, must be documented: the
+    # next person to add a write path will copy whichever line is nearest.
+    check("private static async Task<User?> FindUserRowTrackedAsync(" in repo,
+          "there must be a tracked lookup for rows a write will modify")
+    check("private static async Task<User?> FindUserRowAsync(" in repo,
+          "the read-only lookup must stay for reads")
+
+    read_only = repo.find("private static async Task<User?> FindUserRowAsync(\n            UserDbContext db")
+    check(read_only >= 0, "the read-only lookup's signature changed")
+    if read_only >= 0:
+        doc = repo[max(0, read_only - 1200):read_only]
+        check("never handed to a write path" in doc or "Reads only" in doc,
+              "the no-tracking lookup must say, where it is defined, that its rows "
+              "must not be used for writes")
+        check("FindUserRowTrackedAsync" in doc,
+              "the no-tracking lookup must point at the tracked one for writes")
+
+    # Sign-in writes: the failed-attempt counter and the lock.
+    start = repo.find("public async Task<SignInResult> SignInAsync(")
+    check(start >= 0, "sign-in is missing")
+    if start >= 0:
+        body = repo[start:start + 7000]
+        check("FindUserRowTrackedAsync(db, username" in body,
+              "sign-in must load a TRACKED row: it writes FailedSignInCount and "
+              "LockedUntilUtc, and a detached row takes the change and drops it")
+        check("FindUserRowAsync(db, username" not in body,
+              "sign-in must not use the read-only lookup, or the lockout never persists")
+
+    # A guard that refuses an untracked row, so a future call site fails loudly
+    # instead of silently writing nothing.
+    check("private static void RequireTracked(" in repo,
+          "there must be one guard that refuses to save an untracked row")
+    check("EntityState.Detached" in repo,
+          "the guard must test for a detached row")
+    # Counted, not sampled: every password write keeps the affected-row count, checks
+    # it, and passes the tracked guard. One of the three missing is the defect.
+    writes = repo.count("int written = await SqliteResilience.SaveWithRetryAsync(")
+    checked_counts = repo.count("if (written < 1)")
+    tracked_guards = repo.count("RequireTracked(db, target,")
+
+    check(writes >= 3,
+          "every password write must keep the affected-row count it got back")
+    check(checked_counts == writes,
+          f"{writes - checked_counts} password write(s) return success without "
+          "checking that SaveChanges stored anything")
+    check(tracked_guards == writes,
+          f"{writes - tracked_guards} password write(s) save a row without first "
+          "proving it is tracked")
+
+    # The first-password step in particular: it is the door an upgraded directory
+    # depends on, so it gets the same two proofs.
+    first = repo.find("public async Task<UserSaveResult> SetFirstPasswordAsync(")
+    if first >= 0:
+        body = repo[first:first + 5000]
+        check("RequireTracked(db, target," in body,
+              "the first-password write must prove its row is tracked before saving")
+        check("if (written < 1)" in body,
+              "the first-password write must report a save that stored nothing")
 
 
 def require_register_layout():
@@ -933,6 +1013,7 @@ def main():
     require_operator_lookup_uses_its_own_parameter()
     require_first_run_flow()
     require_first_password_upgrade()
+    require_writes_are_tracked()
     require_command_namespace()
     require_layout_contract()
     require_docs_recorded()

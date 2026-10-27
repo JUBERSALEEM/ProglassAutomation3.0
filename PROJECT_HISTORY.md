@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 27: a write that reported success and stored nothing
+
+- **Phase:** `step3` (User Management) — the owner's screenshot of the first-password card answering "the directory now reports 0 account(s) with a password".
+- **Cause:** `FindUserRowAsync` is a no-tracking read helper. The new first-password write used it for a row it then modified, so nothing was saved and the method still returned success. The same helper was already used that way by **sign-in**, which means the 5-attempt lockout never persisted — five wrong passwords locked nothing.
+- **Fix:** `FindUserRowTrackedAsync` for any row a write will modify (`SignInAsync` and `SetFirstPasswordAsync` now use it), `RequireTracked` throwing on a detached row, and every password write (first password, self-change, administrator reset) keeping the affected-row count and refusing success when it is zero.
+- **Coverage:** `step3.f.2.require_writes_are_tracked()` pins the rule once — both lookups documented, sign-in and the first password on the tracked one, and the count of password writes equal to the count of guards and of affected-row checks. Six mutations, each failed.
+- **Behaviour:** `step3.f.1` now proves the lockout on an isolated database — one wrong password leaves `FailedSignInCount == 1` in the row, five lock it, and the correct password is then refused with `Locked`.
+- **Also fixed from the same screenshot:** the "not registered as a user" banner no longer appears above the first-run card, and the register's "no user matches" notice is hidden while a first-run card is showing.
+- **Verification:** nine portable checkers PASS. No .NET SDK here, so the in-code suite and the rebuilt screen are the owner's to run.
+
+---
 ## 2026-10-27 — Round 26: the first boot that already has users
 
 - **Phase:** `step3` (User Management) — the dead end the owner's question about first-boot passwords uncovered.

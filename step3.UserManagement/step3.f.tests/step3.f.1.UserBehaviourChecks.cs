@@ -354,6 +354,47 @@ internal static class UserBehaviourChecks
         SignInResult afterSignOut = await repository.SignInAsync(estimator.Username, OwnPassword);
         True(afterSignOut.Succeeded, "signing in again still works after a sign-out");
         AuthenticationContext.SignOut();
+
+        // ── The lockout has to survive the call that set it ─────────────
+        // Owner report (round 27): the first-password card said the directory then
+        // held 0 accounts with a password — a write that returned success and
+        // stored nothing, because the row came from a read-only lookup. The same
+        // mistake sat in sign-in, so the failed-attempt counter and the 60-second
+        // lock were never persisted: five wrong passwords locked nothing. These
+        // checks read the row back from the database after each step.
+        const string LockPassword = "Lock-Test-Passw0rd!2026";
+        UserSaveResult lockUser = await repository.CreateAsync(new UserDraft
+        {
+            FullName = "Lock Test",
+            Username = "lock.test",
+            Department = "Estimation",
+            Role = "Estimator",
+            IsActive = true,
+            Password = LockPassword,
+            PasswordConfirm = LockPassword
+        }, admin.Username);
+        True(lockUser.Succeeded, "a lock-test account is created: " + lockUser.Message);
+
+        SignInResult firstMiss = await repository.SignInAsync("lock.test", "wrong-1");
+        Equal(nameof(SignInCode.WrongPassword), firstMiss.Code.ToString(),
+            "the first wrong password is refused");
+
+        User? afterMiss = await repository.FindByUsernameAsync("lock.test");
+        Equal("1", (afterMiss?.FailedSignInCount ?? -1).ToString(),
+            "a failed attempt is written to the row, not just held in memory");
+
+        for (int attempt = 2; attempt <= UserRepository.MaxFailedSignIns; attempt++)
+            await repository.SignInAsync("lock.test", "wrong-" + attempt);
+
+        User? locked = await repository.FindByUsernameAsync("lock.test");
+        True(locked?.LockedUntilUtc is DateTime lockUntil && lockUntil > DateTime.UtcNow,
+            "the lock is written to the row and is in the future");
+
+        SignInResult lockedOut = await repository.SignInAsync("lock.test", LockPassword);
+        Equal(nameof(SignInCode.Locked), lockedOut.Code.ToString(),
+            "while locked, even the right password is refused");
+        True(lockedOut.Message.Contains("second", StringComparison.OrdinalIgnoreCase),
+            "and the operator is told how long to wait: " + lockedOut.Message);
     }
 
     // ── Harness ──────────────────────────────────────────────────────────

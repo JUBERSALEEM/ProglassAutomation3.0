@@ -178,19 +178,21 @@ namespace ProGlassAutomation.ViewModels.Users
 
         /// <summary>
         /// Why the screen is read-only; empty when the operator may act.
-        ///
-        /// Empty directory is the one case where the refusal must NOT be shown.
-        /// "This workstation account is not registered … ask an administrator"
-        /// is circular on a brand-new installation: no administrator can exist
-        /// yet, and the setup card directly below is the way to create one. The
-        /// first build displayed that refusal and the setup card together, so
-        /// the operator was told the feature was unavailable while the form to
-        /// enable it sat underneath. The refusal is now suppressed exactly while
-        /// the directory is empty, and it returns the moment a user row exists
-        /// and still does not match this account.
         /// </summary>
+        /// <remarks>
+        /// Suppressed while a first-run card is showing — both of them.
+        /// "This workstation account is not registered … ask an administrator" is
+        /// circular on a brand-new installation (no administrator can exist yet, and
+        /// the setup card below is the way to create one), and it is equally circular
+        /// on a directory where nobody has a password: no session exists by
+        /// definition, and the card below is what gives the administrator one. The
+        /// first build printed that refusal directly above the setup card, telling
+        /// the operator the feature was unavailable while the form to enable it sat
+        /// underneath; the second build repeated it above the first-password card.
+        /// It returns the moment an account exists that can actually sign in.
+        /// </remarks>
         public string PermissionMessage =>
-            _managementDecision.IsAllowed || IsDirectoryEmpty ? "" : _managementDecision.Message;
+            _managementDecision.IsAllowed || ShowBootstrapCard ? "" : _managementDecision.Message;
 
         public bool HasPermissionMessage => PermissionMessage.Length > 0;
 
@@ -387,6 +389,8 @@ namespace ProGlassAutomation.ViewModels.Users
             {
                 if (!SetField(ref _isCredentialSetup, value)) return;
                 OnPropertyChanged(nameof(ShowBootstrapCard));
+                OnPropertyChanged(nameof(PermissionMessage));
+                OnPropertyChanged(nameof(HasPermissionMessage));
                 OnPropertyChanged(nameof(ShowBootstrapIdentityFields));
                 OnPropertyChanged(nameof(BootstrapTitle));
                 OnPropertyChanged(nameof(BootstrapExplanation));
@@ -672,7 +676,9 @@ namespace ProGlassAutomation.ViewModels.Users
                 if (selectedId > 0)
                     SelectedRow = Rows.FirstOrDefault(row => row.Id == selectedId);
 
-                if (Rows.Count == 0 && total > 0)
+                // While a first-run card is showing, an empty register is expected —
+                // "no user matches the current filters" would be noise, not news.
+                if (Rows.Count == 0 && total > 0 && !ShowBootstrapCard)
                     StatusMessage = "No user matches the current search and filters.";
                 else if (Rows.Count == 0)
                     StatusMessage = "";

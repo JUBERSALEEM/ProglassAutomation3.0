@@ -358,7 +358,10 @@ namespace ProGlassAutomation.Services.Users
             {
                 await using var db = CreateContext();
 
-                User? user = await FindUserRowAsync(db, username, ct).ConfigureAwait(false);
+                // Tracked on purpose: this path WRITES (the failed-attempt counter
+                // and the lock), and a detached row would take the update and drop
+                // it — no counter, no lockout, no sign it ever happened.
+                User? user = await FindUserRowTrackedAsync(db, username, ct).ConfigureAwait(false);
                 if (user == null)
                     return SignInResult.Fail(
                         SignInCode.UnknownUser, "No account matches that username.");
@@ -488,9 +491,15 @@ namespace ProGlassAutomation.Services.Users
                     return UserSaveResult.Fail("The current password is not correct.");
 
                 ApplyNewPassword(target, newPassword, DateTime.UtcNow, mustChange: false, operatorId: actor.Id);
+                RequireTracked(db, target, "Changing a password");
 
-                await SqliteResilience.SaveWithRetryAsync(
+                int written = await SqliteResilience.SaveWithRetryAsync(
                     token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+                if (written < 1)
+                    return UserSaveResult.Fail(
+                        "The password could not be stored: the directory accepted the change and wrote "
+                        + "nothing. Nothing was altered; report this message.", UserDecisionCode.InvalidTarget);
+
                 await transaction.CommitAsync(ct).ConfigureAwait(false);
                 return UserSaveResult.Ok(target);
             }
@@ -523,9 +532,15 @@ namespace ProGlassAutomation.Services.Users
 
                 ApplyNewPassword(target, newPassword, DateTime.UtcNow,
                     mustChange: actor!.Id != target.Id, operatorId: actor.Id);
+                RequireTracked(db, target, "Resetting a password");
 
-                await SqliteResilience.SaveWithRetryAsync(
+                int written = await SqliteResilience.SaveWithRetryAsync(
                     token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+                if (written < 1)
+                    return UserSaveResult.Fail(
+                        "The password could not be stored: the directory accepted the change and wrote "
+                        + "nothing. Nothing was altered; report this message.", UserDecisionCode.InvalidTarget);
+
                 await transaction.CommitAsync(ct).ConfigureAwait(false);
                 return UserSaveResult.Ok(target);
             }
@@ -887,7 +902,7 @@ namespace ProGlassAutomation.Services.Users
                         + "closed. Sign in with an account that has one.",
                         UserDecisionCode.NotAuthorized);
 
-                User? target = await FindUserRowAsync(db, operatorUsername, ct).ConfigureAwait(false);
+                User? target = await FindUserRowTrackedAsync(db, operatorUsername, ct).ConfigureAwait(false);
                 if (target == null)
                 {
                     var activeRows = await db.Users.AsNoTracking()
@@ -925,9 +940,16 @@ namespace ProGlassAutomation.Services.Users
                 // hand them a reset later, and no administrator to be forced out of.
                 ApplyNewPassword(target, password, now, mustChange: false, operatorId: 0);
                 target.UpdatedByUserId = target.Id;
+                RequireTracked(db, target, "Setting the first password");
 
-                await SqliteResilience.SaveWithRetryAsync(
+                int written = await SqliteResilience.SaveWithRetryAsync(
                     token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+                if (written < 1)
+                    return UserSaveResult.Fail(
+                        "The password could not be stored: the directory accepted the change and wrote "
+                        + "nothing. Nothing was altered; report this message.",
+                        UserDecisionCode.InvalidTarget);
+
                 await transaction.CommitAsync(ct).ConfigureAwait(false);
 
                 return UserSaveResult.Ok(target,
@@ -971,7 +993,18 @@ namespace ProGlassAutomation.Services.Users
             return await FindUserRowAsync(db, username, ct).ConfigureAwait(false);
         }
 
-        /// <summary>One row by username inside the caller's context.</summary>
+        /// <summary>
+        /// One row by username inside the caller's context, NOT tracked.
+        /// </summary>
+        /// <remarks>
+        /// Reads only. A row loaded here must never be handed to a write path: its
+        /// properties change in memory, `SaveChangesAsync` reports zero rows, and
+        /// the method returns success having written nothing. That is exactly how
+        /// the sign-in lockout and the first-password step failed (owner-reported,
+        /// round 27: "the password was written, but the directory now reports 0
+        /// account(s) with a password"). Use <see cref="FindUserRowTrackedAsync"/>
+        /// for anything that will be saved.
+        /// </remarks>
         private static async Task<User?> FindUserRowAsync(
             UserDbContext db, string username, CancellationToken ct)
         {
@@ -980,6 +1013,37 @@ namespace ProGlassAutomation.Services.Users
             return await db.Users.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.NormalizedUsername == key, ct)
                 .ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// One row by username inside the caller's context, TRACKED, for a write.
+        /// </summary>
+        private static async Task<User?> FindUserRowTrackedAsync(
+            UserDbContext db, string username, CancellationToken ct)
+        {
+            string key = UserRules.UsernameKey(username);
+            if (key.Length == 0) return null;
+            return await db.Users
+                .FirstOrDefaultAsync(x => x.NormalizedUsername == key, ct)
+                .ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Refuses to save a row the context is not tracking.
+        /// </summary>
+        /// <remarks>
+        /// The failure this exists for is silent: a detached row accepts every
+        /// property assignment, `SaveChangesAsync` writes nothing, and the caller
+        /// reports success. Throwing here turns that into a message instead of a
+        /// password that does not work.
+        /// </remarks>
+        private static void RequireTracked(UserDbContext db, User target, string operation)
+        {
+            if (db.Entry(target).State == EntityState.Detached)
+                throw new InvalidOperationException(
+                    operation + " was given a user row that its database context is not tracking, "
+                    + "so nothing would be written. (A read-only lookup was used where a tracked one "
+                    + "is required.)");
         }
 
         /// <summary>

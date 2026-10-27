@@ -98,6 +98,22 @@ different answer:
 * **Then sign in.** The password is verified by a real sign-in, never assumed: on the
   Users page the shell is asked for the gate (`AuthenticationContext.RequestSignIn`)
   as soon as the write succeeds.
+
+### Writes must be handed a tracked row
+
+`FindUserRowAsync` is a **read** helper: it loads with `AsNoTracking()`. A row from it
+accepts every property assignment, `SaveChangesAsync` writes nothing, and the method
+still returns success — which is exactly what the first build of the first-password
+card did (*"the directory now reports 0 account(s) with a password"*). The same mistake
+sat in sign-in, so the failed-attempt counter and the 60-second lock never persisted.
+
+* Anything a write will modify is loaded with `FindUserRowTrackedAsync`.
+* `RequireTracked(db, target, operation)` throws when the context is not tracking the
+  row, so the failure is a message instead of a password that does not work.
+* Every password write keeps the affected-row count `SaveChangesAsync` returns and
+  refuses to report success when it is zero.
+* `step3.f.2.require_writes_are_tracked()` fails if a write loses its guard or its
+  count check; `step3.f.1` reads the row back to prove the lockout is stored.
 5. **Then the app opens as that Administrator.** The gate closes and the shell
    selects the Users workspace, where the register is usable and further users can
    be added.
