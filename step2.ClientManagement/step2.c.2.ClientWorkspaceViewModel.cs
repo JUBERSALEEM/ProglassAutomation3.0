@@ -109,9 +109,9 @@ namespace ProGlassAutomation.ViewModels.Clients
             {
                 if (SelectedRow == null) return "Select a client to edit or change its status.";
                 var row = SelectedRow;
-                string contact = row.ContactSummary;
+                string attention = row.AttentionSummary;
                 string baseText = row.ClientName + (row.IsActive ? "" : "  ·  inactive");
-                return contact.Length == 0 ? baseText : baseText + "  ·  " + contact;
+                return attention.Length == 0 ? baseText : baseText + "  ·  " + attention;
             }
         }
 

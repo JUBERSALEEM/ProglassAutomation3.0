@@ -36,7 +36,7 @@ namespace ProGlassAutomation.Models.Clients
         // Field lengths are the single source used by the entity attributes,
         // the DDL and the editor's MaxLength.
         public const int ClientNameMaxLength = 200;
-        public const int ContactPersonMaxLength = 200;
+        public const int AttentionNameMaxLength = 200;
         public const int PhoneMaxLength = 50;
         public const int EmailMaxLength = 200;
         public const int TrnMaxLength = 20;
@@ -123,12 +123,15 @@ namespace ProGlassAutomation.Models.Clients
             return null;
         }
 
-        /// <summary>Contact person is optional; only length is bounded.</summary>
-        public static string? ValidateContactPerson(string? value)
+        /// <summary>
+        /// Attention name is optional; only length is bounded. It is the person at
+        /// the client to address, so it is never required and never a duplicate key.
+        /// </summary>
+        public static string? ValidateAttentionName(string? value)
         {
             string text = NormalizeText(value);
-            if (text.Length > ContactPersonMaxLength)
-                return $"Contact person must be {ContactPersonMaxLength} characters or fewer.";
+            if (text.Length > AttentionNameMaxLength)
+                return $"Attention name must be {AttentionNameMaxLength} characters or fewer.";
             return null;
         }
 
@@ -201,7 +204,7 @@ namespace ProGlassAutomation.Models.Clients
             var errors = new Dictionary<string, string>(StringComparer.Ordinal);
 
             AddIfPresent(errors, nameof(ClientDraft.ClientName), ValidateClientName(draft.ClientName));
-            AddIfPresent(errors, nameof(ClientDraft.ContactPerson), ValidateContactPerson(draft.ContactPerson));
+            AddIfPresent(errors, nameof(ClientDraft.AttentionName), ValidateAttentionName(draft.AttentionName));
             AddIfPresent(errors, nameof(ClientDraft.Phone), ValidatePhone(draft.Phone));
             AddIfPresent(errors, nameof(ClientDraft.Email), ValidateEmail(draft.Email));
             AddIfPresent(errors, nameof(ClientDraft.Trn), ValidateTrn(draft.Trn));
@@ -221,7 +224,7 @@ namespace ProGlassAutomation.Models.Clients
             return new ClientDraft
             {
                 ClientName = NormalizeText(draft.ClientName),
-                ContactPerson = NormalizeText(draft.ContactPerson),
+                AttentionName = NormalizeText(draft.AttentionName),
                 Phone = NormalizePhone(draft.Phone),
                 Email = NormalizeEmail(draft.Email),
                 Trn = NormalizeTrn(draft.Trn),

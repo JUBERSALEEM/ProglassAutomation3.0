@@ -140,7 +140,7 @@ namespace ProGlassAutomation.Services.Clients
                     term.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
                 source = source.Where(x =>
                     EF.Functions.Like(x.ClientName, pattern, "\\")
-                    || EF.Functions.Like(x.ContactPerson, pattern, "\\")
+                    || EF.Functions.Like(x.AttentionName, pattern, "\\")
                     || EF.Functions.Like(x.Phone, pattern, "\\")
                     || EF.Functions.Like(x.Email, pattern, "\\")
                     || EF.Functions.Like(x.Trn, pattern, "\\")
@@ -157,7 +157,7 @@ namespace ProGlassAutomation.Services.Clients
                 {
                     Id = x.Id,
                     ClientName = x.ClientName,
-                    ContactPerson = x.ContactPerson,
+                    AttentionName = x.AttentionName,
                     Phone = x.Phone,
                     Email = x.Email,
                     Trn = x.Trn,
@@ -222,7 +222,7 @@ namespace ProGlassAutomation.Services.Clients
             var client = new Client
             {
                 ClientName = normalized.ClientName,
-                ContactPerson = normalized.ContactPerson,
+                AttentionName = normalized.AttentionName,
                 Phone = normalized.Phone,
                 Email = normalized.Email,
                 Trn = normalized.Trn,
@@ -270,7 +270,7 @@ namespace ProGlassAutomation.Services.Clients
                         "That client no longer exists in the directory. Refresh the list and try again.");
 
                 client.ClientName = normalized.ClientName;
-                client.ContactPerson = normalized.ContactPerson;
+                client.AttentionName = normalized.AttentionName;
                 client.Phone = normalized.Phone;
                 client.Email = normalized.Email;
                 client.Trn = normalized.Trn;

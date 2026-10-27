@@ -30,7 +30,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private readonly bool _isNew;
 
         private string _clientName = "";
-        private string _contactPerson = "";
+        private string _attentionName = "";
         private string _phone = "";
         private string _email = "";
         private string _trn = "";
@@ -42,7 +42,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private string _phoneError = "";
         private string _emailError = "";
         private string _trnError = "";
-        private string _contactPersonError = "";
+        private string _attentionNameError = "";
         private string _addressError = "";
 
         private string _duplicateWarning = "";
@@ -60,7 +60,7 @@ namespace ProGlassAutomation.ViewModels.Clients
             if (draft != null)
             {
                 _clientName = draft.ClientName;
-                _contactPerson = draft.ContactPerson;
+                _attentionName = draft.AttentionName;
                 _phone = draft.Phone;
                 _email = draft.Email;
                 _trn = draft.Trn;
@@ -106,13 +106,14 @@ namespace ProGlassAutomation.ViewModels.Clients
             }
         }
 
-        public string ContactPerson
+        /// <summary>The person at the client to address; optional.</summary>
+        public string AttentionName
         {
-            get => _contactPerson;
+            get => _attentionName;
             set
             {
-                if (!SetField(ref _contactPerson, value)) return;
-                ContactPersonError = ClientRules.ValidateContactPerson(value) ?? "";
+                if (!SetField(ref _attentionName, value)) return;
+                AttentionNameError = ClientRules.ValidateAttentionName(value) ?? "";
                 ClearSaveFeedback();
             }
         }
@@ -194,10 +195,10 @@ namespace ProGlassAutomation.ViewModels.Clients
             private set { if (SetField(ref _clientNameError, value)) OnPropertyChanged(nameof(HasClientNameError)); }
         }
 
-        public string ContactPersonError
+        public string AttentionNameError
         {
-            get => _contactPersonError;
-            private set { if (SetField(ref _contactPersonError, value)) OnPropertyChanged(nameof(HasContactPersonError)); }
+            get => _attentionNameError;
+            private set { if (SetField(ref _attentionNameError, value)) OnPropertyChanged(nameof(HasAttentionNameError)); }
         }
 
         public string PhoneError
@@ -225,7 +226,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         }
 
         public bool HasClientNameError => ClientNameError.Length > 0;
-        public bool HasContactPersonError => ContactPersonError.Length > 0;
+        public bool HasAttentionNameError => AttentionNameError.Length > 0;
         public bool HasPhoneError => PhoneError.Length > 0;
         public bool HasEmailError => EmailError.Length > 0;
         public bool HasTrnError => TrnError.Length > 0;
@@ -278,7 +279,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         public ClientDraft ToDraft() => new()
         {
             ClientName = ClientName,
-            ContactPerson = ContactPerson,
+            AttentionName = AttentionName,
             Phone = Phone,
             Email = Email,
             Trn = Trn,
@@ -383,7 +384,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private void ApplyErrors(IReadOnlyDictionary<string, string> errors)
         {
             ClientNameError = errors.TryGetValue(nameof(ClientDraft.ClientName), out string? name) ? name : "";
-            ContactPersonError = errors.TryGetValue(nameof(ClientDraft.ContactPerson), out string? contact) ? contact : "";
+            AttentionNameError = errors.TryGetValue(nameof(ClientDraft.AttentionName), out string? attention) ? attention : "";
             PhoneError = errors.TryGetValue(nameof(ClientDraft.Phone), out string? phone) ? phone : "";
             EmailError = errors.TryGetValue(nameof(ClientDraft.Email), out string? email) ? email : "";
             TrnError = errors.TryGetValue(nameof(ClientDraft.Trn), out string? trn) ? trn : "";
@@ -393,7 +394,7 @@ namespace ProGlassAutomation.ViewModels.Clients
         private void ClearErrors()
         {
             ClientNameError = "";
-            ContactPersonError = "";
+            AttentionNameError = "";
             PhoneError = "";
             EmailError = "";
             TrnError = "";

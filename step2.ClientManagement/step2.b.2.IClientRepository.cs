@@ -36,7 +36,7 @@ namespace ProGlassAutomation.Services.Clients
     {
         public int Id { get; init; }
         public string ClientName { get; init; } = "";
-        public string ContactPerson { get; init; } = "";
+        public string AttentionName { get; init; } = "";
         public string Phone { get; init; } = "";
         public string Email { get; init; } = "";
         public string Trn { get; init; } = "";
@@ -49,13 +49,16 @@ namespace ProGlassAutomation.Services.Clients
 
         public string StatusText => IsActive ? "Active" : "Inactive";
 
-        /// <summary>Contact line without empty separators.</summary>
-        public string ContactSummary
+        /// <summary>
+        /// One line naming the person to address plus their reachable details,
+        /// without empty separators.
+        /// </summary>
+        public string AttentionSummary
         {
             get
             {
                 var parts = new List<string>(3);
-                if (!string.IsNullOrWhiteSpace(ContactPerson)) parts.Add(ContactPerson);
+                if (!string.IsNullOrWhiteSpace(AttentionName)) parts.Add(AttentionName);
                 if (!string.IsNullOrWhiteSpace(Phone)) parts.Add(Phone);
                 if (!string.IsNullOrWhiteSpace(Email)) parts.Add(Email);
                 return string.Join("  ·  ", parts);

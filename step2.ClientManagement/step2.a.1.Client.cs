@@ -12,6 +12,9 @@
 //     string. Representative assignment is deferred to the User Management
 //     stage, which will add a stable nullable user reference by migration.
 //     Adding a free-text rep name here is the ADV mistake this module avoids.
+//   • ClientName is the company (the entity we invoice); AttentionName is the
+//     person at that company to address. Both are stored, and neither is
+//     derived from the other.
 //   • IsActive replaces deletion: inactive clients stay readable for
 //     historical display and reporting.
 //   • Trn is TEXT: a tax registration number is an identifier, not a number,
@@ -37,9 +40,13 @@ namespace ProGlassAutomation.Models.Clients
         [Required, MaxLength(ClientRules.ClientNameMaxLength)]
         public string ClientName { get; set; } = "";
 
-        /// <summary>Person the company deals with. Optional.</summary>
-        [MaxLength(ClientRules.ContactPersonMaxLength)]
-        public string ContactPerson { get; set; } = "";
+        /// <summary>
+        /// The person at the client to address ("Attention: ..." on documents or
+        /// correspondence). Optional. Distinct from <see cref="ClientName"/>,
+        /// which is the company.
+        /// </summary>
+        [MaxLength(ClientRules.AttentionNameMaxLength)]
+        public string AttentionName { get; set; } = "";
 
         /// <summary>Contact phone as entered. Optional.</summary>
         [MaxLength(ClientRules.PhoneMaxLength)]
@@ -81,7 +88,7 @@ namespace ProGlassAutomation.Models.Clients
     public sealed class ClientDraft
     {
         public string ClientName { get; set; } = "";
-        public string ContactPerson { get; set; } = "";
+        public string AttentionName { get; set; } = "";
         public string Phone { get; set; } = "";
         public string Email { get; set; } = "";
         public string Trn { get; set; } = "";
@@ -96,7 +103,7 @@ namespace ProGlassAutomation.Models.Clients
             return new ClientDraft
             {
                 ClientName = client.ClientName,
-                ContactPerson = client.ContactPerson,
+                AttentionName = client.AttentionName,
                 Phone = client.Phone,
                 Email = client.Email,
                 Trn = client.Trn,

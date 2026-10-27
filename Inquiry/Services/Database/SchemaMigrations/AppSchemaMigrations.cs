@@ -168,7 +168,15 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             new(ClientSchema.MigrationVersion,
                 "Clients: client directory table (step2 Client Management)",
                 connection => ClientSchema.Ensure(connection),
-                connection => ClientSchema.AssertShape(connection))
+                connection => ClientSchema.AssertShape(connection)),
+            // The client name is the company, so the directory must also carry
+            // the person to address. 1012 replaces the superseded generic
+            // contact-person column with AttentionName, preserving every stored
+            // value; 1011 stays immutable because it already ran.
+            new(ClientSchema.AttentionNameMigrationVersion,
+                "Clients: attention name replaces the generic contact-person column",
+                connection => ClientSchema.EnsureAttentionName(connection),
+                connection => ClientSchema.AssertAttentionName(connection))
 
         };
 
