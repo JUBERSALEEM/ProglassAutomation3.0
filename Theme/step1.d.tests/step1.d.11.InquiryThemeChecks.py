@@ -15,9 +15,15 @@ inbox_xaml = INBOX_VIEW.read_text(encoding="utf-8")
 # Theme-owned card styles must be dynamically looked up, not captured as a
 # StaticResource base style when the view is first loaded. Keep their padding
 # owned by each theme so card content never hugs its outline.
-assert 'Style="{DynamicResource HeroCard}"' in list_xaml
-assert list_xaml.count('Style="{DynamicResource Card}"') >= 2
-assert list_xaml.count('Style="{DynamicResource MetricCard}"') >= 3
+# The register page is a register (owner direction: "apply same in inquiry page").
+# The hero card, the three KPI cards and the actions card are gone; the pipeline
+# value and the counts survive as one caption line, and the page opens on rows.
+assert 'Style="{DynamicResource HeroCard}"' not in list_xaml, \
+    "the register page must not spend a hero card on its own title"
+assert 'Style="{DynamicResource MetricCard}"' not in list_xaml, \
+    "the KPI counts are a caption line, not three cards"
+assert list_xaml.count('Style="{DynamicResource Plate}"') >= 1, \
+    "the command bar is a Plate strip"
 assert 'Style="{DynamicResource Card}"' in inbox_xaml
 assert 'Style="{DynamicResource StatusBadge}"' in inbox_xaml
 
@@ -279,7 +285,58 @@ assert 'ColumnHeaderStyle="{StaticResource InquiryColumnHeader}"' in list_xaml
 # inbox action onto an orphan line, which read as a collapsed stack of chips.
 assert "<WrapPanel" not in list_xaml, \
     "the actions card must lay its buttons out on a grid, not wrap them"
-assert list_xaml.count('<ColumnDefinition Width="1*" />') >= 3, \
-    "the three file actions must share one row of equal thirds"
+
+# ── Command bar: dropdowns, one primary action, collapsible filters ─────────
+# Owner direction: "all received prepared sent confirmed etc move to dropdown
+# single section. same for proforma invoice job order etc". Seven status chips
+# and six module chips used to occupy two full-width strips; both are dropdowns
+# now, and the advanced filters collapse behind one button.
+assert 'ItemsSource="{Binding StatusTabs}"' in list_xaml, \
+    "the status filter is a dropdown bound to StatusTabs"
+assert 'SelectedItem="{Binding SelectedStatusTab, Mode=TwoWay}"' in list_xaml, \
+    "the status dropdown must be two-way bound, or choosing a status does nothing"
+assert 'ItemsSource="{Binding ModuleTabs}"' in list_xaml, \
+    "the module filter is a dropdown bound to ModuleTabs"
+assert 'SelectedItem="{Binding SelectedModuleTab, Mode=TwoWay}"' in list_xaml, \
+    "the module dropdown must be two-way bound"
+assert list_xaml.count('<UniformGrid Columns="7"') == 0, \
+    "the seven-way status chip strip is gone"
+assert list_xaml.count('<UniformGrid Columns="6"') == 0, \
+    "the six-way module chip strip is gone"
+assert 'Style="{DynamicResource {x:Type ComboBox}}"' in list_xaml, \
+    "dropdowns must track the active theme's ComboBox template"
+
+command_bar = list_xaml[list_xaml.index("<!-- ── One command bar"):list_xaml.index("<!-- ── Advanced filters")]
+assert command_bar.count('Style="{DynamicResource PrimaryButton}"') == 1, \
+    "exactly one primary action in the bar - the empty state keeps its own call to action"
+
+# Bar rule: the two dropdowns sit inline with their labels. A caption stacked
+# above a control makes that column taller than the rest and the bar stops
+# reading as one line of actions.
+for column in ('0', '1'):
+    assert f'StackPanel Grid.Column="{column}" Orientation="Horizontal"' in command_bar, \
+        f"the column-{column} dropdown must keep its label beside it, not above it"
+assert 'Command="{Binding NewInquiryCommand}"' in list_xaml, \
+    "the primary action is New inquiry and it stays visible"
+
+assert 'Binding AreFiltersExpanded' in list_xaml, \
+    "the advanced filter row is collapsed by default and driven by AreFiltersExpanded"
+assert 'Command="{Binding ToggleFiltersCommand}"' in list_xaml, \
+    "the Filters button must toggle that state"
+assert 'Text="{Binding FiltersToggleLabel}"' in list_xaml, \
+    "the toggle names its state (Filters / Hide filters)"
+for binding in ('SelectedDateRange', 'SelectedSalesman', 'SelectedPreparedBy',
+                'SelectedPriority', 'SelectedSort', 'HasAttachmentsOnly'):
+    assert f'{{Binding {binding}}}' in list_xaml, f"advanced filter {binding} was lost in the move"
+assert 'Command="{Binding ResetFiltersCommand}"' in list_xaml, "Reset filters must stay reachable"
+
+# Files and refresh moved into one overflow menu rather than a card of buttons.
+for command in ('ImportCommand', 'ExportCommand', 'OpenInboxCommand', 'RefreshCommand'):
+    assert f'Command="{{Binding {command}}}"' in list_xaml, f"{command} must stay reachable from the overflow menu"
+assert list_xaml.count('Text="{Binding PageStatus}"') == 1, \
+    "PageStatus is printed once, in the footer next to the pager"
+assert 'OnMoreActionsClick' in list_xaml, "the overflow menu needs a handler, or it only opens on right-click"
+code_behind = (ROOT / "Inquiry/Views/InquiryListView.xaml.cs").read_text(encoding="utf-8")
+assert 'private void OnMoreActionsClick(' in code_behind, "OnMoreActionsClick is not implemented"
 
 print("PASS: inquiry theme styles, inbox lifecycle, shared HTTP recovery, schema repair, and auth/authorization diagnostics")

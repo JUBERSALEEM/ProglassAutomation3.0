@@ -107,5 +107,10 @@ inquiry_repository = (ROOT / "Inquiry/Services/Inquiry/InquiryRepository.cs").re
 assert 'public string? Error { get; set; }' in paged
 assert 'Error = ex.GetBaseException().Message' in query_engine
 assert 'Inquiry list query failed:' in inquiry_repository
-assert 'Content="Import from website inbox"' in (ROOT / "Inquiry/Views/InquiryListView.xaml").read_text(encoding="utf-8")
+# The inbox import used to be a button of its own; it lives in the command bar's
+# overflow menu now, so accept either form and insist the label survives verbatim.
+list_xaml = (ROOT / "Inquiry/Views/InquiryListView.xaml").read_text(encoding="utf-8")
+assert ('Content="Import from website inbox"' in list_xaml
+        or 'Header="Import from website inbox' in list_xaml), \
+    "the website-inbox import must stay reachable from the register page"
 assert 'current.InnerException' in (ROOT / "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxIngestService.cs").read_text(encoding="utf-8")

@@ -140,6 +140,103 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             || SelectedPriority != "All priorities" || HasAttachmentsOnly
             || SelectedStatusKey.Length > 0;
 
+        /// <summary>
+        /// The status ComboBox's selection.
+        ///
+        /// Owner direction: the seven status chips ("all received prepared sent
+        /// confirmed etc") belong in one dropdown rather than a full-width strip
+        /// of seven buttons above the register. Selecting here delegates to
+        /// SelectedStatusKey, so every existing filter path - HasActiveFilters,
+        /// ResetFilters, the reload - keeps working unchanged.
+        /// </summary>
+        public InquiryStatusTab? SelectedStatusTab
+        {
+            get => StatusTabs.FirstOrDefault(tab => tab.IsSelected);
+            set
+            {
+                if (value == null || value.IsSelected) return;
+                SelectedStatusKey = value.Key;
+                OnPropertyChanged();
+                ResetAndReload();
+            }
+        }
+
+        /// <summary>
+        /// The module ComboBox's selection (Inquiries, Proforma Invoices, …).
+        /// Planned modules are listed and disabled; selecting one is a no-op, the
+        /// same rule SelectModuleTabCommand enforces.
+        /// </summary>
+        public InquiryModuleTab? SelectedModuleTab
+        {
+            get => ModuleTabs.FirstOrDefault(tab => tab.IsSelected);
+            set
+            {
+                if (value == null) return;
+
+                if (!value.IsEnabled)
+                {
+                    // A planned module was picked. Raise the change back on the
+                    // dispatcher: notifying inside the setter, while the ComboBox
+                    // is still committing its own selection, is ignored, and the
+                    // control would go on showing a module that is not routed.
+                    var self = this;
+                    Dispatcher.CurrentDispatcher.BeginInvoke(new Action(
+                        () => self.OnPropertyChanged(nameof(SelectedModuleTab))));
+                    return;
+                }
+
+                SelectModuleTabCommand.Execute(value.Key);
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _areFiltersExpanded;
+
+        /// <summary>
+        /// Advanced filters (date, salesman, preparer, priority, sort, attachments)
+        /// live in a row that is collapsed until asked for. A register should open
+        /// showing rows, not controls; the Filters button carries the count of
+        /// active filters so a collapsed row can never hide a filter silently.
+        /// </summary>
+        public bool AreFiltersExpanded
+        {
+            get => _areFiltersExpanded;
+            set
+            {
+                if (!SetField(ref _areFiltersExpanded, value)) return;
+                OnPropertyChanged(nameof(FiltersToggleLabel));
+            }
+        }
+
+        /// <summary>
+        /// How many advanced filters are narrowing the register right now.
+        /// Search is deliberately not counted: it has its own box in the bar, so
+        /// it can never hide behind the collapsed row. Everything that does hide
+        /// there is counted, which is what lets the label say so.
+        /// </summary>
+        public int ActiveFilterCount
+        {
+            get
+            {
+                int count = 0;
+                if (SelectedDateRange != "All time") count++;
+                if (SelectedSalesman != "All salesmen") count++;
+                if (SelectedPreparedBy != "All prepared by") count++;
+                if (SelectedPriority != "All priorities") count++;
+                if (SelectedSort != "Updated newest") count++;
+                if (HasAttachmentsOnly) count++;
+                if (SelectedStatusKey.Length > 0) count++;
+                return count;
+            }
+        }
+
+        public string FiltersToggleLabel =>
+            AreFiltersExpanded ? "Hide filters"
+            : ActiveFilterCount == 0 ? "Filters"
+            : $"Filters ({ActiveFilterCount})";
+
+        public ICommand ToggleFiltersCommand { get; }
+
         /// <summary>"" = All statuses; otherwise a controlled status value.</summary>
         public string SelectedStatusKey
         {
@@ -149,6 +246,7 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 foreach (var tab in StatusTabs)
                     tab.IsSelected = tab.Key == value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedStatusTab));
                 OnPropertyChanged(nameof(HasActiveFilters));
             }
         }
@@ -240,10 +338,12 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 // their tabs are disabled until their views are delivered.
                 if (!string.Equals(key, "Inquiries", StringComparison.Ordinal)) return;
                 foreach (var tab in ModuleTabs) tab.IsSelected = tab.Key == key;
+                OnPropertyChanged(nameof(SelectedModuleTab));
             });
             ExportCommand = new DelegateCommand(() => _ = ExportAsync());
             ImportCommand = new DelegateCommand(() => _ = ImportAsync());
             ResetFiltersCommand = new DelegateCommand(ResetFilters);
+            ToggleFiltersCommand = new DelegateCommand(() => AreFiltersExpanded = !AreFiltersExpanded);
             RefreshCommand = new DelegateCommand(Reload);
             PreviousPageCommand = new DelegateCommand(
                 () => { if (CanGoPrevious) { CurrentPage--; Reload(); } }, () => CanGoPrevious);
@@ -614,6 +714,10 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
         private void ResetAndReload()
         {
+            // Every advanced filter setter funnels through here, so this is the
+            // one place that has to keep the collapsed row's badge honest.
+            OnPropertyChanged(nameof(ActiveFilterCount));
+            OnPropertyChanged(nameof(FiltersToggleLabel));
             CurrentPage = 1;
             Reload();
         }
@@ -771,6 +875,9 @@ namespace ProGlassAutomation.ViewModels.Inquiry
             OnPropertyChanged(nameof(SelectedSalesman)); OnPropertyChanged(nameof(SelectedPreparedBy));
             OnPropertyChanged(nameof(SelectedPriority)); OnPropertyChanged(nameof(SelectedSort));
             OnPropertyChanged(nameof(HasAttachmentsOnly)); OnPropertyChanged(nameof(HasActiveFilters));
+            // Reset clears the status by flipping the tabs' own flags, so the
+            // dropdown has to be told: it displays the tab, not the key.
+            OnPropertyChanged(nameof(SelectedStatusTab));
             ResetAndReload();
         }
 

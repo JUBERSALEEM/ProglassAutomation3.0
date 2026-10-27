@@ -1,57 +1,12 @@
 <UserControl x:Class="ProGlassAutomation.Inquiry.InquiryListView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
              Focusable="True"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
              TextOptions.TextFormattingMode="Display">
     <UserControl.Resources>
-        <!-- Status chip: BorderSubtle idle, AccentPrimary selected,
-             TextOnAccent on the selected label. -->
-        <Style x:Key="InquiryChipButton" TargetType="Button">
-            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="ClickMode" Value="Press" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Frame"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{DynamicResource BorderThicknessControl}"
-                                CornerRadius="{DynamicResource ChipCornerRadius}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StatePressed}" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="{DynamicResource DisabledText}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
         <!-- Same geometry contract as the client register: the cell and header
              templates are owned here so the theme cannot paint a rule per cell
              (which boxed every data row). Alignment comes from the cell — a
@@ -178,231 +133,270 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Dashboard header: accent pipeline card, three compact KPIs, and actions. -->
-        <Grid Grid.Row="0" Margin="{DynamicResource PaddingPage}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2.4*" />
-                <ColumnDefinition Width="0.9*" />
-                <ColumnDefinition Width="0.9*" />
-                <ColumnDefinition Width="0.9*" />
-                <ColumnDefinition Width="2.55*" />
-            </Grid.ColumnDefinitions>
-            <ContentControl Grid.Column="0" Style="{DynamicResource HeroCard}"
-                            Background="{DynamicResource AccentPrimary}"
-                            Margin="{DynamicResource PaddingCompact}">
-                <StackPanel VerticalAlignment="Stretch">
-                    <TextBlock Text="PROGLASS  ·  INQUIRIES" FontWeight="{DynamicResource FontWeightHeading}"
-                               Foreground="{DynamicResource TextOnAccent}" />
-                    <TextBlock Text="Filtered pipeline value" FontSize="{DynamicResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextOnAccent}" Margin="{DynamicResource MarginInline}" />
-                    <TextBlock Text="{Binding PipelineValueText}" FontSize="{DynamicResource FontSizeTitle}"
-                               FontWeight="{DynamicResource FontWeightHeading}"
-                               Foreground="{DynamicResource TextOnAccent}" Margin="{DynamicResource MarginInline}" />
-                    <TextBlock Text="Cancelled inquiries excluded" FontSize="{DynamicResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextOnAccent}" Margin="{DynamicResource MarginInline}" />
-                </StackPanel>
-            </ContentControl>
-            <ContentControl Grid.Column="1" Style="{DynamicResource MetricCard}" Margin="{DynamicResource PaddingCompact}">
-                <StackPanel>
-                    <TextBlock Text="Open" Style="{DynamicResource Caption}" />
-                    <TextBlock Text="{Binding OpenCount}" FontSize="{DynamicResource FontSizeSection}"
-                               FontWeight="{DynamicResource FontWeightHeading}" />
-                    <TextBlock Text="Received + prepared" Style="{DynamicResource Caption}" />
-                </StackPanel>
-            </ContentControl>
-            <ContentControl Grid.Column="2" Style="{DynamicResource MetricCard}" Margin="{DynamicResource PaddingCompact}">
-                <StackPanel>
-                    <TextBlock Text="Awaiting customer" Style="{DynamicResource Caption}" />
-                    <TextBlock Text="{Binding AwaitingCount}" FontSize="{DynamicResource FontSizeSection}"
-                               FontWeight="{DynamicResource FontWeightHeading}" />
-                    <TextBlock Text="Sent, waiting confirmation" Style="{DynamicResource Caption}" />
-                </StackPanel>
-            </ContentControl>
-            <ContentControl Grid.Column="3" Style="{DynamicResource MetricCard}" Margin="{DynamicResource PaddingCompact}">
-                <StackPanel>
-                    <TextBlock Text="Confirmed" Style="{DynamicResource Caption}" />
-                    <TextBlock Text="{Binding ConfirmedCount}" FontSize="{DynamicResource FontSizeSection}"
-                               FontWeight="{DynamicResource FontWeightHeading}" />
-                    <TextBlock Text="Ready to convert to PI" Style="{DynamicResource Caption}" />
-                </StackPanel>
-            </ContentControl>
-            <ContentControl Grid.Column="4" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingCompact}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <StackPanel Grid.Row="0" Margin="{DynamicResource PaddingCompact}">
-                        <TextBlock Text="Actions" Style="{DynamicResource Caption}" />
-                        <Button Content="＋  NEW INQUIRY" Style="{DynamicResource PrimaryButton}"
-                                Command="{Binding NewInquiryCommand}" HorizontalAlignment="Stretch"
-                                Margin="{DynamicResource PaddingCompact}" AutomationProperties.Name="New inquiry" />
-                    </StackPanel>
-                    <!-- Equal thirds, then the long inbox action on its own row.
-                         A WrapPanel sized every button to its label and dropped
-                         the last one onto an orphan line, which read as a
-                         collapsed stack of chips (owner feedback). -->
-                    <Grid Grid.Row="1" Margin="{DynamicResource PaddingCompact}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1*" />
-                            <ColumnDefinition Width="1*" />
-                            <ColumnDefinition Width="1*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Button Grid.Row="0" Grid.Column="0" Content="Refresh" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding RefreshCommand}"
-                                HorizontalAlignment="Stretch" Margin="{DynamicResource MarginInline}"
-                                AutomationProperties.Name="Refresh register" />
-                        <Button Grid.Row="0" Grid.Column="1" Content="Import" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding ImportCommand}"
-                                HorizontalAlignment="Stretch" Margin="{DynamicResource MarginInline}"
-                                AutomationProperties.Name="Import inquiries from CSV" />
-                        <Button Grid.Row="0" Grid.Column="2" Content="Export" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding ExportCommand}"
-                                HorizontalAlignment="Stretch" Margin="{DynamicResource MarginInline}"
-                                AutomationProperties.Name="Export inquiries to CSV" />
-                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
-                                Content="Import from website inbox" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding OpenInboxCommand}"
-                                HorizontalAlignment="Stretch" Margin="{DynamicResource MarginInline}"
-                                ToolTip="Open accepted website deliveries, verify/download files, then create local inquiries."
-                                AutomationProperties.Name="Open website inbox to import accepted deliveries" />
-                    </Grid>
-                </Grid>
-            </ContentControl>
-        </Grid>
+        <!-- ── One command bar ─────────────────────────────────────────
+             Owner direction: "apply same in inquiry page ... all received prepared
+             sent confirmed etc move to dropdown single section. same for proforma
+             invoice job order etc".
 
-        <!-- Full-width status segments. -->
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding StatusTabs}" Focusable="False"
-                      Margin="{DynamicResource PaddingPage}" AutomationProperties.Name="Inquiry status filters">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate><UniformGrid Columns="7" /></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Button Style="{StaticResource InquiryChipButton}"
-                            Command="{Binding DataContext.SelectStatusTabCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                            CommandParameter="{Binding Key}" Content="{Binding Label}"
-                            HorizontalAlignment="Stretch" AutomationProperties.Name="{Binding Label}" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+             What was here: a hero card carrying the pipeline value, three KPI
+             cards, a fourth card of five buttons, then a full-width strip of
+             seven status chips, then a strip of six module chips, then a card of
+             seven filter controls - five rows of chrome before the first row of
+             data. The register is the page; all of that is now one bar.
 
-        <!-- Module strip; future modules are intentionally disabled until their views exist. -->
-        <ItemsControl Grid.Row="2" ItemsSource="{Binding ModuleTabs}" Focusable="False"
-                      Margin="{DynamicResource PaddingPage}" AutomationProperties.Name="Inquiry module navigation">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate><UniformGrid Columns="6" /></ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Button Command="{Binding DataContext.SelectModuleTabCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                            CommandParameter="{Binding Key}" Content="{Binding Label}" HorizontalAlignment="Stretch">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource InquiryChipButton}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsPlanned}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+             Where everything went:
+               pipeline value + 3 KPI counts  -> one caption line (no cards)
+               seven status chips             -> the Status dropdown, with counts
+               six module chips               -> the Module dropdown, planned
+                                                 modules listed but inert
+               five action buttons            -> NEW INQUIRY + one overflow menu
+               seven filter controls          -> a Filters row that is collapsed
+                                                 until asked for (the button
+                                                 carries the active-filter count)
 
-        <!-- Single compact filter row, following the reference register layout. -->
-        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
-            <Grid>
+             Only contracted controls: Plate, Caption, ComboBox, TextBox, Button,
+             PrimaryButton, SubtleButton, CheckBox, ContextMenu, MenuItem,
+             ShellMark. No ComboBoxItem ItemContainerStyle is set, so the items
+             keep taking their template from whichever package is active. -->
+        <ContentControl Grid.Row="0" Style="{DynamicResource Plate}" Margin="{DynamicResource PaddingPage}">
+            <Grid Margin="{DynamicResource PaddingCompact}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.45*" />
-                    <ColumnDefinition Width="0.9*" />
-                    <ColumnDefinition Width="1*" />
-                    <ColumnDefinition Width="1*" />
-                    <ColumnDefinition Width="0.85*" />
-                    <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Search" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
-                    <TextBox Style="{DynamicResource {x:Type TextBox}}"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="Search by number, customer, project, salesman or preparer"
-                             AutomationProperties.Name="Search inquiries" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Date" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+
+                <!-- Status: one dropdown instead of seven full-width chips. The
+                     labels carry their own live count, so the register still says
+                     how much sits in each state without spending a row on it. -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center"
+                            Margin="{DynamicResource MarginInline}">
+                    <TextBlock Text="Status" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center"
+                               Margin="{DynamicResource MarginInline}" />
                     <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              Margin="{DynamicResource MarginInline}"
-                              MinWidth="{DynamicResource ControlMinWidth}"
+                              MinWidth="170"
+                              ItemsSource="{Binding StatusTabs}"
+                              SelectedItem="{Binding SelectedStatusTab, Mode=TwoWay}"
+                              DisplayMemberPath="LabelWithCount"
+                              ToolTip="Filter by status"
                               VerticalAlignment="Center"
-                              ItemsSource="{Binding DateRanges}"
-                              SelectedItem="{Binding SelectedDateRange}"
-                              AutomationProperties.Name="Received date range" />
+                              AutomationProperties.Name="Filter by status" />
                 </StackPanel>
-                <StackPanel Grid.Column="2" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Salesman" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
+
+                <!-- Module: the same dropdown idiom for the register set. A planned
+                     module is listed, painted muted, and refuses selection - the
+                     view model re-notifies its selection so the control snaps back
+                     instead of showing a module that is not routed anywhere. -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                            Margin="{DynamicResource MarginInline}">
+                    <TextBlock Text="Module" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center"
+                               Margin="{DynamicResource MarginInline}" />
                     <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              Margin="{DynamicResource MarginInline}"
-                              MinWidth="{DynamicResource ControlMinWidth}"
+                              MinWidth="185"
+                              ItemsSource="{Binding ModuleTabs}"
+                              SelectedItem="{Binding SelectedModuleTab, Mode=TwoWay}"
+                              ToolTip="Switch register"
                               VerticalAlignment="Center"
-                              ItemsSource="{Binding Salesmen}"
-                              SelectedItem="{Binding SelectedSalesman}"
-                              AutomationProperties.Name="Filter by salesman" />
+                              AutomationProperties.Name="Register module">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPlanned}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="  (soon)" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextMuted}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPlanned}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
-                <StackPanel Grid.Column="3" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Prepared by" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
-                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              Margin="{DynamicResource MarginInline}"
-                              MinWidth="{DynamicResource ControlMinWidth}"
-                              VerticalAlignment="Center"
-                              ItemsSource="{Binding PreparedByUsers}"
-                              SelectedItem="{Binding SelectedPreparedBy}"
-                              AutomationProperties.Name="Filter by preparer" />
+
+                <!-- Pipeline and counts as one sentence, plus the active-filter
+                     state, in the space the four cards used to take. -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                            Margin="{DynamicResource MarginInline}">
+                    <TextBlock Style="{DynamicResource Caption}" TextWrapping="Wrap"
+                               Margin="{DynamicResource MarginInline}">
+                        <Run Text="Pipeline " />
+                        <Run Text="{Binding PipelineValueText, Mode=OneWay}" FontWeight="{DynamicResource FontWeightHeading}" />
+                        <Run Text="  ·  " />
+                        <Run Text="{Binding OpenCount, Mode=OneWay}" />
+                        <Run Text=" open  ·  " />
+                        <Run Text="{Binding AwaitingCount, Mode=OneWay}" />
+                        <Run Text=" awaiting  ·  " />
+                        <Run Text="{Binding ConfirmedCount, Mode=OneWay}" />
+                        <Run Text=" confirmed" />
+                    </TextBlock>
                 </StackPanel>
-                <StackPanel Grid.Column="4" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Priority" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
-                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              Margin="{DynamicResource MarginInline}"
-                              MinWidth="{DynamicResource ControlMinWidth}"
-                              VerticalAlignment="Center"
-                              ItemsSource="{Binding Priorities}"
-                              SelectedItem="{Binding SelectedPriority}"
-                              AutomationProperties.Name="Filter by priority" />
+
+                <!-- One row of actions, every control on the same baseline. -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+
+                    <Grid Width="240" VerticalAlignment="Center"
+                          Margin="{DynamicResource MarginInline}">
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 VerticalAlignment="Center"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Search by number, customer, project, salesman or preparer"
+                                 AutomationProperties.Name="Search inquiries" />
+                        <TextBlock Text="Search inquiries…" IsHitTestVisible="False"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource PaddingCompact}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SearchText}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <!-- Advanced filters are one click away, never in the way. -->
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding ToggleFiltersCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            AutomationProperties.Name="Show or hide advanced filters">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Settings" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding FiltersToggleLabel}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{DynamicResource PrimaryButton}"
+                            Command="{Binding NewInquiryCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            AutomationProperties.Name="New inquiry">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Add" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                            <TextBlock Text="NEW INQUIRY" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Files and refresh: frequent enough to keep one click away,
+                         not frequent enough to own a row. -->
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Content="⋯"
+                            Click="OnMoreActionsClick"
+                            ToolTip="More actions"
+                            AutomationProperties.Name="More inquiry actions">
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{DynamicResource {x:Type ContextMenu}}">
+                                <MenuItem Header="Refresh" Command="{Binding RefreshCommand}" />
+                                <Separator />
+                                <MenuItem Header="Import inquiries from CSV…" Command="{Binding ImportCommand}" />
+                                <MenuItem Header="Export inquiries to CSV…" Command="{Binding ExportCommand}" />
+                                <MenuItem Header="Import from website inbox…" Command="{Binding OpenInboxCommand}" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </StackPanel>
-                <StackPanel Grid.Column="5" Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="Sort order" Style="{DynamicResource Caption}" Margin="{DynamicResource MarginInline}" />
-                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              Margin="{DynamicResource MarginInline}"
-                              MinWidth="{DynamicResource ControlMinWidth}"
-                              VerticalAlignment="Center"
-                              ItemsSource="{Binding SortOptions}"
-                              SelectedItem="{Binding SelectedSort}"
-                              AutomationProperties.Name="Sort order" />
-                </StackPanel>
-                <CheckBox Grid.Column="6" Style="{DynamicResource {x:Type CheckBox}}"
-                          Content="Has attachments" IsChecked="{Binding HasAttachmentsOnly}"
-                          VerticalAlignment="Center" Margin="{DynamicResource MarginInline}"
-                          AutomationProperties.Name="Only inquiries with attachments" />
-                <Button Grid.Column="7" Content="Reset" Style="{DynamicResource SubtleButton}"
-                        Command="{Binding ResetFiltersCommand}" Margin="{DynamicResource MarginInline}"
-                        AutomationProperties.Name="Reset filters" />
             </Grid>
         </ContentControl>
 
+        <!-- ── Advanced filters: collapsed until asked for ───────────────
+             Same seven controls the filter card held, in one row, with no card
+             and no labels above each control - each one names itself in its
+             tooltip and keeps its own placeholder text, so the row reads as a
+             line of controls rather than a form. -->
+        <Grid Grid.Row="1" Margin="{DynamicResource PaddingPage}">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding AreFiltersExpanded}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <ContentControl Style="{DynamicResource Plate}">
+                <UniformGrid Rows="1" Margin="{DynamicResource PaddingCompact}">
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  Margin="{DynamicResource MarginInline}"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding DateRanges}"
+                                  SelectedItem="{Binding SelectedDateRange}"
+                                  ToolTip="Received date range"
+                                  AutomationProperties.Name="Received date range" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  Margin="{DynamicResource MarginInline}"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding Salesmen}"
+                                  SelectedItem="{Binding SelectedSalesman}"
+                                  ToolTip="Filter by salesman"
+                                  AutomationProperties.Name="Filter by salesman" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  Margin="{DynamicResource MarginInline}"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding PreparedByUsers}"
+                                  SelectedItem="{Binding SelectedPreparedBy}"
+                                  ToolTip="Filter by preparer"
+                                  AutomationProperties.Name="Filter by preparer" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  Margin="{DynamicResource MarginInline}"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding Priorities}"
+                                  SelectedItem="{Binding SelectedPriority}"
+                                  ToolTip="Filter by priority"
+                                  AutomationProperties.Name="Filter by priority" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  Margin="{DynamicResource MarginInline}"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding SortOptions}"
+                                  SelectedItem="{Binding SelectedSort}"
+                                  ToolTip="Sort order"
+                                  AutomationProperties.Name="Sort order" />
+                        <CheckBox Style="{DynamicResource {x:Type CheckBox}}"
+                                  Content="Has attachments" IsChecked="{Binding HasAttachmentsOnly}"
+                                  VerticalAlignment="Center" Margin="{DynamicResource MarginInline}"
+                                  AutomationProperties.Name="Only inquiries with attachments" />
+                            <Button Content="Reset filters" Style="{DynamicResource SubtleButton}"
+                                    Command="{Binding ResetFiltersCommand}" Margin="{DynamicResource MarginInline}"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="Reset filters" />
+                </UniformGrid>
+            </ContentControl>
+        </Grid>
+
         <!-- ── Register: error surface + data grid + empty state ──── -->
-        <ContentControl Grid.Row="4" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
+        <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Margin="{DynamicResource PaddingPage}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -660,7 +654,7 @@
                                    FontWeight="{DynamicResource FontWeightHeading}"
                                    Foreground="{DynamicResource TextPrimary}"
                                    HorizontalAlignment="Center" />
-                        <TextBlock Text="Adjust the filters or create a new inquiry from the toolbar above."
+                        <TextBlock Text="Adjust the filters or create a new inquiry from the command bar above."
                                    Style="{DynamicResource Caption}"
                                    HorizontalAlignment="Center"
                                    Margin="{DynamicResource PaddingCompact}" />
@@ -674,7 +668,7 @@
         </ContentControl>
 
         <!-- ── Footer: status + pagination ────────────────────────── -->
-        <DockPanel Grid.Row="5" Margin="{DynamicResource PaddingPage}">
+        <DockPanel Grid.Row="3" Margin="{DynamicResource PaddingPage}">
             <Button DockPanel.Dock="Right" Content="Next page" Style="{DynamicResource SubtleButton}"
                     Command="{Binding NextPageCommand}" Margin="{DynamicResource MarginInline}"
                     AutomationProperties.Name="Next page" />

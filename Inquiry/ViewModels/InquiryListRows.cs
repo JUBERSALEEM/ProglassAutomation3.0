@@ -21,7 +21,19 @@ namespace ProGlassAutomation.ViewModels.Inquiry
         public string Key { get; init; } = "";
         public string Label { get; init; } = "";
         private int _count;
-        public int Count { get => _count; set { if (SetField(ref _count, value)) OnPropertyChanged(nameof(CountText)); } }
+        // LabelWithCount is what the status dropdown displays, so a count change
+        // must re-notify it too - the binding watches the property it reads, not
+        // the one behind it.
+        public int Count
+        {
+            get => _count;
+            set
+            {
+                if (!SetField(ref _count, value)) return;
+                OnPropertyChanged(nameof(CountText));
+                OnPropertyChanged(nameof(LabelWithCount));
+            }
+        }
         private bool _isSelected;
         public bool IsSelected { get => _isSelected; set { if (SetField(ref _isSelected, value)) OnPropertyChanged(nameof(LabelWithCount)); } }
         public string CountText => Count.ToString("N0", CultureInfo.CurrentCulture);
@@ -37,7 +49,16 @@ namespace ProGlassAutomation.ViewModels.Inquiry
     {
         public string Key { get; init; } = "";
         public string Label { get; init; } = "";
+
+        /// <summary>Planned modules are listed but cannot be selected yet.</summary>
         public bool IsPlanned { get; init; }
+
+        /// <summary>
+        /// ComboBox items disable themselves from this. A converter would work
+        /// here too, but this project has no app-level converter resources, and a
+        /// plain bool keeps the template free of one.
+        /// </summary>
+        public bool IsEnabled => !IsPlanned;
         private bool _isSelected;
         public bool IsSelected { get => _isSelected; set => SetField(ref _isSelected, value); }
     }

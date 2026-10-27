@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ProGlassAutomation.ViewModels.Inquiry;
@@ -14,6 +15,22 @@ public partial class InquiryListView : UserControl
     public InquiryListView()
     {
         InitializeComponent();
+    }
+
+    /// <summary>
+    /// Opens the command bar's overflow menu on a left click.
+    ///
+    /// A Button.ContextMenu only opens on right-click by its own wiring, so the
+    /// menu a user can see needs one line of code-behind to show it. The menu is
+    /// itself a themed ContextMenu with MenuItem children - no Popup, ToolBar or
+    /// Menu, none of which is in the theme contract.
+    /// </summary>
+    private void OnMoreActionsClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.ContextMenu == null) return;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.IsOpen = true;
+        e.Handled = true;
     }
 
     private void OnRowDoubleClick(object sender, MouseButtonEventArgs e)
