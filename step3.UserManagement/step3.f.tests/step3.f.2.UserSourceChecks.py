@@ -425,26 +425,61 @@ def require_layout_contract():
     check('<ColumnDefinition Width="*" MinWidth="0" />' in view,
           "the filter cluster must sit in a shrinkable column beside the actions")
 
-    # A2 — a dropdown must say what it filters, and the owner wants that wording
-    # ON the button rather than in a caption standing beside it (the Inquiry
-    # page's register dropdown reads that way). The theme owns the closed box's
-    # template, so the only text that reaches it is the selected item's, which is
-    # why the view model prefixes every filter entry with the field name and the
-    # toolbar no longer sets a caption next to these two boxes.
-    check('DepartmentFilterPrefix = "Department: "' in vm,
-          "the department filter must name its field on the button, not beside it")
-    check('RoleFilterPrefix = "Role: "' in vm,
-          "the role filter must name its field on the button, not beside it")
-    for prefix in ("DepartmentFilterPrefix", "RoleFilterPrefix"):
-        check(f"DisplayName = {prefix} + " in vm,
-              f"every {prefix} entry must carry the field name, including a chosen value")
+    # A2 — a filter shows its selection and nothing else. Two arrangements were
+    # rejected by the owner: a field caption standing beside the box, and the field
+    # name printed on the button ("Department: All"). What the box carries is the
+    # value — "All departments" / "All roles" when nothing is filtered, then the
+    # catalogue's own wording — so it is never blank and never a label.
+    check('"All departments"' in vm and '"All roles"' in vm,
+          "each filter needs an unfiltered row that says what it covers")
+    check('"Department: "' not in vm and '"Role: "' not in vm,
+          "the field name must not be printed on the filter buttons")
+    check("DepartmentFilters.Add(department);" in vm and "RoleFilters.Add(role);" in vm,
+          "filter rows must reuse the catalogue wording verbatim")
+    filter_body = vm[vm.index("private void ApplyCatalogueFilters("):]
+    next_member = filter_body.find("\n        private ", 10)
+    if next_member != -1:
+        filter_body = filter_body[:next_member]
+    literals = set(re.findall(r'DisplayName = ("[^"]*")', filter_body))
+    check(literals == {'"All departments"', '"All roles"'},
+          "the only labels the filters may invent are the two 'All …' rows; every "
+          f"other entry is the catalogue's own wording (found {sorted(literals)})")
     filter_start = view.index('<WrapPanel Grid.Column="0"')
     filter_end = view.index("</WrapPanel>", filter_start)
     filter_bar = view[filter_start:filter_end]
     check('Text="Department"' not in filter_bar,
-          "the department caption must sit on the button, not beside it")
+          "no caption may stand beside the department filter")
     check('Text="Role"' not in filter_bar,
-          "the role caption must sit on the button, not beside it")
+          "no caption may stand beside the role filter")
+
+    # A2b — a single action is a button, not an overflow menu. Refresh used to be
+    # the only item inside a "⋯" menu on the command bar, so the action took two
+    # clicks and read as a mystery. Row menus with two or more real choices are
+    # still allowed; the command bar may not hide an action at all.
+    bar_start = view.index('<ContentControl Grid.Row="0"')
+    bar_end = view.index("</ContentControl>", bar_start)
+    command_bar = view[bar_start:bar_end]
+    check("<ContextMenu" not in command_bar,
+          "the command bar must not hide its actions in a menu")
+    check('Command="{Binding RefreshCommand}"' in command_bar,
+          "refresh must be a visible button on the command bar")
+
+    # A2c — every page-level card pins one inset. `Card` ships PaddingCard and
+    # `Plate` ships PaddingPlate, and those differ inside the same theme (8–24 px
+    # were measured across the nine packages), which is why the table did not line
+    # up with the bar above it. Pinning UiCardPadding makes all nine themes equal.
+    for path in (MODULE / "step3.d.1.UserWorkspaceView.xaml",
+                 MODULE / "step3.d.2.UserEditorView.xaml"):
+        text = read(path)
+        for match in re.finditer(r'<ContentControl\b[^>]*>', text, flags=re.S):
+            tag = match.group(0)
+            is_card = 'Style="{DynamicResource Card}"' in tag
+            is_page_plate = 'Style="{DynamicResource Plate}"' in tag and 'Grid.Row="0"' in tag
+            if not (is_card or is_page_plate):
+                continue
+            check('Padding="{DynamicResource UiCardPadding}"' in tag,
+                  f"{path.name}: a page-level card must pin UiCardPadding, or its "
+                  "inset changes with the theme and stops matching its neighbours")
     for match in re.finditer(r"<ComboBox\b[^>]*>", view, flags=re.S):
         tag = match.group(0)
         if 'Filters}"' not in tag:

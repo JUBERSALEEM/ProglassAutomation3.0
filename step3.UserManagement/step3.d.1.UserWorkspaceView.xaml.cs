@@ -88,12 +88,6 @@ public partial class UserWorkspaceView : UserControl
     /// contents themselves are a themed ContextMenu with MenuItem children, both
     /// of which every package styles.
     /// </summary>
-    private void OnMoreActionsClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button button || button.ContextMenu == null) return;
-        button.ContextMenu.PlacementTarget = button;
-        button.ContextMenu.IsOpen = true;
-    }
 
     /// <summary>Same one-liner for the per-row menu inside the register.</summary>
     private void OnRowMenuClick(object sender, RoutedEventArgs e)

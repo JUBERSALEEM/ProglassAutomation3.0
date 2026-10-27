@@ -131,7 +131,14 @@ These rules are mandatory for every WPF view in this repository — existing and
 * Related controls **8**, separate groups **16**, form sections **20–24**, main content padding **24**.
 * Button internal horizontal padding **14–18**; gap between adjacent action buttons **8–12**; minimum interactive control height **36**.
 * These are design tokens, not numbers to retype. Use the contract tokens `UiGapField`, `UiGapGroup`, `UiGapSection`, `UiGapAction`, `UiGapCluster`, `UiPagePadding`, `UiCardPadding`, `UiActionMinHeight`, `UiActionPadding` (declared in `Theme/step1.a.ThemeEngine/step1.a.1.ThemeContract.cs` and defined in all eighteen theme dictionaries).
-* A spacing or size literal typed into an element is a defect even when it happens to look right. Theme-level metrics belong in a theme dictionary; layout gaps belong to the shared tokens above.
+* A spacing or size literal typed into an element is a defect even when it happens to look right.
+* Cards and plates on the same page share **one** inner inset. `Card`
+  (`PaddingCard`) and `Plate` (`PaddingPlate`) are themed separately and do not
+  agree — measured 8–24 px across the nine packages — so a page that mixes them
+  pins `UiCardPadding` on every one of its cards and pins nothing else; the cards
+  then line up with the same left and right edges in all nine themes. This is the
+  only permitted override of a themed card's padding.
+ Theme-level metrics belong in a theme dictionary; layout gaps belong to the shared tokens above.
 * Enforced by: `step1.d.3.verify_sources.py` (every `{DynamicResource …}` in a view must be a contract token) and `step1.d.5`/`step1.d.6` (nine packages, both modes, identical token sets).
 
 ### C. Responsive layout
@@ -161,12 +168,11 @@ These rules are mandatory for every WPF view in this repository — existing and
   placeholder — and its closed state must never be blank. A selection that cannot
   be resolved (bound before its list was loaded, say) is a defect, not a cosmetic
   detail: the operator cannot tell what the control does.
-* The caption may ride on the control instead of standing beside it: a closed
-  dropdown that reads "Department: Estimation" is labelled, and a caption next to
-  that box is redundant. If the label is on the control it must still name the
-  field after a value is chosen — a box that degrades to the bare value has lost
-  its label. The theme owns a ComboBox's closed-state template, so for one of
-  those the item text is the only place the wording can live.
+* A filter's face carries its **selection**, not its field name. Both a caption
+  standing beside the box and a field name printed on the button ("Department:
+  All") were rejected by the owner; the unfiltered row names what it covers ("All
+  departments", "All roles") so a closed box is never blank, and the control is
+  identified by its accessible name and tooltip.
 
 ### F. Sidebar and navigation integrity
 

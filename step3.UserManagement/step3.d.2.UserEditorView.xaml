@@ -54,9 +54,11 @@
         </Grid.RowDefinitions>
 
         <!-- Title strip -->
+        <!-- The banner and the card share the page's own edges: no extra margin
+             on either, so the editor lines up with the command bar and the
+             register it replaces in every theme. -->
         <ContentControl Grid.Row="0" Style="{DynamicResource HeroCard}"
-                        Background="{DynamicResource AccentPrimary}"
-                        Margin="{DynamicResource PaddingCompact}">
+                        Background="{DynamicResource AccentPrimary}">
             <StackPanel>
                 <TextBlock Text="{Binding Title}" FontSize="{DynamicResource FontSizeTitle}"
                            FontWeight="{DynamicResource FontWeightHeading}"
@@ -72,9 +74,10 @@
              being stretched to the window: a short form ends where the form
              ends, and the ScrollViewer inside still scrolls a long one. -->
         <ContentControl Grid.Row="1" Style="{DynamicResource Card}"
+                        Padding="{DynamicResource UiCardPadding}"
+                        Margin="{DynamicResource UiGapGroup}"
                         VerticalAlignment="Top"
-                        MaxWidth="900" HorizontalAlignment="Left"
-                        Margin="{DynamicResource PaddingCompact}">
+                        MaxWidth="900" HorizontalAlignment="Left">
             <!-- Fields and actions scroll as ONE column.
                  The first build put the fields in a `*` row and the footer in an
                  `Auto` row, so the fields grid stretched to fill whatever height
@@ -86,7 +89,7 @@
                  and nothing is clipped. -->
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="{DynamicResource PaddingCard}">
+                    <StackPanel>
 
                         <!-- ── Full name ──────────────────────────────── -->
                         <TextBlock Text="Full name *" Style="{StaticResource UserFieldLabel}" />

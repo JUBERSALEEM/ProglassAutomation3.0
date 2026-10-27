@@ -40,7 +40,16 @@ for view in consumer_xaml:
         if any(f"{{DynamicResource {role}}}" in style
                for role in ("Card", "HeroCard", "MetricCard", "Plate", "AccentPlate", "ElevatedPlate")):
             padding = element.attrib.get("Padding")
-            assert padding is None or padding == "{TemplateBinding Padding}", (view, element.attrib)
+            # A view may also pin the shared card inset. `Card` and `Plate` ship
+            # different paddings (PaddingCard vs PaddingPlate), so two cards on the
+            # same page could inset their contents differently and stop lining up;
+            # pinning UiCardPadding — one number, defined in every theme dictionary —
+            # makes sibling cards agree in all nine packages. Anything else is still
+            # a magic number and still banned.
+            assert padding is None or padding in (
+                "{TemplateBinding Padding}",
+                "{DynamicResource UiCardPadding}",
+            ), (view, element.attrib)
     text = view.read_text(encoding="utf-8")
     assert 'BasedOn="{StaticResource Card}"' not in text, view
     assert "CompactCard" not in text, view

@@ -87,13 +87,16 @@ identically in all eighteen theme dictionaries:
   column, actions in a content-sized column. A `WrapPanel` wraps instead of
   overflowing, so nothing can be drawn over anything at any width (including with
   the sidebar open), yet at normal width the whole bar reads as a single strip;
-- each filter carries its field name **on the button**: the closed box reads
-  "Department: All" / "Department: Estimation" and "Role: All" / "Role: Estimator",
-  so the label stays visible after a selection is made and no caption stands beside
-  the box. The wording is built in `ApplyCatalogueFilters` because the theme owns
-  the ComboBox's closed-state template; each filter keeps an accessible name and a
-  tooltip, and its selection is re-applied after the catalogue loads, so a closed
-  box is never blank;
+- each filter carries its **selection** on the button and no field name: the
+  closed box reads "All departments" / "All roles" until something is chosen, then
+  the catalogue's own wording ("Estimation", "Estimator"). No caption stands beside
+  the box, and each filter keeps an accessible name and a tooltip; its selection is
+  re-applied after the catalogue loads, so a closed box is never blank;
+- every card on the page pins `UiCardPadding` (16 px in all eighteen theme
+  dictionaries). `Card` and `Plate` ship different paddings per theme, which is what
+  made the register's table start a few pixels right of the bar above it;
+- the register's actions are buttons, not a one-item "⋯" menu: Edit, the status
+  action, Refresh and the single primary action all sit in the bar;
 - page padding is applied once on the view, so hidden message rows leave no gap;
 - action buttons are at least 36 px high, 8 px apart inside a cluster and 16 px
   apart between clusters;

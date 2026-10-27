@@ -245,14 +245,21 @@
              stacked strips of unrelated controls. This version keeps the safety
              of wrapping (both groups are WrapPanels, so a narrow window wraps
              instead of overlapping) while fitting on one line at normal width:
-             each dropdown carries its field name on its own face ("Department:
-             All"), the search box holds its own clear button, and the redundant
-             "Filters" reset button is gone — choosing Department: All or Role: All
-             already clears a filter.
+             each dropdown shows its selection on its own face with no field
+             label beside it, the search box holds its own clear button, and the
+             redundant "Filters" reset button is gone — choosing All departments or
+             All roles already clears a filter.
              ─────────────────────────────────────────────────────────────── -->
         <ContentControl Grid.Row="0" Style="{DynamicResource Plate}"
+                        Padding="{DynamicResource UiCardPadding}"
                         Margin="{DynamicResource UiGapGroup}">
-            <Grid Margin="{DynamicResource UiCardPadding}">
+            <!-- The inset comes from the card's own Padding, the same token the
+                 register card uses below it. `Plate` and `Card` ship different
+                 theme paddings (PaddingPlate vs PaddingCard), which is why the
+                 bar's content and the table's first column did not start on the
+                 same vertical line; setting both explicitly removes that
+                 difference in all nine themes. -->
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <!-- The flexible column. Its WrapPanel wraps, it never
                          overflows, so the action cluster on the right can never
@@ -322,16 +329,14 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Department filter. The field name is ON the button —
-                         the closed box reads "Department: All" or "Department:
-                         Estimation" — not in a caption standing beside it. One
-                         control, one hit target, and the wording survives a
-                         selection: after choosing a department the button still
-                         says what it filters. The label is built in
-                         ApplyCatalogueFilters, because the theme owns the closed
-                         box's template and only the item text reaches it. -->
+                    <!-- Department filter: the button carries the selection and
+                         nothing else — "All departments" before anything is
+                         chosen, then the team's own name. No field label is
+                         printed on the face and none stands beside the box; the
+                         control is identified by its accessible name, its tooltip
+                         and the list it opens. -->
                     <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              MinWidth="200"
+                              MinWidth="150"
                               MinHeight="{DynamicResource UiActionMinHeight}"
                               Margin="{DynamicResource UiGapAction}"
                               ItemsSource="{Binding DepartmentFilters}"
@@ -340,7 +345,7 @@
                               VerticalAlignment="Center"
                               ToolTip="Show only people from one department"
                               AutomationProperties.Name="Department filter"
-                              AutomationProperties.HelpText="The box names the field first, then the department being filtered; Department: All shows every department">
+                              AutomationProperties.HelpText="Filters the register by department; All departments shows every team">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
@@ -348,12 +353,12 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
-                    <!-- Role filter, same idiom: "Role: All" / "Role: Estimator"
-                         sits on the button. Role is what a person may do;
-                         department never is a permission, which is why both
-                         filters exist. -->
+                    <!-- Role filter, same idiom: the face shows the role or
+                         "All roles". Role is what a person may do; department
+                         never is a permission, which is why both filters
+                         exist. -->
                     <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              MinWidth="150"
+                              MinWidth="130"
                               MinHeight="{DynamicResource UiActionMinHeight}"
                               Margin="{DynamicResource UiGapAction}"
                               ItemsSource="{Binding RoleFilters}"
@@ -362,7 +367,7 @@
                               VerticalAlignment="Center"
                               ToolTip="Show only people with one role"
                               AutomationProperties.Name="Role filter"
-                              AutomationProperties.HelpText="The box names the field first, then the role being filtered; Role: All shows every role">
+                              AutomationProperties.HelpText="Filters the register by role; All roles shows every role">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
@@ -411,6 +416,27 @@
                         </StackPanel>
                     </Button>
 
+                    <!-- A three-dot menu holding one item was a menu for its own
+                         sake: it hid the only action behind a second click. Refresh
+                         is a plain button, named as an action. -->
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding RefreshCommand}"
+                            Margin="{DynamicResource UiGapAction}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            VerticalAlignment="Center"
+                            ToolTip="Reload the register from the database"
+                            AutomationProperties.Name="Refresh the register">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Refresh"
+                                              Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource UiGapAction}"
+                                              VerticalAlignment="Center" />
+                            <TextBlock Text="Refresh" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
                     <Button Style="{DynamicResource PrimaryButton}"
                             Command="{Binding NewUserCommand}"
                             Margin="{DynamicResource UiGapCluster}"
@@ -425,21 +451,6 @@
                                               Margin="{DynamicResource UiGapAction}" VerticalAlignment="Center" />
                             <TextBlock Text="NEW USER" VerticalAlignment="Center" />
                         </StackPanel>
-                    </Button>
-                    <Button Style="{StaticResource UserRowMenuButton}"
-                            Content="⋯"
-                            Click="OnMoreActionsClick"
-                            Width="{DynamicResource UiActionMinHeight}"
-                            Height="{DynamicResource UiActionMinHeight}"
-                            Margin="{DynamicResource UiGapAction}"
-                            VerticalAlignment="Center"
-                            ToolTip="Refresh the register"
-                            AutomationProperties.Name="More user actions">
-                        <Button.ContextMenu>
-                            <ContextMenu Style="{DynamicResource {x:Type ContextMenu}}">
-                                <MenuItem Header="Refresh" Command="{Binding RefreshCommand}" />
-                            </ContextMenu>
-                        </Button.ContextMenu>
                     </Button>
                 </WrapPanel>
             </Grid>
@@ -536,7 +547,8 @@
                         </Style.Triggers>
                     </Style>
                 </Grid.Style>
-                <ContentControl Style="{DynamicResource Card}">
+                <ContentControl Style="{DynamicResource Card}"
+                                Padding="{DynamicResource UiCardPadding}">
                     <DataGrid Style="{DynamicResource {x:Type DataGrid}}"
                               ItemsSource="{Binding Rows}"
                               SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
@@ -555,7 +567,7 @@
                               CanUserResizeColumns="True"
                               CanUserResizeRows="False"
                               MinColumnWidth="{DynamicResource ControlMinWidth}"
-                              Margin="{DynamicResource MarginItem}"
+                              Margin="0"
                               AutomationProperties.Name="User directory"
                               MouseDoubleClick="OnRowDoubleClick"
                               KeyDown="OnGridKeyDown">
@@ -680,7 +692,8 @@
                         </Style.Triggers>
                     </Style>
                 </Grid.Style>
-                <ContentControl Style="{DynamicResource Card}">
+                <ContentControl Style="{DynamicResource Card}"
+                                Padding="{DynamicResource UiCardPadding}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="{DynamicResource PaddingCard}" MaxWidth="620" HorizontalAlignment="Left">
                             <TextBlock Text="Register the first administrator"

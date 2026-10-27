@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 20: value-only filter faces, aligned cards, audit report
+
+- **Phase:** `step3` corrections from the owner's screenshot of the running build, plus a module audit.
+- **Before:** the filter buttons carried the field name on their faces ("Department: All"); the register card's table started a few pixels right of the bar above it, differently in each theme, because `Card` and `Plate` ship different paddings; the "⋯" button held a single Refresh item.
+- **Applied:** both filter faces now carry only the selection ("All departments" / "All roles" → the catalogue's own wording); every page-level card pins `UiCardPadding` (16 in all eighteen dictionaries) so the bar and the table share one left edge; the overflow menu is replaced by a named Refresh button between the status action and the primary action; the editor card lost its extra margin and doubled padding. `step3.f.2` gained checks for the value-only wording, "no hidden actions in the command bar" and "every page-level card pins the shared inset", all three mutation-tested. Rules B and E in `AGENTS.md` / `docs/00` updated.
+- **Also:** `docs/13.User-Management-Audit.md` — scope coverage (17 of 18 items implemented, 1 deferred by decision), the four fixed defects with measured causes, ranked open gaps, and what could not be verified.
+- **Verification:** nine portable checkers PASS. No compile and no rendered window here; the audit's runtime claims rest on the owner's screenshot.
+
+---
 ## 2026-10-27 — Round 19: filter field names on the button
 
 - **Phase:** `step3` correction reported by the owner after reviewing the bar.
