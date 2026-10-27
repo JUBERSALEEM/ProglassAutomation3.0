@@ -426,6 +426,29 @@ def require_command_namespace():
                   f"'{using_line}' (CS0246 on a real build)")
 
 
+def require_operator_lookup_uses_its_own_parameter():
+    """The operator lookup must normalize the name it was given (CS0103).
+
+    Splitting `FindUserRowAsync` into an own-context and an in-context overload
+    left `UserRules.UsernameKey(operatorUsername)` inside the overload whose
+    parameter is called `username`. That does not compile, and with no .NET SDK in
+    this environment only the owner's build could see it. This is where the rename
+    landed, so this is the line that is pinned.
+    """
+    repository = read(MODULE / "step3.b.4.UserRepository.cs")
+    signature = "UserDbContext db, string username, CancellationToken ct)"
+    start = repository.find(signature)
+    check(start >= 0, "the in-context operator lookup helper is missing")
+    if start < 0:
+        return
+    body = repository[start:start + 400]
+    check("UsernameKey(username)" in body,
+          "the operator lookup must normalize its own parameter; a stale "
+          "`operatorUsername` inside it does not compile (CS0103)")
+    check("UsernameKey(operatorUsername)" not in body,
+          "the operator lookup still references a name that is not in scope (CS0103)")
+
+
 def require_first_run_flow():
     """The first-run path must exist, be reachable before the app is used, and
     have exactly one implementation."""
@@ -786,6 +809,7 @@ def main():
     require_attribution_is_by_id()
     require_theme_contract()
     require_register_layout()
+    require_operator_lookup_uses_its_own_parameter()
     require_first_run_flow()
     require_command_namespace()
     require_layout_contract()

@@ -449,7 +449,7 @@ namespace ProGlassAutomation.Services.Users
                 if (!stored.IsEmpty && !UserPassword.Verify(currentPassword, stored))
                     return UserSaveResult.Fail("The current password is not correct.");
 
-                ApplyNewPassword(target, newPassword, DateTime.UtcNow, mustChange: false, actor.Id);
+                ApplyNewPassword(target, newPassword, DateTime.UtcNow, mustChange: false, operatorId: actor.Id);
 
                 await SqliteResilience.SaveWithRetryAsync(
                     token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
@@ -821,7 +821,6 @@ namespace ProGlassAutomation.Services.Users
 
         // ── Helpers ──────────────────────────────────────────────────────
 
-        /// <summary>The workstation account, from the application's one identity source.</summary>
         /// <summary>
         /// The account a write is attributed to: the user who signed in.
         /// </summary>
@@ -855,7 +854,7 @@ namespace ProGlassAutomation.Services.Users
         private static async Task<User?> FindUserRowAsync(
             UserDbContext db, string username, CancellationToken ct)
         {
-            string key = UserRules.UsernameKey(operatorUsername);
+            string key = UserRules.UsernameKey(username);
             if (key.Length == 0) return null;
             return await db.Users.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.NormalizedUsername == key, ct)
