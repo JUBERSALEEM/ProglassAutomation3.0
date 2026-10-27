@@ -7,7 +7,10 @@ public enum IconKind
 {
     Home, Theme, Texts, Colors, About, Marks,
     Appearance, Layout, Charts, Work, Settings, Author, Engineering, Components,
-    Inquiry
+    Inquiry,
+    // Shared action marks (step2 Client Management needed button icons; these are
+    // generic verbs, not client-specific, so they live in the one icon system).
+    Add, Edit, Refresh, Search, Save, Cancel
 }
 
 public enum IconMarkStyle
@@ -154,6 +157,14 @@ public static class IconService
             (IconKind.Components, true, _) => "M 12,3.2 L 20,7.2 L 12,11.2 L 4,7.2 Z",
             (IconKind.Inquiry, false, _) => "M 8,4.4 H 10 C 10,3.2 14,3.2 14,4.4 H 16 A 1.4,1.4 0 0 1 17.4,5.8 V 19 A 1.4,1.4 0 0 1 16,20.4 H 8 A 1.4,1.4 0 0 1 6.6,19 V 5.8 A 1.4,1.4 0 0 1 8,4.4 Z M 9.4,12.6 L 11.2,14.4 L 15,10.4",
             (IconKind.Inquiry, true, _) => "M 7.6,4.4 H 10 C 10,3 14,3 14,4.4 H 16.4 A 1.6,1.6 0 0 1 18,6 V 18.8 A 1.6,1.6 0 0 1 16.4,20.4 H 7.6 A 1.6,1.6 0 0 1 6,18.8 V 6 A 1.6,1.6 0 0 1 7.6,4.4 Z M 9.2,12.7 L 11.1,14.6 L 14.8,10.6 L 13.5,9.4 L 11.1,12.3 L 10.5,11.5 Z",
+            (IconKind.Add, false, _) => "M 12,5 V 19 M 5,12 H 19",
+            (IconKind.Add, true, _) => "M 10.4,4.4 H 13.6 V 10.4 H 19.6 V 13.6 H 13.6 V 19.6 H 10.4 V 13.6 H 4.4 V 10.4 H 10.4 Z",
+            (IconKind.Edit, _, _) => "M 4.2,19.8 L 4.9,16.2 L 16.1,5 L 19,7.9 L 7.8,19.1 Z M 14.6,6.5 L 17.5,9.4",
+            (IconKind.Refresh, _, _) => "M 19.4,12 A 7.4,7.4 0 1 1 17.2,6.6 M 19.8,4.2 V 8.4 H 15.6",
+            (IconKind.Search, _, _) => "M 10.8,4.4 A 6.4,6.4 0 1 1 10.79,4.4 Z M 15.6,15.6 L 20,20",
+            (IconKind.Save, false, _) => "M 4.8,5.2 H 16.2 L 19.2,8.2 V 18.8 H 4.8 Z M 8.2,5.2 V 9.8 H 15.4 V 5.2 M 8.2,18.8 V 13.4 H 15.8 V 18.8",
+            (IconKind.Save, true, _) => "M 4.8,5.2 H 16.2 L 19.2,8.2 V 18.8 H 4.8 Z M 8.6,6.2 V 9.4 H 14.6 V 6.2 Z M 8.6,13.2 H 15.4 V 18.4 H 8.6 Z",
+            (IconKind.Cancel, _, _) => "M 6.2,6.2 L 17.8,17.8 M 17.8,6.2 L 6.2,17.8",
             _ => "M 4,4 H 10.4 V 10.4 H 4 Z M 13.6,4 H 20 V 10.4 H 13.6 Z M 4,13.6 H 10.4 V 20 H 4 Z M 13.6,13.6 H 20 V 20 H 13.6 Z"
         };
         var geometry = Geometry.Parse(data);
