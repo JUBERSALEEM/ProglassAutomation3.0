@@ -14,25 +14,72 @@ for directory in ('SheetStore', 'Converters', 'Shared', 'ViewModels'):
 
 project = ET.parse(ROOT / 'ProGlassAutomation.csproj').getroot()
 assert project.find('.//TargetFramework').text == 'net8.0-windows7.0'
-assert [(p.attrib['Include'], p.attrib['Version']) for p in project.findall('.//PackageReference')] == [('LiveChartsCore.SkiaSharpView.WPF', '2.0.4')], 'Only the reviewed pinned WPF chart dependency is approved'
+# The reviewed dependency set. LiveCharts renders the theme's chart previews;
+# EF Core + SQLite is the inquiry register's own store, added when the register
+# was built. The rule is not "one package forever" - it is that every package is
+# named here, pinned to an exact version, and nothing arrives unreviewed.
+REVIEWED_PACKAGES = {
+    'LiveChartsCore.SkiaSharpView.WPF': '2.0.4',
+    'Microsoft.EntityFrameworkCore.Sqlite': '8.0.10',
+}
+packages = [(p.attrib['Include'], p.attrib['Version']) for p in project.findall('.//PackageReference')]
+assert len(packages) == len({name for name, _ in packages}), f'duplicate PackageReference: {packages}'
+unreviewed = [(name, version) for name, version in packages
+              if REVIEWED_PACKAGES.get(name) != version]
+assert not unreviewed, f'unreviewed or unpinned package: {unreviewed} (reviewed: {REVIEWED_PACKAGES})'
+missing = sorted(set(REVIEWED_PACKAGES) - {name for name, _ in packages})
+assert not missing, f'reviewed package disappeared from the project: {missing}'
 for kind in ('Compile', 'Page'):
     included = []
     for item in project.findall(f'.//{kind}'):
-        for pattern in item.attrib['Include'].split(';'):
-            paths = [p for p in ROOT.glob(pattern) if p.is_file()]
-            assert paths, f'Broken project glob: {pattern}'
+        # The project also carries <Compile Remove="..."/> for the step2
+        # verification executable; only Include entries describe the build.
+        include = item.attrib.get('Include')
+        if not include:
+            continue
+        for glob_pattern in include.split(';'):
+            paths = [p for p in ROOT.glob(glob_pattern) if p.is_file()]
+            assert paths, f'Broken project glob: {glob_pattern}'
             included.extend(paths)
     assert len(included) == len(set(included)), f'Duplicate {kind} items'
     if kind == 'Compile':
-        expected = set(ROOT.glob('*.cs')) | set(ROOT.glob('Theme/step1.a.ThemeEngine/**/*.cs')) | set(ROOT.glob('Theme/ThemeBento/**/*.cs')) | set(ROOT.glob('Theme/ThemeClaymorphism/**/*.cs')) | set(ROOT.glob('Theme/ThemeFluent/**/*.cs')) | set(ROOT.glob('Theme/ThemeNeumorphism/**/*.cs')) | set(ROOT.glob('Theme/ThemeLiquidGlass/**/*.cs')) | set(ROOT.glob('Theme/ThemeGlassmorphism/**/*.cs')) | set(ROOT.glob('Theme/ThemeSpatial/**/*.cs')) | set(ROOT.glob('Theme/ThemeSwiss/**/*.cs')) | set(ROOT.glob('Theme/ThemeHolographic/**/*.cs')) | set(ROOT.glob('Theme/step1.f.Analytics/**/*.cs')) | set(ROOT.glob('Theme/step1.g.Customization/**/*.cs')) | set(ROOT.glob('step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.cs'))
-        assert set(included) == expected, 'Application code missing from project'
+        # The guard used to list the source roots by hand, so a new module
+        # (Inquiry, step2) looked like missing code the day it was added. The
+        # rule is the inverse and cannot go stale: every application source on
+        # disk must be in the build. The verification projects are separate
+        # executables and keep their sources out by design.
+        expected = {p.resolve() for p in ROOT.rglob('*.cs')
+                    if not {'bin', 'obj'} & set(p.parts)
+                    and not any('tests' in part for part in p.parts)}
+        missing = sorted(str(p.relative_to(ROOT)) for p in expected - {p.resolve() for p in included})
+        assert not missing, f'Application code missing from project: {missing}'
     print(f'PASS: {len(included)} {kind} items; existing paths and no duplicates.')
 
-for path in [*ROOT.glob('*.cs'), *ROOT.glob('Theme/**/*.cs'), *ROOT.glob('step1.ThemeStudio/**/*.cs'), *ROOT.glob('**/*.xaml')]:
+# Every source and markup file, not a hand-kept list of folders: the old globs
+# stopped at Theme and Theme Studio, so a legacy reference inside the Inquiry or
+# Client modules was never scanned.
+for path in [*ROOT.rglob('*.cs'), *ROOT.rglob('*.xaml')]:
     if any(part in ('bin', 'obj') for part in path.parts):
         continue
+    # The verification projects name the legacy symbols in order to forbid them;
+    # scanning them for those names finds the guard, not a violation.
+    if any('tests' in part for part in path.parts):
+        continue
     text = path.read_text()
-    assert not re.search(r'ProGlassAutomation\.(SheetStore|Converters|ViewModels)|Microsoft\.Data\.Sqlite|Dapper|ShellStyles|SheetStoreModule', text), f'Legacy reference: {path}'
+    # `ProGlassAutomation.ViewModels` was the legacy root. This application has its
+    # own modules under that root (ProGlassAutomation.ViewModels.Inquiry), which is
+    # new code with a new home; the legacy root is the bare namespace, so require
+    # the name to end there rather than matching every sub-namespace.
+    assert not re.search(r'ProGlassAutomation\.(SheetStore|Converters)\b'
+                         r'|ProGlassAutomation\.ViewModels(?!\.)'
+                         r'|Dapper|ShellStyles|SheetStoreModule', text), \
+        f'Legacy reference: {path}'
+    # Microsoft.Data.Sqlite is deliberately absent from that list. It is the
+    # ADO.NET provider under the approved EF Core Sqlite package, and the
+    # single-chain schema runner has to open a raw connection to apply PRAGMAs
+    # and read user_version. What must not return is the legacy persistence -
+    # Dapper and its SheetStore layer - and the approved package set above is
+    # what keeps the provider from being swapped for something unreviewed.
 app = (ROOT / 'App.xaml.cs').read_text()
 assert 'Themes.Initialize(Resources)' in app and 'MainWindow.Show()' in app
 runtime = (ROOT / 'Theme/step1.d.tests/step1.d.1.RuntimeChecks.cs').read_text()

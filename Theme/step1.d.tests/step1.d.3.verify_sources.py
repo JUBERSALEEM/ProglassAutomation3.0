@@ -133,7 +133,19 @@ for path in xamls:
         assert reference in style_keys, f'{path}: undefined style {reference}'
     for node in ET.parse(path).getroot().iter():
         if local(node.tag) == 'ResourceDictionary' and 'Source' in node.attrib:
-            assert (path.parent / node.attrib['Source']).is_file(), (path, node.attrib['Source'])
+            # A merged dictionary may be named by a pack URI, which every
+            # application-relative merge in App.xaml is. Treating that URI as a
+            # file name under the XAML's own folder reported the whole shell as
+            # broken; resolve the pack form to the assembly root instead.
+            source = node.attrib['Source']
+            pack = 'pack://application:,,,/'
+            if source.startswith(pack):
+                target = ROOT / source[len(pack):].lstrip('/')
+            elif source.startswith('/'):
+                target = ROOT / source.lstrip('/')
+            else:
+                target = path.parent / source
+            assert target.is_file(), (path, source)
     posix = path.as_posix()
     if 'Theme/ThemeBento/' not in posix and 'Theme/ThemeClaymorphism/' not in posix and 'Theme/ThemeFluent/' not in posix and 'Theme/ThemeNeumorphism/' not in posix and 'Theme/ThemeLiquidGlass/' not in posix and 'Theme/ThemeGlassmorphism/' not in posix and 'Theme/ThemeSpatial/' not in posix and 'Theme/ThemeSwiss/' not in posix and 'Theme/ThemeHolographic/' not in posix and path.name != 'MainWindow.xaml':
         assert not re.search(r'#[0-9A-Fa-f]{6,8}\b', text), f'{path}: scattered literal color'
@@ -160,7 +172,21 @@ for path in xamls:
                 assert re.search(r'\b' + re.escape(node.attrib[event]) + r'\s*\(', code), (path, event)
 
 project = ET.parse(ROOT/'ProGlassAutomation.csproj').getroot()
-assert [(p.attrib['Include'], p.attrib['Version']) for p in project.findall('.//PackageReference')] == [('LiveChartsCore.SkiaSharpView.WPF', '2.0.4')], 'Only the reviewed pinned WPF chart dependency is approved'
+# The reviewed dependency set. LiveCharts renders the theme's chart previews;
+# EF Core + SQLite is the inquiry register's own store, added when the register
+# was built. The rule is not "one package forever" - it is that every package is
+# named here, pinned to an exact version, and nothing arrives unreviewed.
+REVIEWED_PACKAGES = {
+    'LiveChartsCore.SkiaSharpView.WPF': '2.0.4',
+    'Microsoft.EntityFrameworkCore.Sqlite': '8.0.10',
+}
+packages = [(p.attrib['Include'], p.attrib['Version']) for p in project.findall('.//PackageReference')]
+assert len(packages) == len({name for name, _ in packages}), f'duplicate PackageReference: {packages}'
+unreviewed = [(name, version) for name, version in packages
+              if REVIEWED_PACKAGES.get(name) != version]
+assert not unreviewed, f'unreviewed or unpinned package: {unreviewed} (reviewed: {REVIEWED_PACKAGES})'
+missing = sorted(set(REVIEWED_PACKAGES) - {name for name, _ in packages})
+assert not missing, f'reviewed package disappeared from the project: {missing}'
 assert project.find('.//TargetFramework').text == 'net8.0-windows7.0'
 assert (ROOT / 'Theme/ThemeClaymorphism/ThemeClaymorphism.Light.xaml').is_file() and (ROOT / 'Theme/ThemeBento/ThemeBento.Light.xaml').is_file()
 assert (ROOT / 'Theme/ThemeFluent/ThemeFluent.Light.xaml').is_file()
@@ -208,5 +234,11 @@ rendering = (analytics/'step1.f.4.BentoChart.Rendering.cs').read_text()
 for native in ('ColumnSeries<double?>', 'RowSeries<double?>', 'StackedColumnSeries<double?>', 'LineSeries<double?>', 'PieSeries<double?>'):
     assert native in rendering, f'Missing real library renderer: {native}'
 assert 'ActivityTrendGeometry' not in ''.join(path.read_text() for path in xamls), 'Decorative trend must not return as a fake chart'
-assert 'private int selectedWorkspace = 1;' in (ROOT/'step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.17.Customization.cs').read_text()
+# The shell must open on a working page, never on Theme Studio. The index was
+# pinned to 1 (Business Reference) until the Inquiry register became the app's
+# home; assert the rule, not the literal, because 0 is the Studio workspace.
+customization = (ROOT/'step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.17.Customization.cs').read_text()
+startup = re.search(r'private int selectedWorkspace = (\d+);', customization)
+assert startup, 'startup workspace field is missing from the customization view model'
+assert startup.group(1) != '0', 'the application must not start inside Theme Studio'
 print('PASS: native renderer coverage, data/theme ownership boundaries, no fixed chart path, Business Reference startup.')

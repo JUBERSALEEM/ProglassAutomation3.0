@@ -299,6 +299,14 @@ assert 'ItemsSource="{Binding ModuleTabs}"' in list_xaml, \
     "the module filter is a dropdown bound to ModuleTabs"
 assert 'SelectedItem="{Binding SelectedModuleTab, Mode=TwoWay}"' in list_xaml, \
     "the module dropdown must be two-way bound"
+# The closed selection box is a ContentPresenter over SelectionBoxItem, templated
+# by SelectionBoxItemTemplate. DisplayMemberPath never fills that template, so a
+# dropdown of objects printed its type name in the bar. ItemTemplate is the fix.
+assert 'DisplayMemberPath="LabelWithCount"' not in list_xaml, \
+    "DisplayMemberPath leaves the closed box printing the type name"
+assert '<TextBlock Text="{Binding LabelWithCount}"' in list_xaml, \
+    "the status dropdown template must show the label and its count"
+
 assert list_xaml.count('<UniformGrid Columns="7"') == 0, \
     "the seven-way status chip strip is gone"
 assert list_xaml.count('<UniformGrid Columns="6"') == 0, \
@@ -338,6 +346,19 @@ assert list_xaml.count('Text="{Binding PageStatus}"') == 1, \
 assert 'OnMoreActionsClick' in list_xaml, "the overflow menu needs a handler, or it only opens on right-click"
 code_behind = (ROOT / "Inquiry/Views/InquiryListView.xaml.cs").read_text(encoding="utf-8")
 assert 'private void OnMoreActionsClick(' in code_behind, "OnMoreActionsClick is not implemented"
+
+# ── XAML contract: a dropdown must be able to render its own selection ────
+# DisplayMemberPath is fine on a ListBox, which never shows a selection box.
+# On a ComboBox it leaves SelectionBoxItemTemplate empty and the closed control
+# prints the item's type name - which is exactly what the status filter did.
+for xaml_path in sorted(ROOT.rglob("*.xaml")):
+    if {"bin", "obj", "tests"} & set(xaml_path.parts):
+        continue
+    for element in ET.parse(xaml_path).getroot().iter():
+        if element.tag.endswith("}ComboBox") and "DisplayMemberPath" in element.attrib:
+            raise AssertionError(
+                f"{xaml_path.relative_to(ROOT)}: ComboBox uses DisplayMemberPath, "
+                "which leaves the closed box showing the type name - use ItemTemplate")
 
 # ── Compile safety: the WPF namespaces the code assumes ────────────────────
 # Nothing here can build WPF, so the owner's MSBuild is the only compiler. That

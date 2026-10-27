@@ -183,10 +183,19 @@
                               MinWidth="170"
                               ItemsSource="{Binding StatusTabs}"
                               SelectedItem="{Binding SelectedStatusTab, Mode=TwoWay}"
-                              DisplayMemberPath="LabelWithCount"
                               ToolTip="Filter by status"
                               VerticalAlignment="Center"
-                              AutomationProperties.Name="Filter by status" />
+                              AutomationProperties.Name="Filter by status">
+                        <!-- The closed box renders SelectionBoxItem through
+                             SelectionBoxItemTemplate; DisplayMemberPath produces
+                             no such template, so the box would print the type
+                             name (ProGlassAutomation...InquiryStatusTab). -->
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding LabelWithCount}" VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
 
                 <!-- Module: the same dropdown idiom for the register set. A planned
