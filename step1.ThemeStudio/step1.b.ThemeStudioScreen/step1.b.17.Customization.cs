@@ -362,7 +362,7 @@ public sealed partial class ThemeStudioViewModel
         get => selectedWorkspace;
         set
         {
-            if (value is >= 0 and <= 7)
+            if (value is >= 0 and <= 8)
             {
                 selectedWorkspace = value;
                 Changed(nameof(SelectedWorkspace));
@@ -374,6 +374,7 @@ public sealed partial class ThemeStudioViewModel
                 Changed(nameof(IsAbout));
                 Changed(nameof(IsIcons));
                 Changed(nameof(IsPages));
+                Changed(nameof(IsClients));
                 Changed(nameof(WorkspaceTitle));
                 Changed(nameof(WorkspaceSubtitle));
                 Changed(nameof(WorkspaceIcon));
@@ -388,6 +389,9 @@ public sealed partial class ThemeStudioViewModel
     public bool IsAbout { get => selectedWorkspace == 5; set { if (value) SelectedWorkspace = 5; } }
     public bool IsIcons { get => selectedWorkspace == 6; set { if (value) SelectedWorkspace = 6; } }
     public bool IsPages { get => selectedWorkspace == 7; set { if (value) SelectedWorkspace = 7; } }
+    /// <summary>step2 Client Management workspace (index 8; appended so the
+    /// existing workspace indexes 0–7 keep their meaning).</summary>
+    public bool IsClients { get => selectedWorkspace == 8; set { if (value) SelectedWorkspace = 8; } }
     public IconKind WorkspaceIcon => selectedWorkspace switch
     {
         0 => IconKind.Theme,
@@ -398,6 +402,7 @@ public sealed partial class ThemeStudioViewModel
         5 => IconKind.About,
         6 => IconKind.Marks,
         7 => IconKind.Layout,
+        8 => IconKind.Author,
         _ => IconKind.Home
     };
     public string WorkspaceTitle => selectedWorkspace switch
@@ -410,6 +415,7 @@ public sealed partial class ThemeStudioViewModel
         5 => "About",
         6 => "Icons Studio",
         7 => "Pages Studio",
+        8 => "Clients",
         _ => "Home"
     };
     public string WorkspaceSubtitle => selectedWorkspace switch
@@ -422,6 +428,7 @@ public sealed partial class ThemeStudioViewModel
         5 => "Settings · Product and credits",
         6 => "Settings · Navigation marks",
         7 => "Settings · Page sizing",
+        8 => "Business · Client directory",
         _ => "Home"
     };
     public bool IsMenuOpen { get => isMenuOpen; set { isMenuOpen = value; Changed(nameof(IsMenuOpen)); } }
@@ -438,6 +445,7 @@ public sealed partial class ThemeStudioViewModel
     public ICommand ShowIcons { get; private set; } = null!;
     public ICommand ResetIcons { get; private set; } = null!;
     public ICommand ShowPages { get; private set; } = null!;
+    public ICommand ShowClients { get; private set; } = null!;
     public ICommand ResetPages { get; private set; } = null!;
     public ICommand SelectColorPlate { get; private set; } = null!;
     public ICommand ApplyPreview { get; private set; } = null!;
@@ -510,6 +518,7 @@ public sealed partial class ThemeStudioViewModel
         ShowAbout = new DelegateCommand(() => SelectedWorkspace = 5);
         ShowIcons = new DelegateCommand(() => SelectedWorkspace = 6);
         ShowPages = new DelegateCommand(() => SelectedWorkspace = 7);
+        ShowClients = new DelegateCommand(() => SelectedWorkspace = 8);
         SelectColorPlate = new DelegateCommand<string>(name => { if (!string.IsNullOrWhiteSpace(name)) SelectedColorPlate = name; });
         ApplyPreview = new DelegateCommand(() => { try { themes.Apply(SelectedTheme, themes.ActiveAppearance, LiveConfigure()); ThemeError=""; Feedback="Preview applied — unsaved changes present."; } catch(Exception ex){ ThemeError=ex.Message; } Changed(nameof(ThemeError)); }, () => CanCustomize || CanCustomizeGeometry);
         SaveCustomization = new DelegateCommand(() =>

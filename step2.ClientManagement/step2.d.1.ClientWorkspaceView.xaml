@@ -1,0 +1,327 @@
+<UserControl x:Class="ProGlassAutomation.Clients.ClientWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:clients="clr-namespace:ProGlassAutomation.Clients"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         step2 — Client Management workspace.
+
+         Theme rules obeyed by this view (docs/02 + step1.d.11):
+           • every colour, brush, metric, radius and font comes from the
+             shared contract through DynamicResource — no literals;
+           • theme-owned card roles (Card / HeroCard / MetricCard) are looked
+             up dynamically and never BasedOn a StaticResource;
+           • controls with theme-owned templates (TextBox, ComboBox, CheckBox,
+             DataGrid) bind the active implicit style explicitly, so a theme
+             switch replaces the template as well as the tokens;
+           • visibility is driven by Style DataTriggers, so no converter or
+             code-behind is needed for the register/editor switch.
+
+         One view serves all nine installed themes in Light and Dark. It has
+         no theme-specific branch and adds nothing to any theme package.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <Style x:Key="ClientNameCell" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="ClientMonoCell" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ── Header: identity, counters, primary actions ─────────────── -->
+        <Grid Grid.Row="0" Margin="{DynamicResource PaddingPage}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2.6*" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="2.4*" />
+            </Grid.ColumnDefinitions>
+
+            <ContentControl Grid.Column="0" Style="{DynamicResource HeroCard}"
+                            Background="{DynamicResource AccentPrimary}"
+                            Margin="{DynamicResource PaddingCompact}">
+                <StackPanel>
+                    <TextBlock Text="PROGLASS  ·  CLIENTS" FontWeight="{DynamicResource FontWeightHeading}"
+                               Foreground="{DynamicResource TextOnAccent}" />
+                    <TextBlock Text="Customer directory" FontSize="{DynamicResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextOnAccent}"
+                               Margin="{DynamicResource MarginInline}" />
+                    <TextBlock Text="{Binding RegisterSummary}" FontSize="{DynamicResource FontSizeTitle}"
+                               FontWeight="{DynamicResource FontWeightHeading}"
+                               Foreground="{DynamicResource TextOnAccent}"
+                               Margin="{DynamicResource MarginInline}" />
+                    <TextBlock Text="Inactive clients stay in the directory for history and reporting."
+                               FontSize="{DynamicResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextOnAccent}"
+                               TextWrapping="Wrap"
+                               Margin="{DynamicResource MarginInline}" />
+                </StackPanel>
+            </ContentControl>
+
+            <ContentControl Grid.Column="1" Style="{DynamicResource MetricCard}"
+                            Margin="{DynamicResource PaddingCompact}">
+                <StackPanel>
+                    <TextBlock Text="Active" Style="{DynamicResource Caption}" />
+                    <TextBlock Text="{Binding ActiveCount}" FontSize="{DynamicResource FontSizeSection}"
+                               FontWeight="{DynamicResource FontWeightHeading}" />
+                    <TextBlock Text="Available for current work" Style="{DynamicResource Caption}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </ContentControl>
+
+            <ContentControl Grid.Column="2" Style="{DynamicResource MetricCard}"
+                            Margin="{DynamicResource PaddingCompact}">
+                <StackPanel>
+                    <TextBlock Text="Inactive" Style="{DynamicResource Caption}" />
+                    <TextBlock Text="{Binding InactiveCount}" FontSize="{DynamicResource FontSizeSection}"
+                               FontWeight="{DynamicResource FontWeightHeading}" />
+                    <TextBlock Text="Kept for history" Style="{DynamicResource Caption}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </ContentControl>
+
+            <ContentControl Grid.Column="3" Style="{DynamicResource Card}"
+                            Margin="{DynamicResource PaddingCompact}">
+                <StackPanel Margin="{DynamicResource PaddingCompact}">
+                    <TextBlock Text="Actions" Style="{DynamicResource Caption}" />
+                    <Button Content="＋  NEW CLIENT" Style="{DynamicResource PrimaryButton}"
+                            Command="{Binding NewClientCommand}" HorizontalAlignment="Stretch"
+                            Margin="{DynamicResource PaddingCompact}"
+                            AutomationProperties.Name="New client" />
+                    <WrapPanel>
+                        <Button Content="Edit" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding EditSelectedCommand}"
+                                Margin="{DynamicResource MarginInline}"
+                                IsEnabled="{Binding HasSelection}"
+                                AutomationProperties.Name="Edit selected client" />
+                        <Button Content="Refresh" Style="{DynamicResource SubtleButton}"
+                                Command="{Binding RefreshCommand}"
+                                Margin="{DynamicResource MarginInline}"
+                                AutomationProperties.Name="Refresh client list" />
+                    </WrapPanel>
+                </StackPanel>
+            </ContentControl>
+        </Grid>
+
+        <!-- ── Search / filter row (hidden while editing) ─────────────── -->
+        <Grid Grid.Row="1" Margin="{DynamicResource PaddingPage}">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <ContentControl Style="{DynamicResource Card}">
+                <Grid Margin="{DynamicResource PaddingCompact}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2.4*" />
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Search" Style="{DynamicResource Caption}"
+                                   Margin="{DynamicResource MarginInline}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Search by name, contact, phone, e-mail, TRN or address"
+                                 AutomationProperties.Name="Search clients" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="Show" Style="{DynamicResource Caption}"
+                                   Margin="{DynamicResource MarginInline}" />
+                        <CheckBox Style="{DynamicResource {x:Type CheckBox}}"
+                                  Content="Include inactive"
+                                  IsChecked="{Binding IncludeInactive}"
+                                  VerticalAlignment="Center"
+                                  AutomationProperties.Name="Include inactive clients" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Content="Clear search"
+                            Style="{DynamicResource SubtleButton}"
+                            Command="{Binding ClearSearchCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            VerticalAlignment="Bottom"
+                            AutomationProperties.Name="Clear search" />
+                </Grid>
+            </ContentControl>
+        </Grid>
+
+        <!-- ── Register (list) and editor share row 2 ─────────────────── -->
+        <Grid Grid.Row="2" Margin="{DynamicResource PaddingPage}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Error surface: failures are shown, never swallowed. -->
+            <Border Grid.Row="0" Background="{DynamicResource StatusErrorSurface}"
+                    BorderBrush="{DynamicResource StatusError}"
+                    BorderThickness="{DynamicResource BorderThicknessControl}"
+                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                    Margin="{DynamicResource MarginItem}"
+                    Padding="{DynamicResource PaddingControl}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasError}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StatusError}"
+                           TextWrapping="Wrap" AutomationProperties.Name="Client error" />
+            </Border>
+
+            <!-- Status line -->
+            <Border Grid.Row="1" Background="{DynamicResource StatusInformationSurface}"
+                    BorderBrush="{DynamicResource BorderSubtle}"
+                    BorderThickness="{DynamicResource BorderThicknessControl}"
+                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                    Margin="{DynamicResource MarginItem}"
+                    Padding="{DynamicResource PaddingControl}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasStatus}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"
+                           TextWrapping="Wrap" AutomationProperties.Name="Client status" />
+            </Border>
+
+            <!-- Register card -->
+            <Grid Grid.Row="2">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <ContentControl Style="{DynamicResource Card}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <DataGrid Grid.Row="0" Style="{DynamicResource {x:Type DataGrid}}"
+                                  ItemsSource="{Binding Rows}"
+                                  SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  SelectionMode="Single"
+                                  SelectionUnit="FullRow"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  CanUserReorderColumns="False"
+                                  CanUserSortColumns="False"
+                                  HeadersVisibility="Column"
+                                  Margin="{DynamicResource MarginItem}"
+                                  AutomationProperties.Name="Client directory"
+                                  MouseDoubleClick="OnRowDoubleClick"
+                                  KeyDown="OnGridKeyDown">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Client" Binding="{Binding ClientName}" Width="2*"
+                                                    ElementStyle="{StaticResource ClientNameCell}" />
+                                <DataGridTextColumn Header="Contact" Binding="{Binding ContactPerson}" Width="1.2*" />
+                                <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="1*"
+                                                    ElementStyle="{StaticResource ClientMonoCell}" />
+                                <DataGridTextColumn Header="E-mail" Binding="{Binding Email}" Width="1.4*" />
+                                <DataGridTextColumn Header="TRN" Binding="{Binding Trn}" Width="0.9*"
+                                                    ElementStyle="{StaticResource ClientMonoCell}" />
+                                <DataGridTemplateColumn Header="Status" Width="0.8*" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{DynamicResource StatusBadge}"
+                                                    Tag="{Binding StatusTag}"
+                                                    HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding StatusText}"
+                                                           Style="{DynamicResource StatusText}"
+                                                           Tag="{Binding StatusTag}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}" Width="1*"
+                                                    ElementStyle="{StaticResource ClientMonoCell}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Selected-row action strip: nothing that deletes a row. -->
+                        <ContentControl Grid.Row="1" Style="{DynamicResource Card}"
+                                        Margin="{DynamicResource MarginItem}">
+                            <Grid Margin="{DynamicResource PaddingCompact}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding SelectedSummary}"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                           Margin="{DynamicResource MarginInline}"
+                                           AutomationProperties.Name="Selected client summary" />
+                                <Button Grid.Column="1" Content="Edit selected"
+                                        Style="{DynamicResource SubtleButton}"
+                                        Command="{Binding EditSelectedCommand}"
+                                        Margin="{DynamicResource MarginInline}"
+                                        IsEnabled="{Binding HasSelection}"
+                                        AutomationProperties.Name="Edit selected client" />
+                                <Button Grid.Column="2" Content="{Binding SelectedToggleLabel}"
+                                        Style="{DynamicResource SubtleButton}"
+                                        Command="{Binding ToggleActiveCommand}"
+                                        CommandParameter="{Binding SelectedRow}"
+                                        Margin="{DynamicResource MarginInline}"
+                                        IsEnabled="{Binding HasSelection}"
+                                        AutomationProperties.Name="Activate or deactivate selected client" />
+                            </Grid>
+                        </ContentControl>
+                    </Grid>
+                </ContentControl>
+            </Grid>
+
+            <!-- Editor host: shown instead of the register while editing.
+                 Visibility is driven from a wrapper Grid bound to the
+                 workspace view model, so the editor itself keeps its own
+                 DataContext and no ancestor lookup is required. -->
+            <Grid Grid.Row="2">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <clients:ClientEditorView DataContext="{Binding Editor}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
