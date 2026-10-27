@@ -50,6 +50,13 @@ namespace ProGlassAutomation.Services.Clients
         public string StatusText => IsActive ? "Active" : "Inactive";
 
         /// <summary>
+        /// Label for the row's lifecycle action. The register shows it in the row
+        /// menu, so the wording lives with the projection instead of a view-model
+        /// property that would only ever describe the selected row.
+        /// </summary>
+        public string ToggleLabel => IsActive ? "Deactivate client" : "Re-activate client";
+
+        /// <summary>
         /// One line naming the person to address plus their reachable details,
         /// without empty separators.
         /// </summary>

@@ -317,7 +317,7 @@ def require_button_icons():
               f"IconKind.{kind} has no geometry in IconService.Mark")
 
     for view_name, expected_kinds in (
-        ("step2.d.1.ClientWorkspaceView.xaml", {"Add", "Edit", "Refresh", "Cancel"}),
+        ("step2.d.1.ClientWorkspaceView.xaml", {"Add", "Edit", "Search", "Cancel"}),
         ("step2.d.2.ClientEditorView.xaml", {"Save", "Search", "Cancel"}),
     ):
         text = read(MODULE / view_name)
@@ -477,10 +477,12 @@ def require_register_alignment():
 
     # Seven columns, so six rules: the last column closes the band with the grid's
     # own edge instead of a divider hanging in mid-air.
-    check(view.count('Style="{StaticResource ClientHeaderLabel}"') == 7,
-          "every register column must use the centred header label")
-    check(view.count('Style="{StaticResource ClientHeaderRule}"') == 6,
-          "one rule per column boundary: six for seven columns")
+    check(view.count('Style="{StaticResource ClientHeaderLabel}"') == 8,
+          "every register column must use the centred header label, including the "
+          "row-menu column")
+    check(view.count('Style="{StaticResource ClientHeaderRule}"') == 7,
+          "one rule per column boundary: seven for eight columns; the last column "
+          "closes the band on the grid's own edge")
 
     for style_name in ("ClientNameCell", "ClientMonoCell", "ClientPlainCell"):
         style = re.search(r'<Style x:Key="' + style_name + r'"[^>]*>(.*?)</Style>', view, re.S)
@@ -492,39 +494,101 @@ def require_register_alignment():
           "the status badge must keep its themed style")
     register_columns = view[view.index("<DataGrid.Columns>"):]
     register_columns = register_columns[:register_columns.index("</DataGrid.Columns>")]
-    check('Header="' not in register_columns,
+    # Only the column declarations matter here: a MenuItem's Header inside a cell
+    # template is a menu item label, not a column header.
+    check(not re.search(r"<DataGrid(?:Text|Template)Column\b[^>]*\sHeader=", register_columns),
           "a plain string header cannot be centred or carry a rule; every column "
           "must use the header label template")
 
 
-def require_action_layout():
-    """The actions card must read as three equal, full-width buttons.
+def require_command_bar():
+    """The register page is a register: one bar of chrome, then rows.
 
-    Owner feedback twice: the secondaries looked collapsed and unequal. Two
-    causes are guarded here - a secondary that does not stretch into its half,
-    and doubled margins (a margin on the button inside a grid that already has
-    one) which silently makes one button narrower than the other.
+    Owner feedback: "a list page has a list from the start ... on header there
+    are too many options, move them into a dropdown ... big cards fix in small
+    cards". Four cards, three headings and five buttons used to sit above a
+    six-column register and left about eleven rows on screen.
+
+    This pins the replacement: no hero or metric cards, one bar, one primary
+    action, one overflow menu, filter state as chips, and selection actions in a
+    footer strip. Anything creeping back in - a second primary button, a card per
+    counter, a toolbar row - fails here.
     """
     view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
-    primary = re.search(r'<Button Style="\{DynamicResource PrimaryButton\}"(.*?)>', view, re.S)
-    check(primary is not None, "the primary action button is missing")
-    if primary:
-        check('HorizontalAlignment="Stretch"' in primary.group(1),
-              "NEW CLIENT must fill the card width")
-    grid = re.search(r"<Grid Margin=\"\{DynamicResource MarginInline\}\">\s*"
-                     r"<Grid.ColumnDefinitions>\s*"
-                     r'<ColumnDefinition Width="1\*" />\s*'
-                     r'<ColumnDefinition Width="1\*" />', view)
-    check(grid is not None, "Edit and Refresh must share one row of equal halves")
-    for command in ("EditSelectedCommand", "RefreshCommand"):
-        block = re.search(r"<Button[^>]*Command=\"\{Binding " + command + r"\}\"[^>]*>", view, re.S)
-        check(block is not None, f"{command} has no button")
-        if block:
-            check('HorizontalAlignment="Stretch"' in block.group(0),
-                  f"{command} must stretch into its half instead of hugging its label")
-            check("Margin=" not in block.group(0),
-                  f"{command} carries a margin inside an already-inset grid, so the "
-                  "two secondaries cannot be the same width")
+
+    check('Style="{DynamicResource HeroCard}"' not in view,
+          "the hero card is gone: the page heading is a PageHeading plus a Caption "
+          "inside the command bar")
+    check('Style="{DynamicResource MetricCard}"' not in view,
+          "the counter cards are gone: the counts are a caption and the chip counts")
+
+    bar = re.search(r'<ContentControl Grid.Row="0" Style="\{DynamicResource Plate\}".*?</ContentControl>',
+                    view, re.S)
+    check(bar is not None, "the page needs one command bar - a Plate on row 0")
+    if bar:
+        body = bar.group(0)
+        check('Text="Clients"' in body and 'Style="{DynamicResource PageHeading}"' in body,
+              "the command bar owns the page heading")
+        check('Text="{Binding RegisterSummary}"' in body,
+              "the command bar carries the live count sentence")
+        check('Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"' in body,
+              "search lives in the bar: a list page without a visible search field "
+              "reads as broken")
+        check('Command="{Binding NewClientCommand}"' in body,
+              "the primary action stays visible; it must never move into a menu")
+        check('x:Name="MoreActionsButton"' in body and "<ContextMenu" in body,
+              "secondary actions belong in one themed overflow menu")
+        check("<MenuItem Header=\"Refresh\"" in body,
+              "Refresh should sit in the overflow menu, bound to RefreshCommand")
+        check('Command="{Binding ClearSearchCommand}"' in body,
+              "clearing a search is a field affordance next to the field")
+
+    check(view.count('Style="{DynamicResource PrimaryButton}"') == 1,
+          "exactly one primary action on the page, or the hierarchy is noise")
+
+    chips = re.search(r'<ItemsControl ItemsSource="\{Binding StatusTabs\}".*?</ItemsControl>', view, re.S)
+    check(chips is not None, "the filter state is a chip strip bound to StatusTabs")
+    if chips:
+        body = chips.group(0)
+        check('Command="{Binding DataContext.SelectStatusTabCommand,' in body,
+              "a chip selects its own tab through the workspace command")
+        check('Style="{StaticResource ClientFilterChip}"' in body,
+              "chips use the shared theme-token style")
+    check('IsChecked="{Binding IncludeInactive}"' not in view,
+          "the Include inactive checkbox is replaced by the All / Active / Inactive "
+          "chips; a checkbox hides the filter's state")
+    check('Text="Show"' not in view,
+          "the filter card and its headings are gone")
+
+    footer = re.search(r'<ContentControl Grid.Row="1" Style="\{DynamicResource Plate\}".*?</ContentControl>',
+                       view, re.S)
+    check(footer is not None, "selection actions belong to a footer strip, not a card")
+    if footer:
+        body = footer.group(0)
+        check('Text="{Binding SelectedSummary}"' in body,
+              "the footer states what is selected")
+        check('Command="{Binding EditSelectedCommand}"' in body and
+              'Command="{Binding ToggleActiveCommand}"' in body,
+              "the footer keeps both selection actions")
+
+    # Per-row actions: one quiet trigger, two themed menu items.
+    check('Style="{StaticResource ClientRowMenuButton}"' in view,
+          "each row needs one row-menu trigger, not three inline icons")
+    check('Command="{Binding PlacementTarget.Tag.EditClientCommand,' in view,
+          "the row menu edits the row it was opened on")
+    check('Command="{Binding PlacementTarget.Tag.ToggleActiveCommand,' in view,
+          "the row menu carries the lifecycle action")
+    check('Header="{Binding ToggleLabel}"' in view,
+          "the lifecycle label comes from the row projection, so the menu reads "
+          "'Deactivate client' or 'Re-activate client' for that row")
+
+    code_behind = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml.cs")
+    check("private void OnMoreActionsClick(" in code_behind and
+          "private void OnRowMenuClick(" in code_behind,
+          "a Button.ContextMenu only opens on right-click; the visible menus need "
+          "these two handlers, or the overflow and row menus are dead controls")
+    for handler in ("OnMoreActionsClick", "OnRowMenuClick"):
+        check(f'Click="{handler}"' in view, f"{handler} is not wired to anything")
 
 
 def require_paired_field_widths():
@@ -607,7 +671,10 @@ def require_binding_integrity():
         names = set()
         for match in re.finditer(r"\{Binding\s+([^}]+)\}", text):
             expression = match.group(1).strip()
-            if expression.startswith("RelativeSource") or expression.startswith("DataContext."):
+            # RelativeSource / PlacementTarget expressions resolve outside the
+            # view model (a row menu's command comes from the grid's Tag, for
+            # instance), so only plain paths can be checked here.
+            if "RelativeSource" in expression or expression.startswith("DataContext"):
                 continue
             first = re.split(r"[,\s]", expression)[0]
             if first and first[0].isalpha():
@@ -653,7 +720,7 @@ def main():
     require_icon_geometry_valid()
     require_field_heights()
     require_register_alignment()
-    require_action_layout()
+    require_command_bar()
     require_header_rules()
     require_paired_field_widths()
     require_binding_integrity()
@@ -666,7 +733,7 @@ def main():
         return 1
     print("PASS: step2 client management — naming, single migration chain, no Inquiry schema "
           "change, no representative identity, no delete path, nine-theme contract, centred "
-          "register, header rules and manual resize, equal action buttons, equal "
+          "register, header rules and manual resize, one command bar, equal "
           "paired fields, docs recorded.")
     return 0
 

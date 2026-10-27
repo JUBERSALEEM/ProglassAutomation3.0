@@ -58,6 +58,31 @@ public partial class ClientWorkspaceView : UserControl
         e.Handled = true;
     }
 
+    /// <summary>
+    /// Opens the command bar's overflow menu on a left click.
+    ///
+    /// A Button.ContextMenu only opens on right-click by its own wiring, so the
+    /// menu a user can see needs one line of code-behind to show it. The menu
+    /// contents themselves are a themed ContextMenu with MenuItem children, both
+    /// of which every package styles - no Popup or ToolBar is involved, because
+    /// neither is in the theme contract.
+    /// </summary>
+    private void OnMoreActionsClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.ContextMenu == null) return;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.IsOpen = true;
+    }
+
+    /// <summary>Same one-liner for the per-row menu inside the register.</summary>
+    private void OnRowMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.ContextMenu == null) return;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.IsOpen = true;
+        e.Handled = true;
+    }
+
     private void OnGridKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter) return;

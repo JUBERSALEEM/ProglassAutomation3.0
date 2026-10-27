@@ -18,12 +18,45 @@ using ProGlassAutomation.ThemeStudio;
 using ProGlassAutomation.ViewModels.Inquiry;
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace ProGlassAutomation.ViewModels.Clients
 {
+    /// <summary>
+    /// One status filter on the register, with a live count.
+    ///
+    /// Owner feedback: the old register hid its filter inside an "Include
+    /// inactive" checkbox, so the state of the list was something you had to read
+    /// a control to learn. These are the visible equivalent - a fixed, tiny set
+    /// (All / Active / Inactive), each carrying the number it would show. The
+    /// Inquiry register already uses this shape, so both registers now behave the
+    /// same way, and the selected chip paints itself from the theme's
+    /// StateSelected / AccentPrimary tokens rather than a hard-coded colour.
+    /// </summary>
+    public sealed class ClientStatusTab : ViewModelBase
+    {
+        public string Key { get; init; } = "";
+        public string Label { get; init; } = "";
+        private int _count;
+        public int Count
+        {
+            get => _count;
+            set { if (SetField(ref _count, value)) OnPropertyChanged(nameof(LabelWithCount)); }
+        }
+
+        private bool _isSelected;
+        public bool IsSelected { get => _isSelected; set => SetField(ref _isSelected, value); }
+
+        public string CountText => Count.ToString("N0", CultureInfo.CurrentCulture);
+
+        /// <summary>"Active · 3" — the chip states what it would show.</summary>
+        public string LabelWithCount => $"{Label} · {CountText}";
+    }
+
     /// <summary>Client directory register plus editor presentation.</summary>
     public sealed class ClientWorkspaceViewModel : ViewModelBase, IDisposable
     {
@@ -58,7 +91,20 @@ namespace ProGlassAutomation.ViewModels.Clients
                 _ = ReloadAsync();
             });
             ToggleActiveCommand = new DelegateCommand<ClientListRow>(row => _ = ToggleActiveAsync(row));
+            EditClientCommand = new DelegateCommand<ClientListRow>(row =>
+            {
+                // The row menu edits the row it was opened on, not whatever
+                // happens to be selected elsewhere on the page.
+                if (row == null) return;
+                SelectedRow = row;
+                _ = OpenEditorForRowAsync(row.Id);
+            });
+            SelectStatusTabCommand = new DelegateCommand<ClientStatusTab>(tab => SelectStatusTab(tab));
             CloseEditorCommand = new DelegateCommand(() => CloseEditor());
+
+            StatusTabs.Add(new ClientStatusTab { Key = "", Label = "All", IsSelected = true });
+            StatusTabs.Add(new ClientStatusTab { Key = "Active", Label = "Active" });
+            StatusTabs.Add(new ClientStatusTab { Key = "Inactive", Label = "Inactive" });
         }
 
         public ObservableCollection<ClientListRow> Rows { get; } = new();
@@ -75,6 +121,19 @@ namespace ProGlassAutomation.ViewModels.Clients
             }
         }
 
+        /// <summary>All / Active / Inactive, in that order. See <see cref="ClientStatusTab"/>.</summary>
+        public ObservableCollection<ClientStatusTab> StatusTabs { get; } = new();
+
+        /// <summary>"" = All, otherwise the selected tab's key.</summary>
+        public string SelectedStatusKey =>
+            StatusTabs.FirstOrDefault(tab => tab.IsSelected)?.Key ?? "";
+
+        /// <summary>
+        /// Kept as the backing switch for the repository query: the register always
+        /// loads the whole directory (inactive included) so the chip counts are
+        /// honest, and the tab decides what is shown. Setting it still reloads, so
+        /// any caller that used it before keeps working.
+        /// </summary>
         public bool IncludeInactive
         {
             get => _includeInactive;
@@ -171,6 +230,8 @@ namespace ProGlassAutomation.ViewModels.Clients
         // ── Commands ────────────────────────────────────────────────────
 
         public ICommand NewClientCommand { get; }
+        public ICommand EditClientCommand { get; }
+        public ICommand SelectStatusTabCommand { get; }
         public ICommand EditSelectedCommand { get; }
         public ICommand RefreshCommand { get; }
         public ICommand ClearSearchCommand { get; }
@@ -212,8 +273,11 @@ namespace ProGlassAutomation.ViewModels.Clients
             IsBusy = true;
             try
             {
+                // Always the whole directory (inactive included): the chips count
+                // what a tab would show, so they cannot be derived from an already
+                // filtered page. The tab then decides what reaches the register.
                 var rows = await _repository.QueryAsync(
-                    new ClientQuery { Search = SearchText, IncludeInactive = IncludeInactive },
+                    new ClientQuery { Search = SearchText, IncludeInactive = true },
                     cts.Token).ConfigureAwait(true);
 
                 if (cts.IsCancellationRequested) return;
@@ -223,14 +287,24 @@ namespace ProGlassAutomation.ViewModels.Clients
                 Rows.Clear();
                 int active = 0;
                 int inactive = 0;
+                string statusKey = SelectedStatusKey;
                 foreach (ClientListRow row in rows)
                 {
-                    Rows.Add(row);
                     if (row.IsActive) active++; else inactive++;
+                    if (statusKey == "Active" && !row.IsActive) continue;
+                    if (statusKey == "Inactive" && row.IsActive) continue;
+                    Rows.Add(row);
                 }
 
                 ActiveCount = active;
                 InactiveCount = inactive;
+                foreach (ClientStatusTab tab in StatusTabs)
+                    tab.Count = tab.Key switch
+                    {
+                        "Active" => active,
+                        "Inactive" => inactive,
+                        _ => active + inactive
+                    };
                 OnPropertyChanged(nameof(RegisterSummary));
 
                 // Keep the operator's selection across a refresh.
@@ -280,6 +354,16 @@ namespace ProGlassAutomation.ViewModels.Clients
         }
 
         // ── Lifecycle ───────────────────────────────────────────────────
+
+        private void SelectStatusTab(ClientStatusTab? tab)
+        {
+            if (tab == null) return;
+            foreach (ClientStatusTab candidate in StatusTabs)
+                candidate.IsSelected = ReferenceEquals(candidate, tab);
+            OnPropertyChanged(nameof(SelectedStatusKey));
+            OnPropertyChanged(nameof(RegisterSummary));
+            _ = ReloadAsync();
+        }
 
         private void OpenEditorForNew()
         {

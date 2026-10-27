@@ -56,6 +56,88 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
+        <!-- ── Filter chips ────────────────────────────────────────────
+             All / Active / Inactive, each carrying its own count. Idle is the
+             theme's BorderSubtle on SurfacePrimary; selected takes AccentPrimary
+             with TextOnAccent, exactly as the Inquiry status chips do, so the
+             two registers cannot drift apart. -->
+        <Style x:Key="ClientFilterChip" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ChipCornerRadius}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StatePressed}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- The per-row menu trigger. Transparent until hovered, so fifteen rows
+             do not read as fifteen buttons; still hit-testable and named for
+             assistive tech. -->
+        <Style x:Key="ClientRowMenuButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+            <Setter Property="Width" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="Height" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ── Register alignment and header rules ──────────────────────
              Owner direction, twice: the rules belong in the header row only, the
              data rows stay blank, and the header must not look boxed.
@@ -188,161 +270,124 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- ── Header: identity, counters, primary actions ─────────────── -->
-        <Grid Grid.Row="0" Margin="{DynamicResource PaddingPage}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2.6*" />
-                <ColumnDefinition Width="1*" />
-                <ColumnDefinition Width="1*" />
-                <ColumnDefinition Width="2.4*" />
-            </Grid.ColumnDefinitions>
+        <!-- ── One command bar: identity, filter state, search, actions ───
+             Owner direction: "a list page has a list from the start" and "big
+             cards should be small cards". Four cards, three headings and five
+             buttons used to sit above a six-column register, which left about
+             eleven rows on a 1080p screen and made the register the smallest
+             thing on its own page.
 
-            <ContentControl Grid.Column="0" Style="{DynamicResource HeroCard}"
-                            Background="{DynamicResource AccentPrimary}"
-                            Margin="{DynamicResource PaddingCompact}">
-                <StackPanel>
-                    <TextBlock Text="PROGLASS  ·  CLIENTS" FontWeight="{DynamicResource FontWeightHeading}"
-                               Foreground="{DynamicResource TextOnAccent}" />
-                    <TextBlock Text="Customer directory" FontSize="{DynamicResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextOnAccent}"
+             What replaced them, all inside one Plate:
+
+               PageHeading + Caption   the hero card became two lines of text;
+               the count sentence      the two metric cards became a caption;
+               status chips            the "Include inactive" checkbox became a
+                                       visible filter with live counts - the same
+                                       shape the Inquiry register already uses;
+               one search field        already existed, now in the bar instead of
+                                       in a card of its own;
+               one primary action      "New client" stays visible, always;
+               one overflow menu       everything secondary (Refresh) moved into
+                                       a themed ContextMenu.
+
+             Nothing here introduces a control the theme contract does not style:
+             Plate, PageHeading, Caption, TextBox, Button, PrimaryButton,
+             SubtleButton, ContextMenu, MenuItem and ShellMark are all contracted. -->
+        <ContentControl Grid.Row="0" Style="{DynamicResource Plate}" Margin="{DynamicResource PaddingPage}">
+            <Grid Margin="{DynamicResource PaddingCompact}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Identity and filter state, stacked: two text rows and a chip
+                     strip, instead of three cards. -->
+                <StackPanel Grid.Column="0" Margin="{DynamicResource MarginInline}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Clients" Style="{DynamicResource PageHeading}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="Client directory" Style="{DynamicResource Caption}"
+                                   VerticalAlignment="Bottom"
+                                   Margin="{DynamicResource PaddingCompact}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding RegisterSummary}" Style="{DynamicResource Caption}"
                                Margin="{DynamicResource MarginInline}" />
-                    <TextBlock Text="{Binding RegisterSummary}" FontSize="{DynamicResource FontSizeTitle}"
-                               FontWeight="{DynamicResource FontWeightHeading}"
-                               Foreground="{DynamicResource TextOnAccent}"
-                               Margin="{DynamicResource MarginInline}" />
-                    <TextBlock Text="Inactive clients stay in the directory for history and reporting."
-                               FontSize="{DynamicResource FontSizeCaption}"
-                               Foreground="{DynamicResource TextOnAccent}"
-                               TextWrapping="Wrap"
-                               Margin="{DynamicResource MarginInline}" />
+                    <ItemsControl ItemsSource="{Binding StatusTabs}" Focusable="False"
+                                  Margin="{DynamicResource MarginItem}"
+                                  AutomationProperties.Name="Client status filters">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource ClientFilterChip}"
+                                        Command="{Binding DataContext.SelectStatusTabCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Content="{Binding LabelWithCount}"
+                                        AutomationProperties.Name="{Binding Label}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
-            </ContentControl>
 
-            <ContentControl Grid.Column="1" Style="{DynamicResource MetricCard}"
-                            Margin="{DynamicResource PaddingCompact}">
-                <StackPanel>
-                    <TextBlock Text="Active" Style="{DynamicResource Caption}" />
-                    <TextBlock Text="{Binding ActiveCount}" FontSize="{DynamicResource FontSizeSection}"
-                               FontWeight="{DynamicResource FontWeightHeading}" />
-                    <TextBlock Text="Available for current work" Style="{DynamicResource Caption}"
-                               TextWrapping="Wrap" />
+                <!-- Search: a visible field on a list page is not optional. -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top"
+                            Margin="{DynamicResource MarginInline}">
+                    <studio:ShellMark Kind="Search" Width="{DynamicResource ChoiceMarkSize}"
+                                      Height="{DynamicResource ChoiceMarkSize}"
+                                      Margin="{DynamicResource MarginInline}"
+                                      VerticalAlignment="Center" />
+                    <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                             Width="260"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Search by name, contact, phone, e-mail, TRN or address"
+                             AutomationProperties.Name="Search clients" />
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding ClearSearchCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            ToolTip="Clear the search"
+                            AutomationProperties.Name="Clear search">
+                        <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                          Height="{DynamicResource ChoiceMarkSize}" />
+                    </Button>
                 </StackPanel>
-            </ContentControl>
 
-            <ContentControl Grid.Column="2" Style="{DynamicResource MetricCard}"
-                            Margin="{DynamicResource PaddingCompact}">
-                <StackPanel>
-                    <TextBlock Text="Inactive" Style="{DynamicResource Caption}" />
-                    <TextBlock Text="{Binding InactiveCount}" FontSize="{DynamicResource FontSizeSection}"
-                               FontWeight="{DynamicResource FontWeightHeading}" />
-                    <TextBlock Text="Kept for history" Style="{DynamicResource Caption}"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-            </ContentControl>
-
-            <ContentControl Grid.Column="3" Style="{DynamicResource Card}"
-                            Margin="{DynamicResource PaddingCompact}">
-                <StackPanel Margin="{DynamicResource PaddingCompact}">
-                    <TextBlock Text="Actions" Style="{DynamicResource Caption}" />
+                <!-- One primary action, one overflow. -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
                     <Button Style="{DynamicResource PrimaryButton}"
-                            Command="{Binding NewClientCommand}" HorizontalAlignment="Stretch"
+                            Command="{Binding NewClientCommand}"
                             Margin="{DynamicResource MarginInline}"
                             AutomationProperties.Name="New client">
                         <StackPanel Orientation="Horizontal">
                             <studio:ShellMark Kind="Add" Width="{DynamicResource ChoiceMarkSize}"
-                                                Height="{DynamicResource ChoiceMarkSize}"
-                                                Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
                             <TextBlock Text="NEW CLIENT" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <!-- Two equal-width secondary actions on one row. The grid
-                         owns the horizontal inset and the buttons fill their
-                         halves exactly, so Edit and Refresh are the same size —
-                         nested margins used to make Edit narrower than Refresh. -->
-                    <Grid Margin="{DynamicResource MarginInline}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1*" />
-                            <ColumnDefinition Width="1*" />
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding EditSelectedCommand}"
-                                HorizontalAlignment="Stretch"
-                                IsEnabled="{Binding HasSelection}"
-                                AutomationProperties.Name="Edit selected client">
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Edit" Width="{DynamicResource ChoiceMarkSize}"
-                                                    Height="{DynamicResource ChoiceMarkSize}"
-                                                    Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Edit" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Grid.Column="1" Style="{DynamicResource SubtleButton}"
-                                Command="{Binding RefreshCommand}"
-                                HorizontalAlignment="Stretch"
-                                AutomationProperties.Name="Refresh client list">
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Refresh" Width="{DynamicResource ChoiceMarkSize}"
-                                                    Height="{DynamicResource ChoiceMarkSize}"
-                                                    Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Refresh" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-                </StackPanel>
-            </ContentControl>
-        </Grid>
-
-        <!-- ── Search / filter row (hidden while editing) ─────────────── -->
-        <Grid Grid.Row="1" Margin="{DynamicResource PaddingPage}">
-            <Grid.Style>
-                <Style TargetType="Grid">
-                    <Setter Property="Visibility" Value="Visible" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Grid.Style>
-            <ContentControl Style="{DynamicResource Card}">
-                <Grid Margin="{DynamicResource PaddingCompact}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2.4*" />
-                        <ColumnDefinition Width="1.2*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Search" Style="{DynamicResource Caption}"
-                                   Margin="{DynamicResource MarginInline}" />
-                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="Search by name, contact, phone, e-mail, TRN or address"
-                                 AutomationProperties.Name="Search clients" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="Show" Style="{DynamicResource Caption}"
-                                   Margin="{DynamicResource MarginInline}" />
-                        <CheckBox Style="{DynamicResource {x:Type CheckBox}}"
-                                  Content="Include inactive"
-                                  IsChecked="{Binding IncludeInactive}"
-                                  VerticalAlignment="Center"
-                                  AutomationProperties.Name="Include inactive clients" />
-                    </StackPanel>
-                    <Button Grid.Column="2" Style="{DynamicResource SubtleButton}"
-                            Command="{Binding ClearSearchCommand}"
-                            Margin="{DynamicResource MarginInline}"
-                            VerticalAlignment="Bottom"
-                            AutomationProperties.Name="Clear search">
-                        <StackPanel Orientation="Horizontal">
-                            <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
-                                                Height="{DynamicResource ChoiceMarkSize}"
-                                                Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                            <TextBlock Text="Clear search" VerticalAlignment="Center" />
-                        </StackPanel>
+                    <Button x:Name="MoreActionsButton" Style="{DynamicResource SubtleButton}"
+                            Content="⋯"
+                            Click="OnMoreActionsClick"
+                            ToolTip="More actions"
+                            AutomationProperties.Name="More client actions">
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{DynamicResource {x:Type ContextMenu}}">
+                                <MenuItem Header="Refresh" Command="{Binding RefreshCommand}" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
                     </Button>
-                </Grid>
-            </ContentControl>
-        </Grid>
+                </StackPanel>
+            </Grid>
+        </ContentControl>
+
+        <!-- The filter row that used to live here is gone: its checkbox is the chip
+             strip above and its search field is in the command bar. -->
+
+
 
         <!-- ── Register (list) and editor share row 2 ─────────────────── -->
         <Grid Grid.Row="2" Margin="{DynamicResource PaddingPage}">
@@ -498,14 +543,57 @@
                                     <DataGridTextColumn.Header>
             <Grid>
                 <TextBlock Text="Updated" Style="{StaticResource ClientHeaderLabel}" />
+                <Border Style="{StaticResource ClientHeaderRule}" />
             </Grid>
                                     </DataGridTextColumn.Header>
                                 </DataGridTextColumn>
+                                <!-- Row menu. One trigger per row instead of three
+                                     icons: fifteen rows of pencil/cross/dots read as
+                                     noise. The menu is a themed ContextMenu, and the
+                                     footer keeps working for whatever row is selected,
+                                     so a row can be acted on either way. -->
+                                <DataGridTemplateColumn Width="Auto" CanUserSort="False">
+                                    <DataGridTemplateColumn.Header>
+            <Grid>
+                <TextBlock Text="" Style="{StaticResource ClientHeaderLabel}" />
+            </Grid>
+                                    </DataGridTemplateColumn.Header>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource ClientRowMenuButton}"
+                                                    Content="⋯"
+                                                    Click="OnRowMenuClick"
+                                                    Tag="{Binding DataContext,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    ToolTip="Row actions"
+                                                    AutomationProperties.Name="Client row actions">
+                                                <Button.ContextMenu>
+                                                    <ContextMenu Style="{DynamicResource {x:Type ContextMenu}}"
+                                                                 DataContext="{Binding PlacementTarget.DataContext,
+                                                                               RelativeSource={RelativeSource Self}}">
+                                                        <MenuItem Header="Edit client…"
+                                                                  Command="{Binding PlacementTarget.Tag.EditClientCommand,
+                                                                                    RelativeSource={RelativeSource AncestorType={x:Type ContextMenu}}}"
+                                                                  CommandParameter="{Binding}" />
+                                                        <Separator />
+                                                        <MenuItem Header="{Binding ToggleLabel}"
+                                                                  Command="{Binding PlacementTarget.Tag.ToggleActiveCommand,
+                                                                                    RelativeSource={RelativeSource AncestorType={x:Type ContextMenu}}}"
+                                                                  CommandParameter="{Binding}" />
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 
                         <!-- Selected-row action strip: nothing that deletes a row. -->
-                        <ContentControl Grid.Row="1" Style="{DynamicResource Card}"
+                        <!-- A strip, not a card: the selection actions belong to
+                             the register they act on, and a floating card under a
+                             table reads as a second page glued on. -->
+                        <ContentControl Grid.Row="1" Style="{DynamicResource Plate}"
                                         Margin="{DynamicResource MarginItem}">
                             <Grid Margin="{DynamicResource PaddingCompact}">
                                 <Grid.ColumnDefinitions>

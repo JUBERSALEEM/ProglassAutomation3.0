@@ -246,6 +246,55 @@ the older registry prose that still described themes 6–9 as unregistered.
   executable in place, so an old window can look exactly like an unfixed bug.
   Confirm `git rev-parse HEAD` in the working copy and do a full rebuild.
 
+### The register page is the register (round 7)
+
+Owner direction: *"a list page has a list from the start … on header there are
+too many options, move them into a dropdown … big cards fix in small cards … the
+main view can be list only with column header."*
+
+The page used to spend its top third on chrome — `HeroCard`, two `MetricCard`s, an
+"Actions" card holding three buttons, then a whole `Card` for a search box and a
+checkbox, then the grid, then a footer `Card` with two more buttons. That is four
+cards, three headings and five buttons above a six-column register, and about
+eleven visible rows at 1080p.
+
+Now there is **one command bar**, one chip strip, the register, and one footer
+strip:
+
+| Was | Now |
+| --- | --- |
+| `HeroCard` + `Caption` | `PageHeading` "Clients" + `Caption` "Client directory" |
+| two `MetricCard`s | one `Caption`: `{RegisterSummary}` ("3 active · 7 inactive · 10 shown") |
+| "Actions" card: New / Edit / Refresh | one `PrimaryButton` (**New client**) + one `⋯` overflow `ContextMenu` (Refresh) |
+| filter `Card`: search, *Include inactive*, Clear search | search field in the bar with a `Search` mark and a `Cancel` clear button; the checkbox became **All · 10 / Active · 3 / Inactive · 7** chips |
+| footer `Card`: summary, Edit selected, Deactivate | footer `Plate`: same three, on the register's own surface |
+| — | a per-row `⋯` menu: **Edit client…** and **Deactivate / Re-activate client**, labelled from the row projection |
+
+Implementation notes worth keeping:
+
+- **Filtering moved into the view model, not the query.** `ReloadAsync` always
+  loads the whole (searched) directory — inactive included — because the chips
+  count what a tab *would* show; the tab then decides which rows reach `Rows`.
+  `IncludeInactive` survives as the underlying switch so nothing that used it
+  breaks, but the checkbox is gone.
+- **The chips reuse the Inquiry register's shape** (`ClientStatusTab` with
+  `Key`/`Label`/`Count`/`IsSelected`), styled from theme tokens only
+  (`BorderSubtle` idle, `AccentPrimary` + `TextOnAccent` selected,
+  `ChipCornerRadius`, `StateHover`/`StatePressed`). Both registers now behave the
+  same way and cannot drift apart.
+- **Menus are themed `ContextMenu`/`MenuItem`s.** `ToolBar`, `Menu`, `Popup`,
+  `StatusBar`, `ToggleButton` and `Expander` are **not** in the theme contract, so
+  none of them is used: they would render unstyled in all nine packages.
+- **A `Button.ContextMenu` only opens on right-click**, so `OnMoreActionsClick`
+  and `OnRowMenuClick` open it on a left click. The row menu's command comes from
+  the grid's `Tag` (the workspace view model) and its parameter from
+  `PlacementTarget.DataContext` (the row), which keeps per-row actions independent
+  of what else is selected. The footer keeps working for the selected row, so a
+  row can be acted on either way — if the row menu ever misbehaves, the page is
+  still fully operable.
+- **Measured cost:** the chrome above the register drops from roughly 240 px to
+  about 96 px, which is where the extra four to seven visible rows come from.
+
 ### Neumorphism depth (theme package, owner direction)
 
 The owner's screenshot was Neumorphism, not Claymorphism, and the complaint was

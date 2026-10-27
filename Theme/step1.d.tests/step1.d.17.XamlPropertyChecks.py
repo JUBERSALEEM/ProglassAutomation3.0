@@ -161,6 +161,29 @@ for view in VIEWS[:2]:
         f'{view.relative_to(ROOT)}: the presenter must take its alignment from the '
         'cell style through a TemplateBinding']
 
+# 2b ── Every DynamicResource key must exist in the theme dictionaries ──────
+# A missing key is not a compile error and not a load error: WPF silently leaves
+# the property at its default, so a chip with a mistyped corner radius simply
+# renders square and nobody knows why. This caught `PillCornerRadius` (which does
+# not exist; the token is `ChipCornerRadius`) on the first run of this file.
+THEME_KEYS = set()
+for dictionary in ROOT.glob('Theme/Theme*/**/*.xaml'):
+    THEME_KEYS |= set(re.findall(r'x:Key="([^":]+)"', dictionary.read_text()))
+for view in VIEWS + [ROOT / 'MainWindow.xaml']:
+    if not view.is_file():
+        continue
+    text = view.read_text()
+    # A view may also define and reference its own keys (the Inquiry register's
+    # ContextMenu, for example) - those are local, not theme tokens.
+    local_keys = set(re.findall(r'x:Key="([^":]+)"', text))
+    for key in re.findall(r'\{DynamicResource\s+([^}]+?)\s*\}', text):
+        if key.startswith('{x:Type') or ' ' in key:
+            continue  # {DynamicResource {x:Type DataGrid}} is a style lookup
+        if key not in THEME_KEYS and key not in local_keys:
+            problems.append(
+                f'{view.relative_to(ROOT)}: DynamicResource {key!r} is not defined by '
+                'any theme dictionary; the property would silently keep its default')
+
 # 3 ── TemplateBinding targets, and view-owned keys that must resolve ───────
 # A TemplateBinding naming a property the template target does not declare fails
 # at load time, not at compile time, so nothing catches it until the window is
