@@ -68,8 +68,14 @@ namespace ProGlassAutomation.ViewModels.Users
         /// <summary>Who the workstation itself reports, for orientation only.</summary>
         public string WorkstationAccount => CurrentOperator.Username;
 
+        /// <summary>
+        /// Neutral on purpose: the person signing in may have set their own password
+        /// a moment ago (the first-password card) rather than been handed one, so
+        /// "an administrator gave you" would be wrong on a fresh or upgraded
+        /// installation.
+        /// </summary>
         public string Explanation =>
-            "Sign in with the username and password an administrator gave you. "
+            "Sign in with your username and password. "
             + "Nothing in the application is available before you do.";
 
         public string Username

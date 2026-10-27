@@ -158,7 +158,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        _ = BeginSignInAsync();
+        // Prefill the account: it is the one that just set its own password, and the
+        // sign-in screen is asking for a password, not for a name to be retyped.
+        _ = BeginSignInAsync(ProGlassAutomation.Services.Audit.CurrentOperator.Username);
     }
 
     private void OnSignedOut(object? sender, EventArgs e)
