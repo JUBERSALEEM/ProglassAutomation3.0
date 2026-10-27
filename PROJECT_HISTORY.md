@@ -1,6 +1,45 @@
 # PROJECT_HISTORY.md — ProGlass V3.0 Chronological Record
 *Owner-readable, newest-first. Distinguish Planned → Implemented → Tested → Visually Verified → Committed → Pushed → Released.*
 
+> **Where the record lives now.** The authoritative, dated record is
+> [`docs/05.Decision-Log.md`](docs/05.Decision-Log.md); this file is the
+> owner-readable summary of what shipped and when. `PROJECT_PLAN.md` is
+> **superseded** — it described the theme-studio phases P1–P5 of 2026-10-20 and is
+> retained as history only. The business-application order is owned by
+> [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
+
+---
+## 2026-10-27 — Roadmap established for the remaining application (documentation only)
+- **Phase:** governance, no feature implemented
+- **Before:** Client Management was complete for its scope, but nothing in the repository ordered what came next. The earlier planning order could not be recovered: no commit exists dated 2026-10-25 or 2026-10-26, and `step2.0`–`step2.4` / "Foundation Review" appear in no commit, branch, PR, issue or blob.
+- **Applied:** owner established the order — `step3` User Management → `step4` Company Profile → `step5` Project Records & Inquiry Integration → gate **`G1` Foundation Review** → `step6` PI → `step7` JO → `step8` DN → `step9` TI → `step10` Statement → `step11` Reports. Recorded in `docs/11` (sequence, gate, boundaries), `docs/12` (per-module scope), `docs/06` (allocation), `docs/00` (naming convention: sequential numbers, no dotted sub-identifiers), `docs/04` (gate table), `docs/05` (dated decision), `README.md` (roadmap section).
+- **Owner-visible result:** the repository now states what is next and what is explicitly not authorized. No module was started.
+- **Verification:** documentation only — no source, schema, migration or theme change.
+- **Outstanding:** owner review of the documentation change, then separate approval before User Management.
+
+---
+## 2026-10-27 — Client Management (`step2`) implemented, then corrected against the running app
+- **Phase:** `step2` — the client directory
+- **Before:** `step2` allocated 2026-10-27 for Client Management only; no client code existed.
+- **Applied:** client domain + rules + duplicate policy; schema migrations **1011** (Clients) and **1012** (attention name) on the existing `inquiries.db` chain; EF context and repository; workspace (list/search/lifecycle) and editor view models; register and editor views; shell navigation entry; verification harness (`step2.f.1` rules, `step2.f.2` source checks). Then two correction rounds from the owner's Windows screenshots: attention name added, editor actions moved to a Plate footer, field rows aligned; shared action marks added to the one icon system.
+- **Owner-visible result:** a working Clients page — create, view, edit, search, deactivate/re-activate, duplicate warnings that never block.
+- **Verification:** portable source checks pass; the owner's screenshot is the first real runtime evidence that the app built and the page rendered. **Windows build, WPF runtime and nine-theme Light/Dark verification of this module remain outstanding.**
+- **Outstanding:** the verification above, not a scope gap.
+
+---
+## 2026-10-27 — One list page done properly, then applied to Inquiries (rounds 8–12)
+- **Phase:** UI within `step2` + the Inquiry module; no new feature
+- **Applied:** the Clients register became one command bar (state in dropdowns, one primary action, `⋯` overflow), the footer strip was deleted; the Inquiry register got the same treatment (status and module dropdowns replacing two chip strips, collapsible advanced filters with an active-filter count, search, pager). The pattern was written down as [`docs/10.List-Page-Pattern.md`](docs/10.List-Page-Pattern.md) so later list pages inherit a contract. Three defects fixed along the way: the status dropdown printing its type name (a `ComboBox` `DisplayMemberPath` cannot fill `SelectionBoxItemTemplate`), a stale status count, and a `Dispatcher` call missing `System.Windows.Threading` (CS0103, caught by the owner's build).
+- **Verification:** portable checks extended and mutation-tested; **rendered WPF verification remains the owner's**.
+- **Outstanding:** visual confirmation on Windows, as above.
+
+---
+## 2026-10-24 — Inquiry website inbox and register hardening
+- **Phase:** Inquiry module (pre-existing, unnumbered)
+- **Applied:** inbox acknowledgement ordering, manifest routing repair, delivered-elsewhere handling, polling options with readable labels (default fifteen seconds), file visibility and company folders, editable inquiry dropdown/save state, register query-failure surfacing, legacy child-table mapping repair.
+- **Verification:** source-level only; Windows runtime not run here.
+- **Outstanding:** the same standing build/runtime/visual verification.
+
 ---
 ## 2026-10-20 — Phase 1 PASS: Revert Stabilization & Bold Verification
 - **Phase:** `P1-REVERT-VERIFY` — Objective: confirm revert left no broken bindings/namescopes and Bold propagates

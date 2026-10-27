@@ -709,15 +709,36 @@ def require_binding_integrity():
 def require_docs_recorded():
     registry = read(ROOT / "docs/06.Feature-Registry.md")
     check("| step2 | Client Management |" in registry, "the registry does not record step2")
+    # 2026-10-27: the owner established the remaining order and allocated step3-step11.
+    # The registry has to carry every allocation, or the order is unrecorded again.
+    for number, name in (("step3", "User Management"), ("step4", "Company Profile"),
+                         ("step5", "Project Records & Inquiry Integration"),
+                         ("step6", "Proforma Invoice"), ("step7", "Job Order"),
+                         ("step8", "Delivery Note"), ("step9", "Tax Invoice"),
+                         ("step10", "Statement"), ("step11", "Reports")):
+        check(f"| {number} | {name}" in registry,
+              f"the registry does not allocate {number} ({name})")
     roadmap = read(ROOT / "docs/04.Project-Roadmap.md")
     check("step2" in roadmap and "Client Management" in roadmap,
           "the roadmap does not record the step2 gate")
+    check("Foundation Review" in roadmap and "`G1`" in roadmap,
+          "the roadmap does not record the Foundation Review gate")
     rules = read(ROOT / "docs/00.Project-Rules.md")
-    check("`step2` is allocated to Client Management" in rules,
-          "the naming rules still describe step2 as unallocated")
+    check("`step2` is Client Management" in rules,
+          "the naming rules do not describe step2 as Client Management")
+    check("step3 onward is unallocated" not in rules,
+          "the naming rules still claim everything after step2 is unallocated")
+    check("Dotted sub-identifiers are not feature identifiers" in rules,
+          "the naming rules do not forbid dotted sub-identifiers such as step2.1")
+    order = read(ROOT / "docs/11.Business-Module-Roadmap.md")
+    for module in ("User Management", "Company Profile", "Project Records & Inquiry Integration",
+                   "Proforma Invoice", "Job Order", "Delivery Note", "Tax Invoice",
+                   "Statement", "Reports"):
+        check(module in order, f"the business-module roadmap does not record {module}")
+    check("G1" in order, "the business-module roadmap does not record the Foundation Review gate")
     log = read(ROOT / "docs/05.Decision-Log.md")
-    check("step2 allocated to Client Management" in log,
-          "the decision log does not record the allocation")
+    check("the remaining implementation order is established now" in log,
+          "the decision log does not record the 2026-10-27 order decision")
 
 
 def main():

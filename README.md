@@ -307,13 +307,30 @@ next module lands, add its branch to this tree.
 
 ## Roadmap
 
-1. **Proforma Invoice (PI)** — converts confirmed inquiries using the
-   dimension-first BOQ; *starts only on the owner's go*.
-2. **Job Order (JO)** — cutting sheet (distinct from the PI utilized sheet).
-3. **Delivery Note (DN)** / **Tax Invoice (TI)** / **Statement (STMT)**.
+The approved order is owned by
+[`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md), with
+each module's scope in
+[`docs/12.Module-Specifications.md`](docs/12.Module-Specifications.md). In short:
 
-Every one of them reuses the Inquiry page pattern and the shared validation
-gate — no reinvention.
+| Order | Module | State |
+| --- | --- | --- |
+| — | `step1` Theme Studio · `step2` Client Management | completed for their approved scope (Windows runtime/visual verification outstanding) |
+| 1 | `step3` User Management | allocated; implementation needs owner approval |
+| 2 | `step4` Company Profile | allocated; needs approval |
+| 3 | `step5` Project Records & Inquiry Integration | allocated; needs approval |
+| — | **`G1` Foundation Review** | gate — no document module starts until the owner accepts it |
+| 4 | `step6` Proforma Invoice (PI) | allocated; blocked by `G1` |
+| 5 | `step7` Job Order (JO) | allocated; blocked by `G1` |
+| 6 | `step8` Delivery Note (DN) | allocated; blocked by `G1` |
+| 7 | `step9` Tax Invoice (TI) | allocated; blocked by `G1` |
+| 8 | `step10` Statement | allocated; blocked by `G1` |
+| 9 | `step11` Reports and other required modules | scope deliberately undefined |
+
+Every business list page reuses the register pattern recorded in
+[`docs/10.List-Page-Pattern.md`](docs/10.List-Page-Pattern.md) — one command bar,
+state in dropdowns, collapsible filters — and the same validation and migration
+gate. Allocation is not authorization: each module starts only on the owner's
+explicit approval.
 
 ---
 

@@ -1,4 +1,17 @@
 # PROJECT_PLAN.md — ProGlass V3.0 Theme Studio Master Plan
+
+> **SUPERSEDED (2026-10-27) — history only.** This file describes the theme-studio
+> phases P1–P5 planned on 2026-10-20 (branch `arena/bd154b4b-proglassautomation`,
+> SHA `5b8207d8a853`) and is retained unchanged below so the record of that period
+> survives. It is **not** the current plan. For the present state use:
+> [the business-module roadmap](docs/11.Business-Module-Roadmap.md) (approved
+> implementation order and the `G1` Foundation Review gate),
+> [module specifications](docs/12.Module-Specifications.md),
+> [the roadmap](docs/04.Project-Roadmap.md) (phase gates),
+> [the feature registry](docs/06.Feature-Registry.md) (allocations) and
+> [the decision log](docs/05.Decision-Log.md) (dated decisions, authoritative).
+> `PROJECT_HISTORY.md` carries the owner-readable summary of what shipped.
+
 **Created:** 2026-10-20 | **Branch:** `arena/bd154b4b-proglassautomation` | **Current SHA:** `5b8207d8a853` | **Owner state:** Non-technical, requires evidence per phase before approval
 
 ## Current Baseline (Verified 2026-10-20)

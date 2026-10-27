@@ -24,6 +24,12 @@ sales representatives, Projects, Inquiry integration, proforma invoices and
 any document module. No priority, no document numbering, no representative
 field.
 
+What follows this module, and in what order, is recorded in
+[`docs/11.Business-Module-Roadmap.md`](../../docs/11.Business-Module-Roadmap.md):
+User Management (`step3`), Company Profile (`step4`), Project Records & Inquiry
+Integration (`step5`), then gate `G1`, then the document modules. This module's
+own scope is closed and is not reopened by that order.
+
 ## 2. Allocated file hierarchy
 
 Child identifiers are allocated once, here, per `docs/00`:
