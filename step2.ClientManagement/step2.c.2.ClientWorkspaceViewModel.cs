@@ -267,7 +267,14 @@ namespace ProGlassAutomation.ViewModels.Clients
             }
             finally
             {
-                if (ReferenceEquals(_loadCts, cts)) IsBusy = false;
+                // Clearing the field before disposing matters: Cancel() on a
+                // disposed CancellationTokenSource throws, and the next search
+                // cancels whatever _loadCts currently holds.
+                if (ReferenceEquals(_loadCts, cts))
+                {
+                    _loadCts = null;
+                    IsBusy = false;
+                }
                 cts.Dispose();
             }
         }
