@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    step2.f — Client Management verification executable.
+
+    Follows the repository's established verification convention
+    (Theme/step1.d.tests/step1.d.ThemeTests.csproj): a Windows console
+    executable that references the application and asserts behaviour, with a
+    nonzero exit code on failure. No test framework package is introduced, so
+    no unreviewed dependency enters the project.
+
+    Scope: the pure client rules (step2.a), the register row projections used
+    by the list (step2.b), and — when a temporary data folder is supplied —
+    the repository against an isolated database (AppDataRoot.TestFolderOverride).
+    The real %APPDATA% directory is never touched.
+
+    Run on Windows/.NET 8:  dotnet run --project step2.f.ClientTests.csproj
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>step2.f.ClientTests</AssemblyName>
+    <RootNamespace>ProGlassAutomation.Step2Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../ProGlassAutomation.csproj" />
+  </ItemGroup>
+</Project>
