@@ -2,16 +2,21 @@
 // FILE: Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs
 // MODULE: Core — per-database schema migration registries (V3).
 //
-// V3 scope: the Inquiry database only. The rebuilt app opens the legacy
-// data folder, so existing inquiries.db files from interim builds must
-// converge to the current model (Inquiries + InquiryLineItems +
+// V3 scope: the ERP SQLite file (inquiries.db). The rebuilt app opens the
+// legacy data folder, so existing inquiries.db files from interim builds
+// must converge to the current model (Inquiries + InquiryLineItems +
 // InquiryAttachments + InquiryCommunications, RowVersion included).
 // Fresh databases are created by EnsureCreated at the current schema and
 // are skipped by the runner (user_version already satisfies the registry
 // once 1001..1004 apply on first touch).
+//
+// One file ⇒ one PRAGMA user_version ⇒ exactly ONE chain. 1011 adds the
+// step2 Client Management table to this same chain; a second chain against
+// the same file must never be created.
 // ═══════════════════════════════════════════════════════════════════════
 
 using Microsoft.Data.Sqlite;
+using ProGlassAutomation.Services.Clients;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -152,7 +157,18 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             }),
             // 1006 used DbSet names despite [Table] mappings on the child entities.
             // Restore the mapped names so EF writes to the tables it actually queries.
-            new(1010, "Inquiry: restore mapped inquiry child table names", EnsureMappedInquiryChildTables)
+            new(1010, "Inquiry: restore mapped inquiry child table names", EnsureMappedInquiryChildTables),
+            // ── step2 Client Management (owner-approved 2026-10-27) ──────
+            // The client directory lives in this same file so it inherits the
+            // existing safeguards: backup before migrating, one transaction,
+            // Verify callbacks, and the post-migration quick_check. The
+            // migration creates only the Clients table and its indexes — no
+            // Inquiries column, foreign key or constraint is touched, and no
+            // historical inquiry row is read or rewritten.
+            new(ClientSchema.MigrationVersion,
+                "Clients: client directory table (step2 Client Management)",
+                connection => ClientSchema.Ensure(connection),
+                connection => ClientSchema.AssertShape(connection))
 
         };
 
