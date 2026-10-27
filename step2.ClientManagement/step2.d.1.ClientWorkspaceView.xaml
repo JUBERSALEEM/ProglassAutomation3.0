@@ -249,7 +249,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Client" Binding="{Binding ClientName}" Width="2*"
                                                     ElementStyle="{StaticResource ClientNameCell}" />
-                                <DataGridTextColumn Header="Contact" Binding="{Binding ContactPerson}" Width="1.2*" />
+                                <DataGridTextColumn Header="Attention" Binding="{Binding AttentionName}" Width="1.2*" />
                                 <DataGridTextColumn Header="Phone" Binding="{Binding Phone}" Width="1*"
                                                     ElementStyle="{StaticResource ClientMonoCell}" />
                                 <DataGridTextColumn Header="E-mail" Binding="{Binding Email}" Width="1.4*" />

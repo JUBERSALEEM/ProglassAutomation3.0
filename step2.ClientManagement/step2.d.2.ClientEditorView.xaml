@@ -8,9 +8,17 @@
     <!-- ─────────────────────────────────────────────────────────────────
          step2 — client editor (new / view / edit).
 
-         Same theme rules as the workspace: contract tokens only, explicit
-         implicit-style bindings for theme-templated controls, dynamic card
-         roles. DataContext is ClientEditorViewModel (assigned by the host).
+         Layout notes (owner feedback, 2026-10-27):
+           • the action buttons live in a footer plate at the bottom of the
+             card, outside the scrolling field area, so they always keep the
+             theme's own padding clear of the card edge and of the card below;
+           • two-field groups share one label row / input row / error row, so
+             adjacent labels and boxes line up exactly instead of drifting;
+           • Client name is the company; Attention name is the person to
+             address at that company.
+
+         Theme rules: contract tokens only, dynamic card roles, explicit
+         implicit-style bindings for theme-templated controls.
          ───────────────────────────────────────────────────────────────── -->
     <UserControl.Resources>
         <Style x:Key="ClientFieldLabel" TargetType="TextBlock">
@@ -19,17 +27,18 @@
             <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
         </Style>
-        <Style x:Key="ClientFieldError" TargetType="TextBlock">
+        <!-- One reusable error plate: shown only when its own message is set. -->
+        <Style x:Key="ClientFieldErrorPlate" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource StatusErrorSurface}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+            <Setter Property="Visibility" Value="Collapsed" />
+        </Style>
+        <Style x:Key="ClientFieldErrorText" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource StatusError}" />
             <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
             <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-            <Setter Property="Visibility" Value="Collapsed" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding HasClientNameError}" Value="True">
-                    <Setter Property="Visibility" Value="Visible" />
-                </DataTrigger>
-            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
@@ -54,66 +63,90 @@
             </StackPanel>
         </ContentControl>
 
-        <!-- Form -->
+        <!-- Form card: scrolling fields above, fixed action footer below. -->
         <ContentControl Grid.Row="1" Style="{DynamicResource Card}"
                         Margin="{DynamicResource PaddingCompact}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Margin="{DynamicResource PaddingCard}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                    <!-- Client name (required) -->
-                    <TextBlock Text="Client name *" Style="{StaticResource ClientFieldLabel}" />
-                    <TextBox Style="{DynamicResource {x:Type TextBox}}"
-                             Text="{Binding ClientName, UpdateSourceTrigger=PropertyChanged}"
-                             MaxLength="200"
-                             ToolTip="The customer's company or trading name"
-                             AutomationProperties.Name="Client name" />
-                    <TextBlock Text="{Binding ClientNameError}" Style="{StaticResource ClientFieldError}"
-                               AutomationProperties.Name="Client name error" />
+                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="{DynamicResource PaddingCard}">
 
-                    <!-- Contact person -->
-                    <TextBlock Text="Contact person" Style="{StaticResource ClientFieldLabel}"
-                               Margin="{DynamicResource MarginSection}" />
-                    <TextBox Style="{DynamicResource {x:Type TextBox}}"
-                             Text="{Binding ContactPerson, UpdateSourceTrigger=PropertyChanged}"
-                             MaxLength="200"
-                             AutomationProperties.Name="Contact person" />
-                    <Border Background="{DynamicResource StatusErrorSurface}"
-                            CornerRadius="{DynamicResource ControlCornerRadius}"
-                            Padding="{DynamicResource PaddingControl}"
-                            Margin="{DynamicResource MarginInline}">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasContactPersonError}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <TextBlock Text="{Binding ContactPersonError}"
-                                   Foreground="{DynamicResource StatusError}" TextWrapping="Wrap" />
-                    </Border>
+                        <!-- ── Client name (company) ──────────────────── -->
+                        <TextBlock Text="Client name (company) *" Style="{StaticResource ClientFieldLabel}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 Text="{Binding ClientName, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="200"
+                                 ToolTip="The customer's company or trading name"
+                                 AutomationProperties.Name="Client name" />
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource ClientFieldErrorPlate}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasClientNameError}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding ClientNameError}" Style="{StaticResource ClientFieldErrorText}"
+                                       AutomationProperties.Name="Client name error" />
+                        </Border>
 
-                    <!-- Phone / e-mail -->
-                    <Grid Margin="{DynamicResource MarginSection}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1*" />
-                            <ColumnDefinition Width="1.4*" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Margin="{DynamicResource MarginInline}">
-                            <TextBlock Text="Phone" Style="{StaticResource ClientFieldLabel}" />
-                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                        <!-- ── Attention name (person to address) ─────── -->
+                        <TextBlock Text="Attention name"
+                                   Style="{StaticResource ClientFieldLabel}"
+                                   Margin="{DynamicResource MarginSection}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 Text="{Binding AttentionName, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="200"
+                                 ToolTip="The person at the client to address on quotes and documents"
+                                 AutomationProperties.Name="Attention name" />
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource ClientFieldErrorPlate}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasAttentionNameError}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding AttentionNameError}" Style="{StaticResource ClientFieldErrorText}" />
+                        </Border>
+
+                        <!-- ── Phone | E-mail (shared rows) ───────────── -->
+                        <Grid Margin="{DynamicResource MarginSection}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1.4*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Phone"
+                                       Style="{StaticResource ClientFieldLabel}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="E-mail"
+                                       Style="{StaticResource ClientFieldLabel}" />
+                            <TextBox Grid.Row="1" Grid.Column="0"
+                                     Style="{DynamicResource {x:Type TextBox}}"
+                                     Margin="{DynamicResource MarginInline}"
                                      Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
-                                     MaxLength="50"
-                                     AutomationProperties.Name="Phone" />
-                            <Border Background="{DynamicResource StatusErrorSurface}"
-                                    CornerRadius="{DynamicResource ControlCornerRadius}"
-                                    Padding="{DynamicResource PaddingControl}"
-                                    Margin="{DynamicResource MarginInline}">
+                                     MaxLength="50" AutomationProperties.Name="Phone" />
+                            <TextBox Grid.Row="1" Grid.Column="1"
+                                     Style="{DynamicResource {x:Type TextBox}}"
+                                     Margin="{DynamicResource MarginInline}"
+                                     Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+                                     MaxLength="200" AutomationProperties.Name="E-mail" />
+                            <Border Grid.Row="2" Grid.Column="0">
                                 <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style TargetType="Border" BasedOn="{StaticResource ClientFieldErrorPlate}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasPhoneError}" Value="True">
                                                 <Setter Property="Visibility" Value="Visible" />
@@ -121,23 +154,11 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock Text="{Binding PhoneError}"
-                                           Foreground="{DynamicResource StatusError}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding PhoneError}" Style="{StaticResource ClientFieldErrorText}" />
                             </Border>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Margin="{DynamicResource MarginInline}">
-                            <TextBlock Text="E-mail" Style="{StaticResource ClientFieldLabel}" />
-                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
-                                     Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
-                                     MaxLength="200"
-                                     AutomationProperties.Name="E-mail" />
-                            <Border Background="{DynamicResource StatusErrorSurface}"
-                                    CornerRadius="{DynamicResource ControlCornerRadius}"
-                                    Padding="{DynamicResource PaddingControl}"
-                                    Margin="{DynamicResource MarginInline}">
+                            <Border Grid.Row="2" Grid.Column="1">
                                 <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style TargetType="Border" BasedOn="{StaticResource ClientFieldErrorPlate}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasEmailError}" Value="True">
                                                 <Setter Property="Visibility" Value="Visible" />
@@ -145,33 +166,45 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock Text="{Binding EmailError}"
-                                           Foreground="{DynamicResource StatusError}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding EmailError}" Style="{StaticResource ClientFieldErrorText}" />
                             </Border>
-                        </StackPanel>
-                    </Grid>
+                        </Grid>
 
-                    <!-- TRN / status -->
-                    <Grid Margin="{DynamicResource MarginSection}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1*" />
-                            <ColumnDefinition Width="1.4*" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0" Margin="{DynamicResource MarginInline}">
-                            <TextBlock Text="TRN (digits only, optional)"
+                        <!-- ── TRN | Status (shared rows) ─────────────── -->
+                        <Grid Margin="{DynamicResource MarginSection}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1.4*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="TRN (digits only, optional)"
                                        Style="{StaticResource ClientFieldLabel}" />
-                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Status"
+                                       Style="{StaticResource ClientFieldLabel}" />
+                            <TextBox Grid.Row="1" Grid.Column="0"
+                                     Style="{DynamicResource {x:Type TextBox}}"
+                                     Margin="{DynamicResource MarginInline}"
                                      Text="{Binding Trn, UpdateSourceTrigger=PropertyChanged}"
                                      MaxLength="20"
                                      ToolTip="UAE tax registration number. Stored as text so leading zeros survive."
                                      AutomationProperties.Name="TRN" />
-                            <Border Background="{DynamicResource StatusErrorSurface}"
-                                    CornerRadius="{DynamicResource ControlCornerRadius}"
-                                    Padding="{DynamicResource PaddingControl}"
-                                    Margin="{DynamicResource MarginInline}">
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="{DynamicResource MarginInline}">
+                                <CheckBox Style="{DynamicResource {x:Type CheckBox}}"
+                                          Content="Active client"
+                                          IsChecked="{Binding IsActive}"
+                                          VerticalAlignment="Center"
+                                          AutomationProperties.Name="Active client" />
+                                <TextBlock Text="{Binding StatusText}" Style="{DynamicResource Caption}"
+                                           TextWrapping="Wrap"
+                                           Margin="{DynamicResource MarginInline}" />
+                            </StackPanel>
+                            <Border Grid.Row="2" Grid.Column="0">
                                 <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style TargetType="Border" BasedOn="{StaticResource ClientFieldErrorPlate}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasTrnError}" Value="True">
                                                 <Setter Property="Visibility" Value="Visible" />
@@ -179,120 +212,109 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock Text="{Binding TrnError}"
-                                           Foreground="{DynamicResource StatusError}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding TrnError}" Style="{StaticResource ClientFieldErrorText}" />
                             </Border>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Margin="{DynamicResource MarginInline}">
-                            <TextBlock Text="Status" Style="{StaticResource ClientFieldLabel}" />
-                            <CheckBox Style="{DynamicResource {x:Type CheckBox}}"
-                                      Content="Active client"
-                                      IsChecked="{Binding IsActive}"
-                                      VerticalAlignment="Center"
-                                      AutomationProperties.Name="Active client" />
-                            <TextBlock Text="{Binding StatusText}" Style="{DynamicResource Caption}"
+                        </Grid>
+
+                        <!-- ── Address ────────────────────────────────── -->
+                        <TextBlock Text="Address" Style="{StaticResource ClientFieldLabel}"
+                                   Margin="{DynamicResource MarginSection}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="500" MinHeight="{DynamicResource ControlMinHeight}"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 AutomationProperties.Name="Address" />
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource ClientFieldErrorPlate}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasAddressError}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding AddressError}" Style="{StaticResource ClientFieldErrorText}" />
+                        </Border>
+
+                        <!-- ── Notes ──────────────────────────────────── -->
+                        <TextBlock Text="Notes" Style="{StaticResource ClientFieldLabel}"
+                                   Margin="{DynamicResource MarginSection}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="{DynamicResource ControlMinHeight}"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 AutomationProperties.Name="Notes" />
+
+                        <!-- Duplicate warning: information, never a block. -->
+                        <Border Background="{DynamicResource StatusWarningSurface}"
+                                BorderBrush="{DynamicResource StatusWarning}"
+                                BorderThickness="{DynamicResource BorderThicknessControl}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Margin="{DynamicResource MarginSection}"
+                                Padding="{DynamicResource PaddingControl}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasDuplicateWarning}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding DuplicateWarning}"
+                                       Foreground="{DynamicResource TextPrimary}"
                                        TextWrapping="Wrap"
-                                       Margin="{DynamicResource MarginInline}" />
-                        </StackPanel>
-                    </Grid>
+                                       AutomationProperties.Name="Possible duplicate warning" />
+                        </Border>
 
-                    <!-- Address -->
-                    <TextBlock Text="Address" Style="{StaticResource ClientFieldLabel}"
-                               Margin="{DynamicResource MarginSection}" />
-                    <TextBox Style="{DynamicResource {x:Type TextBox}}"
-                             Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
-                             MaxLength="500" MinHeight="{DynamicResource ControlMinHeight}"
-                             AcceptsReturn="True" TextWrapping="Wrap"
-                             AutomationProperties.Name="Address" />
-                    <Border Background="{DynamicResource StatusErrorSurface}"
-                            CornerRadius="{DynamicResource ControlCornerRadius}"
-                            Padding="{DynamicResource PaddingControl}"
-                            Margin="{DynamicResource MarginInline}">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasAddressError}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <TextBlock Text="{Binding AddressError}"
-                                   Foreground="{DynamicResource StatusError}" TextWrapping="Wrap" />
-                    </Border>
+                        <!-- Save feedback -->
+                        <Border Background="{DynamicResource StatusErrorSurface}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="{DynamicResource PaddingControl}"
+                                Margin="{DynamicResource MarginItem}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasErrorMessage}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StatusError}"
+                                       TextWrapping="Wrap" AutomationProperties.Name="Save error" />
+                        </Border>
 
-                    <!-- Notes -->
-                    <TextBlock Text="Notes" Style="{StaticResource ClientFieldLabel}"
-                               Margin="{DynamicResource MarginSection}" />
-                    <TextBox Style="{DynamicResource {x:Type TextBox}}"
-                             Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
-                             MinHeight="{DynamicResource ControlMinHeight}"
-                             AcceptsReturn="True" TextWrapping="Wrap"
-                             AutomationProperties.Name="Notes" />
+                        <Border Background="{DynamicResource StatusSuccessSurface}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="{DynamicResource PaddingControl}"
+                                Margin="{DynamicResource MarginItem}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasStatusMessage}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"
+                                       TextWrapping="Wrap" AutomationProperties.Name="Editor status" />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
 
-                    <!-- Duplicate warning: information, never a block. -->
-                    <Border Background="{DynamicResource StatusWarningSurface}"
-                            BorderBrush="{DynamicResource StatusWarning}"
-                            BorderThickness="{DynamicResource BorderThicknessControl}"
-                            CornerRadius="{DynamicResource ControlCornerRadius}"
-                            Margin="{DynamicResource MarginSection}"
-                            Padding="{DynamicResource PaddingControl}">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasDuplicateWarning}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <TextBlock Text="{Binding DuplicateWarning}"
-                                   Foreground="{DynamicResource TextPrimary}"
-                                   TextWrapping="Wrap"
-                                   AutomationProperties.Name="Possible duplicate warning" />
-                    </Border>
-
-                    <!-- Save feedback -->
-                    <Border Background="{DynamicResource StatusErrorSurface}"
-                            CornerRadius="{DynamicResource ControlCornerRadius}"
-                            Padding="{DynamicResource PaddingControl}"
-                            Margin="{DynamicResource MarginItem}">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasErrorMessage}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StatusError}"
-                                   TextWrapping="Wrap" AutomationProperties.Name="Save error" />
-                    </Border>
-
-                    <Border Background="{DynamicResource StatusSuccessSurface}"
-                            CornerRadius="{DynamicResource ControlCornerRadius}"
-                            Padding="{DynamicResource PaddingControl}"
-                            Margin="{DynamicResource MarginItem}">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasStatusMessage}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"
-                                   TextWrapping="Wrap" AutomationProperties.Name="Editor status" />
-                    </Border>
-
-                    <!-- Actions -->
-                    <WrapPanel Margin="{DynamicResource MarginSection}">
+                <!-- ── Action footer ───────────────────────────────────
+                     A themed plate inside the card, with its own padding and a
+                     margin, so the buttons never crowd the card edge or the
+                     card below. It stays visible while the fields scroll. -->
+                <ContentControl Grid.Row="1" Style="{DynamicResource Plate}"
+                                Margin="{DynamicResource MarginItem}">
+                    <WrapPanel HorizontalAlignment="Right">
                         <Button Content="SAVE CLIENT" Style="{DynamicResource PrimaryButton}"
                                 Command="{Binding SaveCommand}"
                                 Margin="{DynamicResource MarginInline}"
@@ -306,8 +328,8 @@
                                 Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Cancel editing" />
                     </WrapPanel>
-                </StackPanel>
-            </ScrollViewer>
+                </ContentControl>
+            </Grid>
         </ContentControl>
     </Grid>
 </UserControl>
