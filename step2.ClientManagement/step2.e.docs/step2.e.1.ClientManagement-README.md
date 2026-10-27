@@ -183,7 +183,22 @@ package and has no theme-specific branch:
 `ThemeCatalog.Installed` (nine complete packages) is the source of truth — not
 the older registry prose that still described themes 6–9 as unregistered.
 
-## 8. Verification
+## 8. Buttons, marks and field heights
+
+- Every action button carries a mark from the **one** shared icon system
+  (`IconService` + `ShellMark`), so the icons follow the operator's chosen icon
+  style (Icons Studio), the active theme's colour and the theme's mark size. No
+  module-local glyphs or duplicated icon control exist.
+  `Add` / `Edit` / `Refresh` / `Search` / `Save` / `Cancel` were added to
+  `IconKind` as generic verbs — a shared-infrastructure extension, not a step2
+  feature number (see `docs/05`, 2026-10-27).
+- The row action's mark flips with the client state: cross while the client is
+  active (deactivate), plus while it is inactive (re-activate).
+- Fields that share a row with a taller neighbour set `VerticalAlignment="Center"`
+  (for example the TRN box beside the Status block). A stretched `TextBox`
+  otherwise grows to its neighbour's height and looks oversized.
+
+## 9. Verification
 
 Executable here (portable, no SDK): `python3 step2.ClientManagement/step2.f.tests/step2.f.2.ClientSourceChecks.py`.
 

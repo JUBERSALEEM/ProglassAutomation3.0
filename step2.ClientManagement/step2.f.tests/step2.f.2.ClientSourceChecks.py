@@ -291,7 +291,7 @@ def require_action_footer():
     check('Style="{DynamicResource Plate}"' in view,
           "the action buttons must sit in a themed footer plate")
     footer_at = view.find('Style="{DynamicResource Plate}"')
-    save_at = view.find('Content="SAVE CLIENT"')
+    save_at = view.find('SAVE CLIENT')
     check(0 < footer_at < save_at, "the save button must be inside the footer plate")
     # The footer must not hardcode padding: the theme owns it.
     for match in re.finditer(r"<ContentControl[^>]*Style=\"\{DynamicResource Plate\}\"[^>]*>", view):
@@ -301,6 +301,102 @@ def require_action_footer():
     # cannot drift apart vertically.
     check(view.count("<Grid.RowDefinitions>") >= 2,
           "two-field groups must share explicit label/input/error rows")
+
+
+def require_button_icons():
+    """Action buttons carry marks from the ONE shared icon system."""
+    icon_service = read(ROOT / "Theme/step1.g.Customization/step1.g.8.IconService.cs")
+    enum_body = icon_service.split("public enum IconKind", 1)[1].split("}", 1)[0]
+    enum_body = re.sub(r"//[^\n]*", " ", enum_body)          # strip comments
+    kinds = {name.strip() for name in enum_body.replace("\n", " ").split(",") if name.strip()}
+    for required in ("Add", "Edit", "Refresh", "Search", "Save", "Cancel"):
+        check(required in kinds, f"IconKind is missing the shared action mark '{required}'")
+    for kind in ("Add", "Edit", "Refresh", "Search", "Save", "Cancel"):
+        check(f"(IconKind.{kind}," in icon_service,
+              f"IconKind.{kind} has no geometry in IconService.Mark")
+
+    for view_name, expected_kinds in (
+        ("step2.d.1.ClientWorkspaceView.xaml", {"Add", "Edit", "Refresh", "Cancel"}),
+        ("step2.d.2.ClientEditorView.xaml", {"Save", "Search", "Cancel"}),
+    ):
+        text = read(MODULE / view_name)
+        check('xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"' in text,
+              f"{view_name}: the shared ShellMark namespace is not declared")
+        used = set(re.findall(r'<studio:ShellMark Kind="([A-Za-z]+)"', text))
+        for kind in expected_kinds:
+            check(kind in used, f"{view_name}: no '{kind}' mark on the action buttons")
+        for kind in used:
+            check(kind in kinds, f"{view_name}: mark '{kind}' does not exist in IconKind")
+        # Marks must never hardcode a colour or a size: the theme owns both.
+        for match in re.finditer(r"<studio:ShellMark[^>]*>", text):
+            check("Foreground=" not in match.group(0),
+                  f"{view_name}: a mark must inherit its colour, not hardcode it")
+            check('Width="{DynamicResource' in match.group(0),
+                  f"{view_name}: a mark must size itself from a theme metric")
+
+
+# SVG/WPF path command -> required argument count.
+_PATH_ARITY = {"M": 2, "L": 2, "H": 1, "V": 1, "C": 6, "S": 4, "Q": 4, "T": 2,
+               "A": 7, "Z": 0}
+
+
+def _validate_path_grammar(data):
+    """Returns an error string, or None when the path is well formed.
+
+    Geometry.Parse throws at render time on a malformed path, and a throwing
+    mark would take the window down, so the grammar is checked at source level.
+    """
+    if not re.fullmatch(r"[MLHVCSQTAZmlhvcsqtaz0-9.,\-\s]+", data):
+        return "contains characters that are not path data"
+    tokens = re.findall(r"[A-Za-z]|-?\d*\.?\d+", data)
+    index = 0
+    saw_move = False
+    while index < len(tokens):
+        token = tokens[index]
+        if not token.isalpha():
+            return f"number '{token}' without a preceding command"
+        command = token.upper()
+        if command not in _PATH_ARITY:
+            return f"unknown command '{token}'"
+        if command == "M":
+            saw_move = True
+        arity = _PATH_ARITY[command]
+        index += 1
+        consumed = 0
+        while index < len(tokens) and not tokens[index].isalpha():
+            consumed += 1
+            index += 1
+        if arity == 0:
+            if consumed:
+                return f"'{command}' takes no arguments"
+        else:
+            if consumed == 0 or consumed % arity:
+                return f"'{command}' needs a multiple of {arity} arguments, got {consumed}"
+    if not saw_move:
+        return "does not start with a move command"
+    return None
+
+
+def require_icon_geometry_valid():
+    """Every mark path must be parseable, including the ones added for step2."""
+    icon_service = read(ROOT / "Theme/step1.g.Customization/step1.g.8.IconService.cs")
+    entries = re.findall(r"\(IconKind\.(\w+),[^)]*\)\s*=>\s*\"([^\"]+)\"", icon_service)
+    check(len(entries) >= 15, f"expected the icon geometry table, found {len(entries)} entries")
+    for kind, path in entries:
+        problem = _validate_path_grammar(path)
+        check(problem is None, f"IconKind.{kind} path is malformed: {problem}")
+
+
+def require_field_heights():
+    """A field beside a taller neighbour must keep its own height."""
+    view = read(MODULE / "step2.d.2.ClientEditorView.xaml")
+    boxes = re.findall(r"<TextBox\b[^>]*/>", view, flags=re.S)
+    trn = [box for box in boxes if "{Binding Trn" in box]
+    check(len(trn) == 1, "expected exactly one TRN text box")
+    if trn:
+        check('VerticalAlignment="Center"' in trn[0],
+              "the TRN box must centre vertically, otherwise it stretches to the "
+              "height of the Status cell beside it")
 
 
 def require_binding_integrity():
@@ -364,6 +460,9 @@ def main():
     require_theme_contract()
     require_attention_name()
     require_action_footer()
+    require_button_icons()
+    require_icon_geometry_valid()
+    require_field_heights()
     require_binding_integrity()
     require_docs_recorded()
 
