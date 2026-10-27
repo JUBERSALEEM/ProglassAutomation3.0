@@ -159,6 +159,16 @@ def require_theme_contract():
         ET.parse(view)  # must be well-formed
         text = read(view)
 
+        # A Style attribute plus a <Element.Style> child is a XAML compile error
+        # ("property has already been set"), which no runtime test would reach.
+        root = ET.parse(view).getroot()
+        for element in root.iter():
+            if not isinstance(element.tag, str) or "Style" not in element.attrib:
+                continue
+            for child in element:
+                check(not (isinstance(child.tag, str) and child.tag.endswith(".Style")),
+                      f"{view.name}: <{element.tag}> sets Style twice")
+
         # Contract resources only: no literal colours, no font sizes in points.
         for literal in re.findall(r'="(#[0-9A-Fa-f]{3,8})"', text):
             check(False, f"{view.name}: literal colour {literal}")
@@ -221,6 +231,78 @@ def require_theme_contract():
               f"{theme.name} no longer styles DataGrid")
 
 
+def require_attention_name():
+    """ClientName is the company, so the person to address must be stored too."""
+    # Word-boundary regexes, not substrings: "AttentionNameX" or
+    # "ContactPersonMaxLength" must not satisfy these checks.
+    property_pattern = r"public\s+string\s+AttentionName\s*\{"
+
+    model = read(MODULE / "step2.a.1.Client.cs")
+    check(re.search(property_pattern, model) is not None,
+          "the client model must carry AttentionName next to the company name")
+    check(re.search(r"\bContactPerson\b", model) is None,
+          "the superseded ContactPerson member must not remain in the model")
+
+    rules = read(MODULE / "step2.a.2.ClientRules.cs")
+    check("ValidateAttentionName" in rules, "attention name validation is missing")
+    check(re.search(r"\bContactPerson\b", rules) is None,
+          "rules still reference the superseded column")
+
+    editor = read(MODULE / "step2.c.1.ClientEditorViewModel.cs")
+    check(re.search(property_pattern, editor) is not None and "HasAttentionNameError" in editor,
+          "the editor view model must expose the attention name and its error state")
+    check(re.search(r"\bContactPerson\b", editor) is None,
+          "editor view model still references ContactPerson")
+
+    editor_view = read(MODULE / "step2.d.2.ClientEditorView.xaml")
+    check('Text="Attention name"' in editor_view,
+          "the editor must label the field 'Attention name'")
+    check('Binding AttentionName' in editor_view,
+          "the editor must bind the attention name")
+    check('Text="Client name (company) *"' in editor_view,
+          "the required field must say it is the company")
+
+    workspace_view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
+    check('Header="Attention" Binding="{Binding AttentionName}"' in workspace_view,
+          "the register must show the attention name")
+    check(re.search(r"\bContactPerson\b", workspace_view) is None,
+          "the register still binds the superseded column")
+
+    schema = read(MODULE / "step2.b.1.ClientSchema.cs")
+    check('PersonColumn = "AttentionName"' in schema, "schema person column must be AttentionName")
+    check("EnsureAttentionName" in schema, "the attention-name convergence (1012) is missing")
+    check("dataPreservationVerified: true" in schema,
+          "the legacy column must only be dropped after verified preservation")
+
+    registry = read(
+        ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs")
+    check("ClientSchema.AttentionNameMigrationVersion" in registry,
+          "migration 1012 is not registered")
+    check(registry.count("new(ClientSchema.") == 2,
+          "both client migrations (1011 and 1012) must be on the one chain")
+    # 1011 stays the immutable baseline: it must keep creating what it shipped.
+    check("LegacyPersonColumn" in schema and "MigrationVersion = 1011" in schema,
+          "1011 must remain the untouched baseline that 1012 converges from")
+
+
+def require_action_footer():
+    """The action buttons must sit in a themed footer, not crowd a card edge."""
+    view = read(MODULE / "step2.d.2.ClientEditorView.xaml")
+    check('Style="{DynamicResource Plate}"' in view,
+          "the action buttons must sit in a themed footer plate")
+    footer_at = view.find('Style="{DynamicResource Plate}"')
+    save_at = view.find('Content="SAVE CLIENT"')
+    check(0 < footer_at < save_at, "the save button must be inside the footer plate")
+    # The footer must not hardcode padding: the theme owns it.
+    for match in re.finditer(r"<ContentControl[^>]*Style=\"\{DynamicResource Plate\}\"[^>]*>", view):
+        check("Padding=" not in match.group(0),
+              "the footer plate must not hardcode Padding")
+    # Both two-field groups must share one label/input/error row set, so labels
+    # cannot drift apart vertically.
+    check(view.count("<Grid.RowDefinitions>") >= 2,
+          "two-field groups must share explicit label/input/error rows")
+
+
 def require_binding_integrity():
     """Every binding path must resolve to a real member of its view model.
 
@@ -280,6 +362,8 @@ def main():
     require_no_inquiry_schema_change()
     require_no_delete_path()
     require_theme_contract()
+    require_attention_name()
+    require_action_footer()
     require_binding_integrity()
     require_docs_recorded()
 

@@ -18,6 +18,7 @@
 using ProGlassAutomation.Models.Clients;
 using ProGlassAutomation.Services.Clients;
 using ProGlassAutomation.Services.Database;
+using ProGlassAutomation.Services.Database.SchemaMigrations;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -37,6 +38,7 @@ internal static class ClientRuleChecks
         Run("validation", CheckValidation);
         Run("duplicates", CheckDuplicates);
         Run("row projection", CheckRowProjection);
+        Run("migration 1012 preserves a legacy contact-person value", CheckAttentionNameMigration);
         Run("repository round-trip (isolated database)", CheckRepository);
 
         Console.WriteLine();
@@ -128,11 +130,17 @@ internal static class ClientRuleChecks
         True(errors.ContainsKey(nameof(ClientDraft.Email)), "draft reports bad e-mail");
         True(errors.ContainsKey(nameof(ClientDraft.Trn)), "draft reports bad TRN");
 
-        var good = new ClientDraft { ClientName = "  Al  Noor  Glass ", ContactPerson = " Mr  Saleem " };
+        True(ClientRules.ValidateAttentionName("") == null, "blank attention name allowed");
+        True(ClientRules.ValidateAttentionName("Mr Ahmed Al Mansouri") == null, "attention name accepted");
+        True(ClientRules.ValidateAttentionName(new string('a', 201)) != null, "over-long attention name rejected");
+
+        var good = new ClientDraft { ClientName = "  Al  Noor  Glass ", AttentionName = " Mr  Saleem " };
         True(ClientRules.Validate(good).Count == 0, "valid draft accepted");
         ClientDraft normalized = ClientRules.Normalize(good);
-        Equal("Al Noor Glass", normalized.ClientName, "normalized name stored");
-        Equal("Mr Saleem", normalized.ContactPerson, "normalized contact stored");
+        Equal("Al Noor Glass", normalized.ClientName, "normalized company name stored");
+        Equal("Mr Saleem", normalized.AttentionName, "normalized attention name stored");
+        // The company and the person are separate values, never derived.
+        True(normalized.ClientName != normalized.AttentionName, "attention name is not the company name");
     }
 
     private static void CheckDuplicates()
@@ -189,15 +197,15 @@ internal static class ClientRuleChecks
     {
         var active = new ClientListRow
         {
-            Id = 7, ClientName = "Al Noor", ContactPerson = "Mr Saleem", Phone = "050",
+            Id = 7, ClientName = "Al Noor Glass LLC", AttentionName = "Mr Saleem", Phone = "050",
             Email = "a@b.ae", IsActive = true,
             CreatedAt = new DateTime(2026, 10, 27, 6, 0, 0, DateTimeKind.Utc),
             UpdatedAt = new DateTime(2026, 10, 27, 6, 30, 0, DateTimeKind.Utc)
         };
         Equal("Success", active.StatusTag, "active badge tag");
         Equal("Active", active.StatusText, "active badge text");
-        True(active.ContactSummary.Contains("Mr Saleem"), "contact summary includes person");
-        True(active.ContactSummary.Contains("050"), "contact summary includes phone");
+        True(active.AttentionSummary.Contains("Mr Saleem"), "summary includes the attention name");
+        True(active.AttentionSummary.Contains("050"), "summary includes phone");
 
         var inactive = new ClientListRow { Id = 8, ClientName = "Old Co", IsActive = false };
         Equal("", inactive.StatusTag, "inactive badge is neutral");
@@ -206,7 +214,94 @@ internal static class ClientRuleChecks
 
         // Empty contact fields must not leave dangling separators.
         var bare = new ClientListRow { ClientName = "Bare Co" };
-        Equal("", bare.ContactSummary, "empty contact summary");
+        Equal("", bare.AttentionSummary, "empty attention summary");
+    }
+
+    /// <summary>
+    /// The risky path: a database that already ran 1011 (so it has the
+    /// superseded ContactPerson column) must converge to AttentionName with its
+    /// data intact when 1012 runs. Built here by hand, so the real migration
+    /// code is exercised against the exact shape the owner's file has.
+    /// </summary>
+    private static void CheckAttentionNameMigration()
+    {
+        string tempFolder = Path.Combine(
+            Path.GetTempPath(), "proglass-step2-migration-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tempFolder);
+        string dbPath = Path.Combine(tempFolder, "inquiries.db");
+
+        try
+        {
+            using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(
+                       SqliteResilience.BuildConnectionString(dbPath)))
+            {
+                connection.Open();
+                SqliteResilience.ApplyConnectionPolicy(connection);
+
+                // Simulate the post-1011 shape, with a real stored value.
+                SchemaMigrationSql.Execute(connection, @"
+                    CREATE TABLE ""Clients"" (
+                        ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Clients"" PRIMARY KEY AUTOINCREMENT,
+                        ""ClientName"" TEXT NOT NULL DEFAULT '',
+                        ""ContactPerson"" TEXT NOT NULL DEFAULT '',
+                        ""Phone"" TEXT NOT NULL DEFAULT '',
+                        ""Email"" TEXT NOT NULL DEFAULT '',
+                        ""Trn"" TEXT NOT NULL DEFAULT '',
+                        ""Address"" TEXT NOT NULL DEFAULT '',
+                        ""Notes"" TEXT NOT NULL DEFAULT '',
+                        ""IsActive"" INTEGER NOT NULL DEFAULT 1,
+                        ""CreatedAt"" TEXT NOT NULL DEFAULT '0001-01-01 00:00:00',
+                        ""UpdatedAt"" TEXT NOT NULL DEFAULT '0001-01-01 00:00:00');");
+                SchemaMigrationSql.Execute(connection,
+                    @"INSERT INTO ""Clients"" (""ClientName"", ""ContactPerson"", ""IsActive"")
+                      VALUES ('Al Noor Glass LLC', 'Mr Ahmed Al Mansouri', 1);");
+                // Everything up to and including 1011 has already been applied.
+                SchemaMigrationSql.Execute(connection, "PRAGMA user_version = 1011;");
+            }
+
+            AppDataRoot.TestFolderOverride = tempFolder;
+            bool upgraded = SchemaMigrationRunner.Upgrade(
+                dbPath, AppSchemaMigrations.Inquiries, "Client attention-name check");
+            True(upgraded, "migration run reported success: " + SchemaMigrationRunner.FailureSummary);
+
+            using var reader = new Microsoft.Data.Sqlite.SqliteConnection(
+                SqliteResilience.BuildConnectionString(dbPath));
+            reader.Open();
+            SqliteResilience.ApplyConnectionPolicy(reader);
+
+            var columns = new List<string>();
+            using (var pragma = reader.CreateCommand())
+            {
+                pragma.CommandText = "PRAGMA table_info(\"Clients\");";
+                using var cursor = pragma.ExecuteReader();
+                while (cursor.Read()) columns.Add(cursor.GetString(1));
+            }
+            True(columns.Contains("AttentionName"), "AttentionName column exists after upgrade");
+            True(!columns.Contains("ContactPerson"), "legacy ContactPerson column is gone");
+
+            using (var value = reader.CreateCommand())
+            {
+                value.CommandText = "SELECT \"AttentionName\" FROM \"Clients\" LIMIT 1;";
+                Equal("Mr Ahmed Al Mansouri", Convert.ToString(value.ExecuteScalar()) ?? "",
+                    "stored person value was preserved through the rename");
+            }
+
+            using (var version = reader.CreateCommand())
+            {
+                version.CommandText = "PRAGMA user_version;";
+                Equal("1012", Convert.ToString(version.ExecuteScalar()) ?? "", "user_version advanced");
+            }
+
+            // Re-running must be a no-op, not an error.
+            True(SchemaMigrationRunner.Upgrade(dbPath, AppSchemaMigrations.Inquiries,
+                    "Client attention-name check (re-run)"),
+                "a second upgrade is a safe no-op: " + SchemaMigrationRunner.FailureSummary);
+        }
+        finally
+        {
+            AppDataRoot.TestFolderOverride = null;
+            try { Directory.Delete(tempFolder, recursive: true); } catch { /* best effort */ }
+        }
     }
 
     private static void CheckRepository()
@@ -240,7 +335,7 @@ internal static class ClientRuleChecks
         ClientSaveResult created = await repository.CreateAsync(new ClientDraft
         {
             ClientName = "  Al   Noor Glass  ",
-            ContactPerson = " Mr Saleem ",
+            AttentionName = " Mr  Saleem  Al Mansouri ",
             Phone = "+971 50 123 4567",
             Email = "ops@alnoor.ae",
             Trn = "100-123-456-700-003",
@@ -251,7 +346,8 @@ internal static class ClientRuleChecks
         True(created.Client != null, "create returned the client");
         int id = created.Client!.Id;
         True(id > 0, "created client has a stable id");
-        Equal("Al Noor Glass", created.Client.ClientName, "stored name normalized");
+        Equal("Al Noor Glass", created.Client.ClientName, "stored company name normalized");
+        Equal("Mr Saleem Al Mansouri", created.Client.AttentionName, "stored attention name normalized");
         Equal("100123456700003", created.Client.Trn, "stored TRN is digits only");
         True(created.Client.IsActive, "new client is active by default");
         True(created.Client.CreatedAt != default, "created timestamp stamped");
@@ -261,6 +357,7 @@ internal static class ClientRuleChecks
         Client? fetched = await repository.GetAsync(id);
         True(fetched != null, "client read back by id");
         Equal("Mussafah, Abu Dhabi", fetched!.Address, "address normalized on read");
+        Equal("Mr Saleem Al Mansouri", fetched.AttentionName, "attention name survives the round-trip");
 
         // Register projection
         IReadOnlyList<ClientListRow> rows = await repository.QueryAsync(new ClientQuery());
@@ -272,6 +369,8 @@ internal static class ClientRuleChecks
             "search matches case-insensitively");
         Equal("1", (await repository.QueryAsync(new ClientQuery { Search = "1001234" })).Count.ToString(),
             "search matches TRN digits");
+        Equal("1", (await repository.QueryAsync(new ClientQuery { Search = "mansouri" })).Count.ToString(),
+            "search matches the attention name");
         Equal("0", (await repository.QueryAsync(new ClientQuery { Search = "zzz-not-here" })).Count.ToString(),
             "search misses cleanly");
 
@@ -292,7 +391,7 @@ internal static class ClientRuleChecks
         ClientSaveResult updated = await repository.UpdateAsync(id, new ClientDraft
         {
             ClientName = "Al Noor Glass LLC",
-            ContactPerson = "Mr Saleem",
+            AttentionName = "Mr Saleem Al Mansouri",
             Phone = "+971 50 123 4567",
             Email = "ops@alnoor.ae",
             Trn = "100123456700003",

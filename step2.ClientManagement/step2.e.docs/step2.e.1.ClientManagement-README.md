@@ -12,7 +12,7 @@ Naming rules remain owned by [`docs/00.Project-Rules.md`](../../docs/00.Project-
 | Capability | Where |
 | --- | --- |
 | Client list (register) with active/inactive counts | `step2.d.1.ClientWorkspaceView.xaml` |
-| Search across name, contact, phone, e-mail, TRN, address | `step2.b.4.ClientRepository.QueryAsync` |
+| Search across name, attention name, phone, e-mail, TRN, address | `step2.b.4.ClientRepository.QueryAsync` |
 | Add / view / edit a client | `step2.d.2.ClientEditorView.xaml`, `step2.c.1.ClientEditorViewModel.cs` |
 | Activate / deactivate (never delete) | `step2.c.2.ClientWorkspaceViewModel.ToggleActiveAsync` |
 | Field validation | `step2.a.2.ClientRules.cs` |
@@ -55,8 +55,8 @@ tooling exception as `step1.b.1`.
 | Column | Type | Rule |
 | --- | --- | --- |
 | `Id` | INTEGER PK AUTOINCREMENT | stable internal identifier; never the name |
-| `ClientName` | TEXT NOT NULL | required, ≤200, whitespace-normalized |
-| `ContactPerson` | TEXT NOT NULL DEFAULT '' | optional, ≤200 |
+| `ClientName` | TEXT NOT NULL | required, ≤200 — **the company**, whitespace-normalized |
+| `AttentionName` | TEXT NOT NULL DEFAULT '' | optional, ≤200 — **the person at that company to address** (migration 1012) |
 | `Phone` | TEXT NOT NULL DEFAULT '' | optional, ≤50, ≥6 digits |
 | `Email` | TEXT NOT NULL DEFAULT '' | optional, ≤200, shape-checked |
 | `Trn` | TEXT NOT NULL DEFAULT '' | optional, digits only, ≤20, leading zeros preserved |
@@ -68,6 +68,18 @@ tooling exception as `step1.b.1`.
 Indexes: `ClientName`, `Phone`, `Email`, `Trn`, `(IsActive, ClientName)`.
 **None is unique** — two genuine clients can share a name (owner decision D9),
 so duplicates are warned about, never blocked.
+
+### Client name is the company; attention name is the person
+
+`ClientName` is the legal/trading entity (`Al Noor Glass LLC`). `AttentionName`
+is the human to address on quotes and correspondence (`Mr Ahmed Al Mansouri`),
+equivalent to ADV's `AttentionExecutiveName`. Both are stored as independent
+values; neither is derived from the other, and the attention name is never
+required.
+
+**Attention name is not a sales representative.** It describes the client's own
+contact. Our sales representative (the person who owns the client relationship)
+remains deferred to the User Management stage — see below.
 
 ### Representative identity is deliberately absent
 
@@ -83,15 +95,36 @@ will add a canonical user identity and a stable nullable reference from
 
 - Database: the existing `inquiries.db` under `AppDataRoot` — no new file.
 - Chain: the existing single `AppSchemaMigrations.Inquiries` registry,
-  `PRAGMA user_version`. The client table is **migration 1011**, the next free
-  version; 1001–1010 are untouched.
+  `PRAGMA user_version`. The client directory is **1011**; the attention-name
+  convergence is **1012**. 1001–1010 are untouched.
 - Existing safeguards are inherited unchanged: SQLite online-API backup before
   migrating (refuses to migrate if the backup fails), all pending migrations in
   one transaction, `Verify` callbacks after each and after the whole set, and a
   post-migration `PRAGMA quick_check`.
-- The migration is idempotent (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN` when
-  missing) and asserts the final shape (`RequireColumn`, `RequireIndex`,
+- Both migrations are idempotent (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN`
+  when missing) and assert the final shape (`RequireColumn`, `RequireIndex`,
   `RequireNoNullValues`), so a wrong result rolls the whole upgrade back.
+
+### Why 1011 was not edited
+
+1011 already ran on the owner's database (confirmed by the running application),
+so it stays the **immutable baseline**, exactly as `1002`'s comment in the same
+file requires. Migration **1012** converges both cases to one shape:
+
+| Starting point | 1012 action |
+| --- | --- |
+| legacy `ContactPerson` only (an early 1011 database) | `ALTER TABLE … RENAME COLUMN` — values move with the column |
+| `AttentionName` only (fresh database created from the EF model) | nothing to do |
+| both, legacy empty | drop the empty legacy column |
+| both, values in both | copy legacy into blank cells; **refuse** on a conflicting value, then drop legacy only after a verified preservation check |
+
+1012 also asserts the legacy column is **gone**, so a failed merge aborts the
+transaction (backup kept, `user_version` unchanged) instead of leaving two
+competing person columns.
+
+One trap is handled explicitly: `SchemaMigrationRunner` re-runs every `Verify`
+callback after the whole pending set has applied, so 1011's assertions cover only
+columns that survive 1012. The person column is asserted by 1012 alone.
 - One database file ⇒ one `user_version` ⇒ **one** chain. A second chain, or a
   second `EnsureCreated` owner, would corrupt the contract; `ClientDbContext`
   therefore refuses both (it reuses `InquiryDbContext.DatabaseFilePath` and
