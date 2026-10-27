@@ -7,7 +7,7 @@ compiler rejects it (`MC3072` / `XLS0413` / `XDG0012`) — and nothing in the
 portable checks caught it, because source checks read text and text cannot tell
 you what a WPF type declares.
 
-Two gates, both cheap and both deterministic:
+The gates, all cheap and all deterministic:
 
 1. DENY — a property that does not exist on a type, in any file, anywhere.
    These are the confusions that actually happen: content-alignment properties on
@@ -17,6 +17,25 @@ Two gates, both cheap and both deterministic:
    used in the repository must be in a reviewed list. A new attribute fails this
    check until somebody confirms it exists on the type and adds it here. That is
    the point: the reviewed list is the cross-check.
+
+The second family is about **loading**, not compiling. A WPF file can compile
+cleanly and still throw `XamlParseException` while `InitializeComponent()` runs —
+that is how the shell died in round 25. Each of these is a crash on open:
+
+  1c  `DynamicResource` on a non-dependency property (`Style.BasedOn`,
+      `Binding.Converter`). Only dependency properties accept it.
+  1d  a `StaticResource` key that nothing defines. Unlike `DynamicResource`,
+      which silently leaves the default, this throws while parsing.
+  1e  a `Style`-typed attribute aimed at a key that is not a `Style` (a brush).
+  1f  a style applied to an element it does not target, including the DataGrid's
+      `CellStyle`/`RowStyle`/`ColumnHeaderStyle`/`RowHeaderStyle` parts.
+  1g  a style derived with `BasedOn` from a style that targets another type.
+  2b  an unresolved `DynamicResource` key — not a crash, but a token that never
+      arrives, so the property keeps its default and the screen quietly loses its
+      styling.
+
+Rules read comment-blanked text (`code_only`), so a comment may quote the pattern
+a rule forbids without failing it.
 
 Everything below was verified against the WPF type declarations, not against
 memory of a similar type:
@@ -214,6 +233,7 @@ for path in files:
 # a XamlParseException on open. Step 3 already carried one (`UserFieldErrorPlateX`,
 # written from memory while the real key is `UserFieldErrorPlate`).
 FRAMEWORK_KEYS = {'BoolVis'}
+static_refs = 0
 THEME_AND_APP_KEYS = set()
 for dictionary in list(ROOT.glob('Theme/Theme*/**/*.xaml')) + [ROOT / 'App.xaml']:
     if not dictionary.is_file():
@@ -222,13 +242,14 @@ for dictionary in list(ROOT.glob('Theme/Theme*/**/*.xaml')) + [ROOT / 'App.xaml'
 for path in files:
     text = code_only(path.read_text(encoding='utf-8'))
     local = set(re.findall(r'x:Key="([^":]+)"', text))
-    for key in re.findall(r'\{StaticResource\s+([^}]+?)\s*\}', text):
-        key = key.strip()
+    for reference in re.finditer(r'\{StaticResource\s+([^}]+?)\s*\}', text):
+        key = reference.group(1).strip()
         if key.startswith('{x:Type') or key.startswith('{x:Static') or ' ' in key:
             continue
+        static_refs += 1
         if key in local or key in THEME_AND_APP_KEYS or key in FRAMEWORK_KEYS:
             continue
-        line = text[:text.index(key)].count('\n') + 1
+        line = text[:reference.start(1)].count('\n') + 1
         problems.append(
             f'{path.relative_to(ROOT)}:{line}: StaticResource {key!r} is not defined in '
             'this file, in a theme dictionary or in App.xaml; a StaticResource lookup '
@@ -260,15 +281,18 @@ for path in files:
             continue   # reported by 1d or it is a framework key
         if 'Style' in kinds:
             continue
+        line = text[:match.start(1)].count(chr(10)) + 1
         problems.append(
-            f'{path.relative_to(ROOT)}: {key!r} is used as a Style but is declared as '
-            f'{sorted(kinds)[0]}; assigning it throws when the property is set')
+            f'{path.relative_to(ROOT)}:{line}: {key!r} is used as a Style but is '
+            f'declared as {sorted(kinds)[0]}; assigning it throws when the property '
+            f'is set')
 
 # 1f ── A Style may only be applied to the type it targets ───────────────────
 # Applying a TextBlock style to a Button, or a Button style to a Border, throws
 # when the property is set. Base types are exempt: a style written for Control
 # is meant to be inherited, and the derived element is the point.
 STYLE_TARGETS = {}
+style_uses = 0
 BASE_STYLED_TYPES = {'FrameworkElement', 'Control', 'ContentControl', 'ButtonBase',
                      'UserControl', 'ItemsControl', 'Panel', 'RangeBase',
                      'Selector', 'TextBoxBase', 'HeaderedContentControl',
@@ -298,6 +322,7 @@ for path in files:
         expected = PART_STYLED_TYPES.get(attribute, element)
         if key.startswith('{x:'):
             continue
+        style_uses += 1
         targets = STYLE_TARGETS.get(key)
         if not targets:
             continue
@@ -325,6 +350,7 @@ for path in files:
         targets = STYLE_TARGETS.get(key)
         if not targets:
             continue
+        style_uses += 1
         concrete = {t for t in targets if t not in BASE_STYLED_TYPES}
         if concrete and own_type not in targets:
             problems.append(
@@ -411,5 +437,7 @@ if problems:
         print('  -', problem)
     raise SystemExit(1)
 
-print(f'PASS: {len(files)} XAML dictionaries parse, {reviewed} attributes on hand-templated '
-      'types are in the reviewed set, and no attribute is placed on a type that does not declare it')
+print(f'PASS: {len(files)} XAML dictionaries parse; {reviewed} attributes on hand-templated '
+      'types are in the reviewed set and every one is declared by its type; '
+      f'{static_refs} StaticResource references resolve; {style_uses} style uses match the '
+      'type they target')
