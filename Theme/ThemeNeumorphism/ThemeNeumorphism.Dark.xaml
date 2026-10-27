@@ -44,6 +44,15 @@
   <sys:Double x:Key="SpacingLarge">16</sys:Double>
   <sys:Double x:Key="SpacingSection">24</sys:Double>
   <sys:Double x:Key="SpacingPage">32</sys:Double>
+  <Thickness x:Key="UiGapField">0,0,0,6</Thickness>
+  <Thickness x:Key="UiGapGroup">0,0,0,16</Thickness>
+  <Thickness x:Key="UiGapSection">0,0,0,24</Thickness>
+  <Thickness x:Key="UiGapAction">0,0,8,0</Thickness>
+  <Thickness x:Key="UiGapCluster">0,0,16,0</Thickness>
+  <Thickness x:Key="UiPagePadding">24</Thickness>
+  <Thickness x:Key="UiCardPadding">16</Thickness>
+  <sys:Double x:Key="UiActionMinHeight">36</sys:Double>
+  <Thickness x:Key="UiActionPadding">16,6,16,6</Thickness>
   <sys:Double x:Key="ControlMinHeight">36</sys:Double>
   <sys:Double x:Key="ControlMinWidth">76</sys:Double>
   <sys:Double x:Key="ChoiceMarkSize">18</sys:Double>

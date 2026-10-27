@@ -46,6 +46,7 @@ internal static class UserBehaviourChecks
         Run("last-administrator guard", CheckLastAdministrator);
         Run("migration 1013 (isolated database)", CheckMigration);
         Run("repository round-trip (isolated database)", CheckRepository);
+        Run("first-run gate and concurrent bootstrap", CheckFirstRunGate);
 
         Console.WriteLine();
         Console.WriteLine($"step3 user checks: {_passed} passed, {Failures.Count} failed.");
@@ -353,6 +354,90 @@ internal static class UserBehaviourChecks
             AppDataRoot.TestFolderOverride = null;
             try { Directory.Delete(tempFolder, recursive: true); } catch { /* best effort */ }
         }
+    }
+
+    /// <summary>
+    /// The first-run gate, end to end rather than just the insert:
+    ///   • an empty directory reports that setup is required, and a populated
+    ///     one does not;
+    ///   • two workstations racing to bootstrap cannot both win, and cannot
+    ///     leave two "first" administrators behind;
+    ///   • an inactive match is reported as inactive and is NOT silently
+    ///     re-activated by signing in again.
+    /// </summary>
+    private static void CheckFirstRunGate()
+    {
+        string tempFolder = Path.Combine(
+            Path.GetTempPath(), "proglass-step3-gate-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tempFolder);
+        AppDataRoot.TestFolderOverride = tempFolder;
+        try
+        {
+            CheckFirstRunGateAsync().GetAwaiter().GetResult();
+        }
+        finally
+        {
+            AppDataRoot.TestFolderOverride = null;
+            try { Directory.Delete(tempFolder, recursive: true); } catch { /* best effort */ }
+        }
+    }
+
+    private static async Task CheckFirstRunGateAsync()
+    {
+        var repository = new UserRepository();
+        await repository.InitializeAsync();
+
+        string operatorName = UserRules.NormalizeUsername(
+            ProGlassAutomation.Services.Audit.CurrentOperator.Username);
+
+        True(await repository.IsFirstRunRequiredAsync(),
+            "an empty directory reports that first-run setup is required");
+
+        // Two simultaneous attempts, as two workstations would arrive.
+        var first = repository.RegisterFirstAdministratorAsync("Racer One", "Administration", operatorName);
+        var second = repository.RegisterFirstAdministratorAsync("Racer Two", "Administration", operatorName);
+        UserSaveResult[] results = await Task.WhenAll(first, second);
+
+        int succeeded = results.Count(result => result.Succeeded);
+        Equal("1", succeeded.ToString(), "exactly one concurrent bootstrap succeeds");
+        Equal("1", (await repository.CountAsync()).ToString(),
+            "a concurrent bootstrap cannot leave two first administrators behind");
+        True(!await repository.IsFirstRunRequiredAsync(),
+            "the gate closes once an administrator exists");
+
+        var late = await repository.RegisterFirstAdministratorAsync(
+            "Too Late", "Administration", operatorName);
+        True(!late.Succeeded, "the bootstrap path is closed after the first administrator");
+
+        // An inactive match: recognised, refused, and left exactly as it was.
+        User? winner = await repository.FindCurrentUserAsync();
+        True(winner != null, "the workstation account matches the bootstrap row");
+
+        var deactivation = await repository.SetActiveAsync(winner!.Id, false, operatorName);
+        True(deactivation.Succeeded, "the sole administrator cannot be deactivated");
+
+        var otherAdmin = await repository.CreateAsync(new UserDraft
+        {
+            FullName = "Second Administrator", Username = "second.admin",
+            Department = "Administration", Role = "Administrator"
+        }, operatorName);
+        True(otherAdmin.Succeeded, "a second administrator exists for the guard to permit this");
+
+        var deactivated = await repository.SetActiveAsync(winner.Id, false, otherAdmin.User!.Username);
+        True(deactivated.Succeeded, "the matched account can be deactivated by another administrator");
+
+        User? afterDeactivation = await repository.FindCurrentUserAsync();
+        True(afterDeactivation != null, "an inactive account is still recognised, not treated as unknown");
+        True(!afterDeactivation!.IsActive, "signing in again does not silently re-activate the account");
+
+        UserDecision decision = UserAuthorization.CanManageUsers(afterDeactivation);
+        Equal(nameof(UserDecisionCode.Inactive), decision.Code.ToString(),
+            "an inactive match is refused with the inactive reason");
+
+        var session = new UserSession(repository);
+        var refreshed = await session.RefreshAsync();
+        True(refreshed != null && !refreshed.IsActive,
+            "the session does not reactivate an inactive match");
     }
 
     private static async Task RunRepositoryChecks()

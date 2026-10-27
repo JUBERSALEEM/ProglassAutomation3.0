@@ -153,6 +153,30 @@ for path in files:
                     'the reviewed property set - confirm the property exists on the '
                     'type, then add it to ALLOW in this file')
 
+# 1b ── A Style may not set the same property twice ─────────────────────────
+# Two Setters for one property in the same Style is a XAML compile error, and it
+# happens precisely when a style is edited in two passes (one setter added for a
+# new token, the original left behind). Caught this way on MainWindow's
+# ShellBannerRule while fixing the banner height.
+for path in files:
+    try:
+        root_for_styles = ET.parse(path).getroot()
+    except ET.ParseError:
+        continue   # already reported above
+    for style in root_for_styles.iter():
+        if not style.tag.endswith('Style'):
+            continue
+        seen = set()
+        for setter in style:
+            if not setter.tag.endswith('Setter'):
+                continue
+            prop = setter.get('Property')
+            if prop in seen:
+                problems.append(
+                    f'{path.relative_to(ROOT)}: Style sets {prop!r} twice '
+                    '(a XAML compile error, not a style override)')
+            seen.add(prop)
+
 # The two registers must actually use the mechanism these tests describe: the
 # presenter is stretched, and the content alignment lives on the cell, which is a
 # ContentControl and really does declare it.

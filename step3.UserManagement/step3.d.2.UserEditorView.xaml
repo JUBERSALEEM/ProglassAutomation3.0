@@ -25,8 +25,9 @@
          implicit-style bindings for theme-templated controls.
          ───────────────────────────────────────────────────────────────── -->
     <UserControl.Resources>
+        <!-- Labels stack above their field, so their spacing is vertical. -->
         <Style x:Key="UserFieldLabel" TargetType="TextBlock">
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
@@ -36,7 +37,7 @@
             <Setter Property="Background" Value="{DynamicResource StatusErrorSurface}" />
             <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
             <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
             <Setter Property="Visibility" Value="Collapsed" />
         </Style>
         <Style x:Key="UserFieldErrorText" TargetType="TextBlock">
@@ -63,27 +64,35 @@
                 <TextBlock Text="{Binding Subtitle}" FontSize="{DynamicResource FontSizeCaption}"
                            Foreground="{DynamicResource TextOnAccent}"
                            TextWrapping="Wrap"
-                           Margin="{DynamicResource MarginInline}" />
+                           Margin="{DynamicResource UiGapField}" />
             </StackPanel>
         </ContentControl>
 
-        <!-- Form card: scrolling fields above, fixed action footer below. -->
+        <!-- The card is sized by its content (VerticalAlignment=Top) instead of
+             being stretched to the window: a short form ends where the form
+             ends, and the ScrollViewer inside still scrolls a long one. -->
         <ContentControl Grid.Row="1" Style="{DynamicResource Card}"
+                        VerticalAlignment="Top"
+                        MaxWidth="900" HorizontalAlignment="Left"
                         Margin="{DynamicResource PaddingCompact}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
+            <!-- Fields and actions scroll as ONE column.
+                 The first build put the fields in a `*` row and the footer in an
+                 `Auto` row, so the fields grid stretched to fill whatever height
+                 the window had and the footer was pushed to the bottom of the
+                 card — a tall empty band between the last field and SAVE USER on
+                 a short form (the owner's screenshot). With the card sized to its
+                 content there is no band, and a long form still scrolls: the
+                 scroll region is this ScrollViewer, so nothing escapes the card
+                 and nothing is clipped. -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="{DynamicResource PaddingCard}">
 
                         <!-- ── Full name ──────────────────────────────── -->
                         <TextBlock Text="Full name *" Style="{StaticResource UserFieldLabel}" />
                         <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                  Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="{DynamicResource UiActionMinHeight}"
                                  MaxLength="120"
                                  ToolTip="The name shown in the register and on documents this person prepares"
                                  AutomationProperties.Name="Full name" />
@@ -103,16 +112,17 @@
 
                         <!-- ── Username (the identity match key) ─────── -->
                         <TextBlock Text="Username *" Style="{StaticResource UserFieldLabel}"
-                                   Margin="{DynamicResource MarginSection}" />
+                                   Margin="{DynamicResource UiGapSection}" />
                         <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                  Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                                 MinHeight="{DynamicResource UiActionMinHeight}"
                                  MaxLength="64"
                                  ToolTip="The Windows account name this person signs in with. It must match exactly, otherwise the app cannot tell who is operating."
                                  AutomationProperties.Name="Username" />
                         <TextBlock Text="Must match this person's Windows account name — that is how the app recognises who is operating."
                                    Style="{DynamicResource Caption}"
                                    TextWrapping="Wrap"
-                                   Margin="{DynamicResource MarginInline}" />
+                                   Margin="{DynamicResource UiGapField}" />
                         <Border>
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource UserFieldErrorPlate}">
@@ -129,10 +139,11 @@
 
                         <!-- ── Department ─────────────────────────────── -->
                         <TextBlock Text="Department *" Style="{StaticResource UserFieldLabel}"
-                                   Margin="{DynamicResource MarginSection}" />
+                                   Margin="{DynamicResource UiGapSection}" />
                         <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                   ItemsSource="{Binding Departments}"
                                   SelectedValuePath="Code"
+                                  MinHeight="{DynamicResource UiActionMinHeight}"
                                   SelectedValue="{Binding Department, Mode=TwoWay}"
                                   ToolTip="The team this person belongs to. A department is not a permission."
                                   AutomationProperties.Name="Department">
@@ -145,7 +156,7 @@
                         <TextBlock Text="Department describes the team, not what the person may do."
                                    Style="{DynamicResource Caption}"
                                    TextWrapping="Wrap"
-                                   Margin="{DynamicResource MarginInline}" />
+                                   Margin="{DynamicResource UiGapField}" />
                         <Border>
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource UserFieldErrorPlate}">
@@ -162,10 +173,11 @@
 
                         <!-- ── Role ───────────────────────────────────── -->
                         <TextBlock Text="Role *" Style="{StaticResource UserFieldLabel}"
-                                   Margin="{DynamicResource MarginSection}" />
+                                   Margin="{DynamicResource UiGapSection}" />
                         <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                   ItemsSource="{Binding Roles}"
                                   SelectedValuePath="Code"
+                                  MinHeight="{DynamicResource UiActionMinHeight}"
                                   SelectedValue="{Binding Role, Mode=TwoWay}"
                                   ToolTip="What this person is authorised to do"
                                   AutomationProperties.Name="Role">
@@ -178,7 +190,7 @@
                         <TextBlock Text="Estimator is the default. Only an Administrator can change access."
                                    Style="{DynamicResource Caption}"
                                    TextWrapping="Wrap"
-                                   Margin="{DynamicResource MarginInline}" />
+                                   Margin="{DynamicResource UiGapField}" />
                         <Border>
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource UserFieldErrorPlate}">
@@ -195,7 +207,7 @@
 
                         <!-- ── Status ─────────────────────────────────── -->
                         <TextBlock Text="Status" Style="{StaticResource UserFieldLabel}"
-                                   Margin="{DynamicResource MarginSection}" />
+                                   Margin="{DynamicResource UiGapSection}" />
                         <StackPanel>
                             <CheckBox Style="{DynamicResource {x:Type CheckBox}}"
                                       Content="Active user"
@@ -204,14 +216,14 @@
                                       AutomationProperties.Name="Active user" />
                             <TextBlock Text="{Binding StatusText}" Style="{DynamicResource Caption}"
                                        TextWrapping="Wrap"
-                                       Margin="{DynamicResource MarginInline}" />
+                                       Margin="{DynamicResource UiGapField}" />
                         </StackPanel>
 
                         <!-- Audit footer: ids on the record, names resolved here. -->
                         <Border Background="{DynamicResource StatusInformationSurface}"
                                 CornerRadius="{DynamicResource ControlCornerRadius}"
                                 Padding="{DynamicResource PaddingCompact}"
-                                Margin="{DynamicResource MarginSection}">
+                                Margin="{DynamicResource UiGapSection}">
                             <Border.Style>
                                 <Style TargetType="Border">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -262,53 +274,60 @@
                             <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"
                                        TextWrapping="Wrap" AutomationProperties.Name="Editor status" />
                         </Border>
-                    </StackPanel>
-                </ScrollViewer>
 
-                <!-- ── Action footer ───────────────────────────────────
-                     A themed plate inside the card, with its own padding and a
-                     margin, so the buttons never crowd the card edge. It stays
-                     visible while the fields scroll. -->
-                <ContentControl Grid.Row="1" Style="{DynamicResource Plate}"
-                                Margin="{DynamicResource MarginItem}">
-                    <WrapPanel HorizontalAlignment="Right">
-                        <Button Style="{DynamicResource PrimaryButton}"
-                                Command="{Binding SaveCommand}"
-                                Margin="{DynamicResource MarginInline}"
-                                AutomationProperties.Name="Save user">
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
-                                                  Height="{DynamicResource ChoiceMarkSize}"
-                                                  Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="SAVE USER" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{DynamicResource SubtleButton}"
-                                Command="{Binding DeactivateCommand}"
-                                Margin="{DynamicResource MarginInline}"
-                                IsEnabled="{Binding CanChangeStatus}"
-                                AutomationProperties.Name="Activate or deactivate user">
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
-                                                  Height="{DynamicResource ChoiceMarkSize}"
-                                                  Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding DeactivateCommandText}" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{DynamicResource SubtleButton}"
-                                Command="{Binding CancelCommand}"
-                                Margin="{DynamicResource MarginInline}"
-                                AutomationProperties.Name="Cancel editing">
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
-                                                  Height="{DynamicResource ChoiceMarkSize}"
-                                                  Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Cancel" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </WrapPanel>
-                </ContentControl>
-            </Grid>
+                    <!-- ── Action footer ───────────────────────────────────
+                         The last block of the form, one section gap below the audit
+                         note, so the actions are plainly part of the card instead of
+                         floating at the bottom of a stretched one. Order is
+                         primary → status → cancel, and the gaps are the module's
+                         action gap (8 px). -->
+                    <ContentControl Style="{DynamicResource Plate}"
+                                    Margin="{DynamicResource UiGapSection}">
+                        <WrapPanel HorizontalAlignment="Right">
+                            <Button Style="{DynamicResource PrimaryButton}"
+                                    Command="{Binding SaveCommand}"
+                                    MinHeight="{DynamicResource UiActionMinHeight}"
+                                    Padding="{DynamicResource UiActionPadding}"
+                                    Margin="{DynamicResource UiGapAction}"
+                                    AutomationProperties.Name="Save user">
+                                <StackPanel Orientation="Horizontal">
+                                    <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
+                                                      Height="{DynamicResource ChoiceMarkSize}"
+                                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                    <TextBlock Text="SAVE USER" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{DynamicResource SubtleButton}"
+                                    Command="{Binding DeactivateCommand}"
+                                    MinHeight="{DynamicResource UiActionMinHeight}"
+                                    Padding="{DynamicResource UiActionPadding}"
+                                    Margin="{DynamicResource UiGapAction}"
+                                    IsEnabled="{Binding CanChangeStatus}"
+                                    AutomationProperties.Name="Activate or deactivate user">
+                                <StackPanel Orientation="Horizontal">
+                                    <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                                      Height="{DynamicResource ChoiceMarkSize}"
+                                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding DeactivateCommandText}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{DynamicResource SubtleButton}"
+                                    Command="{Binding CancelCommand}"
+                                    MinHeight="{DynamicResource UiActionMinHeight}"
+                                    Padding="{DynamicResource UiActionPadding}"
+                                    Margin="{DynamicResource UiGapAction}"
+                                    AutomationProperties.Name="Cancel editing">
+                                <StackPanel Orientation="Horizontal">
+                                    <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                                      Height="{DynamicResource ChoiceMarkSize}"
+                                                      Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                    <TextBlock Text="Cancel" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </ContentControl>
+                    </StackPanel>
+            </ScrollViewer>
         </ContentControl>
     </Grid>
 </UserControl>

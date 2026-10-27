@@ -80,6 +80,16 @@
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <!-- Shown only while the sidebar is collapsed. -->
+        <Style x:Key="ShellMenuToggleButton" TargetType="Button"
+               BasedOn="{StaticResource ShellIconButton}">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsMenuOpen}" Value="False">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="ShellNavButton" TargetType="Button">
             <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
             <Setter Property="Background" Value="{DynamicResource SurfaceSecondary}" />
@@ -179,18 +189,24 @@
                 </ContentControl>
             </ControlTemplate></Setter.Value></Setter>
         </Style>
+        <!-- MinHeight was bound to FontSizeSection, i.e. a font size used as a
+             control height (16 px). HOME and DARK were therefore shorter than the
+             clock beside them, with their own text clipping out of the box. A
+             control height comes from ControlMinHeight, which is what that token
+             is for. -->
         <Style x:Key="ShellBannerButton" TargetType="Button" BasedOn="{StaticResource ShellIconButton}">
-            <Setter Property="MinHeight" Value="{DynamicResource FontSizeSection}" />
+            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
             <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
         </Style>
         <Style x:Key="ShellBannerRule" TargetType="Border">
             <Setter Property="Width" Value="{DynamicResource StrokeWidth}" />
-            <Setter Property="Height" Value="{DynamicResource FontSizeSection}" />
+            <Setter Property="Height" Value="{DynamicResource FontSizeTitle}" />
             <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
         </Style>
     </Window.Resources>
     <Grid>
@@ -653,9 +669,14 @@
             <Grid.Style>
                 <Style TargetType="Grid">
                     <Setter Property="Margin" Value="{DynamicResource PaddingCompact}" />
+                    <!-- Structural guarantee: the content region cannot paint over
+                         the sidebar column. Spatial is the one theme that bleeds
+                         on purpose, so it opts out explicitly. -->
+                    <Setter Property="ClipToBounds" Value="True" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsSpatial}" Value="True">
                             <Setter Property="Margin" Value="{DynamicResource SpatialWorkspacePad}" />
+                            <Setter Property="ClipToBounds" Value="False" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
@@ -665,32 +686,36 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <ContentControl Grid.Row="0" Style="{StaticResource ShellModuleBanner}">
+                <!-- Title column is the flexible one. It used to be `Auto` with a
+                     `*` spacer beside it, so a long workspace title (or a narrow
+                     window with the sidebar open) grew column 0 instead of
+                     shrinking, and the plate on the right was pushed off the
+                     banner. Now the title takes what is left and trims. -->
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" MinWidth="0" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="{DynamicResource ControlMinHeight}" Margin="{DynamicResource PaddingCompact}">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMenuOpen}" Value="False">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                        </Border>
+                        <!-- The menu toggle lives IN the banner and takes layout
+                             space. It used to float over the whole shell with a
+                             ZIndex, which put it on top of the banner's plate
+                             whenever the sidebar was collapsed. A control that
+                             shares a row with its neighbours cannot overlap them. -->
+                        <Button Content="☰"
+                                Command="{Binding ToggleMenu}"
+                                Style="{StaticResource ShellMenuToggleButton}"
+                                Margin="{DynamicResource MarginInline}"
+                                VerticalAlignment="Center"
+                                ToolTip="Open menu"
+                                AutomationProperties.Name="Toggle menu" />
                         <studio:ShellMark Title="{Binding WorkspaceTitle}" Category="settings" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{Binding WorkspaceTitle}" Foreground="{DynamicResource TextPrimary}" FontSize="{DynamicResource FontSizeTitle}" FontWeight="{DynamicResource FontWeightHeading}" />
-                            <TextBlock Text="{Binding WorkspaceSubtitle}" Style="{DynamicResource Caption}" />
+                            <TextBlock Text="{Binding WorkspaceTitle}" Foreground="{DynamicResource TextPrimary}" FontSize="{DynamicResource FontSizeTitle}" FontWeight="{DynamicResource FontWeightHeading}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding WorkspaceSubtitle}" Style="{DynamicResource Caption}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </StackPanel>
-                    <ContentControl Grid.Column="2" Style="{StaticResource ShellBannerCluster}">
+                    <ContentControl Grid.Column="1" Style="{StaticResource ShellBannerCluster}">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="{Binding ShellClock}" Style="{DynamicResource Caption}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
                             <Border Style="{StaticResource ShellBannerRule}" />
@@ -742,19 +767,6 @@
                 <TabItem Header="_Users"><usr:UserWorkspaceView /></TabItem>
             </TabControl>
         </Grid>
-        <Button Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top" Content="☰" Command="{Binding ToggleMenu}" ToolTip="Open menu" AutomationProperties.Name="Toggle menu" Panel.ZIndex="2" Margin="{DynamicResource PaddingPage}">
-            <Button.Style>
-                <Style TargetType="Button" BasedOn="{StaticResource ShellIconButton}">
-                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsMenuOpen}" Value="False">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-        </Button>
         </Grid>
         <Grid x:Name="SpotlightScrim" Visibility="Collapsed" IsHitTestVisible="True">
             <Border x:Name="SpotlightSnap" />

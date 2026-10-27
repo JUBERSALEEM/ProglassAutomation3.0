@@ -168,8 +168,21 @@ namespace ProGlassAutomation.ViewModels.Users
         /// <summary>True when the screen must be read-only for this operator.</summary>
         public bool IsReadOnly => !CanManageUsers;
 
-        /// <summary>Why the screen is read-only; empty when the operator may act.</summary>
-        public string PermissionMessage => _managementDecision.IsAllowed ? "" : _managementDecision.Message;
+        /// <summary>
+        /// Why the screen is read-only; empty when the operator may act.
+        ///
+        /// Empty directory is the one case where the refusal must NOT be shown.
+        /// "This workstation account is not registered … ask an administrator"
+        /// is circular on a brand-new installation: no administrator can exist
+        /// yet, and the setup card directly below is the way to create one. The
+        /// first build displayed that refusal and the setup card together, so
+        /// the operator was told the feature was unavailable while the form to
+        /// enable it sat underneath. The refusal is now suppressed exactly while
+        /// the directory is empty, and it returns the moment a user row exists
+        /// and still does not match this account.
+        /// </summary>
+        public string PermissionMessage =>
+            _managementDecision.IsAllowed || IsDirectoryEmpty ? "" : _managementDecision.Message;
 
         public bool HasPermissionMessage => PermissionMessage.Length > 0;
 
@@ -450,6 +463,11 @@ namespace ProGlassAutomation.ViewModels.Users
 
                 OnPropertyChanged(nameof(RegisterSummary));
                 OnPropertyChanged(nameof(IsDirectoryEmpty));
+                // The refusal notice is suppressed while the directory is empty,
+                // so it has to be re-evaluated whenever that answer changes —
+                // including after the bootstrap row is created.
+                OnPropertyChanged(nameof(PermissionMessage));
+                OnPropertyChanged(nameof(HasPermissionMessage));
 
                 SelectedRow = null;
                 if (selectedId > 0)

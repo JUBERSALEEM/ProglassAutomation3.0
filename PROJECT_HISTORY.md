@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — User Management round 17: first-run gate, spacing and overlap fixes
+- **Phase:** `step3` — corrections reported by the owner.
+- **Before:** a fresh database showed "this workstation account is not registered, so user management is unavailable" above the very card that registers it (circular, and the app still opened on Home); the Add-user card left a band of empty space above its Save button; and in the normal view with the sidebar open, sections of the shell overlapped.
+- **Applied:** the empty directory no longer raises the refusal notice; the shell opens the Users workspace when the directory is empty so setup is the first thing offered; `RegisterFirstAdministratorAsync` re-counts inside its own transaction and refuses a second concurrent bootstrap; the shared layout scale (`UiGapField`, `UiGapGroup`, `UiGapSection`, `UiGapAction`, `UiGapCluster`, `UiPagePadding`, `UiCardPadding`, `UiActionMinHeight`, `UiActionPadding`) was added to the theme contract and all eighteen theme dictionaries; the floating menu button moved into the banner; the command bar became two wrapping rows; page padding is applied once per view; the editor's fields and actions scroll as one column in a content-sized card.
+- **Owner-visible result:** a new installation opens on the setup card, registers the workstation account as the first Administrator, and enters the register able to add staff; action buttons are 36 px high, 8 px apart inside a cluster and 16 px apart between clusters; nothing overlaps when the sidebar is expanded or collapsed.
+- **Preserved:** Clients and Inquiries tables, rows and screens; the nine theme packages and their existing metric values; navigation order; no password field and no second authentication path.
+- **Verification:** the nine portable checkers PASS, including the new layout group. The C# behaviour executable (with the new first-run and concurrent-bootstrap cases) was not compiled here, and no WPF window was rendered — Windows build, runtime switching and Light/Dark visual checks remain for the owner's machine.
+- **Outstanding:** owner visual review at normal and minimum window size, sidebar expanded and collapsed, in Light and Dark; the deferred client-representative column recorded in `docs/05`.
+
 ## 2026-10-27 — User Management (`step3`) implemented
 - **Phase:** `step3` — the user directory
 - **Before:** `step3` was allocated and specified but not authorized; no user, department or role storage existed, and the application had no way to say which person was operating beyond the Windows account name.

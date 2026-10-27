@@ -18,7 +18,11 @@ They verify the properties that are cheap to get wrong and expensive to miss:
   9. attribution persists a stable id and a name snapshot, never a typed name;
  10. the XAML obeys the theme contract: contract resources only, no literal
      colours or sizes, dynamic card roles, explicit implicit-style bindings;
- 11. docs record step3 as implemented (registry, roadmap, spec, history).
+ 11. docs record step3 as implemented (registry, roadmap, spec, history);
+ 12. the layout rules hold: no non-wrapping action row that can overlap, one
+     page padding, one scroll region per screen, action buttons on the shared
+     height/gap tokens, and a shell whose sidebar and content stay in their own
+     columns with no floating control over them.
 
 Exit code 0 = pass. Run from anywhere: python3 step3.f.2.UserSourceChecks.py
 """
@@ -320,6 +324,95 @@ def require_register_layout():
           "the action buttons must sit in a themed footer plate")
 
 
+def require_layout_contract():
+    """Layout rules that were reported as defects and must never come back.
+
+    These are the machine-checkable half of rules A–J in docs/00. A future edit
+    that reintroduces a single non-wrapping action row, a per-row page margin or
+    a stretched editor footer fails here instead of in front of the owner.
+    """
+    view = read(MODULE / "step3.d.1.UserWorkspaceView.xaml")
+    editor = read(MODULE / "step3.d.2.UserEditorView.xaml")
+
+    # A1 — the command bar is two wrapping rows. One row of chips + dropdowns +
+    # search + buttons is what overlapped itself once the sidebar took its width.
+    check('<WrapPanel Grid.Row="0"' in view,
+          "the filter row must be a WrapPanel so it wraps instead of overlapping")
+    check('<WrapPanel Grid.Row="1"' in view,
+          "the action row must be a WrapPanel so it wraps instead of overlapping")
+    check('StackPanel Grid.Column="1" Orientation="Horizontal"' not in view,
+          "the old non-shrinking right-hand action stack must not come back")
+
+    # B2 — one page padding for the view, no stacked per-row page margins: three
+    # collapsed banner rows plus two page margins is what produced the dead band
+    # between the bar and the card.
+    check('Margin="{DynamicResource PaddingPage}"' not in view,
+          "the register must use the shared page padding once, not a page margin per row")
+    check('Margin="{DynamicResource UiPagePadding}"' in view,
+          "the register must apply the shared page padding token")
+
+    # C3 — the editor has exactly one scroll region and no stretched footer row.
+    check(editor.count("<ScrollViewer") == 1,
+          "the editor must scroll in exactly one region")
+    check('Grid.Row="1" Style="{DynamicResource Plate}"' not in editor,
+          "the editor footer must be part of the scrolling column, not a stretched bottom row")
+
+    # D4 — every action button meets the interactive baseline, and adjacent
+    # buttons are spaced by the action gap token rather than touching.
+    page_buttons = 0
+    for path in (MODULE / "step3.d.1.UserWorkspaceView.xaml",
+                 MODULE / "step3.d.2.UserEditorView.xaml"):
+        text = read(path)
+        for match in re.finditer(r"<Button\b[^>]*>", text, flags=re.S):
+            tag = match.group(0)
+            style = re.search(r'Style="\{DynamicResource (\w+)\}', tag)
+            key = style.group(1) if style else ""
+            if key in ("PrimaryButton", "SubtleButton", "DestructiveButton"):
+                page_buttons += 1
+                check('MinHeight="{DynamicResource UiActionMinHeight}"' in tag,
+                      f"{path.name}: action button without the 36 px minimum height")
+                check(any(token in tag for token in (
+                          'Margin="{DynamicResource UiActionGap}"',
+                          'Margin="{DynamicResource UiGapAction}"',
+                          'Margin="{DynamicResource UiGapCluster}"',
+                          'Margin="{DynamicResource UiGapSection}"')),
+                      f"{path.name}: action button without a shared gap token")
+    check(page_buttons >= 8, "the step3 views must still expose their action buttons")
+
+    # Adjacent buttons inside one cluster use the 8 px action gap: SAVE USER,
+    # the status action and Cancel sit in the same footer cluster.
+    footer = editor[editor.index('Style="{DynamicResource Plate}"'):]
+    check(footer.count('Margin="{DynamicResource UiGapAction}"') >= 3,
+          "the editor footer buttons must be separated by the shared action gap")
+
+    # B5 — the shared scale is a contract, not a module-local dictionary.
+    contract = read(ROOT / "Theme/step1.a.ThemeEngine/step1.a.1.ThemeContract.cs")
+    for token in ("UiGapField", "UiGapGroup", "UiGapSection", "UiGapAction",
+                  "UiGapCluster", "UiPagePadding", "UiCardPadding",
+                  "UiActionMinHeight", "UiActionPadding"):
+        check(f'["{token}"]' in contract, f"the theme contract must declare {token}")
+    for package in ("ThemeBento", "ThemeClaymorphism", "ThemeFluent", "ThemeGlassmorphism",
+                    "ThemeHolographic", "ThemeLiquidGlass", "ThemeNeumorphism",
+                    "ThemeSpatial", "ThemeSwiss"):
+        for mode in ("Light", "Dark"):
+            dictionary = read(ROOT / f"Theme/{package}/{package}.{mode}.xaml")
+            check('x:Key="UiActionMinHeight"' in dictionary,
+                  f"{package}/{mode} must define the shared layout scale")
+    check("<sys:Double x:Key=\"UiActionMinHeight\">36</sys:Double>" in
+              read(ROOT / "Theme/ThemeFluent/ThemeFluent.Light.xaml"),
+          "the interactive baseline must be 36 px")
+
+    # F6 — the shell keeps the sidebar and the content in separate columns, and
+    # no control floats over them.
+    shell = read(ROOT / "MainWindow.xaml")
+    check('<ColumnDefinition Width="Auto" />' in shell and '<ColumnDefinition Width="*" />' in shell,
+          "the shell must keep the sidebar and content in separate grid columns")
+    check('Grid.ColumnSpan="2" HorizontalAlignment="Left"' not in shell,
+          "the floating menu button must not overlay the shell again")
+    check('Style="{StaticResource ShellMenuToggleButton}"' in shell,
+          "the menu toggle must live inside the banner and take layout space")
+
+
 def require_docs_recorded():
     registry = read(ROOT / "docs/06.Feature-Registry.md")
     row = next((line for line in registry.splitlines() if line.startswith("| step3 |")), "")
@@ -352,6 +445,7 @@ def main():
     require_attribution_is_by_id()
     require_theme_contract()
     require_register_layout()
+    require_layout_contract()
     require_docs_recorded()
 
     if FAILURES:

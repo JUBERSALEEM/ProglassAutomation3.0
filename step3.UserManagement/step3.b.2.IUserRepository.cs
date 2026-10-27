@@ -140,6 +140,13 @@ namespace ProGlassAutomation.Services.Users
         /// <summary>Total users, needed to tell "empty directory" from "no match".</summary>
         Task<int> CountAsync(CancellationToken ct = default);
 
+        /// <summary>
+        /// True when the directory has no users at all, so the application still
+        /// needs its first administrator. The first-run gate asks this before it
+        /// shows anything, and the write path re-checks it inside its transaction.
+        /// </summary>
+        Task<bool> IsFirstRunRequiredAsync(CancellationToken ct = default);
+
         /// <summary>Departments in display order.</summary>
         Task<IReadOnlyList<CatalogRow>> GetDepartmentsAsync(CancellationToken ct = default);
 

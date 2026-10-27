@@ -209,6 +209,13 @@ namespace ProGlassAutomation.Services.Users
         public async Task<User?> FindCurrentUserAsync(CancellationToken ct = default)
             => await FindByUsernameAsync(CurrentOperatorUsername(), ct).ConfigureAwait(false);
 
+        /// <summary>
+        /// True when the directory has no users at all, i.e. the application still
+        /// needs its first administrator. Call after <see cref="InitializeAsync"/>.
+        /// </summary>
+        public async Task<bool> IsFirstRunRequiredAsync(CancellationToken ct = default)
+            => await CountAsync(ct).ConfigureAwait(false) == 0;
+
         public async Task<int> CountAsync(CancellationToken ct = default)
         {
             await using var db = CreateContext();
@@ -506,7 +513,8 @@ namespace ProGlassAutomation.Services.Users
                 await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
                 // Bootstrap is a one-shot door: it closes the instant any user
-                // exists, so it can never be used later to escalate.
+                // exists, so it can never be used later to escalate. The check is
+                // INSIDE the write transaction, so it reads committed state.
                 int existing = await db.Users.CountAsync(ct).ConfigureAwait(false);
                 if (existing > 0)
                     return UserSaveResult.Fail(
@@ -531,6 +539,18 @@ namespace ProGlassAutomation.Services.Users
                 db.Users.Add(user);
                 await SqliteResilience.SaveWithRetryAsync(
                     token => db.SaveChangesAsync(token), ct).ConfigureAwait(false);
+
+                // Two workstations could both have seen an empty directory
+                // before either wrote. SQLite serializes the writes, so by the
+                // time this row is visible the other insert has committed if it
+                // was going to. Re-read the count inside the same transaction and
+                // abort rather than leave two "first" administrators behind.
+                int afterInsert = await db.Users.CountAsync(ct).ConfigureAwait(false);
+                if (afterInsert != 1)
+                    return UserSaveResult.Fail(
+                        "Another workstation registered a first administrator at the same moment. "
+                        + "Nothing was changed here; close this window and sign in with that account.",
+                        UserDecisionCode.NotAuthorized);
 
                 // Backfill the audit pointer to the new row itself: this record
                 // was created by this administrator on this workstation.

@@ -63,7 +63,8 @@
              so the three registers cannot drift apart. -->
         <Style x:Key="UserFilterChip" TargetType="Button">
             <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
-            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+            <!-- Same 36 px interactive height as every other control here. -->
+            <Setter Property="MinHeight" Value="{DynamicResource UiActionMinHeight}" />
             <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
             <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
             <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
@@ -217,110 +218,136 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid>
+    <!-- One page padding for the whole view (24 px, from the module scale),
+         instead of a margin on each row. Rows that used to carry their own page
+         margin stacked 16 + 16 px of dead space between the bar and the card
+         whenever nothing was displayed between them. -->
+    <Grid Margin="{DynamicResource UiPagePadding}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- ── One command bar ─────────────────────────────────────────
-             Left: what the register is showing (a sentence and three chips that
-             carry their counts). Right: search and the actions. The page title
-             is not repeated here — the shell banner already names the page. -->
-        <ContentControl Grid.Row="0" Style="{DynamicResource Plate}" Margin="{DynamicResource PaddingPage}">
-            <Grid Margin="{DynamicResource PaddingCompact}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+        <!-- ── One command bar, two rows ───────────────────────────────
+             Row 1 answers "what am I looking at": the register summary, the
+             three status chips with their counts, and the two catalogue
+             filters. Row 2 answers "what can I do": search, then the actions,
+             right-aligned and grouped.
 
-                <StackPanel Grid.Column="0" VerticalAlignment="Center"
-                            Margin="{DynamicResource MarginInline}">
-                    <TextBlock Text="{Binding RegisterSummary}" Style="{DynamicResource Caption}"
-                               Margin="{DynamicResource MarginInline}" />
-                    <StackPanel Orientation="Horizontal">
-                        <ItemsControl ItemsSource="{Binding StatusTabs}" Focusable="False"
-                                      AutomationProperties.Name="User status filters">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Style="{StaticResource UserFilterChip}"
-                                            Command="{Binding DataContext.SelectStatusTabCommand,
-                                                              RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                            CommandParameter="{Binding}"
-                                            Content="{Binding LabelWithCount}"
-                                            AutomationProperties.Name="{Binding Label}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+             Why two rows and WrapPanels
+             ───────────────────────────
+             The first build put chips + two dropdowns + a search box + five
+             buttons in ONE row of a Grid: a `*` column holding a horizontal
+             StackPanel, and an `Auto` column holding the actions. A StackPanel
+             never shrinks, so with the sidebar open the star column had less
+             width than its content wanted and the left group was drawn on top
+             of the right group. A WrapPanel wraps onto a second line instead,
+             so nothing can be laid on top of anything at any width, and the
+             second row keeps the actions reachable at the minimum window size.
+             ─────────────────────────────────────────────────────────────── -->
+        <ContentControl Grid.Row="0" Style="{DynamicResource Plate}"
+                        Margin="{DynamicResource UiGapGroup}">
+            <Grid Margin="{DynamicResource UiCardPadding}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                        <!-- Department filter. Selection is by catalogue code, so a
-                             department renamed in the catalogue still filters the
-                             same rows. -->
-                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                                  MinWidth="170"
-                                  ItemsSource="{Binding DepartmentFilters}"
-                                  SelectedValuePath="Code"
-                                  SelectedValue="{Binding SelectedDepartmentFilter, Mode=TwoWay}"
-                                  Margin="{DynamicResource MarginInline}"
+                <!-- Row 1: summary, status chips, catalogue filters. -->
+                <WrapPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding RegisterSummary}"
+                               Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center"
+                               Margin="{DynamicResource UiGapCluster}" />
+
+                    <ItemsControl ItemsSource="{Binding StatusTabs}" Focusable="False"
+                                  Margin="{DynamicResource UiGapAction}"
                                   VerticalAlignment="Center"
-                                  ToolTip="Filter by department"
-                                  AutomationProperties.Name="Filter by department">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
+                                  AutomationProperties.Name="User status filters">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource UserFilterChip}"
+                                        Command="{Binding DataContext.SelectStatusTabCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Content="{Binding LabelWithCount}"
+                                        AutomationProperties.Name="{Binding Label}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
-                        <!-- Role filter: the same idiom, because role decides what a
-                             person may do and department never does. -->
-                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                                  MinWidth="150"
-                                  ItemsSource="{Binding RoleFilters}"
-                                  SelectedValuePath="Code"
-                                  SelectedValue="{Binding SelectedRoleFilter, Mode=TwoWay}"
-                                  Margin="{DynamicResource MarginInline}"
-                                  VerticalAlignment="Center"
-                                  ToolTip="Filter by role"
-                                  AutomationProperties.Name="Filter by role">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
+                    <!-- Department filter. Selection is by catalogue code, so a
+                         department renamed in the catalogue still filters the
+                         same rows. -->
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              MinWidth="170"
+                              MinHeight="{DynamicResource UiActionMinHeight}"
+                              ItemsSource="{Binding DepartmentFilters}"
+                              SelectedValuePath="Code"
+                              SelectedValue="{Binding SelectedDepartmentFilter, Mode=TwoWay}"
+                              Margin="{DynamicResource UiGapAction}"
+                              VerticalAlignment="Center"
+                              ToolTip="Filter by department"
+                              AutomationProperties.Name="Filter by department">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
-                        <Button Style="{DynamicResource SubtleButton}"
-                                Command="{Binding ClearFiltersCommand}"
-                                Margin="{DynamicResource MarginInline}"
-                                VerticalAlignment="Center"
-                                IsEnabled="{Binding HasActiveFilters}"
-                                ToolTip="Clear the department and role filters"
-                                AutomationProperties.Name="Clear filters">
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
-                                                  Height="{DynamicResource ChoiceMarkSize}"
-                                                  Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Filters" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </StackPanel>
+                    <!-- Role filter: the same idiom, because role decides what a
+                         person may do and department never does. -->
+                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                              MinWidth="150"
+                              MinHeight="{DynamicResource UiActionMinHeight}"
+                              ItemsSource="{Binding RoleFilters}"
+                              SelectedValuePath="Code"
+                              SelectedValue="{Binding SelectedRoleFilter, Mode=TwoWay}"
+                              Margin="{DynamicResource UiGapAction}"
+                              VerticalAlignment="Center"
+                              ToolTip="Filter by role"
+                              AutomationProperties.Name="Filter by role">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <studio:ShellMark Kind="Search" Width="{DynamicResource ChoiceMarkSize}"
-                                      Height="{DynamicResource ChoiceMarkSize}"
-                                      Margin="{DynamicResource MarginInline}"
-                                      VerticalAlignment="Center" />
-                    <Grid Width="260" VerticalAlignment="Center"
-                          Margin="{DynamicResource MarginInline}">
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding ClearFiltersCommand}"
+                            Margin="{DynamicResource UiGapAction}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            VerticalAlignment="Center"
+                            IsEnabled="{Binding HasActiveFilters}"
+                            ToolTip="Clear the department and role filters"
+                            AutomationProperties.Name="Clear filters">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource UiGapAction}" VerticalAlignment="Center" />
+                            <TextBlock Text="Filters" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+
+                <!-- Row 2: search first (it filters what the actions act on),
+                     then the selection actions, then the create action. Gaps:
+                     8 px inside a cluster, 16 px between clusters. -->
+                <WrapPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left"
+                           Margin="{DynamicResource UiGapField}">
+                    <Grid Width="260" MinWidth="180" VerticalAlignment="Center"
+                          Margin="{DynamicResource UiGapAction}">
                         <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 MinHeight="{DynamicResource UiActionMinHeight}"
                                  VerticalAlignment="Center"
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Search by name, username, role or department"
@@ -344,7 +371,10 @@
 
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding ClearSearchCommand}"
-                            Margin="{DynamicResource MarginInline}"
+                            Margin="{DynamicResource UiGapAction}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            VerticalAlignment="Center"
                             ToolTip="Clear the search"
                             AutomationProperties.Name="Clear search">
                         <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
@@ -353,21 +383,27 @@
 
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding EditSelectedCommand}"
-                            Margin="{DynamicResource MarginInline}"
+                            Margin="{DynamicResource UiGapAction}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            VerticalAlignment="Center"
                             IsEnabled="{Binding CanManageUsers}"
                             ToolTip="Edit the selected person"
                             AutomationProperties.Name="Edit selected user">
                         <StackPanel Orientation="Horizontal">
                             <studio:ShellMark Kind="Edit" Width="{DynamicResource ChoiceMarkSize}"
                                               Height="{DynamicResource ChoiceMarkSize}"
-                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                              Margin="{DynamicResource UiGapAction}" VerticalAlignment="Center" />
                             <TextBlock Text="Edit" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding ToggleActiveCommand}"
                             CommandParameter="{Binding SelectedRow}"
-                            Margin="{DynamicResource MarginInline}"
+                            Margin="{DynamicResource UiGapAction}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            VerticalAlignment="Center"
                             IsEnabled="{Binding CanManageUsers}"
                             ToolTip="Activate or deactivate the selected person"
                             AutomationProperties.Name="Activate or deactivate selected user">
@@ -375,26 +411,32 @@
                             <studio:ShellMark Style="{StaticResource UserToggleIcon}"
                                               Width="{DynamicResource ChoiceMarkSize}"
                                               Height="{DynamicResource ChoiceMarkSize}"
-                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                              Margin="{DynamicResource UiGapAction}" VerticalAlignment="Center" />
                             <TextBlock Text="{Binding SelectedToggleLabel}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
 
                     <Button Style="{DynamicResource PrimaryButton}"
                             Command="{Binding NewUserCommand}"
-                            Margin="{DynamicResource MarginInline}"
+                            Margin="{DynamicResource UiGapCluster}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            Padding="{DynamicResource UiActionPadding}"
+                            VerticalAlignment="Center"
                             IsEnabled="{Binding CanManageUsers}"
                             AutomationProperties.Name="Add user">
                         <StackPanel Orientation="Horizontal">
                             <studio:ShellMark Kind="Add" Width="{DynamicResource ChoiceMarkSize}"
                                               Height="{DynamicResource ChoiceMarkSize}"
-                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                              Margin="{DynamicResource UiGapAction}" VerticalAlignment="Center" />
                             <TextBlock Text="NEW USER" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                     <Button Style="{DynamicResource SubtleButton}"
                             Content="⋯"
                             Click="OnMoreActionsClick"
+                            Margin="{DynamicResource UiGapAction}"
+                            MinHeight="{DynamicResource UiActionMinHeight}"
+                            VerticalAlignment="Center"
                             ToolTip="More actions"
                             AutomationProperties.Name="More user actions">
                         <Button.ContextMenu>
@@ -403,11 +445,11 @@
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
-                </StackPanel>
+                </WrapPanel>
             </Grid>
         </ContentControl>
 
-        <Grid Grid.Row="1" Margin="{DynamicResource PaddingPage}">
+        <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -419,7 +461,7 @@
                     BorderBrush="{DynamicResource StatusError}"
                     BorderThickness="{DynamicResource BorderThicknessControl}"
                     CornerRadius="{DynamicResource ControlCornerRadius}"
-                    Margin="{DynamicResource MarginItem}"
+                    Margin="{DynamicResource UiGapGroup}"
                     Padding="{DynamicResource PaddingControl}">
                 <Border.Style>
                     <Style TargetType="Border">
@@ -440,7 +482,7 @@
                     BorderBrush="{DynamicResource BorderSubtle}"
                     BorderThickness="{DynamicResource BorderThicknessControl}"
                     CornerRadius="{DynamicResource ControlCornerRadius}"
-                    Margin="{DynamicResource MarginItem}"
+                    Margin="{DynamicResource UiGapGroup}"
                     Padding="{DynamicResource PaddingControl}">
                 <Border.Style>
                     <Style TargetType="Border">
@@ -463,7 +505,7 @@
                     BorderBrush="{DynamicResource StatusWarning}"
                     BorderThickness="{DynamicResource BorderThicknessControl}"
                     CornerRadius="{DynamicResource ControlCornerRadius}"
-                    Margin="{DynamicResource MarginItem}"
+                    Margin="{DynamicResource UiGapGroup}"
                     Padding="{DynamicResource PaddingControl}">
                 <Border.Style>
                     <Style TargetType="Border">
@@ -481,7 +523,7 @@
         </Grid>
 
         <!-- ── Register, first-run bootstrap, and editor share the last row ── -->
-        <Grid Grid.Row="2" Margin="{DynamicResource PaddingPage}">
+        <Grid Grid.Row="2">
 
             <!-- Register card -->
             <Grid>
@@ -652,25 +694,31 @@
                             <TextBlock Text="{Binding BootstrapExplanation}"
                                        Style="{DynamicResource Caption}"
                                        TextWrapping="Wrap"
-                                       Margin="{DynamicResource MarginSection}" />
+                                       Margin="{DynamicResource UiGapGroup}" />
 
+                            <!-- The account is read, not typed: it is the account this
+                                 Windows session is already signed in with. -->
                             <TextBlock Text="Windows account (this workstation)"
                                        Foreground="{DynamicResource TextSecondary}"
                                        FontSize="{DynamicResource FontSizeCaption}"
                                        FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource MarginInline}" />
+                                       Margin="{DynamicResource UiGapField}" />
                             <TextBlock Text="{Binding BootstrapOperatorUsername}"
                                        FontFamily="{DynamicResource FontFamilyMono}"
                                        Foreground="{DynamicResource TextPrimary}"
+                                       TextWrapping="Wrap"
+                                       Margin="{DynamicResource UiGapGroup}"
                                        AutomationProperties.Name="Workstation account" />
 
                             <TextBlock Text="Full name *"
                                        Foreground="{DynamicResource TextSecondary}"
                                        FontSize="{DynamicResource FontSizeCaption}"
                                        FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource MarginSection}" />
+                                       Margin="{DynamicResource UiGapField}" />
                             <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                      Text="{Binding BootstrapFullName, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     Margin="{DynamicResource UiGapGroup}"
                                      ToolTip="The name that will appear on documents this person prepares"
                                      AutomationProperties.Name="First administrator full name" />
 
@@ -678,11 +726,13 @@
                                        Foreground="{DynamicResource TextSecondary}"
                                        FontSize="{DynamicResource FontSizeCaption}"
                                        FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource MarginSection}" />
+                                       Margin="{DynamicResource UiGapField}" />
                             <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                       ItemsSource="{Binding Departments}"
                                       SelectedValuePath="Code"
                                       SelectedValue="{Binding BootstrapDepartment, Mode=TwoWay}"
+                                      MinHeight="{DynamicResource UiActionMinHeight}"
+                                      Margin="{DynamicResource UiGapGroup}"
                                       AutomationProperties.Name="First administrator department">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
@@ -694,7 +744,7 @@
                             <Border Background="{DynamicResource StatusErrorSurface}"
                                     CornerRadius="{DynamicResource ControlCornerRadius}"
                                     Padding="{DynamicResource PaddingControl}"
-                                    Margin="{DynamicResource MarginItem}">
+                                    Margin="{DynamicResource UiGapGroup}">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Visibility" Value="Collapsed" />
@@ -712,7 +762,9 @@
                             <Button Style="{DynamicResource PrimaryButton}"
                                     Command="{Binding RegisterFirstAdministratorCommand}"
                                     HorizontalAlignment="Left"
-                                    Margin="{DynamicResource MarginItem}"
+                                    MinHeight="{DynamicResource UiActionMinHeight}"
+                                    Padding="{DynamicResource UiActionPadding}"
+                                    Margin="{DynamicResource UiGapSection}"
                                     AutomationProperties.Name="Register as first administrator">
                                 <StackPanel Orientation="Horizontal">
                                     <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"

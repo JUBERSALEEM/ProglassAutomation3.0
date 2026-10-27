@@ -37,6 +37,49 @@ Inquiry integration and every document module remain unbuilt.
   the owner scoped this round to User Management only; the dependency is recorded
   in `docs/05` rather than half-built.
 
+## First run (empty directory)
+
+A new installation has no users, so nobody can be identified and no administrator
+can exist. That state is handled explicitly instead of being reported as a refusal:
+
+1. The shell asks `IUserRepository.IsFirstRunRequiredAsync()` after it loads. When
+   the directory is empty it opens the Users workspace, so the first thing the
+   operator sees is the setup card, not a Home page whose actions are all refused.
+2. The setup card names the Windows account this session is already using (read,
+   never typed), asks for the person's full name and department, and offers one
+   action: register that account as the first Administrator.
+3. `UserRepository.RegisterFirstAdministratorAsync` re-checks that the directory is
+   empty **inside** its transaction, inserts the row as Administrator, and re-counts
+   before committing. Two workstations racing each other therefore produce one
+   administrator and one refusal, never two "first" administrators.
+4. On success the session re-reads the directory, the refusal notice stays gone
+   because the account now matches, and the register is usable for adding staff.
+
+While the directory is empty the read-only notice is suppressed — that is what
+turned "ask an administrator" into a circular instruction. If the account matches
+an **inactive** user instead, the card does not appear and the notice says the
+person is inactive; the account is never silently re-activated.
+
+## Layout contract
+
+Every gap and size in these screens comes from the shared layout scale in the theme
+contract (`UiGapField`, `UiGapGroup`, `UiGapSection`, `UiGapAction`, `UiGapCluster`,
+`UiPagePadding`, `UiCardPadding`, `UiActionMinHeight`, `UiActionPadding`), defined
+identically in all eighteen theme dictionaries:
+
+- the command bar is two wrapping rows, so chips, dropdowns, search and actions can
+  never be drawn on top of each other at any width (including with the sidebar open);
+- page padding is applied once on the view, so hidden message rows leave no gap;
+- action buttons are at least 36 px high, 8 px apart inside a cluster and 16 px
+  apart between clusters;
+- the editor scrolls in exactly one region and its card is sized by its content, so
+  a short form has no empty band above its buttons;
+- the shell keeps the sidebar and the content in separate grid columns, and the
+  content column clips to its own region.
+
+`step3.f.2` enforces the machine-checkable half of this, so a future edit fails a
+check instead of returning the defect to the owner.
+
 ## Files
 
 | File | Role |
@@ -55,7 +98,7 @@ Inquiry integration and every document module remain unbuilt.
 | `step3.d.1.UserWorkspaceView.xaml` | register + command bar + bootstrap card |
 | `step3.d.2.UserEditorView.xaml` | add/edit form |
 | `step3.f.1.UserBehaviourChecks.cs` | behaviour checks against an isolated database |
-| `step3.f.2.UserSourceChecks.py` | portable source/contract checks |
+| `step3.f.2.UserSourceChecks.py` | portable source, contract and layout checks |
 
 ## Verification
 

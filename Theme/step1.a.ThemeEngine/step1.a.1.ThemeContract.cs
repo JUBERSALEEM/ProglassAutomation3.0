@@ -58,6 +58,26 @@ public static class ThemeContract
         ["SpacingLarge"] = typeof(double),
         ["SpacingSection"] = typeof(double),
         ["SpacingPage"] = typeof(double),
+        // Cross-module layout scale (owner baseline 2026-10-27):
+        //
+        //   GapField      label → its field
+        //   GapGroup      one field group → the next
+        //   GapSection    one form section → the next
+        //   GapAction     adjacent action buttons (8)
+        //   GapCluster    one action cluster → the next (16)
+        //   PagePadding   main content padding (24)
+        //   CardPadding   card edge → card content (16)
+        //   ActionMinHeight / ActionPadding   button height and
+        //                 internal horizontal padding (36 / 14–18)
+        ["UiGapField"] = typeof(Thickness),
+        ["UiGapGroup"] = typeof(Thickness),
+        ["UiGapSection"] = typeof(Thickness),
+        ["UiGapAction"] = typeof(Thickness),
+        ["UiGapCluster"] = typeof(Thickness),
+        ["UiPagePadding"] = typeof(Thickness),
+        ["UiCardPadding"] = typeof(Thickness),
+        ["UiActionMinHeight"] = typeof(double),
+        ["UiActionPadding"] = typeof(Thickness),
         ["ControlMinHeight"] = typeof(double),
         ["ControlMinWidth"] = typeof(double),
         ["ChoiceMarkSize"] = typeof(double),
