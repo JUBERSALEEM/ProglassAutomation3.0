@@ -78,6 +78,7 @@ public static class ThemeContract
         ["UiCardPadding"] = typeof(Thickness),
         ["UiActionMinHeight"] = typeof(double),
         ["UiActionPadding"] = typeof(Thickness),
+        ["UiSearchPadding"] = typeof(Thickness),
         ["ControlMinHeight"] = typeof(double),
         ["ControlMinWidth"] = typeof(double),
         ["ChoiceMarkSize"] = typeof(double),

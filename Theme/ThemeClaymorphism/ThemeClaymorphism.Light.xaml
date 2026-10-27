@@ -53,6 +53,7 @@
   <Thickness x:Key="UiCardPadding">16</Thickness>
   <sys:Double x:Key="UiActionMinHeight">36</sys:Double>
   <Thickness x:Key="UiActionPadding">16,6,16,6</Thickness>
+  <Thickness x:Key="UiSearchPadding">10,0,34,0</Thickness>
   <sys:Double x:Key="ControlMinHeight">40</sys:Double>
   <sys:Double x:Key="ControlMinWidth">88</sys:Double>
   <sys:Double x:Key="ChoiceMarkSize">22</sys:Double>

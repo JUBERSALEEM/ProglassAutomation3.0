@@ -229,37 +229,76 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- ── One command bar, two rows ───────────────────────────────
-             Row 1 answers "what am I looking at": the register summary, the
-             three status chips with their counts, and the two catalogue
-             filters. Row 2 answers "what can I do": search, then the actions,
-             right-aligned and grouped.
+        <!-- ── One command bar, one row ────────────────────────────────
+             Left: what the operator is looking at and can narrow — search, the
+             three status chips with their counts, and the two catalogue filters,
+             each with its name in front of it.
+             Right: what the operator can do — Edit, the status action, the
+             overflow menu and the one primary action.
 
-             Why two rows and WrapPanels
-             ───────────────────────────
-             The first build put chips + two dropdowns + a search box + five
-             buttons in ONE row of a Grid: a `*` column holding a horizontal
-             StackPanel, and an `Auto` column holding the actions. A StackPanel
-             never shrinks, so with the sidebar open the star column had less
-             width than its content wanted and the left group was drawn on top
-             of the right group. A WrapPanel wraps onto a second line instead,
-             so nothing can be laid on top of anything at any width, and the
-             second row keeps the actions reachable at the minimum window size.
+             Why this shape
+             ──────────────
+             The first build put every control in one horizontal StackPanel inside
+             a `*` column, which cannot shrink: with the sidebar open the left
+             group was drawn over the right group. The second build split it into
+             two full-width rows, which removed the overlap but read as two
+             stacked strips of unrelated controls. This version keeps the safety
+             of wrapping (both groups are WrapPanels, so a narrow window wraps
+             instead of overlapping) while fitting on one line at normal width:
+             the two dropdowns carry their own captions, the search box holds its
+             own clear button, and the redundant "Filters" reset button is gone —
+             choosing "All departments" or "All roles" already clears a filter.
              ─────────────────────────────────────────────────────────────── -->
         <ContentControl Grid.Row="0" Style="{DynamicResource Plate}"
                         Margin="{DynamicResource UiGapGroup}">
             <Grid Margin="{DynamicResource UiCardPadding}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <!-- The flexible column. Its WrapPanel wraps, it never
+                         overflows, so the action cluster on the right can never
+                         be overlapped. -->
+                    <ColumnDefinition Width="*" MinWidth="0" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                <!-- Row 1: summary, status chips, catalogue filters. -->
-                <WrapPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding RegisterSummary}"
-                               Style="{DynamicResource Caption}"
-                               VerticalAlignment="Center"
-                               Margin="{DynamicResource UiGapCluster}" />
+                <!-- ── Search, status, department, role ─────────────────── -->
+                <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+
+                    <Grid Width="190" MinWidth="140" VerticalAlignment="Center"
+                          Margin="{DynamicResource UiGapAction}">
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 MinHeight="{DynamicResource UiActionMinHeight}"
+                                 Padding="{DynamicResource UiSearchPadding}"
+                                 VerticalAlignment="Center"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Search by name, username, role or department"
+                                 AutomationProperties.Name="Search users" />
+                        <!-- Placeholder, and a clear button that lives inside the
+                             field instead of standing beside it. -->
+                        <TextBlock Text="Search users…" IsHitTestVisible="False"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource UiSearchPadding}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SearchText}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <Button Style="{StaticResource UserRowMenuButton}"
+                                Content="✕"
+                                Width="{DynamicResource UiActionMinHeight}"
+                                Height="{DynamicResource UiActionMinHeight}"
+                                Margin="{DynamicResource PaddingCompact}"
+                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Command="{Binding ClearSearchCommand}"
+                                ToolTip="Clear the search"
+                                AutomationProperties.Name="Clear search" />
+                    </Grid>
 
                     <ItemsControl ItemsSource="{Binding StatusTabs}" Focusable="False"
                                   Margin="{DynamicResource UiGapAction}"
@@ -282,105 +321,64 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Department filter. Selection is by catalogue code, so a
-                         department renamed in the catalogue still filters the
-                         same rows. -->
-                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              MinWidth="170"
-                              MinHeight="{DynamicResource UiActionMinHeight}"
-                              ItemsSource="{Binding DepartmentFilters}"
-                              SelectedValuePath="Code"
-                              SelectedValue="{Binding SelectedDepartmentFilter, Mode=TwoWay}"
-                              Margin="{DynamicResource UiGapAction}"
-                              VerticalAlignment="Center"
-                              ToolTip="Filter by department"
-                              AutomationProperties.Name="Filter by department">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                    <!-- Department filter, named in front of the box: a dropdown
+                         with no caption and no selection is a riddle. -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="{DynamicResource UiGapAction}">
+                        <TextBlock Text="Department"
+                                   Style="{DynamicResource Caption}"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource UiGapField}" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  MinWidth="150"
+                                  MinHeight="{DynamicResource UiActionMinHeight}"
+                                  ItemsSource="{Binding DepartmentFilters}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding SelectedDepartmentFilter, Mode=TwoWay}"
+                                  VerticalAlignment="Center"
+                                  ToolTip="Show only people from one department"
+                                  AutomationProperties.Name="Department filter"
+                                  AutomationProperties.HelpText="Choose a department, or All departments">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
 
-                    <!-- Role filter: the same idiom, because role decides what a
-                         person may do and department never does. -->
-                    <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                              MinWidth="150"
-                              MinHeight="{DynamicResource UiActionMinHeight}"
-                              ItemsSource="{Binding RoleFilters}"
-                              SelectedValuePath="Code"
-                              SelectedValue="{Binding SelectedRoleFilter, Mode=TwoWay}"
-                              Margin="{DynamicResource UiGapAction}"
-                              VerticalAlignment="Center"
-                              ToolTip="Filter by role"
-                              AutomationProperties.Name="Filter by role">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-
-                    <Button Style="{DynamicResource SubtleButton}"
-                            Command="{Binding ClearFiltersCommand}"
-                            Margin="{DynamicResource UiGapAction}"
-                            MinHeight="{DynamicResource UiActionMinHeight}"
-                            Padding="{DynamicResource UiActionPadding}"
-                            VerticalAlignment="Center"
-                            IsEnabled="{Binding HasActiveFilters}"
-                            ToolTip="Clear the department and role filters"
-                            AutomationProperties.Name="Clear filters">
-                        <StackPanel Orientation="Horizontal">
-                            <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
-                                              Height="{DynamicResource ChoiceMarkSize}"
-                                              Margin="{DynamicResource UiGapAction}" VerticalAlignment="Center" />
-                            <TextBlock Text="Filters" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
+                    <!-- Role filter: what a person may do. Department never is a
+                         permission, which is why both filters exist. -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                Margin="{DynamicResource UiGapAction}">
+                        <TextBlock Text="Role"
+                                   Style="{DynamicResource Caption}"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource UiGapField}" />
+                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                  MinWidth="130"
+                                  MinHeight="{DynamicResource UiActionMinHeight}"
+                                  ItemsSource="{Binding RoleFilters}"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding SelectedRoleFilter, Mode=TwoWay}"
+                                  VerticalAlignment="Center"
+                                  ToolTip="Show only people with one role"
+                                  AutomationProperties.Name="Role filter"
+                                  AutomationProperties.HelpText="Choose a role, or All roles">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
                 </WrapPanel>
 
-                <!-- Row 2: search first (it filters what the actions act on),
-                     then the selection actions, then the create action. Gaps:
-                     8 px inside a cluster, 16 px between clusters. -->
-                <WrapPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left"
-                           Margin="{DynamicResource UiGapField}">
-                    <Grid Width="260" MinWidth="180" VerticalAlignment="Center"
-                          Margin="{DynamicResource UiGapAction}">
-                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
-                                 MinHeight="{DynamicResource UiActionMinHeight}"
-                                 VerticalAlignment="Center"
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="Search by name, username, role or department"
-                                 AutomationProperties.Name="Search users" />
-                        <TextBlock Text="Search users…" IsHitTestVisible="False"
-                                   VerticalAlignment="Center"
-                                   Margin="{DynamicResource PaddingCompact}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding SearchText}" Value="">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-
-                    <Button Style="{DynamicResource SubtleButton}"
-                            Command="{Binding ClearSearchCommand}"
-                            Margin="{DynamicResource UiGapAction}"
-                            MinHeight="{DynamicResource UiActionMinHeight}"
-                            Padding="{DynamicResource UiActionPadding}"
-                            VerticalAlignment="Center"
-                            ToolTip="Clear the search"
-                            AutomationProperties.Name="Clear search">
-                        <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
-                                          Height="{DynamicResource ChoiceMarkSize}" />
-                    </Button>
-
+                <!-- ── Actions ─────────────────────────────────────────────
+                     8 px between the buttons of the group, 16 px before the
+                     primary action so it reads as its own decision. -->
+                <WrapPanel Grid.Column="1" Orientation="Horizontal"
+                           HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding EditSelectedCommand}"
                             Margin="{DynamicResource UiGapAction}"
@@ -431,13 +429,14 @@
                             <TextBlock Text="NEW USER" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <Button Style="{DynamicResource SubtleButton}"
+                    <Button Style="{StaticResource UserRowMenuButton}"
                             Content="⋯"
                             Click="OnMoreActionsClick"
+                            Width="{DynamicResource UiActionMinHeight}"
+                            Height="{DynamicResource UiActionMinHeight}"
                             Margin="{DynamicResource UiGapAction}"
-                            MinHeight="{DynamicResource UiActionMinHeight}"
                             VerticalAlignment="Center"
-                            ToolTip="More actions"
+                            ToolTip="Refresh the register"
                             AutomationProperties.Name="More user actions">
                         <Button.ContextMenu>
                             <ContextMenu Style="{DynamicResource {x:Type ContextMenu}}">

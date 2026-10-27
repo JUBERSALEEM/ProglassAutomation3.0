@@ -111,15 +111,6 @@ namespace ProGlassAutomation.ViewModels.Users
                 SearchText = "";
                 _ = ReloadAsync();
             });
-            ClearFiltersCommand = new DelegateCommand(() =>
-            {
-                _selectedDepartmentFilter = "";
-                _selectedRoleFilter = "";
-                OnPropertyChanged(nameof(SelectedDepartmentFilter));
-                OnPropertyChanged(nameof(SelectedRoleFilter));
-                OnPropertyChanged(nameof(HasActiveFilters));
-                _ = ReloadAsync();
-            });
             ToggleActiveCommand = new DelegateCommand<UserListRow>(row => _ = ToggleActiveAsync(row));
             EditUserCommand = new DelegateCommand<UserListRow>(row =>
             {
@@ -215,7 +206,6 @@ namespace ProGlassAutomation.ViewModels.Users
             set
             {
                 if (!SetField(ref _selectedDepartmentFilter, value ?? "")) return;
-                OnPropertyChanged(nameof(HasActiveFilters));
                 _ = ReloadAsync();
             }
         }
@@ -227,13 +217,9 @@ namespace ProGlassAutomation.ViewModels.Users
             set
             {
                 if (!SetField(ref _selectedRoleFilter, value ?? "")) return;
-                OnPropertyChanged(nameof(HasActiveFilters));
                 _ = ReloadAsync();
             }
         }
-
-        public bool HasActiveFilters =>
-            SelectedDepartmentFilter.Length > 0 || SelectedRoleFilter.Length > 0;
 
         public UserListRow? SelectedRow
         {
@@ -347,7 +333,6 @@ namespace ProGlassAutomation.ViewModels.Users
         public ICommand SelectStatusTabCommand { get; }
         public ICommand RefreshCommand { get; }
         public ICommand ClearSearchCommand { get; }
-        public ICommand ClearFiltersCommand { get; }
         public ICommand ToggleActiveCommand { get; }
         public ICommand RegisterFirstAdministratorCommand { get; }
 
@@ -518,6 +503,16 @@ namespace ProGlassAutomation.ViewModels.Users
             RoleFilters.Clear();
             RoleFilters.Add(new CatalogRow { Code = "", DisplayName = "All roles" });
             foreach (var role in roles) RoleFilters.Add(role);
+
+            // Re-apply the current filter selection now that the lists have
+            // items. A ComboBox whose SelectedValue is set while its ItemsSource
+            // is still empty stays unselected, and because the bound value never
+            // changed afterwards nothing re-applies it: the box renders blank and
+            // the operator cannot tell which filter it is. Raising the property
+            // pushes the (unchanged) code back into the control, which now finds
+            // its item — including the "" row that means "All departments/roles".
+            OnPropertyChanged(nameof(SelectedDepartmentFilter));
+            OnPropertyChanged(nameof(SelectedRoleFilter));
 
             if (!Departments.Any(d => d.Code == _bootstrapDepartment) && Departments.Count > 0)
             {

@@ -67,8 +67,13 @@ contract (`UiGapField`, `UiGapGroup`, `UiGapSection`, `UiGapAction`, `UiGapClust
 `UiPagePadding`, `UiCardPadding`, `UiActionMinHeight`, `UiActionPadding`), defined
 identically in all eighteen theme dictionaries:
 
-- the command bar is two wrapping rows, so chips, dropdowns, search and actions can
-  never be drawn on top of each other at any width (including with the sidebar open);
+- the command bar is one row of two wrapping clusters: filters in the flexible
+  column, actions in a content-sized column. A `WrapPanel` wraps instead of
+  overflowing, so nothing can be drawn over anything at any width (including with
+  the sidebar open), yet at normal width the whole bar reads as a single strip;
+- each filter dropdown carries a visible caption ("Department", "Role"), an
+  accessible name and a tooltip, and its selection is re-applied after the
+  catalogue loads, so a closed box is never blank;
 - page padding is applied once on the view, so hidden message rows leave no gap;
 - action buttons are at least 36 px high, 8 px apart inside a cluster and 16 px
   apart between clusters;

@@ -19,10 +19,11 @@ They verify the properties that are cheap to get wrong and expensive to miss:
  10. the XAML obeys the theme contract: contract resources only, no literal
      colours or sizes, dynamic card roles, explicit implicit-style bindings;
  11. docs record step3 as implemented (registry, roadmap, spec, history);
- 12. the layout rules hold: no non-wrapping action row that can overlap, one
-     page padding, one scroll region per screen, action buttons on the shared
-     height/gap tokens, and a shell whose sidebar and content stay in their own
-     columns with no floating control over them.
+ 12. the layout rules hold: a command bar that wraps instead of overlapping, a
+     visible caption on every filter dropdown, one page padding, one scroll
+     region per screen, action buttons on the shared height/gap tokens, and a
+     shell whose sidebar and content stay in their own columns with no floating
+     control over them.
 
 Exit code 0 = pass. Run from anywhere: python3 step3.f.2.UserSourceChecks.py
 """
@@ -334,14 +335,41 @@ def require_layout_contract():
     view = read(MODULE / "step3.d.1.UserWorkspaceView.xaml")
     editor = read(MODULE / "step3.d.2.UserEditorView.xaml")
 
-    # A1 — the command bar is two wrapping rows. One row of chips + dropdowns +
-    # search + buttons is what overlapped itself once the sidebar took its width.
-    check('<WrapPanel Grid.Row="0"' in view,
-          "the filter row must be a WrapPanel so it wraps instead of overlapping")
-    check('<WrapPanel Grid.Row="1"' in view,
-          "the action row must be a WrapPanel so it wraps instead of overlapping")
+    # A1 — the command bar is one row made of two WrapPanels: filters in the
+    # flexible column, actions in the content-sized column. A StackPanel cannot
+    # shrink and was what overlapped itself once the sidebar took its width; a
+    # WrapPanel wraps instead, at any width.
+    check('<WrapPanel Grid.Column="0"' in view,
+          "the filter cluster must be a WrapPanel so it wraps instead of overlapping")
+    check('<WrapPanel Grid.Column="1"' in view,
+          "the action cluster must be a WrapPanel so it wraps instead of overlapping")
     check('StackPanel Grid.Column="1" Orientation="Horizontal"' not in view,
           "the old non-shrinking right-hand action stack must not come back")
+    check('<ColumnDefinition Width="*" MinWidth="0" />' in view,
+          "the filter cluster must sit in a shrinkable column beside the actions")
+
+    # A2 — a dropdown must say what it filters. Both catalogue filters carry a
+    # visible caption and an accessible name; a bare box is a riddle, which is
+    # exactly what the owner reported.
+    check('Text="Department"' in view, "the department filter needs a visible caption")
+    check('Text="Role"' in view, "the role filter needs a visible caption")
+    for match in re.finditer(r"<ComboBox\b[^>]*>", view, flags=re.S):
+        tag = match.group(0)
+        if 'Filters}"' not in tag:
+            continue
+        check("ToolTip=" in tag, "each filter dropdown needs a tooltip")
+        check("AutomationProperties.Name=" in tag, "each filter dropdown needs an accessible name")
+        check('DisplayMemberPath' not in tag,
+              "a filter dropdown must render its selection with an ItemTemplate")
+
+    # A3 — a closed dropdown must never be blank. A SelectedValue set while the
+    # ItemsSource is still empty stays unselected and is never re-applied by
+    # itself, so the view model must re-raise the selection after the catalogue
+    # arrives (that was the empty box in the owner's screenshot).
+    vm = read(MODULE / "step3.c.2.UserWorkspaceViewModel.cs")
+    check("OnPropertyChanged(nameof(SelectedDepartmentFilter));" in vm
+          and "OnPropertyChanged(nameof(SelectedRoleFilter));" in vm,
+          "the filter selections must be re-applied after the catalogue loads")
 
     # B2 — one page padding for the view, no stacked per-row page margins: three
     # collapsed banner rows plus two page margins is what produced the dead band
@@ -377,7 +405,13 @@ def require_layout_contract():
                           'Margin="{DynamicResource UiGapCluster}"',
                           'Margin="{DynamicResource UiGapSection}"')),
                       f"{path.name}: action button without a shared gap token")
-    check(page_buttons >= 8, "the step3 views must still expose their action buttons")
+    check(page_buttons >= 6, "the step3 views must still expose their action buttons")
+    for command in ("EditSelectedCommand", "ToggleActiveCommand", "NewUserCommand",
+                    "SaveCommand", "DeactivateCommand", "CancelCommand",
+                    "RegisterFirstAdministratorCommand"):
+        check(f'Command="{{Binding {command}}}"' in view or
+              f'Command="{{Binding {command}}}"' in editor,
+              f"the module must still offer {command}")
 
     # Adjacent buttons inside one cluster use the 8 px action gap: SAVE USER,
     # the status action and Cancel sit in the same footer cluster.
