@@ -56,15 +56,39 @@
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
-        <!-- Column headers are centred with the same technique as the cells.
-             A DataGridColumnHeader's ContentPresenter is left-aligned, so a
-             plain Header="..." string would sit hard against the left edge and
-             read as misaligned above a centred value. Supplying the text as a
-             TextBlock lets it centre itself inside that presenter. Font family,
-             size and weight still inherit from the themed header. -->
-        <Style x:Key="ClientColumnHeader" TargetType="TextBlock">
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="TextAlignment" Value="Center" />
+        <!-- ── Register alignment and rules ─────────────────────────────
+             The theme draws this table's rules in BorderSubtle and, in the body,
+             horizontal rules only — every package sets GridLinesVisibility to
+             Horizontal. Claymorphism Light paints a #DDD6F0 rule on a #E4DCF4
+             surface, so the columns read as one flat block with no way to see
+             where one ends and the next begins (owner feedback), and with no
+             edge to grab when resizing by hand.
+
+             So the grid is given rules of its own. Brush and width are still
+             theme tokens; only the decision to show them belongs to this view.
+             Both styles derive from the active theme's implicit style, because
+             the alternative — defining a DataGridCell/DataGridColumnHeader style
+             from scratch — would drop the theme's cell chrome and, for the
+             header, its template and grippers.
+
+             The derivation is safe for the reasons that matter here: no theme
+             gives DataGridCell a Template, and every setter either style owns
+             resolves through DynamicResource, so a live theme switch still
+             repaints both. The header's template is the one thing taken at load
+             time; the nine packages define it identically apart from
+             Neumorphism's softer variant. -->
+        <Style x:Key="ClientCell" TargetType="DataGridCell"
+               BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <!-- A DataGridTextColumn gives its cell a full-width slot, but a
+                 template column (Status) gives it a content-sized one, so the
+                 badge's own HorizontalAlignment is ignored and it hugs the left
+                 edge. Aligning on the cell covers both kinds. -->
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ClientColumnHeader" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
         </Style>
     </UserControl.Resources>
 
@@ -311,45 +335,30 @@
                                   CanUserReorderColumns="False"
                                   CanUserSortColumns="False"
                                   HeadersVisibility="Column"
+                                  CellStyle="{StaticResource ClientCell}"
+                                  ColumnHeaderStyle="{StaticResource ClientColumnHeader}"
+                                  GridLinesVisibility="All"
+                                  HorizontalGridLinesBrush="{DynamicResource BorderStrong}"
+                                  VerticalGridLinesBrush="{DynamicResource BorderStrong}"
+                                  CanUserResizeColumns="True"
+                                  CanUserResizeRows="False"
+                                  MinColumnWidth="{DynamicResource ControlMinWidth}"
                                   Margin="{DynamicResource MarginItem}"
                                   AutomationProperties.Name="Client directory"
                                   MouseDoubleClick="OnRowDoubleClick"
                                   KeyDown="OnGridKeyDown">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Width="2*" Binding="{Binding ClientName}"
-                                                    ElementStyle="{StaticResource ClientNameCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="Client" Style="{StaticResource ClientColumnHeader}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Width="1.2*" Binding="{Binding AttentionName}"
-                                                    ElementStyle="{StaticResource ClientPlainCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="Attention" Style="{StaticResource ClientColumnHeader}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Width="1*" Binding="{Binding Phone}"
-                                                    ElementStyle="{StaticResource ClientMonoCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="Phone" Style="{StaticResource ClientColumnHeader}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Width="1.4*" Binding="{Binding Email}"
-                                                    ElementStyle="{StaticResource ClientPlainCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="E-mail" Style="{StaticResource ClientColumnHeader}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Width="0.9*" Binding="{Binding Trn}"
-                                                    ElementStyle="{StaticResource ClientMonoCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="TRN" Style="{StaticResource ClientColumnHeader}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
-                                <DataGridTemplateColumn Width="0.8*" CanUserSort="False">
-                                    <DataGridTemplateColumn.Header>
-                                        <TextBlock Text="Status" Style="{StaticResource ClientColumnHeader}" />
-                                    </DataGridTemplateColumn.Header>
+                                <DataGridTextColumn Header="Client" Width="2*" Binding="{Binding ClientName}"
+                                                    ElementStyle="{StaticResource ClientNameCell}" />
+                                <DataGridTextColumn Header="Attention" Width="1.2*" Binding="{Binding AttentionName}"
+                                                    ElementStyle="{StaticResource ClientPlainCell}" />
+                                <DataGridTextColumn Header="Phone" Width="1*" Binding="{Binding Phone}"
+                                                    ElementStyle="{StaticResource ClientMonoCell}" />
+                                <DataGridTextColumn Header="E-mail" Width="1.4*" Binding="{Binding Email}"
+                                                    ElementStyle="{StaticResource ClientPlainCell}" />
+                                <DataGridTextColumn Header="TRN" Width="0.9*" Binding="{Binding Trn}"
+                                                    ElementStyle="{StaticResource ClientMonoCell}" />
+                                <DataGridTemplateColumn Header="Status" Width="0.8*" CanUserSort="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border Style="{DynamicResource StatusBadge}"
@@ -362,12 +371,8 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Width="1*" Binding="{Binding UpdatedText}"
-                                                    ElementStyle="{StaticResource ClientMonoCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="Updated" Style="{StaticResource ClientColumnHeader}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Updated" Width="1*" Binding="{Binding UpdatedText}"
+                                                    ElementStyle="{StaticResource ClientMonoCell}" />
                             </DataGrid.Columns>
                         </DataGrid>
 

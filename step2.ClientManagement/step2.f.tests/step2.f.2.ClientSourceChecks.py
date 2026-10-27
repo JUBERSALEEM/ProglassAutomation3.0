@@ -404,36 +404,72 @@ def require_field_heights():
 def require_register_alignment():
     """Every register column is centred, header and value alike.
 
-    A DataGridColumnHeader and a DataGridCell both hand their content to a
-    presenter that is left-aligned by default, so a header string alone, or a
-    cell with no alignment, renders hard against the left edge. Both are checked
-    here because an owner sees a half-centred table as "not fixed".
+    Alignment cannot be done from inside the content: a DataGridTextColumn's
+    cell gives its TextBlock a full-width slot, but a template column's cell
+    gives its content a content-sized one, so the Status badge ignored its own
+    HorizontalAlignment and hugged the left edge. Centring therefore belongs on
+    the cell and on the header, which is what these checks pin down.
     """
     view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
-    check(view.count('Style="{StaticResource ClientColumnHeader}"') == 7,
-          "all seven register headers must be supplied as centred TextBlocks")
-    check(not re.search(r'Header="[A-Za-z]', view),
-          "a bare Header=\"...\" string is left-aligned; the header needs a centred TextBlock")
-    check('<DataGridTemplateColumn.Header>' in view,
-          "the status column header must be centred too")
+
+    cell = re.search(r'<Style x:Key="ClientCell" TargetType="DataGridCell"(.*?)</Style>', view, re.S)
+    check(cell is not None, "the register has no cell style to centre its values")
+    if cell:
+        check('Property="HorizontalContentAlignment" Value="Center"' in cell.group(0),
+              "the cell style must centre its content, otherwise the status badge "
+              "stays hard against the left edge")
+        check('BasedOn="{StaticResource {x:Type DataGridCell}}"' in cell.group(0),
+              "the cell style must derive from the theme's cell style, or the "
+              "register loses the theme's cell chrome")
+
+    header = re.search(r'<Style x:Key="ClientColumnHeader" TargetType="DataGridColumnHeader"(.*?)</Style>',
+                       view, re.S)
+    check(header is not None, "the register has no column-header style")
+    if header:
+        check('Property="HorizontalContentAlignment" Value="Center"' in header.group(0),
+              "the column-header style must centre its label")
+        check('BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"' in header.group(0),
+              "the header style must derive from the theme's header style, or the "
+              "register loses the theme's header template and resize grippers")
+
+    check('CellStyle="{StaticResource ClientCell}"' in view,
+          "the register DataGrid does not use the centring cell style")
+    check('ColumnHeaderStyle="{StaticResource ClientColumnHeader}"' in view,
+          "the register DataGrid does not use the centring header style")
+
+    check(len(re.findall(r'\bHeader="[A-Za-z]', view)) == 7,
+          "all seven register columns must be present")
+
     for style_name in ("ClientNameCell", "ClientMonoCell", "ClientPlainCell"):
         style = re.search(r'<Style x:Key="' + style_name + r'"[^>]*>(.*?)</Style>', view, re.S)
         check(style is not None, f"{style_name} is missing from the register")
         if style:
             body = style.group(1)
-            check('Property="HorizontalAlignment" Value="Center"' in body,
-                  f"{style_name} must centre its value horizontally")
             check('Property="TextAlignment" Value="Center"' in body,
                   f"{style_name} must centre the text inside its own box")
-    check('Style="{DynamicResource StatusBadge}"\n' in view
-          and 'HorizontalAlignment="Center"' in view,
-          "the status badge must centre inside its column")
-    # No text column may skip its centring style.
+    check('Style="{DynamicResource StatusBadge}"' in view,
+          "the status badge must keep its themed style")
+
     columns = re.findall(r"<DataGridTextColumn\s[^>]*>", view, re.S)
     check(len(columns) == 6, f"expected six text columns, found {len(columns)}")
     for column in columns:
         check("ElementStyle=" in column, "a register text column has no cell style")
 
+
+def require_grid_rules():
+    """The register shows column rules and can be resized by hand."""
+    view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
+    check('GridLinesVisibility="All"' in view,
+          "the register must draw column rules, not horizontal ones only")
+    check('VerticalGridLinesBrush="{DynamicResource BorderStrong}"' in view,
+          "vertical rules must take their colour from the theme, and a visible one: "
+          "BorderSubtle is all but the surface colour in several packages")
+    check('HorizontalGridLinesBrush="{DynamicResource BorderStrong}"' in view,
+          "horizontal rules must use the same visible token as the vertical ones")
+    check('CanUserResizeColumns="True"' in view,
+          "columns must stay resizable by hand")
+    check('MinColumnWidth="{DynamicResource ControlMinWidth}"' in view,
+          "a floor is needed, or a column can be dragged down to nothing")
 
 def require_action_layout():
     """The actions card must read as three equal, full-width buttons.
@@ -540,6 +576,7 @@ def main():
     require_field_heights()
     require_register_alignment()
     require_action_layout()
+    require_grid_rules()
     require_paired_field_widths()
     require_binding_integrity()
     require_docs_recorded()
@@ -551,7 +588,8 @@ def main():
         return 1
     print("PASS: step2 client management — naming, single migration chain, no Inquiry schema "
           "change, no representative identity, no delete path, nine-theme contract, centred "
-          "register, equal action buttons, equal paired fields, docs recorded.")
+          "register, visible rules and manual resize, equal action buttons, equal "
+          "paired fields, docs recorded.")
     return 0
 
 

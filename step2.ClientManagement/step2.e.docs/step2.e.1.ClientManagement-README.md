@@ -210,6 +210,25 @@ the older registry prose that still described themes 6–9 as unregistered.
   Refresh share a second row of equal halves. The grid owns the inset and the
   buttons carry no margin of their own; nested margins made Edit narrower than
   Refresh and made the pair look collapsed.
+- The register draws its own column rules. Every theme package sets
+  `GridLinesVisibility="Horizontal"` and paints its rules in `BorderSubtle`,
+  which in Claymorphism Light is `#DDD6F0` on an `#E4DCF4` surface — the columns
+  read as one flat block and there is no edge to grab. The view asks for
+  `All` rules in `BorderStrong`, and the header keeps a rule of its own by
+  repainting the theme's header border in the same token. Brush and width are
+  still theme tokens; only the decision to show them belongs to the view.
+- Columns are resizable by hand (`CanUserResizeColumns`, floor
+  `ControlMinWidth`). The rule is what makes the drag target visible: the
+  theme's gripper is transparent until it is hovered.
+- Alignment is set on the **cell** and the **header**, not inside the content.
+  A `DataGridTextColumn` cell gives its `TextBlock` a full-width slot, but a
+  template cell (Status) gives its content a content-sized one, so the badge's
+  own `HorizontalAlignment="Center"` was ignored and it hugged the left edge.
+  `ClientCell` and `ClientColumnHeader` derive from the theme's implicit styles
+  and add `HorizontalContentAlignment="Center"`; every setter those theme styles
+  own resolves through `DynamicResource`, so a live theme switch still repaints
+  them. The header template is taken at load time — the nine packages define it
+  identically apart from Neumorphism's softer variant.
 - **Rebuild before judging the UI.** A WPF build does not pick up edited XAML in
   an already-running `bin` output, and a failed build leaves the previous
   executable in place, so an old window can look exactly like an unfixed bug.
