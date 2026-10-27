@@ -37,6 +37,18 @@ namespace ProGlassAutomation.Services.Inquiry
         public string Sort { get; init; } = "Updated newest";
         public int Page { get; init; } = 1;
         public int PageSize { get; init; } = 50;
+
+        /// <summary>
+        /// Restricts the register to the inquiries one person is part of.
+        /// </summary>
+        /// <remarks>
+        /// Owner instruction (round 24): "user should be able to read the data
+        /// related to them only". An inquiry belongs to a person when they are its
+        /// salesman or its preparer; an Administrator passes null and reads the
+        /// whole book. The repository also applies this as a ceiling for a signed-in
+        /// non-administrator, so a caller that forgets cannot widen it.
+        /// </remarks>
+        public int? ScopeToUserId { get; init; }
     }
 
     /// <summary>
@@ -100,7 +112,13 @@ namespace ProGlassAutomation.Services.Inquiry
         Task InitializeAsync(CancellationToken ct = default);
         Task<PagedResult<InquiryListProjection>> QueryAsync(InquiryQuery query, CancellationToken ct = default);
         Task<InquiryStatistics> GetStatisticsAsync(InquiryQuery query, CancellationToken ct = default);
-        Task<InquiryRecord?> GetDetailAsync(int id, CancellationToken ct = default);
+        /// <summary>
+        /// One inquiry with its BOQ. When <paramref name="scopeToUserId"/> is set,
+        /// an inquiry that person is not part of comes back as null — the same
+        /// rule the register applies, so a record cannot be opened by id alone.
+        /// </summary>
+        Task<InquiryRecord?> GetDetailAsync(
+            int id, CancellationToken ct = default, int? scopeToUserId = null);
         Task<InquiryRecord> CreateAsync(InquiryRecord inquiry, CancellationToken ct = default);
         Task<InquiryRecord> UpdateAsync(
             InquiryRecord inquiry, int expectedRowVersion, CancellationToken ct = default);

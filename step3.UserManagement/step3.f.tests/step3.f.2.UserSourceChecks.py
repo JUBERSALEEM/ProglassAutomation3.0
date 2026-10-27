@@ -230,6 +230,19 @@ def require_credential_policy():
     check("IsAdministrator" in workspace,
           "the workspace must know whether the operator is an administrator")
 
+    # The scope has to reach the biggest register too, or "only the data related
+    # to them" stops at the front door.
+    inquiry_contracts = read(ROOT / "Inquiry/Services/Inquiry/InquiryContracts.cs")
+    inquiry_repository = read(ROOT / "Inquiry/Services/Inquiry/InquiryRepository.cs")
+    inquiry_list = read(ROOT / "Inquiry/ViewModels/InquiryListViewModel.cs")
+    check("ScopeToUserId" in inquiry_contracts,
+          "the inquiry query must be able to restrict itself to one person")
+    check(inquiry_repository.count("ReadScopeFor(") >= 3,
+          "the inquiry repository must apply the read scope as a ceiling, in both "
+          "the register and the single-record fetch")
+    check("ScopeToUserId = AuthenticationContext.IsAdministrator" in inquiry_list,
+          "the inquiry register must ask for the signed-in person's scope")
+
 
 def require_department_is_not_a_permission():
     authorization = read(MODULE / "step3.a.4.UserAuthorization.cs")

@@ -22,6 +22,7 @@ using ProGlassAutomation.Models.Inquiry;
 using ProGlassAutomation.Services.Database;
 using ProGlassAutomation.Services.Database.SchemaMigrations;
 using ProGlassAutomation.Services.Reporting;
+using ProGlassAutomation.Services.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -137,15 +138,43 @@ namespace ProGlassAutomation.Services.Inquiry
             };
         }
 
-        public async Task<InquiryRecord?> GetDetailAsync(int id, CancellationToken ct = default)
+        public async Task<InquiryRecord?> GetDetailAsync(
+            int id, CancellationToken ct = default, int? scopeToUserId = null)
         {
             await using var db = new InquiryDbContext();
+            var source = db.Inquiries.AsNoTracking();
+
+            // ── Read scope ──────────────────────────────────────────────
+            // Same rule as the register: a signed-in non-administrator may open
+            // only an inquiry they are part of, whichever id the caller passes.
+            int? scope = ReadScopeFor(scopeToUserId);
+            if (scope is int person)
+                source = source.Where(x => x.SalesmanId == person || x.PreparedByUserId == person);
+
             // Include LineItems — the BOQ travels with the record so the
             // editor edits it and ConvertToPi can import it.
-            return await db.Inquiries.AsNoTracking()
+            return await source
                 .Include(x => x.LineItems)
                 .SingleOrDefaultAsync(x => x.Id == id, ct)
                 .ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// The id an inquiry read must be limited to, or null for "the whole book".
+        /// </summary>
+        /// <remarks>
+        /// A signed-in non-administrator is pinned to their own id first — the
+        /// ceiling — and only an administrator (or the bootstrap/test state, where
+        /// nobody is signed in) may read every row.
+        /// </remarks>
+        private static int? ReadScopeFor(int? requested)
+        {
+            if (AuthenticationContext.Current is { } viewer
+                && !AuthenticationContext.IsAdministrator)
+            {
+                return viewer.Id;
+            }
+            return requested;
         }
 
         /// <summary>
@@ -741,6 +770,14 @@ namespace ProGlassAutomation.Services.Inquiry
             if (!string.IsNullOrWhiteSpace(query.Priority)
                 && !query.Priority.StartsWith("All", StringComparison.OrdinalIgnoreCase))
                 source = source.Where(x => x.Priority == query.Priority);
+
+            // ── Read scope ──────────────────────────────────────────────────
+            // "user should be able to read the data related to them only": an
+            // inquiry is theirs when they are its salesman or its preparer. The
+            // ceiling (a signed-in non-administrator) is applied first, so a
+            // caller cannot widen it by passing somebody else's id.
+            if (ReadScopeFor(query.ScopeToUserId) is int person)
+                source = source.Where(x => x.SalesmanId == person || x.PreparedByUserId == person);
             return source;
         }
     }

@@ -26,6 +26,7 @@
 
 using ProGlassAutomation.Models.Inquiry;
 using ProGlassAutomation.Services.Inquiry;
+using ProGlassAutomation.Services.Users;
 using ProGlassAutomation.ThemeStudio;
 using System;
 using System.Collections.ObjectModel;
@@ -745,6 +746,12 @@ namespace ProGlassAutomation.ViewModels.Inquiry
                 var range = DateRange(SelectedDateRange, DateTime.Now);
                 var query = new InquiryQuery
                 {
+                    // The register a person may read: everything for an
+                    // administrator, their own inquiries otherwise. The repository
+                    // applies the same rule as a ceiling.
+                    ScopeToUserId = AuthenticationContext.IsAdministrator
+                        ? null
+                        : AuthenticationContext.UserId,
                     Search = SearchText,
                     Status = SelectedStatusKey.Length == 0 ? "All statuses" : SelectedStatusKey,
                     SalesmanName = SelectedSalesman, PreparedByName = SelectedPreparedBy,

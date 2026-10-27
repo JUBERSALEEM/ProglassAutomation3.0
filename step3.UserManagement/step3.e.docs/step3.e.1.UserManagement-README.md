@@ -98,6 +98,9 @@ used for a week is not temporary.
   same id, so the status counts cannot leak how many people exist either.
 - The Clients register applies the same rule to representatives: a normal user reads
   the clients they represent, an Administrator reads the whole book.
+- The Inquiry register applies it too: an inquiry is "related to" the person who is
+  its salesman or its preparer, and the single-record fetch refuses an inquiry
+  outside that set, so a row cannot be opened by id alone.
 
 ## Layout contract
 
