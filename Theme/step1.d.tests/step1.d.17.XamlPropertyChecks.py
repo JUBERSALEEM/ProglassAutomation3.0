@@ -177,6 +177,93 @@ for path in files:
                     '(a XAML compile error, not a style override)')
             seen.add(prop)
 
+# 1c ── DynamicResource binds to a dependency property, and nothing else ────
+# `Style.BasedOn` is a plain CLR property, not a DP, so
+# `BasedOn="{DynamicResource Caption}"` is refused at load time with
+# XamlParseException: "A 'DynamicResourceExtension' cannot be set on the 'BasedOn'
+# property of type 'Style'". A binding's `Converter` is the same story. This cost
+# the owner a crashed start-up, and no other check here could see it, because the
+# XAML is well-formed and every key exists.
+def code_only(text):
+    """The markup without its comments, with line numbers left intact.
+
+    A comment may quote the very pattern these rules forbid (this file's own
+    explanation does), and reading comments as markup is how a checker starts
+    failing on its own documentation.
+    """
+    return re.sub(r'<!--[\s\S]*?-->',
+                  lambda match: '\n' * match.group(0).count('\n'), text)
+
+
+NON_DP_TARGETS = {'BasedOn', 'Converter'}
+for path in files:
+    text = code_only(path.read_text(encoding='utf-8'))
+    for match in re.finditer(r'([A-Za-z:]+)="\{DynamicResource\s', text):
+        attribute = match.group(1)
+        if attribute not in NON_DP_TARGETS:
+            continue
+        line = text[:match.start()].count('\n') + 1
+        problems.append(
+            f'{path.relative_to(ROOT)}:{line}: {attribute}="{{DynamicResource ...}}" - '
+            f'{attribute} is not a dependency property, so this throws '
+            'XamlParseException when the window loads; use StaticResource')
+
+# 1d ── Every StaticResource key must resolve, because a typo is a crash ────
+# A StaticResource lookup happens while the XAML is parsed: a key that is neither
+# defined in the file nor in the theme/application resources is not "empty", it is
+# a XamlParseException on open. Step 3 already carried one (`UserFieldErrorPlateX`,
+# written from memory while the real key is `UserFieldErrorPlate`).
+FRAMEWORK_KEYS = {'BoolVis'}
+THEME_AND_APP_KEYS = set()
+for dictionary in list(ROOT.glob('Theme/Theme*/**/*.xaml')) + [ROOT / 'App.xaml']:
+    if not dictionary.is_file():
+        continue
+    THEME_AND_APP_KEYS |= set(re.findall(r'x:Key="([^":]+)"', dictionary.read_text(encoding='utf-8')))
+for path in files:
+    text = code_only(path.read_text(encoding='utf-8'))
+    local = set(re.findall(r'x:Key="([^":]+)"', text))
+    for key in re.findall(r'\{StaticResource\s+([^}]+?)\s*\}', text):
+        key = key.strip()
+        if key.startswith('{x:Type') or key.startswith('{x:Static') or ' ' in key:
+            continue
+        if key in local or key in THEME_AND_APP_KEYS or key in FRAMEWORK_KEYS:
+            continue
+        line = text[:text.index(key)].count('\n') + 1
+        problems.append(
+            f'{path.relative_to(ROOT)}:{line}: StaticResource {key!r} is not defined in '
+            'this file, in a theme dictionary or in App.xaml; a StaticResource lookup '
+            'fails while parsing, so this is a crash on open')
+
+# 1e ── A Style property must point at a key that is a Style ─────────────────
+# `Style="{DynamicResource TextPrimary}"` (a brush) does not warn and does not
+# fall back: assigning a Brush to a Style property throws when the property is
+# set. Same for a `<TextBlock.Style>` block aimed at the wrong kind of resource.
+KEY_KINDS = {}
+for dictionary in list(ROOT.glob('Theme/Theme*/**/*.xaml')):
+    text = dictionary.read_text(encoding='utf-8')
+    for match in re.finditer(r'<([A-Za-z:.]+)[^>]*?x:Key="([^":]+)"', text):
+        KEY_KINDS.setdefault(match.group(2), set()).add(match.group(1).split(':')[-1])
+STYLE_ATTRIBUTES = re.compile(r'\b(?:Style|CellStyle|ColumnHeaderStyle|ItemContainerStyle|'
+                              r'RowStyle|HeaderStyle)\s*=\s*"\{(?:Dynamic|Static)Resource\s+([^}]+?)\s*\}"')
+for path in files:
+    text = code_only(path.read_text(encoding='utf-8'))
+    for match in re.finditer(r'<([A-Za-z:.]+)[^>]*?x:Key="([^":]+)"', text):
+        KEY_KINDS.setdefault(match.group(2), set()).add(match.group(1).split(':')[-1])
+for path in files:
+    text = code_only(path.read_text(encoding='utf-8'))
+    for match in STYLE_ATTRIBUTES.finditer(text):
+        key = match.group(1).strip()
+        if key.startswith('{x:'):
+            continue
+        kinds = KEY_KINDS.get(key)
+        if not kinds:
+            continue   # reported by 1d or it is a framework key
+        if 'Style' in kinds:
+            continue
+        problems.append(
+            f'{path.relative_to(ROOT)}: {key!r} is used as a Style but is declared as '
+            f'{sorted(kinds)[0]}; assigning it throws when the property is set')
+
 # The two registers must actually use the mechanism these tests describe: the
 # presenter is stretched, and the content alignment lives on the cell, which is a
 # ContentControl and really does declare it.
@@ -197,10 +284,10 @@ for view in VIEWS[:2]:
 THEME_KEYS = set()
 for dictionary in ROOT.glob('Theme/Theme*/**/*.xaml'):
     THEME_KEYS |= set(re.findall(r'x:Key="([^":]+)"', dictionary.read_text()))
-for view in VIEWS + [ROOT / 'MainWindow.xaml']:
-    if not view.is_file():
-        continue
-    text = view.read_text()
+# Every view, not just the two registers: a mistyped token in a step3 screen is
+# just as invisible (the property keeps its default and nothing warns).
+for view in files:
+    text = code_only(view.read_text(encoding='utf-8'))
     # A view may also define and reference its own keys (the Inquiry register's
     # ContextMenu, for example) - those are local, not theme tokens.
     local_keys = set(re.findall(r'x:Key="([^":]+)"', text))

@@ -18,14 +18,22 @@
            • controls with theme-owned templates (TextBox, ComboBox, DataGrid)
              bind the active implicit style explicitly, so a theme switch
              replaces the template as well as the tokens;
-           • visibility is driven by Style DataTriggers, so no converter or
-             code-behind is needed for the register/editor switch.
+           • visibility is driven by Style DataTriggers or, where the element
+             must keep the shared Caption style, by one BooleanToVisibility
+             converter declared below — never by a Style with BasedOn.
 
          Layout: the same one-bar register as step2 Client Management — filter
          state and the chips on the left, search and actions on the right, and
          nothing under the list except the rows themselves.
          ───────────────────────────────────────────────────────────────── -->
     <UserControl.Resources>
+        <!-- A boolean that decides visibility, expressed without a Style:
+             `BasedOn` is a plain CLR property on Style, not a dependency
+             property, so `BasedOn="{DynamicResource ...}"` throws
+             XamlParseException at load ("A DynamicResourceExtension cannot be set
+             on the BasedOn property"). A converter keeps the element's own Style
+             free for the shared Caption token. -->
+        <BooleanToVisibilityConverter x:Key="UserVisibility" />
         <Style x:Key="UserNameCell" TargetType="TextBlock">
             <Setter Property="ToolTip" Value="{Binding FullName}" />
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
@@ -496,20 +504,12 @@
                      "restricted". -->
                 <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
                            Text="{Binding ScopeNote}"
+                           Style="{DynamicResource Caption}"
                            TextWrapping="Wrap"
                            Margin="{DynamicResource UiGapField}"
-                           AutomationProperties.Name="Read scope">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{DynamicResource Caption}">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasScopeNote}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                           Visibility="{Binding HasScopeNote,
+                                                Converter={StaticResource UserVisibility}}"
+                           AutomationProperties.Name="Read scope" />
             </Grid>
         </ContentControl>
 

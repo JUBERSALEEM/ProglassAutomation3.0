@@ -25,6 +25,9 @@
          implicit-style bindings for theme-templated controls.
          ───────────────────────────────────────────────────────────────── -->
     <UserControl.Resources>
+        <!-- Same reason as the Users page: `BasedOn` is not a dependency
+             property, so it cannot take a DynamicResource. -->
+        <BooleanToVisibilityConverter x:Key="UserVisibility" />
         <!-- Labels stack above their field, so their spacing is vertical. -->
         <Style x:Key="UserFieldLabel" TargetType="TextBlock">
             <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
@@ -229,20 +232,12 @@
                                    Margin="{DynamicResource UiGapField}" />
 
                         <TextBlock Text="{Binding PasswordStateText}"
+                                   Style="{DynamicResource Caption}"
                                    TextWrapping="Wrap"
                                    Margin="{DynamicResource UiGapField}"
-                                   AutomationProperties.Name="Password state">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{DynamicResource Caption}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasPasswordStateText}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                                   Visibility="{Binding HasPasswordStateText,
+                                                        Converter={StaticResource UserVisibility}}"
+                                   AutomationProperties.Name="Password state" />
 
                         <StackPanel>
                             <StackPanel.Style>

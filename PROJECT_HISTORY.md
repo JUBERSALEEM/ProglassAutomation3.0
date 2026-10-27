@@ -9,6 +9,18 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-27 — Round 25: an app that opens (XamlParseException)
+
+- **Phase:** `step3` (User Management) views plus the XAML gate — the owner's crash report from the running build.
+- **Before:** the build compiled and then died the moment the shell was constructed: `System.Windows.Markup.XamlParseException` at `MainWindow.InitializeComponent()` — *"A 'DynamicResourceExtension' cannot be set on the 'BasedOn' property of type 'Style'."* Two views carried `BasedOn="{DynamicResource Caption}"`.
+- **Cause:** `Style.BasedOn` is a plain CLR property, not a dependency property, so `DynamicResource` is illegal there even though the key exists and the XAML compiles. The failure surfaces only when the element is parsed at run time.
+- **Fix:** both views now put the `Caption` token on the element (`Style="{DynamicResource Caption}"`) and drive the note's visibility with one `BooleanToVisibilityConverter` (`x:Key="UserVisibility"`) bound to `HasScopeNote` / `HasPasswordStateText`. No inline `Style` with `BasedOn` remains anywhere in the repository.
+- **Coverage:** `step1.d.17` gained three rules that fail on the exact defect — (1c) `DynamicResource` on a non-dependency property (`BasedOn`, `Converter`), reported with `file:line`; (1d) an unresolved `StaticResource` key, which is a crash on open rather than a silent default; (1e) a `Style`-typed attribute pointed at a key that is not a `Style` (a brush key throws when the property is set). The `DynamicResource`-key rule was widened from three views to all 138 XAML files, and comments are blanked before scanning so a rule may quote the pattern it forbids.
+- **Mutation-tested:** putting `BasedOn="{DynamicResource Caption}"` back, mistyping a `StaticResource` key, mistyping a `DynamicResource` key, and aiming a `Style` at a brush each FAIL with the file and line; the clean tree PASSes (138 files, 4377 reviewed attributes).
+- **Docs:** `AGENTS.md` / `docs/00` gained the rule that a XAML file must also **load**, and that a missing token is fixed by defining it — never by switching to `DynamicResource`, which fails silently.
+- **Verification:** nine portable checkers PASS. There is still no .NET SDK here, so the rebuilt app is the owner's to confirm.
+
+---
 ## 2026-10-27 — Round 23: passwords, a real session, and a read scope
 
 - **Phase:** `step3` (User Management) plus the read side of `step2` (Clients) — the owner's round-24 instruction on identity.
