@@ -257,8 +257,12 @@ assert 'Header="' not in register_columns, \
 cell_style = list_xaml[list_xaml.index('x:Key="InquiryCell"'):]
 cell_style = cell_style[:cell_style.index("</Style>")]
 assert 'BasedOn="{StaticResource {x:Type DataGridCell}}"' in cell_style, "the cell style must derive from the package"
-assert 'HorizontalContentAlignment="Stretch"' in cell_style, \
-    "the cell presenter must stretch its content, or centred values render left-aligned"
+assert 'HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in cell_style, \
+    "the cell presenter must take its alignment from the cell through a TemplateBinding"
+assert 'Property="VerticalContentAlignment" Value="Center"' in cell_style, \
+    "a cell's VerticalContentAlignment defaults to Top, which lifts every value to the top of the row"
+assert 'HorizontalContentAlignment="' not in cell_style.split("<ControlTemplate")[1], \
+    "HorizontalContentAlignment is not a ContentPresenter member (MC3072); it belongs on the cell style"
 assert 'Property="BorderBrush" Value="{DynamicResource TransparentBrush}"' in cell_style, \
     "the cell must not paint a border of its own"
 

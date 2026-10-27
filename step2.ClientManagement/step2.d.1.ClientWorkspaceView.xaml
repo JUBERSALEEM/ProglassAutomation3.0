@@ -32,13 +32,13 @@
         <Style x:Key="ClientNameCell" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
         <Style x:Key="ClientMonoCell" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
         <!-- The row action flips meaning with the client's state, so the mark
@@ -53,7 +53,7 @@
         </Style>
         <Style x:Key="ClientPlainCell" TargetType="TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
         <!-- ── Register alignment and header rules ──────────────────────
@@ -102,15 +102,30 @@
              data rows came out as a boxed grid (owner screenshots) even after
              GridLinesVisibility was cleared. The template below keeps every
              colour a TemplateBinding, so the theme still owns background,
-             foreground, selection and focus ring, and it cannot draw a border
-             the theme has not asked for. HorizontalContentAlignment="Stretch"
-             on the presenter is what makes the value styles' own alignment and
-             TextAlignment take effect: a left-aligned presenter hands every cell
-             a content-sized slot, which is why centred values still rendered
-             hard against the left edge. -->
+             foreground, selection and the focus ring, and it cannot draw a border
+             the theme has not asked for.
+
+             Alignment is explicit, and it names only properties that exist:
+
+               DataGridCell            is a ContentControl, so it declares
+                                       HorizontalContentAlignment /
+                                       VerticalContentAlignment — that is where
+                                       the value comes from;
+               ContentPresenter        is not a ContentControl and declares
+                                       neither. It carries the alignment the
+                                       framework element way (HorizontalAlignment
+                                       / VerticalAlignment), bound to the cell's
+                                       content alignment with TemplateBinding.
+
+             Writing HorizontalContentAlignment on the presenter is a compile
+             error (MC3072 / XLS0413), which is how this shipped as a broken
+             build once. step1.d.17 now refuses that property on any presenter,
+             and refuses any attribute on these templates that is not in its
+             reviewed set. -->
         <Style x:Key="ClientCell" TargetType="DataGridCell"
                BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -119,10 +134,10 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Stretch"
-                                              HorizontalContentAlignment="Stretch"
-                                              VerticalAlignment="Center"
-                                              SnapsToDevicePixels="True" />
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="True" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
@@ -134,14 +149,15 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="DataGridColumnHeader">
                         <Grid Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Stretch"
-                                              HorizontalContentAlignment="Stretch"
-                                              VerticalAlignment="Center"
-                                              SnapsToDevicePixels="True" />
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="True" />
                             <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left"
                                    Style="{StaticResource ClientHeaderGripper}" />
                             <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right"

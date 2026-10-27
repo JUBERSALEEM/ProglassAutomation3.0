@@ -424,10 +424,17 @@ def require_register_alignment():
         check('Property="HorizontalContentAlignment" Value="Center"' in body,
               "the cell style must centre its content as well, for the columns "
               "whose value is a template rather than a text block")
-        check('HorizontalContentAlignment="Stretch"' in body and 'HorizontalAlignment="Stretch"' in body,
-              "the cell template's presenter must fill the cell and stretch its "
-              "content; a content-sized slot left-aligns every value no matter "
-              "what the value style says")
+        check('HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in body,
+              "the presenter must take its alignment from the cell through a "
+              "TemplateBinding; a hard-coded value ignores the cell style, and "
+              "ContentPresenter cannot carry ContentControl alignment itself")
+        check('Property="VerticalContentAlignment" Value="Center"' in body,
+              "a cell's VerticalContentAlignment defaults to Top; without it the "
+              "presenter binds to Top and every value sits at the top of its row")
+        check("HorizontalContentAlignment=\"" not in body.split("<ControlTemplate")[1],
+              "HorizontalContentAlignment is a ContentControl property; a "
+              "ContentPresenter has no such member (MC3072) and the alignment "
+              "belongs on the cell style above")
         check('Property="BorderBrush" Value="{DynamicResource TransparentBrush}"' in body,
               "the cell must not paint a border of its own; the packages drew one "
               "per cell, which boxed every data row")
@@ -439,9 +446,13 @@ def require_register_alignment():
         body = header.group(0)
         check('BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"' in body,
               "the header style must derive from the theme's header style")
-        check('HorizontalContentAlignment="Stretch"' in body,
-              "the header template must stretch its presenter, or the label and "
-              "the column rule collapse to the width of the text")
+        check('HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in body,
+              "the header presenter must take its alignment from the header style, "
+              "or the label and the column rule collapse to the width of the text")
+        check('Property="HorizontalContentAlignment" Value="Stretch"' in body,
+              "the header style must stretch its content, and that property "
+              "belongs on the column header (a ContentControl), not on the "
+              "presenter inside its template")
         check('Property="Padding" Value="0"' in body,
               "the header's own padding must go: the label carries the theme inset")
 

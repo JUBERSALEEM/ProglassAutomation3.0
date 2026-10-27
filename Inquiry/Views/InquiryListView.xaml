@@ -54,9 +54,11 @@
         </Style>
         <!-- Same geometry contract as the client register: the cell and header
              templates are owned here so the theme cannot paint a rule per cell
-             (which boxed every data row) and so the presenter hands each value a
-             full-width slot — a left-aligned presenter is why centred values
-             still read as left-aligned. Every colour stays a TemplateBinding. -->
+             (which boxed every data row). Alignment comes from the cell — a
+             ContentControl, which really declares HorizontalContentAlignment —
+             and the presenter carries it as FrameworkElement alignment through a
+             TemplateBinding, because ContentPresenter has no such property of its
+             own. Every colour stays a TemplateBinding. -->
         <Style x:Key="InquiryHeaderGripper" TargetType="Thumb">
             <Setter Property="Width" Value="{DynamicResource SpacingMedium}" />
             <Setter Property="Cursor" Value="SizeWE" />
@@ -77,6 +79,7 @@
         <Style x:Key="InquiryCell" TargetType="DataGridCell"
                BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -85,10 +88,10 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Stretch"
-                                              HorizontalContentAlignment="Stretch"
-                                              VerticalAlignment="Center"
-                                              SnapsToDevicePixels="True" />
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="True" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
@@ -104,14 +107,15 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="DataGridColumnHeader">
                         <Grid Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Stretch"
-                                              HorizontalContentAlignment="Stretch"
-                                              VerticalAlignment="Center"
-                                              SnapsToDevicePixels="True" />
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="True" />
                             <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left"
                                    Style="{StaticResource InquiryHeaderGripper}" />
                             <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right"

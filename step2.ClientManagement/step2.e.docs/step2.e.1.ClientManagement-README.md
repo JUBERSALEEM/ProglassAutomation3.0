@@ -205,10 +205,21 @@ the older registry prose that still described themes 6–9 as unregistered.
   cell or `HorizontalAlignment` on the value was measured and does not work: the
   package hands a cell a **content-sized** slot, so a centred value still
   renders flush left (owner: "still data left side"). `ClientCell` and
-  `ClientColumnHeader` therefore own their `ControlTemplate`s and stretch the
-  presenter; the value styles then centre inside a full-width slot. Every colour
-  in both templates stays a `TemplateBinding`, so the package still owns
-  background, foreground, selection and the focus ring.
+  `ClientColumnHeader` therefore own their `ControlTemplate`s; the alignment
+  lives on the cell/header (a `ContentControl`, which declares
+  `HorizontalContentAlignment` / `VerticalContentAlignment`) and the presenter
+  carries it as `HorizontalAlignment` / `VerticalAlignment` through a
+  `TemplateBinding`. Every colour in both templates stays a `TemplateBinding`,
+  so the package still owns background, foreground, selection and the focus
+  ring.
+
+  `ContentPresenter` is **not** a `ContentControl` and has no
+  `HorizontalContentAlignment`. Writing that attribute there is a compile error
+  (`MC3072` / `XLS0413` / `XDG0012`) — it shipped once and broke the build, which
+  is why `step1.d.17` now refuses the property on any presenter, refuses any
+  attribute outside a reviewed property set for the hand-templated types, checks
+  every `TemplateBinding` against the template target's real properties, and
+  fails a view-owned `StaticResource` key that is not defined in its own file.
 - In the Actions card the primary action is one full-width row and Edit /
   Refresh share a second row of equal halves. The grid owns the inset and the
   buttons carry no margin of their own; nested margins made Edit narrower than
@@ -254,7 +265,12 @@ back into one sheet without a decision being recorded.
 
 ## 9. Verification
 
-Executable here (portable, no SDK): `python3 step2.ClientManagement/step2.f.tests/step2.f.2.ClientSourceChecks.py`.
+Executable here (portable, no SDK):
+
+- `python3 step2.ClientManagement/step2.f.tests/step2.f.2.ClientSourceChecks.py`
+- `python3 Theme/step1.d.tests/step1.d.17.XamlPropertyChecks.py` — every XAML
+  attribute, `TemplateBinding` target and view-owned `StaticResource` key, i.e.
+  the checks that catch a property which does not exist on its type.
 
 Requires Windows + .NET 8 (not available in the authoring environment):
 `dotnet run --project step2.ClientManagement/step2.f.tests/step2.f.ClientTests.csproj`
