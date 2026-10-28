@@ -745,3 +745,96 @@ assert not unresolved, (
     f'does not build: {unresolved}'
 )
 print(f'PASS: all {len(compiled)} C# files can reach every type they name.')
+
+# ── A name the harness reads must be a name some page declares ───────────────
+# Round 36's second harness run: the layout check asked the Studio for "Signals"
+# and "DiagnosticsToggle". No XAML file in this repository ever declared either, and
+# `FindName` returns null for an unknown name, so the failure surfaced as an opaque
+# WPF exception from a later line instead of "this page has no such control".
+# Names come from the page; the harness may only look up what the page declares.
+declared_names = set()
+for markup in sorted(ROOT.rglob('*.xaml')):
+    if {'bin', 'obj', '.git'} & set(markup.relative_to(ROOT).parts):
+        continue
+    declared_names |= set(re.findall(r'x:Name="(\w+)"', markup.read_text(encoding='utf-8', errors='replace')))
+name_reads = []
+unanalysable = []
+lookups = 0
+for check_file in sorted(ROOT.rglob('*.cs')):
+    parts = set(check_file.relative_to(ROOT).parts)
+    if {'bin', 'obj', '.git'} & parts or not any(part.endswith('.tests') for part in parts):
+        continue
+    text = check_file.read_text(encoding='utf-8', errors='replace')
+    # Names are also read from a list: `foreach (string module in new[] { "A", "B" })`
+    # then `FindName(module)`. My first version of this rule only saw string literals
+    # and passed the very mutation it names, because the harness enumerated a list.
+    enumerated = {}
+    for loop in re.finditer(r'foreach\s*\(\s*string\s+(\w+)\s+in\s+new\[\]\s*\{(.*?)\}\s*\)', text, re.S):
+        enumerated.setdefault(loop.group(1), set()).update(re.findall(r'"(\w+)"', loop.group(2)))
+    # `Template.FindName` reads a control template's parts, which live in styles and
+    # templates by design and are not x:Named page elements.
+    for match in re.finditer(r'(?<!Template)\.FindName\(\s*([^)]*?)\s*\)', text):
+        lookups += 1
+        argument = match.group(1).strip()
+        line = text[:match.start()].count('\n') + 1
+        if argument.startswith('"') and argument.endswith('"'):
+            names = {argument.strip('"')}
+        elif argument in enumerated:
+            names = enumerated[argument]
+        else:
+            unanalysable.append(f'{check_file.relative_to(ROOT)}:{line} FindName({argument})')
+            continue
+        for name in sorted(names):
+            if name not in declared_names:
+                name_reads.append(f'{check_file.relative_to(ROOT)}:{line} reads "{name}"')
+assert lookups, 'no element lookup was found: this rule would pass on an empty set'
+assert not unanalysable, (
+    'a check looks up an element through an expression this rule cannot resolve, so a '
+    f'stale name could hide there: {unanalysable}'
+)
+assert not name_reads, (
+    'a check looks up an element name that no XAML file declares, so the lookup returns '
+    'null and the failure appears later as an unrelated exception: ' + ', '.join(name_reads)
+)
+print(f'PASS: every element name the checks read is declared by a page ({len(declared_names)} names).')
+
+# ── Nothing may be measured through an ancestor relation nobody proved ───────
+# `TransformToAncestor` throws "The specified Visual is not an ancestor of this
+# Visual" when the target is a sibling, which is what happened when the Settings
+# sidebar was measured against the modules grid it sits beside. The harness therefore
+# proves the relation first; this rule keeps the proof next to the measurement, for
+# the same pair of identifiers.
+harness_files = [path for path in sorted(ROOT.rglob('*.cs'))
+                 if any(part.endswith('.tests') for part in path.relative_to(ROOT).parts)
+                 and not ({'bin', 'obj', '.git'} & set(path.relative_to(ROOT).parts))]
+assert harness_files, 'no test source was found: this rule would pass on an empty set'
+unproved = []
+measurements = 0
+for check_file in harness_files:
+    text = check_file.read_text(encoding='utf-8', errors='replace')
+    # Fail closed: a call whose receiver or target is not a plain identifier cannot be
+    # checked here, so it is reported rather than skipped. A conditional ancestor
+    # (`TransformToAncestor(isSidebar ? grid : page)`) is exactly how this defect would
+    # come back, and the first version of this rule silently ignored it.
+    for call in re.finditer(r'\.TransformToAncestor\(([^)]*)\)', text):
+        if re.fullmatch(r'\s*\w+\s*', call.group(1)) and re.search(r'\w+$', text[:call.start()]):
+            continue
+        unproved.append(f'{check_file.relative_to(ROOT)}:{text[:call.start()].count(chr(10)) + 1} '
+                        f'transforms through an expression: TransformToAncestor({call.group(1).strip()})')
+    for match in re.finditer(r'(\w+)\.TransformToAncestor\((\w+)\)', text):
+        receiver, target = match.group(1), match.group(2)
+        proof = re.compile(r'IsInside\(\s*' + re.escape(receiver) + r'\s*,\s*' + re.escape(target) + r'\s*\)')
+        if proof.search(text, 0, match.start()):
+            continue
+        line = text[:match.start()].count('\n') + 1
+        unproved.append(f'{check_file.relative_to(ROOT)}:{line} transforms {receiver} through {target}')
+    measurements += len(re.findall(r'\.TransformToAncestor\(', text))
+assert measurements, 'no measured element was found: this rule would pass on an empty set'
+assert not unproved, (
+    'a check measures an element through an ancestor it never proved, which throws an '
+    f'opaque exception instead of a finding: {unproved}'
+)
+assert 'private static bool IsInside(' in runtime_text, (
+    'the visual-tree membership helper the harness proves ancestors with has disappeared'
+)
+print('PASS: every measured element is proved to be inside the ancestor it is measured against.')
