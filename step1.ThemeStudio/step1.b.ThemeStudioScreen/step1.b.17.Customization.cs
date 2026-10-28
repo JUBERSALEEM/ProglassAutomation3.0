@@ -313,7 +313,7 @@ public sealed partial class ThemeStudioViewModel
         get => selectedWorkspace;
         set
         {
-            if (value is >= 0 and <= 10)
+            if (value is >= 0 and <= 11)
             {
                 selectedWorkspace = value;
                 Changed(nameof(SelectedWorkspace));
@@ -328,6 +328,7 @@ public sealed partial class ThemeStudioViewModel
                 Changed(nameof(IsClients));
                 Changed(nameof(IsUsers));
                 Changed(nameof(IsCompany));
+                Changed(nameof(IsProjects));
                 Changed(nameof(WorkspaceTitle));
                 Changed(nameof(WorkspaceSubtitle));
                 Changed(nameof(WorkspaceIcon));
@@ -351,6 +352,7 @@ public sealed partial class ThemeStudioViewModel
     /// <summary>step4 Company Profile workspace (index 10; appended for the same
     /// reason — every earlier index keeps its meaning).</summary>
     public bool IsCompany { get => selectedWorkspace == 10; set { if (value) SelectedWorkspace = 10; } }
+    public bool IsProjects { get => selectedWorkspace == 11; set { if (value) SelectedWorkspace = 11; } }
     public IconKind WorkspaceIcon => selectedWorkspace switch
     {
         0 => IconKind.Theme,
@@ -425,6 +427,7 @@ public sealed partial class ThemeStudioViewModel
     public ICommand ShowClients { get; private set; } = null!;
     public ICommand ShowUsers { get; private set; } = null!;
     public ICommand ShowCompany { get; private set; } = null!;
+    public ICommand ShowProjects { get; private set; } = null!;
     public ICommand ResetPages { get; private set; } = null!;
     public ICommand SelectColorPlate { get; private set; } = null!;
     public ICommand ApplyPreview { get; private set; } = null!;
@@ -500,6 +503,7 @@ public sealed partial class ThemeStudioViewModel
         ShowClients = new DelegateCommand(() => SelectedWorkspace = 8);
         ShowUsers = new DelegateCommand(() => SelectedWorkspace = 9);
         ShowCompany = new DelegateCommand(() => SelectedWorkspace = 10);
+        ShowProjects = new DelegateCommand(() => SelectedWorkspace = 11);
         SelectColorPlate = new DelegateCommand<string>(name => { if (!string.IsNullOrWhiteSpace(name)) SelectedColorPlate = name; });
         ApplyPreview = new DelegateCommand(() => { try { themes.Apply(SelectedTheme, themes.ActiveAppearance, LiveConfigure()); ThemeError=""; Feedback="Preview applied — unsaved changes present."; } catch(Exception ex){ ThemeError=ex.Message; } Changed(nameof(ThemeError)); }, () => CanCustomize || CanCustomizeGeometry);
         SaveCustomization = new DelegateCommand(() =>

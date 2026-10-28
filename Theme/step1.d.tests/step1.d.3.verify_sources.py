@@ -152,9 +152,14 @@ for path in xamls:
     if path.name == 'MainWindow.xaml':
         assert 'WindowState="Maximized"' in text, 'Shell must remain maximized'
     if path.parent.name == 'step1.b.ThemeStudioScreen':
+        # A studio screen takes every metric and colour from the theme contract.
+        # A TemplateBinding is not an exception to that: inside a ControlTemplate
+        # it forwards a value the templated parent already took from a token
+        # (ShellNavButton's template does exactly this), so it can never be a
+        # hand-typed number. Literals are still rejected.
         for prop in ('FontSize', 'CornerRadius', 'Padding', 'Margin', 'Foreground', 'Background', 'BorderBrush'):
             for value in re.findall(rf'\b{prop}="([^"]+)"', text):
-                assert value.startswith(('{DynamicResource ', '{Binding ')), (path, prop, value)
+                assert value.startswith(('{DynamicResource ', '{Binding ', '{TemplateBinding ')), (path, prop, value)
 
 for path in xamls:
     tree = ET.parse(path).getroot()

@@ -150,17 +150,23 @@ def require_shell_hosting():
 
     view_model = read(
         ROOT / "step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.17.Customization.cs")
+    main_window = read(ROOT / "MainWindow.xaml")
     check("public bool IsUsers" in view_model, "IsUsers workspace flag is missing")
     check("public ICommand ShowUsers" in view_model, "ShowUsers command is missing")
     check("ShowUsers = new DelegateCommand" in view_model,
           "ShowUsers command is not initialised")
     check('9 => "Users"' in view_model, "the workspace title for index 9 is missing")
     # The bound is raised in exactly one place, and only when a page is actually
-    # appended behind the new index: step4 Company Profile owns index 10, so ten
-    # is legitimate and eleven would admit an index with no page behind it.
-    check("if (value is >= 0 and <= 10)" in view_model,
-          "the workspace index guard must accept the appended user workspace")
-    check("and <= 11)" not in view_model, "the workspace guard admits an index with no page")
+    # appended behind the new index. It used to be the literal 10, which was
+    # true until step5 added index 11 — and a guard that disagrees with the tab
+    # strip is exactly the bug that made Projects unreachable (round 39). The
+    # expected bound is therefore derived from the pages that exist, not typed.
+    tab_count = main_window.count("<TabItem ")
+    check(tab_count >= 10, "MainWindow.xaml no longer lists its workspace pages")
+    check(f"if (value is >= 0 and <= {tab_count - 1})" in view_model,
+          "the workspace index guard must accept the last page in the tab strip")
+    check(f"and <= {tab_count})" not in view_model,
+          "the workspace guard admits an index with no page behind it")
 
 
 def require_migration_registration():

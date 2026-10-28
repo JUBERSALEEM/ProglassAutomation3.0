@@ -187,6 +187,7 @@ def require_shell_hosting():
 
     view_model = read(
         ROOT / "step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.17.Customization.cs")
+    main_window = read(ROOT / "MainWindow.xaml")
     check(re.search(r"public bool IsCompany\b", view_model) is not None,
           "IsCompany workspace flag is missing")
     check("public ICommand ShowCompany" in view_model, "ShowCompany command is missing")
@@ -195,9 +196,15 @@ def require_shell_hosting():
     check('10 => "Company"' in view_model, "the workspace title for index 10 is missing")
     check('10 => IconKind.Settings' in view_model,
           "the company workspace must carry its own mark")
-    check("if (value is >= 0 and <= 10)" in view_model,
-          "the workspace index guard must accept the appended company workspace")
-    check("and <= 11)" not in view_model, "the workspace guard admits an index with no page")
+    # Derived from the tab strip rather than typed: the literal went stale when
+    # step5 appended index 11, and a guard narrower than the tab strip is what
+    # made the Projects page unreachable (round 39).
+    tab_count = main_window.count("<TabItem ")
+    check(tab_count >= 10, "MainWindow.xaml no longer lists its workspace pages")
+    check(f"if (value is >= 0 and <= {tab_count - 1})" in view_model,
+          "the workspace index guard must accept the last page in the tab strip")
+    check(f"and <= {tab_count})" not in view_model,
+          "the workspace guard admits an index with no page behind it")
     check(view_model.count("Changed(nameof(IsCompany))") == 1,
           "the company flag must be re-raised with the workspace index")
 

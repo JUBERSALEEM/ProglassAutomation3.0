@@ -224,6 +224,76 @@ for letter, numbers in sorted(children.items()):
           f"step5.{letter}: child numbers are {sorted(numbers)}, expected {expected} — numbers are "
           "allocated once and never reused, so a gap means a file went missing")
 
+# 13 ── Reachable: a page with no route is not a feature ──────────────────
+# Round 39: the shell's visible navigation is the sidebar rail, not the tab
+# headers (MainWindow.xaml collapses them deliberately). step5 added its TabItem
+# and stopped there, and SelectedWorkspace silently refused index 11 — so the
+# module existed, built, passed every rule above, and could not be opened. These
+# rules tie the three things that have to agree: the tab strip, the index guard,
+# and a rail entry that actually sets the index.
+window = read(WINDOW)
+entry_view = read(ROOT / "step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.33.ShellNavEntry.xaml")
+chrome = read(ROOT / "step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.17.Customization.cs")
+
+tab_starts = [match.start() for match in re.finditer(r"<TabItem\s", window)]
+projects_tab = re.search(r'<TabItem\s+Header="_Projects"', window)
+check(projects_tab is not None,
+      "MainWindow.xaml: there is no _Projects tab in the workspace tab strip")
+if projects_tab is not None and tab_starts:
+    projects_at = projects_tab.start()
+    index = sum(1 for start in tab_starts if start < projects_at)
+    check('prj:ProjectWorkspaceView' in window[projects_at:projects_at + 120],
+          "MainWindow.xaml: the _Projects tab does not host ProjectWorkspaceView")
+
+    guard = re.search(r"if \(value is >= 0 and <= (\d+)\)", chrome)
+    check(guard is not None,
+          "step1.b.17.Customization.cs: the workspace index guard is not in the expected form")
+    if guard is not None:
+        bound = int(guard.group(1))
+        check(bound >= index,
+              f"step1.b.17.Customization.cs: the workspace index guard stops at {bound}, so setting "
+              f"SelectedWorkspace = {index} is silently ignored and the Projects page can never open")
+        check(bound == len(tab_starts) - 1,
+              f"step1.b.17.Customization.cs: the guard admits up to {bound} but the tab strip has "
+              f"{len(tab_starts)} pages (highest index {len(tab_starts) - 1})")
+
+    check("public bool IsProjects" in chrome,
+          "step1.b.17.Customization.cs: IsProjects is missing, so the rail entry has no active state")
+    check("Changed(nameof(IsProjects))" in chrome,
+          "step1.b.17.Customization.cs: IsProjects is never re-raised, so the rail never highlights")
+    check("public ICommand ShowProjects" in chrome,
+          "step1.b.17.Customization.cs: ShowProjects is missing")
+    check(f"ShowProjects = new DelegateCommand(() => SelectedWorkspace = {index})" in chrome,
+          "step1.b.17.Customization.cs: ShowProjects is declared but never initialised, so clicking "
+          "the rail entry would throw")
+
+    check(f'Command="{{Binding ShowProjects}}" IsSelected="{{Binding IsProjects}}"' in window,
+          "MainWindow.xaml: no rail entry opens Projects — the tab headers are collapsed, so without "
+          "this line the page is unreachable from the running application")
+
+# The rail entry must look like its neighbours: same base setters, same four
+# selected-state cases. It is a copy (a UserControl is parsed before it joins the
+# window, so it cannot resolve MainWindow's StaticResource), and a copy that is
+# not checked is a copy that drifts.
+def setters(text):
+    base = text.split("<Style.Triggers>")[0]
+    return dict(re.findall(r'Property="([A-Za-z.]+)"\s+Value="([^"]*)"', base))
+
+shell_nav = re.search(r'<Style x:Key="ShellNavButton".*?</Style>', window, re.S)
+check(shell_nav is not None, "MainWindow.xaml: the ShellNavButton style is gone")
+if shell_nav is not None:
+    original, copy = setters(shell_nav.group(0)), setters(entry_view)
+    check(original == copy,
+          "step1.b.33.ShellNavEntry.xaml: the rail entry's style no longer matches ShellNavButton — "
+          f"differs on {sorted(set(original.items()) ^ set(copy.items()))}")
+
+for flag in ("IsSwiss", "IsHolographic", "IsGlass"):
+    check(f'Binding="{{Binding {flag}}}"' in entry_view,
+          f"step1.b.33.ShellNavEntry.xaml: the {flag} selected state is missing, so this rail entry "
+          "would be the only one that looks wrong in that theme")
+    check(f'Binding="{{Binding {flag}}}"' in window,
+          f"MainWindow.xaml: {flag} is used by no sibling rail entry — the theme flag was renamed")
+
 if failures:
     print(f"step5.f.1: {len(failures)} failure(s).")
     for failure in failures:

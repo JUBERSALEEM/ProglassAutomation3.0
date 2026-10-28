@@ -1,0 +1,89 @@
+<UserControl x:Class="ProGlassAutomation.ThemeStudio.ShellNavEntry"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
+             Focusable="False">
+    <!-- ─────────────────────────────────────────────────────────────────
+         One shell rail button.
+
+         The style body is a copy of `ShellNavButton` from MainWindow.xaml,
+         plus the same four selected-state triggers its siblings use, with
+         `IsSelected` standing in for the per-page flag. It is a copy rather
+         than a BasedOn because a UserControl's XAML is parsed before it is
+         attached to the window, so `{StaticResource ShellNavButton}` cannot
+         be resolved here; every value below is therefore a DynamicResource
+         token, which resolves at run time against the live theme.
+
+         step5.f.1 proves this copy still matches the original's setters and
+         that the selected treatment covers the same four cases, so the rail
+         entry cannot look different from its neighbours without failing.
+         ───────────────────────────────────────────────────────────────── -->
+    <Button Command="{Binding Command, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}">
+        <Button.Style>
+            <Style TargetType="Button">
+                <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+                <Setter Property="Background" Value="{DynamicResource SurfaceSecondary}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
+                <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
+                <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+                <Setter Property="ClickMode" Value="Press" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <ContentControl Style="{DynamicResource Plate}"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}"
+                                            Focusable="False">
+                                <ContentPresenter HorizontalAlignment="Left"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+                            </ContentControl>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsSwiss}" Value="True" />
+                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                    </MultiDataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsHolographic}" Value="True" />
+                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                        <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
+                    </MultiDataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsGlass}" Value="True" />
+                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                    </MultiDataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Button.Style>
+        <StackPanel Orientation="Horizontal">
+            <studio:ShellMark Kind="{Binding Mark, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}"
+                              Width="{DynamicResource ChoiceMarkSize}"
+                              Height="{DynamicResource ChoiceMarkSize}"
+                              Margin="{DynamicResource MarginInline}"
+                              VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Label, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}" VerticalAlignment="Center" />
+        </StackPanel>
+    </Button>
+</UserControl>

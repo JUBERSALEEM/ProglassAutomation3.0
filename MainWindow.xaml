@@ -413,6 +413,7 @@
                                 <TextBlock Text="Users" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
+                        <studio:ShellNavEntry Command="{Binding ShowProjects}" IsSelected="{Binding IsProjects}" Mark="Engineering" Label="Projects" AutomationProperties.Name="Projects page" />
                         <TextBlock Text="Settings" Style="{StaticResource ShellSectionLabel}" FontWeight="{DynamicResource FontWeightHeading}" />
                         <!-- step4 — Company Profile. Appended as workspace index 10,
                              so every earlier index keeps its meaning. It sits under
