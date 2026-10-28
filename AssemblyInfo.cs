@@ -2,12 +2,19 @@ using System.Windows;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("step1.d.ThemeTests")]
-// The step2 and step3 verification executables open the ERP file themselves to
-// assert what a migration actually did. Both use the database helpers marked
-// internal for exactly that purpose; without these two lines those projects do
-// not compile (CS0122), which no runtime test would ever reach.
+// The step2, step3 and step4 verification executables open the ERP file
+// themselves to assert what a migration actually did, so they call the database
+// helpers marked internal for exactly that purpose. A missing line here does not
+// fail a test — it stops the PROJECT compiling (CS0117/CS0122), and the only
+// symptom is a build error that no runtime check would ever reach.
+//
+// Round 34.2: step4 was added to the repository without its line, so
+// step4.f.CompanyTests could not build. Every verification executable is listed
+// here, and step1.d.6 now fails if a project calls an internal helper without
+// being named.
 [assembly: InternalsVisibleTo("step2.f.ClientTests")]
 [assembly: InternalsVisibleTo("step3.f.UserTests")]
+[assembly: InternalsVisibleTo("step4.f.CompanyTests")]
 
 [assembly: ThemeInfo(
     ResourceDictionaryLocation.None,            //where theme specific resource dictionaries are located

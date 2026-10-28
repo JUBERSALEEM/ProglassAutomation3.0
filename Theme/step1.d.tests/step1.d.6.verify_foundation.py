@@ -156,3 +156,58 @@ for command in ('dotnet build ProGlassAutomation.csproj', '--contracts-only', 's
     assert command in workflow.read_text(), f'Missing CI verification: {command}'
 print('PASS: 47 inventoried legacy files absent; no legacy source/startup dependencies; separate customization/business pages, live settings and Windows workflow present.')
 print('LIMITATION: this is a source audit, not Windows compilation, runtime or visual inspection.')
+
+# ── A verification executable must be able to SEE what it calls ─────────────
+# Each verification project is its own assembly. When it calls a helper the
+# application marks `internal`, it needs an InternalsVisibleTo line; without one
+# the project does not compile, the test never runs, and the only symptom is a
+# build error far from the cause. That is exactly how step4.f.CompanyTests
+# stopped building in round 34.1: SqliteResilience.ApplyConnectionPolicy is
+# internal for good reason (it is the app's one pragma policy), step1/2/3 were
+# named as friends, and step4 was added later without its line.
+#
+# The internal members are read from the source rather than listed here, so the
+# rule cannot go stale: mark a new helper internal, call it from a test, and the
+# friend line becomes mandatory.
+NOT_A_MEMBER = {'static', 'const', 'readonly', 'void', 'async', 'partial', 'sealed',
+                'class', 'interface', 'enum', 'struct', 'record'}
+internal_members = set()
+for source_file in sorted(ROOT.rglob('*.cs')):
+    if {'bin', 'obj'} & set(source_file.parts) or any('tests' in part for part in source_file.parts):
+        continue
+    owner = ''
+    for line in source_file.read_text(encoding='utf-8', errors='replace').splitlines():
+        declared = re.search(r'\b(?:class|struct|record)\s+(\w+)', line)
+        if declared:
+            owner = declared.group(1)
+        stripped = line.strip()
+        if stripped.startswith('internal ') and owner:
+            member = re.split(r'[\(=;{]', stripped)[0].split()[-1]
+            if re.fullmatch(r'\w+', member) and member not in NOT_A_MEMBER and member != owner:
+                internal_members.add(f'{owner}.{member}')
+# A guard against the scan silently finding nothing (a broken regex would pass
+# every project by accident). It counts, so renaming a helper cannot trip it.
+assert len(internal_members) >= 5, f'the internal-member scan found only {len(internal_members)} members; the rule is blind'
+
+friends = set(re.findall(r'InternalsVisibleTo\("([^"]+)"\)', (ROOT / 'AssemblyInfo.cs').read_text()))
+checked = 0
+for csproj in sorted(ROOT.rglob('*.csproj')):
+    if not any('tests' in part for part in csproj.parts):
+        continue
+    tree = ET.parse(csproj).getroot()
+    references_app = any('ProGlassAutomation.csproj' in (item.attrib.get('Include') or '')
+                         for item in tree.findall('.//ProjectReference'))
+    if not references_app:
+        continue
+    declared_name = tree.find('.//AssemblyName')
+    assembly = declared_name.text if declared_name is not None else csproj.stem
+    sources = '\n'.join(p.read_text(encoding='utf-8', errors='replace') for p in csproj.parent.rglob('*.cs'))
+    used = sorted(member for member in internal_members if member in sources)
+    if used:
+        assert assembly in friends, (
+            f'{assembly} calls internal application members {used} but AssemblyInfo.cs does not '
+            f'name it as a friend; that project will not compile (CS0117/CS0122)'
+        )
+        checked += 1
+assert checked >= 3, f'expected the verification executables that call internal helpers, found {checked}'
+print(f'PASS: {checked} verification executable(s) are named as friends for the internal helper(s) they call.')

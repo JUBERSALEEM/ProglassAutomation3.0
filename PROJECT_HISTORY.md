@@ -9,6 +9,14 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 34.2: step4's verification project could not compile
+- **Reported (owner's machine, .NET 8 SDK):** `step4.f.CompanyTests.csproj ... error CS0117: 'SqliteResilience' does not contain a definition for 'ApplyConnectionPolicy'` at `step4.f.1.CompanyProfileChecks.cs(632,26)`. The application itself built (`ProGlassAutomation net8.0-windows7.0 succeeded with 3 warnings`), so round 34.1's XML repair did its job: the projects now load and compile, and this is a genuine C# error.
+- **Root cause:** `SqliteResilience.ApplyConnectionPolicy` is `internal`, and `AssemblyInfo.cs` names `step1.d.ThemeTests`, `step2.f.ClientTests` and `step3.f.UserTests` as friends — but not `step4.f.CompanyTests`. A verification project is its own assembly, so the method is invisible there. The comment in `AssemblyInfo.cs` had predicted exactly this failure ("without these two lines those projects do not compile"); step4 was added later without its line. Exactly one member was involved — every other helper that check calls is `public` — matching the single error the compiler reported.
+- **Fixed:** one line, `[assembly: InternalsVisibleTo("step4.f.CompanyTests")]`. No production code changed, no test deleted or disabled, no public API widened (`ApplyConnectionPolicy` stays internal; friend assemblies are the established pattern in this repository).
+- **Gate:** `step1.d.6.verify_foundation.py` now derives every `internal` member of the application from source and requires that a verification project calling one is named as a friend. Four executable(s) are covered; three mutations prove it — removing step4's line, removing step1.d's line, and adding a brand-new internal helper used by an unfriended project are each caught with the exact project and member named.
+- **Not executed here:** the build itself. This environment has no .NET SDK, so the repair is verified at source/XML level and by the portable gate; the owner's next build is the evidence that closes it.
+
+---
 ## 2026-10-28 — Round 34.1: four project files could not be loaded at all
 - **Reported:** the diagnostics behaviour test and the Company Profile test would not load; invalid XML comments at `Diagnostics/tests/AppLogBehaviourChecks.csproj` line 29 and `step4.CompanyProfile/step4.f.tests/step4.f.CompanyTests.csproj` line 16.
 - **Root cause:** both comments contained `dotnet run --project …`. XML 1.0 forbids `--` inside a comment, so MSBuild cannot read the project: "An XML comment cannot contain '--'". The project never loads, so the test never runs — this is a **project-load failure**, not a failing test.
