@@ -266,11 +266,32 @@ internal static class RuntimeChecks
             Pump();
             Check(model.SelectedAccent == ProGlassAutomation.ThemeBento.BentoAccent.Ocean &&
                 (double)themes.GetToken("ControlMinHeight") == 32d, "reset design restores defaults without resetting sample input");
-            Check(ThemeService.InstalledThemes.Contains(ThemeService.Clay) && ThemeService.InstalledThemes.Contains(ThemeService.Fluent) && ThemeService.InstalledThemes.Contains(ThemeService.Neumorphism) && ThemeService.InstalledThemes.Contains(ThemeService.LiquidGlass) && ThemeService.InstalledThemes.Contains(ThemeService.Glassmorphism) && ThemeService.InstalledThemes.Contains(ThemeService.Spatial) && ThemeService.InstalledThemes.Contains(ThemeService.Swiss) && ThemeService.InstalledThemes.Contains(ThemeService.Holographic), "Clay through Holographic are registered themes");
+            // Every installed theme is accounted for by name, and that list is checked
+            // against the catalogue BEFORE anything is switched. The chain this replaces
+            // covered the six themes that existed when it was written and then threw
+            // "Unhandled extra theme: Swiss International" — the check was behind the
+            // product, not the other way round. A tenth theme now fails immediately, by
+            // name, before a single package is built.
+            var summaryPrefix = new Dictionary<string, string>
+            {
+                [ThemeService.Bento] = "Ocean",
+                [ThemeService.Clay] = "Rose",
+                [ThemeService.Fluent] = "Fluent",
+                [ThemeService.Neumorphism] = "Neumorphism",
+                [ThemeService.LiquidGlass] = "Liquid Glass",
+                [ThemeService.Glassmorphism] = "Glassmorphism",
+                [ThemeService.Spatial] = "Spatial",
+                [ThemeService.Swiss] = "Swiss",
+                [ThemeService.Holographic] = "Holographic",
+            };
+            Check(summaryPrefix.Keys.OrderBy(name => name).SequenceEqual(ThemeService.InstalledThemes.OrderBy(name => name)),
+                "this check accounts for every installed theme; unaccounted: "
+                + string.Join(", ", ThemeService.InstalledThemes.Where(name => !summaryPrefix.ContainsKey(name))));
             foreach (string extra in ThemeService.InstalledThemes)
             {
                 if (extra == ThemeService.Bento) continue;
                 var previous = window.Background;
+                var expectedRounding = ThemeCatalog.Find(extra).Geometry == ThemeGeometry.SharedTokens;
                 model.SelectedTheme = extra;
                 Pump();
                 Check(themes.ActiveTheme == extra, extra + " activates");
@@ -287,9 +308,17 @@ internal static class RuntimeChecks
                 Check(model.IsLiquid == (extra == ThemeService.LiquidGlass), extra + " liquid studio flag");
                 Check(model.IsGlass == (extra == ThemeService.Glassmorphism), extra + " glass studio flag");
                 Check(model.IsSpatial == (extra == ThemeService.Spatial), extra + " spatial studio flag");
+                Check(model.IsSwiss == (extra == ThemeService.Swiss), extra + " swiss studio flag");
+                Check(model.IsHolographic == (extra == ThemeService.Holographic), extra + " holographic studio flag");
+                // Shared card rounding is a property of the theme's declared geometry, not
+                // of a list kept here: Clay owns its geometry, the other eight share it.
+                Check(model.CanCustomizeGeometry == expectedRounding, extra + " shared card rounding matches its geometry");
+                Check(model.DesignSummary.StartsWith(summaryPrefix[extra]),
+                    extra + " names itself in the design summary: " + model.DesignSummary);
+                Check(model.CanCustomize == (extra is ThemeService.Clay or ThemeService.Neumorphism or ThemeService.LiquidGlass),
+                    extra + " material engine flag");
                 if (extra == ThemeService.Clay)
                 {
-                    Check(model.CanCustomizeClay && model.DesignSummary.Contains("Rose"), "clay customization is live");
                     Check(model.ResetTheme.CanExecute(null) && model.PreviewDefault.CanExecute(null) && model.ResetSection.CanExecute(null), "clay studio reset commands");
                     model.SelectedClayTypography = ProGlassAutomation.ThemeClaymorphism.ClayType.Large;
                     Pump();
@@ -301,11 +330,8 @@ internal static class RuntimeChecks
                     Pump();
                     Check(model.SelectedClayAccent == ProGlassAutomation.ThemeClaymorphism.ClayAccent.Rose && (double)themes.GetToken("FontSizeBody") == 13d, "clay reset restores defaults");
                 }
-                else if (extra == ThemeService.Fluent)
-                    Check(model.CanCustomizeGeometry && model.DesignSummary.StartsWith("Fluent"), extra + " uses shared card rounding without a Fluent material engine");
                 else if (extra == ThemeService.Neumorphism)
                 {
-                    Check(model.CanCustomizeGeometry && model.CanCustomizeNeumorph && model.DesignSummary.StartsWith("Neumorphism"), extra + " uses shared rounding and a neumorph depth engine");
                     Check(model.ResetTheme.CanExecute(null) && model.PreviewDefault.CanExecute(null), "neumorph studio reset commands");
                     model.SelectedNeumorphDepth = ProGlassAutomation.ThemeNeumorphism.NeumorphDepth.Deep;
                     Pump();
@@ -316,7 +342,6 @@ internal static class RuntimeChecks
                 }
                 else if (extra == ThemeService.LiquidGlass)
                 {
-                    Check(model.CanCustomizeGeometry && model.CanCustomizeLiquid && model.DesignSummary.StartsWith("Liquid Glass"), extra + " uses shared rounding and a liquid frost engine");
                     Check(model.ResetTheme.CanExecute(null) && model.PreviewDefault.CanExecute(null), "liquid studio reset commands");
                     model.SelectedLiquidFrost = ProGlassAutomation.ThemeLiquidGlass.LiquidFrost.Clear;
                     Pump();
@@ -325,12 +350,6 @@ internal static class RuntimeChecks
                     Pump();
                     Check(model.SelectedLiquidFrost == ProGlassAutomation.ThemeLiquidGlass.LiquidFrost.Standard, "liquid reset restores defaults");
                 }
-                else if (extra == ThemeService.Glassmorphism)
-                    Check(model.CanCustomizeGeometry && !model.CanCustomize && model.DesignSummary.StartsWith("Glassmorphism"), extra + " uses shared card rounding without a glass extras engine");
-                else if (extra == ThemeService.Spatial)
-                    Check(model.CanCustomizeGeometry && !model.CanCustomize && model.DesignSummary.StartsWith("Spatial"), extra + " uses shared card rounding without a spatial extras engine");
-                else
-                    throw new Exception("Unhandled extra theme: " + extra);
                 model.IsDark = true;
                 Pump();
                 Check(themes.ActiveTheme == extra && themes.ActiveAppearance == Appearance.Dark, extra + " dark");
