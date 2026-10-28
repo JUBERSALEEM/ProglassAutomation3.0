@@ -696,6 +696,10 @@ using_static = re.compile(r'^[ \t]*using\s+static\s+([\w.]+)\s*;', re.M)
 code_comment = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 code_string = re.compile(r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'')
 type_use = re.compile(r'(?<![.\w])([A-Za-z_]\w*)\s*(?=[.(])')
+# A type is also named where it declares something: a parameter, field or local
+# (`Appearance mode`, `ClayCustomizationState next`). That shape cannot be confused
+# with a member assignment, which is why it is safe to match.
+type_declaration_use = re.compile(r'(?<![.\w])([A-Za-z_]\w*)\s+[A-Za-z_]\w*\s*[,)=;]')
 
 def without_prose(text):
     return code_string.sub('""', code_comment.sub('', text))
@@ -726,11 +730,13 @@ for source, raw, code, namespace, own_types, imports in compiled:
     if any(part.endswith('.tests') for part in relative.parts):
         continue
     reachable = imports | reachable_namespaces(namespace)
-    for name in set(type_use.findall(code)):
+    for name in set(type_use.findall(code)) | set(type_declaration_use.findall(code)):
         namespaces = declared_in.get(name)
         if namespaces is None or name in own_types or namespaces & reachable:
             continue
-        hit = next(candidate for candidate in type_use.finditer(code) if candidate.group(1) == name)
+        hit = (next(candidate for candidate in type_use.finditer(code) if candidate.group(1) == name)
+               if any(candidate.group(1) == name for candidate in type_use.finditer(code))
+               else next(candidate for candidate in type_declaration_use.finditer(code) if candidate.group(1) == name))
         unresolved.append(f'{relative}:{code[:hit.start()].count(chr(10)) + 1} uses {name} '
                           f'(declared in {", ".join(sorted(namespaces))})')
 assert not unresolved, (
