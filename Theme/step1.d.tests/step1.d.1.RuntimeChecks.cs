@@ -59,7 +59,7 @@ internal static class RuntimeChecks
             // no source sets, so it could only ever fail. Assert the rule and the page
             // the model actually names — never a second literal.
             Check(model.SelectedWorkspace != 0 && model.SelectedWorkspace <= 10,
-                "business reference is the startup page, not Theme Studio");
+                "business reference is the startup page, not Theme Studio (observed workspace " + model.SelectedWorkspace + ")");
             Check(model.IsInquiry, "startup page is the inquiry register");
             Check(model.WorkspaceTitle == "Inquiries" && model.WorkspaceSubtitle == "Business · Inquiry register",
                 "startup chrome names the business reference");
