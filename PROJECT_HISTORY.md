@@ -9,6 +9,13 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 35.1: every module's checks are green — except the one that was never run
+- **step3: 12 passed, 0 failed** — `PASS: user rules, permissions and isolated persistence.` With that, **step2 (7/7), step3 (12/12), step4 (6/6) and the diagnostics log (39 assertions) are all green**, every one of them for the first time in its existence.
+- **The balance, stated plainly.** Five compiled verification executables exist. Four have now run. The fifth — `Theme/step1.d.tests/step1.d.ThemeTests.csproj`, an STA WPF harness covering the nine themes, the contract checks and the inquiry-inbox storage — **has never been executed on any machine**, so nothing it checks is verified. It is recorded as *never executed* in the evidence table rather than counted as passing.
+- **What no test covers:** the application has never been launched. First-run administrator setup, sign-in, the letterhead preview, the missing-logo message, the nine themes rendered Light/Dark, and dispatcher recovery after a deliberate crash are all still unproven.
+- **Defect tally for the week:** eight, seven of them in production code, every one in code that no test had ever run — a silently ignored missing logo, an address that saved differently from what it printed, a refused formatted TRN, an unusable first-run bootstrap, and a guard whose own check would have blessed its failure.
+
+---
 ## 2026-10-28 — Round 35.0: a stamp without a sign-in
 - **step3: 11 passed, 1 failed.** The two round-34.9 fixes held; the next latent check became reachable now that the ones before it pass: `an identified, active operator can be stamped as Prepared By`.
 - **Cause:** the round-trip check built a bare `new UserSession(repository)` and asserted a stamp. `CaptureStampAsync` reads the process identity, which `SignIn` fills only after a password has been checked (round-24 contract), so the assertion could never pass — and it contradicted this same file's later claim that no session exists before a password is verified.
