@@ -121,11 +121,12 @@ def require_shell_hosting():
     check("ShowUsers = new DelegateCommand" in view_model,
           "ShowUsers command is not initialised")
     check('9 => "Users"' in view_model, "the workspace title for index 9 is missing")
-    check("if (value is >= 0 and <= 9)" in view_model,
+    # The bound is raised in exactly one place, and only when a page is actually
+    # appended behind the new index: step4 Company Profile owns index 10, so ten
+    # is legitimate and eleven would admit an index with no page behind it.
+    check("if (value is >= 0 and <= 10)" in view_model,
           "the workspace index guard must accept the appended user workspace")
-    # The bound is raised in one place only: a bound of 10 would admit an index
-    # with no page behind it.
-    check("and <= 10)" not in view_model, "the workspace guard admits an index with no page")
+    check("and <= 11)" not in view_model, "the workspace guard admits an index with no page")
 
 
 def require_migration_registration():

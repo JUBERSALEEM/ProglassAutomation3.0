@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 28: `step4` Company Profile implemented
+- **Phase:** `step4` (Company Profile) — the owner's request after confirming the first-password flow worked.
+- **Built:** the installation's own identity (name, TRN, address, telephone, website, representative and mobile, company e-mail, bank name and account/IBAN) and a logo stored in the app-data folder with two document placements and a printed size picker. One page under Settings, workspace index 10.
+- **Invariant:** one profile per installation, enforced by a fixed key plus `CHECK ("Id" = 1)` in the database (migration 1016) — not by hiding a button. ADV's company directory was deliberately not copied.
+- **Logo:** copied into `%APPDATA%\ProGlassAutomation\CompanyProfile\` under a generated name; the row stores the name, never an absolute path; one stored dimension so the aspect ratio is never stretched; the replaced asset is deleted only after the commit.
+- **Write path:** authorised from the signed-in session (active Administrator), tracked row, affected-row count checked — round 27's silent-write defect cannot recur here.
+- **Read path:** `GetIdentityAsync()` returns an immutable snapshot for the document modules that come later. No PI/JO/DN/TI, numbering, VAT, currency or PDF was scaffolded.
+- **Checks:** `step4.f.2` added (portable source/contract gate, mutation-tested) and the nine existing checkers re-run — all PASS. `step3.f.2`'s workspace-index guard was updated from `<= 9` to `<= 10` because index 10 now has a page behind it.
+- **Verification:** no .NET SDK and no WPF runtime here, so nothing was compiled, `step4.f.1` was not executed, the page was not opened and no theme was visually verified. Those are the owner's to run on Windows.
+
+---
 ## 2026-10-27 — Round 27: a write that reported success and stored nothing
 
 - **Phase:** `step3` (User Management) — the owner's screenshot of the first-password card answering "the directory now reports 0 account(s) with a password".

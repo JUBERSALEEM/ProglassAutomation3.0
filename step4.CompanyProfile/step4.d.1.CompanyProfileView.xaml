@@ -1,0 +1,668 @@
+<UserControl x:Class="ProGlassAutomation.Company.CompanyProfileView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         step4 — Company Profile.
+
+         The one page that owns the business's own identity: the name, TRN,
+         address, contact and bank details, and the logo that prints on every
+         future document. Clients are a different module and a different table.
+
+         Theme rules obeyed here (docs/00 §A–J, step1.d.11):
+           • every colour, brush, metric, radius and font comes from the shared
+             contract through DynamicResource — no literals;
+           • theme-owned card/plate roles are looked up dynamically and never
+             BasedOn a StaticResource;
+           • controls with theme-owned templates (TextBox, ComboBox) bind the
+             active implicit style explicitly, so a theme switch replaces the
+             template as well as the tokens;
+           • no Canvas, no absolute positioning, no negative margins, and no
+             horizontal StackPanel inside a star column — the two-column form
+             uses a Grid whose left column shrinks and whose right column has a
+             minimum, and the page scrolls vertically rather than sideways;
+           • the radio buttons use the theme's own RadioButton template, which is
+             the only one-button-of-many control every theme provides.
+
+         The logo is shown twice on purpose: the panel preview proves the stored
+         image and its proportions, and the document mock below it proves the
+         chosen composition (portrait beside the identity, or a full-width top
+         masthead).
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <!-- Visibility from a boolean, expressed without a Style:
+             `BasedOn` is a plain CLR property on Style, not a dependency
+             property, so `BasedOn="{DynamicResource ...}"` throws
+             XamlParseException at load. -->
+        <BooleanToVisibilityConverter x:Key="CompanyVisibility" />
+
+        <Style x:Key="CompanySectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeSection}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="CompanySectionNote" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapGroup}" />
+        </Style>
+
+        <!-- Field label: the field's name, above its own box, in every section
+             and at every width. Stacked labels are what keeps a two-column page
+             from clipping a label at a smaller window size. -->
+        <Style x:Key="CompanyFieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+
+        <Style x:Key="CompanyHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+
+        <!-- A validation message sits directly under the field it belongs to, in
+             the theme's error colour, and disappears as the field is corrected. -->
+        <Style x:Key="CompanyFieldError" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="Foreground" Value="{DynamicResource StatusError}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+
+        <!-- The panel the logo sits in. It carries the theme's own secondary
+             surface and a hairline border, so a white logo is still visible in
+             Light and a dark logo is still visible in Dark. -->
+        <Style x:Key="CompanyLogoPlate" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceSecondary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
+            <Setter Property="MinHeight" Value="{DynamicResource ChoiceMarkSize}" />
+        </Style>
+
+        <!-- The document mock's paper. Deliberately the primary surface rather
+             than a fixed white: on a dark theme a white sheet would fight the
+             page, and this is a preview of the COMPOSITION, not of the paper. -->
+        <Style x:Key="CompanyDocumentMock" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+
+        <Style x:Key="CompanyPreviewName" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="CompanyPreviewLine" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ══ Command bar ═════════════════════════════════════════════
+             One bar, two blocks: what is on file on the left, what can be done
+             on the right. The actions live here rather than at the bottom of a
+             long form so Save stays reachable without scrolling. -->
+        <ContentControl Grid.Row="0"
+                        Style="{DynamicResource Plate}"
+                        Margin="{DynamicResource PaddingPage}">
+            <Grid Margin="{DynamicResource PaddingCompact}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="COMPANY PROFILE"
+                               Style="{StaticResource CompanySectionTitle}"
+                               AutomationProperties.Name="Company profile" />
+                    <TextBlock Text="{Binding ProfileStateText}"
+                               Style="{StaticResource CompanyHint}" />
+                    <!-- Unsaved changes are stated, not implied by an enabled
+                         button: the operator can see the form is ahead of the
+                         database before they navigate away. -->
+                    <TextBlock Text="{Binding UnsavedText}"
+                               Style="{StaticResource CompanyHint}"
+                               Foreground="{DynamicResource StatusWarning}"
+                               AutomationProperties.Name="Unsaved changes"
+                               Visibility="{Binding HasUnsavedNotice, Converter={StaticResource CompanyVisibility}}" />
+                </StackPanel>
+
+                <WrapPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding RefreshCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            ToolTip="Read the saved profile again"
+                            AutomationProperties.Name="Reload the company profile">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Refresh" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                            <TextBlock Text="Reload" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Command="{Binding RevertCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            IsEnabled="{Binding HasUnsavedChanges}"
+                            ToolTip="Discard the changes on this page and reload the saved profile"
+                            AutomationProperties.Name="Revert unsaved changes">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                            <TextBlock Text="Revert" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{DynamicResource PrimaryButton}"
+                            Command="{Binding SaveCommand}"
+                            Margin="{DynamicResource MarginInline}"
+                            IsEnabled="{Binding CanSave}"
+                            ToolTip="Save the company profile"
+                            AutomationProperties.Name="Save the company profile">
+                        <StackPanel Orientation="Horizontal">
+                            <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
+                                              Height="{DynamicResource ChoiceMarkSize}"
+                                              Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                            <TextBlock Text="SAVE PROFILE" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+            </Grid>
+        </ContentControl>
+
+        <!-- ══ The form ════════════════════════════════════════════════
+             Left: the fields, in four named sections. Right: the logo and the
+             document mock. The page scrolls vertically; horizontal scrolling is
+             disabled on purpose, so a narrower window shrinks the left column
+             instead of pushing the logo panel off the page.
+
+             Every gap and inset here is a shared token (UiGap*, Padding*,
+             Margin*, UiCardPadding, UiActionMinHeight). The only numbers in the
+             file are CAPS on bounded content — how wide the logo panel may grow,
+             how tall a preview may be — which rule C of docs/00 permits for a
+             control whose content has a known bound, and which are floors and
+             ceilings rather than spacing. -->
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="{DynamicResource PaddingPage}">
+            <Grid Margin="{DynamicResource PaddingCompact}">
+                <!-- The right column is content-sized with a floor, and the left
+                     column takes everything else. A star column with no floor plus
+                     a floor on the panel is what keeps the page inside its own
+                     width at the smallest window: the gutter and the logo panel
+                     together need less than the narrowest content area, so nothing
+                     is ever clipped and the page never scrolls sideways. -->
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- ── Left: the profile itself ─────────────────────────── -->
+                <StackPanel Grid.Column="0" MaxWidth="900" HorizontalAlignment="Left"
+                            Margin="{DynamicResource UiGapCluster}">
+
+                    <!-- Read-only notice: only when this person cannot save. The
+                         reason is printed; a greyed button alone would not say why. -->
+                    <Border Background="{DynamicResource StatusInformationSurface}"
+                            BorderBrush="{DynamicResource StatusInformation}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{DynamicResource PaddingControl}"
+                            Margin="{DynamicResource UiGapGroup}"
+                            Visibility="{Binding HasReadOnlyReason, Converter={StaticResource CompanyVisibility}}">
+                        <TextBlock Text="{Binding ReadOnlyReason}"
+                                   Style="{StaticResource CompanyHint}"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   AutomationProperties.Name="Why the profile is read-only" />
+                    </Border>
+
+                    <!-- Refused save: the sentence names what to fix. -->
+                    <Border Background="{DynamicResource StatusErrorSurface}"
+                            BorderBrush="{DynamicResource StatusError}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{DynamicResource PaddingControl}"
+                            Margin="{DynamicResource UiGapGroup}"
+                            Visibility="{Binding HasError, Converter={StaticResource CompanyVisibility}}">
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Style="{StaticResource CompanyHint}"
+                                   Foreground="{DynamicResource StatusError}"
+                                   AutomationProperties.Name="Company profile error" />
+                    </Border>
+
+                    <!-- Saved. -->
+                    <Border Background="{DynamicResource StatusSuccessSurface}"
+                            BorderBrush="{DynamicResource StatusSuccess}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{DynamicResource PaddingControl}"
+                            Margin="{DynamicResource UiGapGroup}"
+                            Visibility="{Binding HasStatus, Converter={StaticResource CompanyVisibility}}">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Style="{StaticResource CompanyHint}"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   AutomationProperties.Name="Company profile saved" />
+                    </Border>
+
+                    <!-- ── Section 1: business identity ─────────────────── -->
+                    <ContentControl Style="{DynamicResource Card}"
+                                    Padding="{DynamicResource UiCardPadding}"
+                                    Margin="{DynamicResource UiGapGroup}">
+                        <StackPanel>
+                            <TextBlock Text="Business identity"
+                                       Style="{StaticResource CompanySectionTitle}"
+                                       AutomationProperties.Name="Business identity section" />
+                            <TextBlock Text="The registered name, tax number and address as they should print on a document."
+                                       Style="{StaticResource CompanySectionNote}" />
+
+                            <TextBlock Text="Company name *" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding CompanyName, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="200"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="The registered business name"
+                                     AutomationProperties.Name="Company name" />
+                            <TextBlock Text="{Binding CompanyNameError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Company name error"
+                                       Visibility="{Binding HasCompanyNameError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <TextBlock Text="TRN" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding Trn, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="20"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="15-digit UAE Tax Registration Number"
+                                     AutomationProperties.Name="Company TRN" />
+                            <TextBlock Text="15 digits. Optional, but required on a tax invoice."
+                                       Style="{StaticResource CompanyHint}" />
+                            <TextBlock Text="{Binding TrnError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Company TRN error"
+                                       Visibility="{Binding HasTrnError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <TextBlock Text="Address" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="300"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     VerticalContentAlignment="Top"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="Street, area, city, country — as printed"
+                                     AutomationProperties.Name="Company address" />
+                            <TextBlock Text="Separate lines are kept. This is the address the letterhead prints."
+                                       Style="{StaticResource CompanyHint}" />
+                            <TextBlock Text="{Binding AddressError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Company address error"
+                                       Visibility="{Binding HasAddressError, Converter={StaticResource CompanyVisibility}}" />
+                        </StackPanel>
+                    </ContentControl>
+
+                    <!-- ── Section 2: representative and contact ────────── -->
+                    <ContentControl Style="{DynamicResource Card}"
+                                    Padding="{DynamicResource UiCardPadding}"
+                                    Margin="{DynamicResource UiGapGroup}">
+                        <StackPanel>
+                            <TextBlock Text="Representative and contact"
+                                       Style="{StaticResource CompanySectionTitle}"
+                                       AutomationProperties.Name="Representative and contact section" />
+                            <TextBlock Text="Who signs, and how a client reaches the company. Every field here is optional."
+                                       Style="{StaticResource CompanySectionNote}" />
+
+                            <TextBlock Text="Representative" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding RepresentativeName, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="120"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="The person who signs company documents"
+                                     AutomationProperties.Name="Representative name" />
+                            <TextBlock Text="{Binding RepresentativeNameError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Representative name error"
+                                       Visibility="{Binding HasRepresentativeNameError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <TextBlock Text="Representative mobile" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding RepresentativeMobile, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="30"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="Mobile number printed under the representative"
+                                     AutomationProperties.Name="Representative mobile" />
+                            <TextBlock Text="{Binding RepresentativeMobileError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Representative mobile error"
+                                       Visibility="{Binding HasRepresentativeMobileError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <TextBlock Text="Company e-mail" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="120"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="The address a client replies to"
+                                     AutomationProperties.Name="Company e-mail" />
+                            <TextBlock Text="{Binding EmailError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Company e-mail error"
+                                       Visibility="{Binding HasEmailError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <TextBlock Text="Telephone" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding Telephone, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="40"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="Landline or switchboard"
+                                     AutomationProperties.Name="Company telephone" />
+                            <TextBlock Text="{Binding TelephoneError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Company telephone error"
+                                       Visibility="{Binding HasTelephoneError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <TextBlock Text="Website" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding Website, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="200"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="Printed under the contact details"
+                                     AutomationProperties.Name="Company website" />
+                            <TextBlock Text="{Binding WebsiteError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Company website error"
+                                       Visibility="{Binding HasWebsiteError, Converter={StaticResource CompanyVisibility}}" />
+                        </StackPanel>
+                    </ContentControl>
+
+                    <!-- ── Section 3: banking ───────────────────────────── -->
+                    <ContentControl Style="{DynamicResource Card}"
+                                    Padding="{DynamicResource UiCardPadding}"
+                                    Margin="{DynamicResource UiGapGroup}">
+                        <StackPanel>
+                            <TextBlock Text="Banking"
+                                       Style="{StaticResource CompanySectionTitle}"
+                                       AutomationProperties.Name="Banking section" />
+                            <TextBlock Text="Printed in the payment block of an invoice. Two fields, so the bank and the account stay separable."
+                                       Style="{StaticResource CompanySectionNote}" />
+
+                            <TextBlock Text="Bank name" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding BankName, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="120"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="For example Emirates NBD"
+                                     AutomationProperties.Name="Bank name" />
+                            <TextBlock Text="{Binding BankNameError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Bank name error"
+                                       Visibility="{Binding HasBankNameError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <TextBlock Text="Account number / IBAN" Style="{StaticResource CompanyFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Text="{Binding AccountNumber, UpdateSourceTrigger=PropertyChanged}"
+                                     MinHeight="{DynamicResource UiActionMinHeight}"
+                                     MaxLength="80"
+                                     IsEnabled="{Binding CanEdit}"
+                                     ToolTip="Account number or IBAN, with or without spaces"
+                                     AutomationProperties.Name="Account number or IBAN" />
+                            <TextBlock Text="{Binding AccountNumberError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Account number error"
+                                       Visibility="{Binding HasAccountNumberError, Converter={StaticResource CompanyVisibility}}" />
+                        </StackPanel>
+                    </ContentControl>
+                </StackPanel>
+
+                <!-- ── Right: logo and document header ──────────────────── -->
+                <StackPanel Grid.Column="1"
+                            MinWidth="240" MaxWidth="400"
+                            VerticalAlignment="Top">
+                    <ContentControl Style="{DynamicResource Card}"
+                                    Padding="{DynamicResource UiCardPadding}">
+                        <StackPanel>
+                            <TextBlock Text="Logo and document header"
+                                       Style="{StaticResource CompanySectionTitle}"
+                                       AutomationProperties.Name="Logo section" />
+                            <TextBlock Text="The image prints beside the company details on every document. It is copied into the application's data folder, so moving or backing up the installation keeps it."
+                                       Style="{StaticResource CompanySectionNote}" />
+
+                            <!-- The stored image, at its own proportions. -->
+                            <Border Style="{StaticResource CompanyLogoPlate}">
+                                <StackPanel>
+                                    <Image Source="{Binding LogoPreview}"
+                                           Stretch="Uniform"
+                                           MaxHeight="140"
+                                           HorizontalAlignment="Left"
+                                           ToolTip="The stored logo, at its own proportions"
+                                           AutomationProperties.Name="Company logo preview"
+                                           Visibility="{Binding HasLogoPreview, Converter={StaticResource CompanyVisibility}}" />
+                                    <TextBlock Text="No logo stored. Choose a PNG or JPEG image."
+                                               AutomationProperties.Name="No logo stored">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource CompanyHint}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasLogoPreview}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding LogoImageInfo}"
+                                               Style="{StaticResource CompanyHint}"
+                                               AutomationProperties.Name="Logo image size"
+                                               Visibility="{Binding HasLogoImageInfo, Converter={StaticResource CompanyVisibility}}" />
+                                    <TextBlock Text="{Binding LogoPreviewProblem}"
+                                               Style="{StaticResource CompanyFieldError}"
+                                               AutomationProperties.Name="Logo problem"
+                                               Visibility="{Binding HasLogoPreviewProblem, Converter={StaticResource CompanyVisibility}}" />
+                                </StackPanel>
+                            </Border>
+
+                            <WrapPanel Margin="{DynamicResource UiGapGroup}">
+                                <Button Style="{DynamicResource SubtleButton}"
+                                        Command="{Binding ChooseLogoCommand}"
+                                        Margin="{DynamicResource MarginInline}"
+                                        IsEnabled="{Binding CanEdit}"
+                                        ToolTip="Choose a PNG or JPEG image"
+                                        AutomationProperties.Name="Choose a logo image">
+                                    <StackPanel Orientation="Horizontal">
+                                        <studio:ShellMark Kind="Add" Width="{DynamicResource ChoiceMarkSize}"
+                                                          Height="{DynamicResource ChoiceMarkSize}"
+                                                          Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Choose image" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{DynamicResource SubtleButton}"
+                                        Command="{Binding RemoveLogoCommand}"
+                                        Margin="{DynamicResource MarginInline}"
+                                        IsEnabled="{Binding HasLogo}"
+                                        ToolTip="Remove the logo from the profile"
+                                        AutomationProperties.Name="Remove the company logo">
+                                    <StackPanel Orientation="Horizontal">
+                                        <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
+                                                          Height="{DynamicResource ChoiceMarkSize}"
+                                                          Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                        <TextBlock Text="Remove" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </WrapPanel>
+
+                            <!-- Where the logo goes. One of a set, so radio buttons:
+                                 every installed theme templates RadioButton. -->
+                            <TextBlock Text="Placement on documents" Style="{StaticResource CompanyFieldLabel}" />
+                            <RadioButton Content="No logo (text only)"
+                                         GroupName="CompanyLogoLayout"
+                                         Margin="{DynamicResource UiGapField}"
+                                         IsEnabled="{Binding CanEdit}"
+                                         IsChecked="{Binding IsNoLogoLayout, Mode=TwoWay}"
+                                         AutomationProperties.Name="No logo, text only" />
+                            <RadioButton Content="Left of the identity (portrait)"
+                                         GroupName="CompanyLogoLayout"
+                                         Margin="{DynamicResource UiGapField}"
+                                         IsEnabled="{Binding CanEdit}"
+                                         IsChecked="{Binding IsLeftPortraitLayout, Mode=TwoWay}"
+                                         AutomationProperties.Name="Logo to the left of the identity" />
+                            <RadioButton Content="Top masthead (full width)"
+                                         GroupName="CompanyLogoLayout"
+                                         Margin="{DynamicResource UiGapField}"
+                                         IsEnabled="{Binding CanEdit}"
+                                         IsChecked="{Binding IsTopPanelLayout, Mode=TwoWay}"
+                                         AutomationProperties.Name="Logo in a full-width top masthead" />
+                            <TextBlock Text="{Binding LogoPlacementHint}"
+                                       Style="{StaticResource CompanyHint}" />
+                            <TextBlock Text="{Binding LogoLayoutError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Logo placement error"
+                                       Visibility="{Binding HasLogoLayoutError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <!-- Printed size: a picker, because it is a set of sane
+                                 sizes rather than a number to type. The closed box
+                                 carries the size only; the field name is the label. -->
+                            <TextBlock Text="Printed size" Style="{StaticResource CompanyFieldLabel}" />
+                            <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                      ItemsSource="{Binding LogoSizeOptions}"
+                                      SelectedItem="{Binding SelectedLogoSizeOption, Mode=TwoWay}"
+                                      MinHeight="{DynamicResource UiActionMinHeight}"
+                                      IsEnabled="{Binding CanEdit}"
+                                      ToolTip="The logo's long edge on the printed page"
+                                      AutomationProperties.Name="Printed logo size">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Text="The long edge in millimetres. The other edge follows the image's own proportions, so the logo is never stretched."
+                                       Style="{StaticResource CompanyHint}" />
+                            <TextBlock Text="{Binding LogoSizeError}"
+                                       Style="{StaticResource CompanyFieldError}"
+                                       AutomationProperties.Name="Logo size error"
+                                       Visibility="{Binding HasLogoSizeError, Converter={StaticResource CompanyVisibility}}" />
+
+                            <!-- ── The document mock ──────────────────────────
+                                 Two compositions of the SAME identity, so the choice
+                                 above is visible rather than two words in a list.
+                                 Only the chosen one is shown; both use
+                                 Stretch="Uniform", which is what keeps the image's
+                                 aspect ratio instead of filling a fixed box. -->
+                            <TextBlock Text="Document header" Style="{StaticResource CompanyFieldLabel}" />
+
+                            <!-- Portrait: logo at the left, identity beside it. -->
+                            <Border Style="{StaticResource CompanyDocumentMock}"
+                                    Visibility="{Binding IsLeftPortraitLayout, Converter={StaticResource CompanyVisibility}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Image Grid.Column="0"
+                                           Source="{Binding LogoPreview}"
+                                           Stretch="Uniform"
+                                           MaxHeight="64"
+                                           MaxWidth="88"
+                                           Margin="{DynamicResource MarginInline}"
+                                           VerticalAlignment="Top"
+                                           AutomationProperties.Name="Logo in the portrait header" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="{Binding PreviewCompanyName}" Style="{StaticResource CompanyPreviewName}" />
+                                        <TextBlock Text="{Binding PreviewTrnLine}" Style="{StaticResource CompanyPreviewLine}" />
+                                        <TextBlock Text="{Binding PreviewContactLine}" Style="{StaticResource CompanyPreviewLine}" />
+                                        <!-- Who signs: printed on the letterhead, so the
+                                             preview shows it when it is filled in. -->
+                                        <TextBlock Text="{Binding PreviewRepresentativeLine}"
+                                                   Style="{StaticResource CompanyPreviewLine}"
+                                                   Visibility="{Binding HasPreviewRepresentativeLine, Converter={StaticResource CompanyVisibility}}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Top masthead: logo and identity share the full width. -->
+                            <Border Style="{StaticResource CompanyDocumentMock}"
+                                    Visibility="{Binding IsTopPanelLayout, Converter={StaticResource CompanyVisibility}}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Image Grid.Column="0"
+                                               Source="{Binding LogoPreview}"
+                                               Stretch="Uniform"
+                                               MaxHeight="48"
+                                               MaxWidth="160"
+                                               Margin="{DynamicResource MarginInline}"
+                                               VerticalAlignment="Center"
+                                               AutomationProperties.Name="Logo in the top masthead" />
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                            <TextBlock Text="{Binding PreviewCompanyName}"
+                                                       Style="{StaticResource CompanyPreviewName}"
+                                                       TextAlignment="Right" />
+                                            <TextBlock Text="{Binding PreviewTrnLine}"
+                                                       Style="{StaticResource CompanyPreviewLine}"
+                                                       TextAlignment="Right" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <Border Height="{DynamicResource StrokeWidth}"
+                                            Background="{DynamicResource BorderStrong}"
+                                            Margin="{DynamicResource MarginSection}" />
+                                    <TextBlock Text="{Binding PreviewContactLine}" Style="{StaticResource CompanyPreviewLine}" />
+                                    <TextBlock Text="{Binding PreviewRepresentativeLine}"
+                                               Style="{StaticResource CompanyPreviewLine}"
+                                               Visibility="{Binding HasPreviewRepresentativeLine, Converter={StaticResource CompanyVisibility}}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- No logo: the letterhead is text only, and says so. -->
+                            <Border Style="{StaticResource CompanyDocumentMock}"
+                                    Visibility="{Binding IsNoLogoLayout, Converter={StaticResource CompanyVisibility}}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding PreviewCompanyName}" Style="{StaticResource CompanyPreviewName}" />
+                                    <TextBlock Text="{Binding PreviewTrnLine}" Style="{StaticResource CompanyPreviewLine}" />
+                                    <TextBlock Text="{Binding PreviewContactLine}" Style="{StaticResource CompanyPreviewLine}" />
+                                    <TextBlock Text="Text-only letterhead — no logo is printed."
+                                               Style="{StaticResource CompanyHint}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ContentControl>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

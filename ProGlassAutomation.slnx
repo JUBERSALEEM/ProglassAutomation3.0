@@ -2,4 +2,5 @@
   <Project Path="ProGlassAutomation.csproj" />
   <Project Path="Theme/step1.d.tests/step1.d.ThemeTests.csproj" />
   <Project Path="step2.ClientManagement/step2.f.tests/step2.f.ClientTests.csproj" />
+  <Project Path="step4.CompanyProfile/step4.f.tests/step4.f.CompanyTests.csproj" />
 </Solution>

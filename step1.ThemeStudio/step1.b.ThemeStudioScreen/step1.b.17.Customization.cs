@@ -362,7 +362,7 @@ public sealed partial class ThemeStudioViewModel
         get => selectedWorkspace;
         set
         {
-            if (value is >= 0 and <= 9)
+            if (value is >= 0 and <= 10)
             {
                 selectedWorkspace = value;
                 Changed(nameof(SelectedWorkspace));
@@ -376,6 +376,7 @@ public sealed partial class ThemeStudioViewModel
                 Changed(nameof(IsPages));
                 Changed(nameof(IsClients));
                 Changed(nameof(IsUsers));
+                Changed(nameof(IsCompany));
                 Changed(nameof(WorkspaceTitle));
                 Changed(nameof(WorkspaceSubtitle));
                 Changed(nameof(WorkspaceIcon));
@@ -396,6 +397,9 @@ public sealed partial class ThemeStudioViewModel
     /// <summary>step3 User Management workspace (index 9; appended for the same
     /// reason — every earlier index keeps its meaning).</summary>
     public bool IsUsers { get => selectedWorkspace == 9; set { if (value) SelectedWorkspace = 9; } }
+    /// <summary>step4 Company Profile workspace (index 10; appended for the same
+    /// reason — every earlier index keeps its meaning).</summary>
+    public bool IsCompany { get => selectedWorkspace == 10; set { if (value) SelectedWorkspace = 10; } }
     public IconKind WorkspaceIcon => selectedWorkspace switch
     {
         0 => IconKind.Theme,
@@ -412,6 +416,9 @@ public sealed partial class ThemeStudioViewModel
         // work for". One icon per concept, no duplicates in the rail.
         8 => IconKind.Work,
         9 => IconKind.Author,
+        // The company itself is an installation setting, not a record list, so
+        // it carries the gear rather than a fourth people/business mark.
+        10 => IconKind.Settings,
         _ => IconKind.Home
     };
     public string WorkspaceTitle => selectedWorkspace switch
@@ -426,6 +433,7 @@ public sealed partial class ThemeStudioViewModel
         7 => "Pages Studio",
         8 => "Clients",
         9 => "Users",
+        10 => "Company",
         _ => "Home"
     };
     public string WorkspaceSubtitle => selectedWorkspace switch
@@ -440,6 +448,7 @@ public sealed partial class ThemeStudioViewModel
         7 => "Settings · Page sizing",
         8 => "Business · Client directory",
         9 => "Administration · Users, departments and roles",
+        10 => "Settings · Company profile, contact details and logo",
         _ => "Home"
     };
     public bool IsMenuOpen { get => isMenuOpen; set { isMenuOpen = value; Changed(nameof(IsMenuOpen)); } }
@@ -458,6 +467,7 @@ public sealed partial class ThemeStudioViewModel
     public ICommand ShowPages { get; private set; } = null!;
     public ICommand ShowClients { get; private set; } = null!;
     public ICommand ShowUsers { get; private set; } = null!;
+    public ICommand ShowCompany { get; private set; } = null!;
     public ICommand ResetPages { get; private set; } = null!;
     public ICommand SelectColorPlate { get; private set; } = null!;
     public ICommand ApplyPreview { get; private set; } = null!;
@@ -532,6 +542,7 @@ public sealed partial class ThemeStudioViewModel
         ShowPages = new DelegateCommand(() => SelectedWorkspace = 7);
         ShowClients = new DelegateCommand(() => SelectedWorkspace = 8);
         ShowUsers = new DelegateCommand(() => SelectedWorkspace = 9);
+        ShowCompany = new DelegateCommand(() => SelectedWorkspace = 10);
         SelectColorPlate = new DelegateCommand<string>(name => { if (!string.IsNullOrWhiteSpace(name)) SelectedColorPlate = name; });
         ApplyPreview = new DelegateCommand(() => { try { themes.Apply(SelectedTheme, themes.ActiveAppearance, LiveConfigure()); ThemeError=""; Feedback="Preview applied — unsaved changes present."; } catch(Exception ex){ ThemeError=ex.Message; } Changed(nameof(ThemeError)); }, () => CanCustomize || CanCustomizeGeometry);
         SaveCustomization = new DelegateCommand(() =>

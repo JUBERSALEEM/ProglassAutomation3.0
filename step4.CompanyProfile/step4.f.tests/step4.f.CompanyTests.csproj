@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    step4.f — Company Profile verification executable.
+
+    Follows the repository's established convention (Theme/step1.d.tests,
+    step2.f.ClientTests, step3.f.UserTests): a Windows console executable that
+    references the application and asserts behaviour, exiting nonzero on
+    failure. No test-framework package is introduced.
+
+    Scope: the rules (step4.a.2), the logo store (step4.a.3), migration 1016
+    (step4.b.1), the repository round-trip and single-profile constraint
+    (step4.b.4) and the editor's view-model states (step4.c.1) — all against an
+    isolated folder through AppDataRoot.TestFolderOverride, so the real
+    %APPDATA% directory is never touched.
+
+    Run on Windows/.NET 8:  dotnet run --project step4.f.CompanyTests.csproj
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>step4.f.CompanyTests</AssemblyName>
+    <RootNamespace>ProGlassAutomation.Step4Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../ProGlassAutomation.csproj" />
+  </ItemGroup>
+</Project>

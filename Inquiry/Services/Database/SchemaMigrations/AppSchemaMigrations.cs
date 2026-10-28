@@ -18,6 +18,7 @@
 
 using Microsoft.Data.Sqlite;
 using ProGlassAutomation.Services.Clients;
+using ProGlassAutomation.Services.Company;
 using ProGlassAutomation.Services.Users;
 using System;
 using System.Collections.Generic;
@@ -205,7 +206,22 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             new(UserSchema.CredentialsMigrationVersion,
                 "Users: password credential (hash, salt, work factor, lockout state)",
                 connection => UserSchema.EnsureCredentials(connection),
-                connection => UserSchema.AssertCredentials(connection))
+                connection => UserSchema.AssertCredentials(connection)),
+
+            // ── step4 Company Profile (owner-approved 2026-10-28) ────────
+            // The installation's OWN identity: one row, on this same chain and in
+            // this same file, so it inherits the existing backup-then-migrate,
+            // single-transaction and Verify guarantees. Purely additive: it
+            // creates one table and touches no Inquiry, Client or User row.
+            //
+            // One profile per installation is a database fact, not a UI habit:
+            // the primary key is pinned to 1 and a CHECK constraint refuses any
+            // other value, so a second insert fails in SQLite whatever the
+            // application code does.
+            new(CompanyProfileSchema.MigrationVersion,
+                "CompanyProfile: the installation's single company profile (step4)",
+                connection => CompanyProfileSchema.Ensure(connection),
+                connection => CompanyProfileSchema.AssertShape(connection))
         };
 
         /// <summary>

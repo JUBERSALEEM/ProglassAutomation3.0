@@ -5,6 +5,7 @@
         xmlns:inq="clr-namespace:ProGlassAutomation.Inquiry"
         xmlns:cli="clr-namespace:ProGlassAutomation.Clients"
         xmlns:usr="clr-namespace:ProGlassAutomation.Users"
+        xmlns:cmp="clr-namespace:ProGlassAutomation.Company"
         Title="ProGlass Automation" Height="1000" Width="1700"
         MinHeight="{DynamicResource WindowMinHeight}" MinWidth="{DynamicResource WindowMinWidth}"
         WindowStartupLocation="CenterScreen"
@@ -413,6 +414,55 @@
                             </StackPanel>
                         </Button>
                         <TextBlock Text="Settings" Style="{StaticResource ShellSectionLabel}" FontWeight="{DynamicResource FontWeightHeading}" />
+                        <!-- step4 — Company Profile. Appended as workspace index 10,
+                             so every earlier index keeps its meaning. It sits under
+                             Settings because it describes THIS installation, not a
+                             list of business records. -->
+                        <Button Command="{Binding ShowCompany}" AutomationProperties.Name="Company profile page">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCompany}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                                        </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
+                                                <Condition Binding="{Binding IsCompany}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
+                                                <Condition Binding="{Binding IsCompany}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsGlass}" Value="True" />
+                                                <Condition Binding="{Binding IsCompany}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <!-- The gear, because this page describes the installation
+                                     itself rather than a list of records: Clients keeps the
+                                     briefcase and Users keeps the person, so the three are
+                                     never mistakable for one another. -->
+                                <studio:ShellMark Kind="Settings" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
+                                <TextBlock Text="Company" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                         <Button Command="{Binding ShowStudio}" AutomationProperties.Name="Theme Studio page">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
@@ -765,6 +815,8 @@
                 <TabItem Header="_Clients"><cli:ClientWorkspaceView /></TabItem>
                 <!-- step3 — User Management workspace (index 9). -->
                 <TabItem Header="_Users"><usr:UserWorkspaceView /></TabItem>
+                <!-- step4 — Company Profile workspace (index 10). -->
+                <TabItem Header="_Company"><cmp:CompanyProfileView /></TabItem>
             </TabControl>
         </Grid>
         </Grid>
