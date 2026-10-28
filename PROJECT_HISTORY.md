@@ -9,6 +9,14 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 35.4: the fifth executable finally compiles
+- **`Theme/step1.d.tests` built for the first time in its existence**: `step1.d.ThemeTests net8.0-windows7.0 succeeded`. The round-35.3 `using System.IO;` was the whole obstacle — 66 `CS0103` errors, one import.
+- **The run then aborted at `Usage: [--contracts-only]`, and the fault was the runbook, not the harness.** `--no-incremental` is a **build** option; `dotnet run` does not accept it and forwards it to the application, and `step1.d.1` validates its arguments. The other three executables declare `Main()` with no parameters, so the same flag was silently discarded there — this one is the only one that notices.
+- **Corrected in `docs/03`:** force a rebuild with `dotnet build … --no-incremental` then `dotnet run … --no-build`; application arguments go after `--`.
+- **State of the five executables:** all five now compile (step2/step3/step4 and the diagnostics checks were already built and green). `step1.d.1` still has **not executed a single check**, so the nine themes, the contract resources, the binding-failure listener and the inquiry-inbox checks remain unverified.
+- **No production or test code changed this round** — one documentation correction and one evidence row.
+
+---
 ## 2026-10-28 — Round 35.3: the largest unrun executable still cannot compile
 - **The Theme harness did not run.** The build failed with **66 `CS0103` errors, all in `Theme/step1.d.tests/step1.d.16.InquiryInboxDeliveryOrderingChecks.cs`**: `Path`, `File` and `Directory` were unknown at 66 sites.
 - **One missing import.** The file had no `using System.IO;`. A `UseWPF` project gets the WPF implicit-using set, which does **not** include `System.IO` — so the names never resolved. Its sibling check files were unaffected because none of them touched the file system. Fixed by declaring the import.
