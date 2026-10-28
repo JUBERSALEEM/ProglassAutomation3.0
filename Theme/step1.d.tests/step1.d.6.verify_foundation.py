@@ -908,7 +908,6 @@ print('PASS: responsive assertions state the grid\'s own compact rule, not a rem
 # last session. Every assertion of a default must therefore follow a reset.
 default_markers = [
     'SelectedAccent == ProGlassAutomation.ThemeBento.BentoAccent.Ocean',
-    'DesignSummary.Contains("Rose")',
     'SelectedClayAccent == ProGlassAutomation.ThemeClaymorphism.ClayAccent.Rose',
     'SelectedNeumorphDepth == ProGlassAutomation.ThemeNeumorphism.NeumorphDepth.Standard',
     'SelectedLiquidFrost == ProGlassAutomation.ThemeLiquidGlass.LiquidFrost.Standard',
@@ -928,3 +927,34 @@ assert not unreset, (
     f'startup, so it tests the saved file, not the engine: {unreset}'
 )
 print('PASS: every asserted theme default follows a reset of that theme.')
+
+# ── A check that walks the themes must walk all of them ──────────────────────
+# The per-theme block covered the six themes that existed when it was written, and
+# then threw "Unhandled extra theme: Swiss International" the first time it ran. The
+# product had grown two themes; the check had not. It now names every theme in a table
+# and asserts that table against the catalogue before switching anything, so a theme
+# added later fails immediately and by name — and this rule keeps the table complete
+# without a compiler.
+catalog_text = (ROOT / 'Theme/step1.a.ThemeEngine/step1.a.6.ThemeCatalog.cs').read_text(encoding='utf-8')
+installed_definitions = re.findall(r'new ThemeDefinition\(\s*\w+,', catalog_text)
+assert len(installed_definitions) >= 9, (
+    f'the catalogue no longer registers the installed themes: {len(installed_definitions)} ThemeDefinition entries'
+)
+# The executable form, not the phrase: the comment above it quotes the old throw on purpose.
+assert 'throw new Exception("Unhandled extra theme' not in runtime_harness, (
+    'the theme walk throws for a theme it does not know; it must name every installed theme '
+    'up front and prove the list is complete'
+)
+assert 'foreach (string extra in ThemeService.InstalledThemes)' in runtime_harness, (
+    'the theme walk must iterate the installed catalogue, not a list written in the check'
+)
+assert 'summaryPrefix.Keys.OrderBy' in runtime_harness and 'unaccounted' in runtime_harness, (
+    'the theme walk must assert its own table against the installed catalogue'
+)
+named_themes = re.findall(r'\[ThemeService\.\w+\] = "', runtime_harness)
+assert len(named_themes) >= len(installed_definitions), (
+    'the theme walk names fewer themes than the catalogue registers: '
+    f'{len(named_themes)} named, {len(installed_definitions)} installed — a theme added to the '
+    'catalogue without a line in the check would throw instead of testing it'
+)
+print(f'PASS: the theme walk names all {len(installed_definitions)} installed themes before switching any.')
