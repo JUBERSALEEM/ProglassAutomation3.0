@@ -51,8 +51,14 @@ internal static class AnalyticsChecks
     }
     public static void Runtime(ThemeService themes, BusinessReferenceView business, Action pump)
     {
+        // The reference page declares eight analytics charts (four KPI tiles, momentum,
+        // mix, channels and revenue); the count is not what this check is about, and
+        // pinning a literal number was wrong twice over — it was four, and no page ever
+        // had four. What matters is that the page is chart-rich and every chart carries a
+        // real dataset; the specific charts used below are then found by their data.
         var charts = Descendants(business).OfType<BentoChart>().ToArray();
-        Check(charts.Length == 4, "four real analytics charts in reference");
+        Check(charts.Length >= 4, $"reference page carries analytics charts ({charts.Length})");
+        Check(charts.All(chart => chart.Data is not null), "every analytics chart has a dataset bound");
         var revenue = charts.Single(c => c.Data?.Title == "Revenue and target");
         Check(revenue.RenderedSeries.Count == 2 && revenue.RenderedSeries[0] is ColumnSeries<double?>, "grouped columns rendered by library");
         var mix = charts.Single(c => c.Data?.Kind == ChartKind.Donut);

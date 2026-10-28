@@ -217,6 +217,12 @@ internal static class RuntimeChecks
                     }
                 }
             }
+            // This workstation's saved preferences are restored on construction, and a
+            // pinned page size rewrites the very tokens asserted below (PageSizeService
+            // sets ControlMinHeight and FontSizeBody). Clearing it means the numbers are
+            // the theme's own, not whatever page size was last saved here.
+            model.ResetPages.Execute(null);
+            Pump();
             model.SelectedAccent = ProGlassAutomation.ThemeBento.BentoAccent.Teal;
             model.SelectedDensity = ProGlassAutomation.ThemeBento.BentoDensity.Comfortable;
             model.SelectedShape = ProGlassAutomation.ThemeBento.BentoShape.Rounded;
