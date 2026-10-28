@@ -13,7 +13,8 @@
     isolated folder through AppDataRoot.TestFolderOverride, so the real
     %APPDATA% directory is never touched.
 
-    Run on Windows/.NET 8:  dotnet run --project step4.f.CompanyTests.csproj
+    Run on Windows/.NET 8 from this folder:  dotnet run
+    (This folder holds exactly this one project, so no project switch is needed.)
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

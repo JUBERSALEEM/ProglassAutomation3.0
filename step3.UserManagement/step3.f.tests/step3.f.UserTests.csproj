@@ -13,7 +13,8 @@
     repository/permission round-trip (step3.b.4) with AppDataRoot.TestFolderOverride.
     The real %APPDATA% directory is never touched.
 
-    Run on Windows/.NET 8:  dotnet run --project step3.f.UserTests.csproj
+    Run on Windows/.NET 8 from this folder:  dotnet run
+    (This folder holds exactly this one project, so no project switch is needed.)
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

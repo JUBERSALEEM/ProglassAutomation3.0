@@ -454,6 +454,39 @@ def require_benign_case_not_logged():
               f"{name}: the log call must sit after the unique-constraint escape")
 
 
+def require_project_files_are_valid_xml():
+    """Every project and solution file must actually load as XML.
+
+    MSBuild reads these files with an XML parser, and XML 1.0 forbids `--` inside
+    a comment. `dotnet run --project X.csproj` written into a comment is therefore
+    not a harmless note: it makes the whole project unloadable ("An XML comment
+    cannot contain '--'"), so the verification executable never runs.
+
+    That is not hypothetical. Until round 34.1 four project files carried it, and
+    three of them had been unloadable since the round that created them, because
+    every other check in this repository reads the *source* and never the project
+    file. This rule reads the project file.
+    """
+    import xml.etree.ElementTree as ElementTree
+
+    paths = sorted(list(ROOT.rglob("*.csproj")) + list(ROOT.rglob("*.slnx")))
+    check(len(paths) >= 5, "the project files this rule guards must be found")
+
+    for path in paths:
+        name = path.relative_to(ROOT).as_posix()
+        text = read(path)
+
+        try:
+            ElementTree.fromstring(text)
+        except Exception as error:                     # noqa: BLE001 - any parse fault counts
+            check(False, f"{name}: is not loadable XML ({error})")
+
+        for comment in re.findall(r"<!--(.*?)-->", text, re.S):
+            check("--" not in comment,
+                  f"{name}: an XML comment contains '--', which MSBuild rejects — "
+                  "write the command without the project switch")
+
+
 def require_project_and_docs():
     project = read(PROJECT)
     check('Include="Diagnostics/**/*.cs"' in project,
@@ -483,6 +516,7 @@ def main():
     require_severity_vocabulary()
     require_wired()
     require_benign_case_not_logged()
+    require_project_files_are_valid_xml()
     require_project_and_docs()
 
     if FAILURES:

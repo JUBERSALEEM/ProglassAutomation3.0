@@ -25,8 +25,11 @@
     AppDomain fault) — those need a real WPF launch, and the audit document says
     so instead of claiming them.
 
-    Run on Windows/.NET 8:
-      dotnet run --project Diagnostics/tests/AppLogBehaviourChecks.csproj
+    Run on Windows/.NET 8: open a terminal in this folder and run
+      dotnet run
+    (This folder holds exactly this one project. The long form of the project
+    switch cannot be written here: an XML comment may not contain a double
+    hyphen, which is what broke this file before round 34.1.)
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

@@ -91,6 +91,11 @@ MUTATIONS = [
      "(MaxEntryBytes / 4)", "(MaxEntryBytes)",
      "a quarter of the byte budget"),
 
+    ("a project file carries a comment MSBuild cannot load", "ProGlassAutomation.csproj",
+     "<!-- The step2, step3 and step4 verification executables are their own projects",
+     "<!-- The step2, step3 and step4 -- verification executables are their own projects",
+     "an XML comment contains '--'"),
+
     ("a failed startup is no longer recorded", "App.xaml.cs",
      """            AppLog.Fatal("app.startup", error,
                 "the shell could not be created; the application is shutting down");""",

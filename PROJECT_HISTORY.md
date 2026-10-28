@@ -9,6 +9,16 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 34.1: four project files could not be loaded at all
+- **Reported:** the diagnostics behaviour test and the Company Profile test would not load; invalid XML comments at `Diagnostics/tests/AppLogBehaviourChecks.csproj` line 29 and `step4.CompanyProfile/step4.f.tests/step4.f.CompanyTests.csproj` line 16.
+- **Root cause:** both comments contained `dotnet run --project …`. XML 1.0 forbids `--` inside a comment, so MSBuild cannot read the project: "An XML comment cannot contain '--'". The project never loads, so the test never runs — this is a **project-load failure**, not a failing test.
+- **Same defect found in two more files** by scanning every project/solution file: `step2.f.ClientTests.csproj` line 16 and `step3.f.UserTests.csproj` line 16 — unloadable since the rounds that created them, and never noticed because every check in this repository reads source, not project files.
+- **Fixed:** the command in each comment became `dotnet run` in that project's folder (each folder holds exactly one project). Only comment lines changed — no property, target framework, package reference, project reference or item was touched; nothing was deleted or disabled.
+- **Validated:** a strict XML parser (expat) reproduced the failure at the reported lines before the fix and parses all 7 project/solution files after it.
+- **Gate:** `AppLogSourceChecks.py` gained `require_project_files_are_valid_xml` (every `*.csproj`/`*.slnx` must parse, and no comment may contain `--`), with a mutation; 17/17 caught.
+- **Not executed:** `dotnet run`/`dotnet build` — there is no .NET SDK in this environment (`dotnet: command not found`, exit 127). No build, no test run, no runtime result is claimed.
+
+---
 ## 2026-10-28 — Round 34: diagnostics verified, dispatcher policy corrected
 - **Verified:** HEAD `5ce1f54`, clean tree, local = remote. Thirteen portable checkers executed and PASS; mutation harness 16/16 caught.
 - **Could not execute:** `dotnet run --project Diagnostics/tests/AppLogBehaviourChecks.csproj` — no .NET SDK here (`dotnet: command not found`), target `net8.0-windows7.0` needs Windows. No build, no launch, no screenshot, no dispatcher crash test. Not claimed.
