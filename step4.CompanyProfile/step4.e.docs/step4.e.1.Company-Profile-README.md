@@ -40,6 +40,25 @@ that runs it.
 
 ---
 
+## The page (owner-approved 2026-10-28)
+
+Three bands, one scroll region:
+
+| Band | Contents |
+| --- | --- |
+| Header | Title + subtitle; on the right the live state chip (**Saved 09:02** / **Unsaved changes** / **Not set up yet**) and **Save company** |
+| Body | Form card in a 3-per-row star grid, plus a fixed 300 px panel: letterhead preview, three placement tiles, printed-size picker, logo file chip |
+| Footer | Sticky plate: who may edit (in words), **Revert**, **Save company** |
+
+Spacing is one 8 px system and every value is a shared token: 8 inside a control
+(`MarginItem`), 12 between fields (`MarginSection`), 16 between sections and cards
+(`UiGapGroup` / `UiGapCluster`), 24 page inset (`PaddingPage`). Sections are a
+caption plus a hairline rule, not extra cards; the three placements are one radio
+group drawn as equal tiles; the logo is a file chip with a thumbnail, its name and
+Remove.
+
+---
+
 ## Rules the module keeps
 
 **One profile, enforced by the database.** `Id` is fixed at `1` with a table

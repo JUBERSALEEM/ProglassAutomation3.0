@@ -31,6 +31,7 @@ using ProGlassAutomation.ViewModels.Inquiry;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -110,6 +111,7 @@ namespace ProGlassAutomation.ViewModels.Company
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(ShowEmptyState));
                 OnPropertyChanged(nameof(ProfileStateText));
+                RaiseHeaderState();
             }
         }
 
@@ -140,6 +142,61 @@ namespace ProGlassAutomation.ViewModels.Company
                   + ".";
 
         private string SavedByText { get; set; } = "";
+
+        // ── Header state ─────────────────────────────────────────────────
+        // The compact page header carries ONE chip that says where the profile
+        // stands — saved (with the time), unsaved, or never set up — so the
+        // operator never has to infer it from a greyed button. Three booleans
+        // rather than an enum: the chip is styled by DataTrigger, and a trigger
+        // can compare a bool directly.
+
+        public string HeaderStateText
+        {
+            get
+            {
+                if (!IsLoaded) return "Reading…";
+                if (_isDirty) return "Unsaved changes";
+                if (_stored == null) return "Not set up yet";
+                return "Saved "
+                    + _stored.UpdatedAt.ToLocalTime()
+                        .ToString("HH:mm", CultureInfo.InvariantCulture);
+            }
+        }
+
+        /// <summary>Saved, with nothing pending: the calm state.</summary>
+        public bool IsHeaderSaved => IsLoaded && !_isDirty && _stored != null;
+
+        /// <summary>Edited but not written: the chip turns to the warning colour.</summary>
+        public bool IsHeaderDirty => IsLoaded && _isDirty;
+
+        /// <summary>Nothing stored yet: the chip says so instead of pretending.</summary>
+        public bool IsHeaderEmpty => IsLoaded && !_isDirty && _stored == null;
+
+        /// <summary>
+        /// The footer's left-hand line: who may change this, or why not, or what
+        /// is pending. It is never a bare "Administrator" badge — the reason is
+        /// printed, because a greyed Save button does not explain itself.
+        /// </summary>
+        public string FooterNote
+        {
+            get
+            {
+                if (HasReadOnlyReason) return ReadOnlyReason;
+                if (_isDirty) return "Unsaved changes — Save company keeps them.";
+                if (_stored == null)
+                    return "Not set up yet. Enter the company name and save to create the profile.";
+                return "Administrator access only: only an Administrator can change these details.";
+            }
+        }
+
+        private void RaiseHeaderState()
+        {
+            OnPropertyChanged(nameof(HeaderStateText));
+            OnPropertyChanged(nameof(IsHeaderSaved));
+            OnPropertyChanged(nameof(IsHeaderDirty));
+            OnPropertyChanged(nameof(IsHeaderEmpty));
+            OnPropertyChanged(nameof(FooterNote));
+        }
 
         // ── Authorisation ────────────────────────────────────────────────
 
@@ -301,6 +358,25 @@ namespace ProGlassAutomation.ViewModels.Company
 
         public bool HasLogoImageInfo => _logoImageInfo.Length > 0;
 
+        /// <summary>
+        /// What the file chip shows: the picked file's own name before a save, the
+        /// stored asset's generated name after it. Never a full path — the path is
+        /// how the file got here, not what the profile stores.
+        /// </summary>
+        public string LogoDisplayName
+        {
+            get
+            {
+                if (_pendingLogoPath.Length > 0)
+                {
+                    try { return Path.GetFileName(_pendingLogoPath); }
+                    catch (ArgumentException) { return ""; }
+                }
+
+                return _storedLogoFileName;
+            }
+        }
+
         /// <summary>The picked image's width ÷ height, used by the preview panel.</summary>
         public double LogoAspectRatio
         {
@@ -443,6 +519,27 @@ namespace ProGlassAutomation.ViewModels.Company
 
         public bool HasPreviewRepresentativeLine => PreviewRepresentativeLine.Length > 0;
 
+        /// <summary>The address, split for the letterhead mock: two lines is what it prints.</summary>
+        public string PreviewAddressLine1 => AddressLines().Count > 0 ? AddressLines()[0] : "";
+
+        public string PreviewAddressLine2 => AddressLines().Count > 1 ? AddressLines()[1] : "";
+
+        public bool HasPreviewAddressLine1 => PreviewAddressLine1.Length > 0;
+
+        public bool HasPreviewAddressLine2 => PreviewAddressLine2.Length > 0;
+
+        private List<string> AddressLines()
+        {
+            var lines = new List<string>(3);
+            foreach (string line in _address.Replace("\r\n", "\n").Split('\n'))
+            {
+                string trimmed = line.Trim();
+                if (trimmed.Length > 0) lines.Add(trimmed);
+            }
+
+            return lines;
+        }
+
         public double LogoSizeMinimum => CompanyProfileRules.MinLogoSizeMm;
 
         public double LogoSizeMaximum => CompanyProfileRules.MaxLogoSizeMm;
@@ -528,6 +625,7 @@ namespace ProGlassAutomation.ViewModels.Company
                 OnPropertyChanged(nameof(HasUnsavedNotice));
                 OnPropertyChanged(nameof(UnsavedText));
                 OnPropertyChanged(nameof(CanSave));
+                RaiseHeaderState();
 
                 IsLoaded = true;
                 OnPropertyChanged(nameof(ShowEmptyState));
@@ -579,6 +677,7 @@ namespace ProGlassAutomation.ViewModels.Company
                 _logoLayout = CompanyLogoLayout.LeftPortrait;
 
             OnPropertyChanged(nameof(PendingLogoPath));
+            OnPropertyChanged(nameof(LogoDisplayName));
             OnPropertyChanged(nameof(HasLogo));
             OnPropertyChanged(nameof(LogoLayout));
             OnPropertyChanged(nameof(IsNoLogoLayout));
@@ -606,6 +705,7 @@ namespace ProGlassAutomation.ViewModels.Company
             _logoLayout = CompanyLogoLayout.None;
 
             OnPropertyChanged(nameof(PendingLogoPath));
+            OnPropertyChanged(nameof(LogoDisplayName));
             OnPropertyChanged(nameof(HasLogo));
             OnPropertyChanged(nameof(LogoLayout));
             OnPropertyChanged(nameof(IsNoLogoLayout));
@@ -718,6 +818,8 @@ namespace ProGlassAutomation.ViewModels.Company
                 OnPropertyChanged(nameof(CanSave));
                 OnPropertyChanged(nameof(ShowEmptyState));
                 OnPropertyChanged(nameof(ProfileStateText));
+                OnPropertyChanged(nameof(LogoDisplayName));
+                RaiseHeaderState();
 
                 StatusMessage = string.IsNullOrWhiteSpace(result.Message)
                     ? "The company profile was saved."
@@ -794,6 +896,10 @@ namespace ProGlassAutomation.ViewModels.Company
             OnPropertyChanged(nameof(PreviewContactLine));
             OnPropertyChanged(nameof(PreviewRepresentativeLine));
             OnPropertyChanged(nameof(HasPreviewRepresentativeLine));
+            OnPropertyChanged(nameof(PreviewAddressLine1));
+            OnPropertyChanged(nameof(PreviewAddressLine2));
+            OnPropertyChanged(nameof(HasPreviewAddressLine1));
+            OnPropertyChanged(nameof(HasPreviewAddressLine2));
         }
 
         private void Touch(string field)
@@ -803,6 +909,10 @@ namespace ProGlassAutomation.ViewModels.Company
             OnPropertyChanged(nameof(PreviewContactLine));
             OnPropertyChanged(nameof(PreviewRepresentativeLine));
             OnPropertyChanged(nameof(HasPreviewRepresentativeLine));
+            OnPropertyChanged(nameof(PreviewAddressLine1));
+            OnPropertyChanged(nameof(PreviewAddressLine2));
+            OnPropertyChanged(nameof(HasPreviewAddressLine1));
+            OnPropertyChanged(nameof(HasPreviewAddressLine2));
 
             // Typing clears that field's message: the operator is fixing it, and a
             // stale sentence beside a corrected field is noise.
@@ -820,6 +930,7 @@ namespace ProGlassAutomation.ViewModels.Company
             OnPropertyChanged(nameof(HasUnsavedNotice));
             OnPropertyChanged(nameof(UnsavedText));
             OnPropertyChanged(nameof(CanSave));
+            RaiseHeaderState();
         }
 
         private void ClearFieldErrors()

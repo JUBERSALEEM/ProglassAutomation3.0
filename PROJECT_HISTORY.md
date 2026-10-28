@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 29: Company Profile page rebuilt to the approved mockup (10)
+- **Why:** the first build opened but looked unprofessional — dead band between two columns, mixed 16/24 spacing systems, no row rhythm, a floating read-only strip, and no bottom bar.
+- **Approved:** mockup 10 of ten directions — compact 1280×800 ERP page, 8 px grid, equal-height cards, sticky footer, placement tiles, file chip.
+- **Rebuilt:** `step4.d.1` is three bands (header with state chip + Save, one scrolling body, sticky footer). Form in a 3-per-row star grid; fixed 300 px logo panel with letterhead preview, three placement tiles as one radio group, size picker, file chip with thumbnail/name/Remove. Sections are caption + hairline rule, not extra cards. Every gap is a token from one 8/12/16/24 scale.
+- **View model:** `HeaderStateText` (+ `IsHeaderSaved`/`IsHeaderDirty`/`IsHeaderEmpty`), `FooterNote`, `LogoDisplayName`, letterhead address lines.
+- **Gate:** `step4.f.2` now pins the approved pattern (three bands, header chip, footer sentence, Save in both places, tile style, file chip actions, size picker); five mutations, each caught.
+- **Verification:** ten portable checkers PASS. No .NET SDK/WPF here: not compiled, not rendered, no screenshot.
+
+---
 ## 2026-10-28 — Round 28a: two compile errors fixed, and the gate widened
 - **Reported:** Visual Studio found `CS0103 LoadAsync` (the refresh command pointed at a renamed method) and `CS0103 UserCatalog` (used without `using ProGlassAutomation.Models.Users`) in `step4.c.1`.
 - **Fixed:** the command calls `ReloadAsync`; the view model imports the models namespace.

@@ -9,6 +9,12 @@
 //      test must not be able to;
 //   3. contains every failure. A database that will not open must report on the
 //      page's error surface, never take the shell down from an async void.
+//   4. reflows the BODY between two columns and one. Above 940 px of content
+//      width the mockup's arrangement is used — form left, 300 px logo panel
+//      right. Below it the panel moves UNDER the form instead of squeezing the
+//      form into 100 px columns. WPF has no media queries, and a fixed two-column
+//      layout is simply not usable at WindowMinWidth with the sidebar expanded,
+//      so this is the one piece of layout that must be code.
 //
 // Every rule, every query and every write lives in step4.a / step4.b / step4.c.
 // ═══════════════════════════════════════════════════════════════════════
@@ -27,8 +33,17 @@ namespace ProGlassAutomation.Company
     /// </summary>
     public partial class CompanyProfileView : UserControl
     {
+        /// <summary>
+        /// Below this much content width the two-column arrangement stops being
+        /// usable: the form would be squeezed under ~480 px while the panel keeps
+        /// its 300. Measured on the BODY, so the sidebar's state is already
+        /// accounted for — collapsing the sidebar buys width back automatically.
+        /// </summary>
+        private const double TwoColumnMinimumWidth = 940;
+
         private readonly CompanyProfileViewModel _viewModel;
         private bool _loadedOnce;
+        private bool _twoColumn = true;
 
         public CompanyProfileView()
         {
@@ -80,6 +95,45 @@ namespace ProGlassAutomation.Company
             catch (Exception error)
             {
                 System.Diagnostics.Debug.WriteLine("Company profile refresh failed: " + error);
+            }
+        }
+
+        /// <summary>
+        /// Reflows the body when the content width crosses the threshold.
+        /// </summary>
+        /// <remarks>
+        /// Only a CROSSING does any work, and the first pass sets the flag to the
+        /// arrangement XAML already declares, so a resize storm costs nothing.
+        /// </remarks>
+        private void OnBodySizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (e.WidthChanged) ApplyArrangement(e.NewSize.Width >= TwoColumnMinimumWidth);
+        }
+
+        private void ApplyArrangement(bool twoColumn)
+        {
+            if (twoColumn == _twoColumn) return;
+            _twoColumn = twoColumn;
+
+            BodyGrid.ColumnDefinitions.Clear();
+            BodyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            if (twoColumn)
+                BodyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // Two columns: the panel sits beside the form and keeps its 300 px.
+            // One column: it moves under the form and stretches to the card width.
+            Grid.SetColumn(LogoPanel, twoColumn ? 1 : 0);
+            Grid.SetRow(LogoPanel, twoColumn ? 0 : 1);
+            LogoPanel.Width = twoColumn ? 300 : double.NaN;
+
+            if (twoColumn)
+            {
+                LogoPanel.ClearValue(MarginProperty);
+            }
+            else
+            {
+                // The gap comes from the contract, never from a number typed here.
+                LogoPanel.SetResourceReference(MarginProperty, "UiGapGroup");
             }
         }
 

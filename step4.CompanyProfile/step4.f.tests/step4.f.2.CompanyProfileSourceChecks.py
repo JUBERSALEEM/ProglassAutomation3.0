@@ -554,11 +554,58 @@ def require_view_contract():
         check(binding in text, f"{view_path.name}: missing the state binding {binding}")
 
     # Radio buttons, not a canvas or a bespoke toggle, choose the composition:
-    # every installed theme templates RadioButton.
+    # every installed theme templates RadioButton. The owner approved the
+    # segmented-tile presentation (mockup 10), so the three must sit in ONE row of
+    # equal columns rather than stacking.
     check(text.count("GroupName=\"CompanyLogoLayout\"") == 3,
           f"{view_path.name}: the three compositions must be one radio group")
+    check(text.count('Style="{StaticResource CompanyPlacementTile}"') == 3,
+          f"{view_path.name}: the three compositions must all use the tile style")
+
+    # ── The approved page pattern (mockup 10) ───────────────────────────
+    # Three bands: header, one scrolling body, sticky footer. Each one is
+    # checked, because dropping any of them is how the previous page drifted
+    # into a long strip with dead space and an action row nobody could find.
+    check('Grid.Row="0"' in text and 'Grid.Row="1"' in text and 'Grid.Row="2"' in text,
+          f"{view_path.name}: the page must keep its header, body and footer bands")
+    check("HeaderStateText" in text,
+          f"{view_path.name}: the header must carry the live state chip")
+    check("FooterNote" in text,
+          f"{view_path.name}: the footer must say who may edit, in words")
+    check('Command="{Binding SaveCommand}"' in text,
+          f"{view_path.name}: Save must be reachable from the page")
+    check(text.count('Command="{Binding SaveCommand}"') == 2,
+          f"{view_path.name}: Save belongs in the header AND in the footer, "
+          "so it is reachable without scrolling and stays put when scrolling")
+
+    # The file chip: a thumbnail, the file's own name and a Remove action.
+    check("LogoDisplayName" in text,
+          f"{view_path.name}: the logo must show as a file chip with its name")
+    check("LogoPreview" in text, f"{view_path.name}: the file chip needs a thumbnail")
+    check('Command="{Binding RemoveLogoCommand}"' in text,
+          f"{view_path.name}: the file chip must offer Remove")
+    check('Command="{Binding ChooseLogoCommand}"' in text,
+          f"{view_path.name}: choosing an image must be possible")
+
+    # The size picker is a visible control, never a hidden default.
+    check("SelectedLogoSizeOption" in text,
+          f"{view_path.name}: the printed size must be selectable")
+
+    # A two-column page is unusable at the smallest supported window with the
+    # sidebar expanded, and WPF has no media query: the arrangement must switch.
+    # Breaking this silently is the defect the rule exists for.
+    check('SizeChanged="OnBodySizeChanged"' in text,
+          f"{view_path.name}: the body must report its width so it can reflow")
+    check('x:Name="BodyGrid"' in text and 'x:Name="LogoPanel"' in text,
+          f"{view_path.name}: the reflow needs its grid and panel addressable")
 
     code_behind = read(MODULE / "step4.d.2.CompanyProfileView.xaml.cs")
+    check("TwoColumnMinimumWidth" in code_behind and "OnBodySizeChanged" in code_behind,
+          "the view must switch between two columns and one")
+    check("Grid.SetRow(LogoPanel" in code_behind,
+          "the narrow arrangement must move the panel under the form, not squeeze it")
+    check("SetResourceReference(MarginProperty" in code_behind,
+          "the stacked arrangement must take its gap from the contract, not a literal")
     check("OpenFileDialog" in code_behind,
           "the view owns the file picker (a view model cannot open a dialog)")
     check("SetPickedLogo" in code_behind, "the picked file must reach the view model")
