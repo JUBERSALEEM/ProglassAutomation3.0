@@ -188,7 +188,13 @@ internal static class RuntimeChecks
                     Check(Equals(dialog.Background, window.Background), "dialog stays synchronized");
                     var studio = Descendants(window).OfType<ThemeStudioView>().Single();
                     var modules = (BentoGrid)studio.FindName("Modules");
-                    Check((modules.EffectiveColumns < 4) == (modules.ActualWidth < 1100), "Studio responsive column mode");
+                    // The grid's own rule, not a remembered one: all columns at or above
+                    // its CompactWidth, two between 720 and it, one below. The old assertion
+                    // compared EffectiveColumns with 4 and the width with 1100 — the Studio
+                    // grid declares three columns, so "< 4" was true at every width and
+                    // CompactWidth is a themed resource that need not be 1100 either.
+                    Check(modules.EffectiveColumns == ExpectedColumns(modules),
+                        $"Studio columns follow the grid's compact rule at {width}: effective {modules.EffectiveColumns}, expected {ExpectedColumns(modules)} (declared {modules.Columns}, compact at {modules.CompactWidth:0})");
                     Check(input.Text == model.SampleName && BindingOperations.IsDataBound(input, TextBox.TextProperty), "input binding survives Studio reflow");
                     // The page is two columns: a scrolling BentoGrid of modules and the fixed
                     // Settings sidebar beside it. Cards are therefore measured against the
@@ -223,6 +229,11 @@ internal static class RuntimeChecks
             // the theme's own, not whatever page size was last saved here.
             model.ResetPages.Execute(null);
             Pump();
+            // The Studio restores this workstation's saved design, including a layout
+            // preset that rewrites the card radius asserted below. Reset first, so the
+            // numbers are the engine's and the owner's saved file cannot decide the run.
+            model.ResetDesign.Execute(null);
+            Pump();
             model.SelectedAccent = ProGlassAutomation.ThemeBento.BentoAccent.Teal;
             model.SelectedDensity = ProGlassAutomation.ThemeBento.BentoDensity.Comfortable;
             model.SelectedShape = ProGlassAutomation.ThemeBento.BentoShape.Rounded;
@@ -245,7 +256,8 @@ internal static class RuntimeChecks
                 model.IsDark = true;
                 Pump();
                 var grid = (BentoGrid)business.FindName("BusinessModules");
-                Check((grid.EffectiveColumns < 4) == (grid.ActualWidth < 1100), "business responsive layout");
+                Check(grid.EffectiveColumns == ExpectedColumns(grid),
+                    $"business columns follow the grid's compact rule at {width}: effective {grid.EffectiveColumns}, expected {ExpectedColumns(grid)} (declared {grid.Columns}, compact at {grid.CompactWidth:0})");
                 Check(Equals(businessInput.Background, themes.GetToken("SurfacePrimary")), "business uses active resources");
                 model.IsLight = true;
             }
@@ -262,6 +274,11 @@ internal static class RuntimeChecks
                 model.SelectedTheme = extra;
                 Pump();
                 Check(themes.ActiveTheme == extra, extra + " activates");
+                // Saved preferences are restored on construction, so a theme's "defaults"
+                // are only defaults after a reset — otherwise the assertions below describe
+                // whatever was last saved on this workstation.
+                model.ResetDesign.Execute(null);
+                Pump();
                 Check(!ReferenceEquals(previous, window.Background), extra + " replaces window resources");
                 Check(Equals(window.Background, WindowFill(themes)), extra + " window background");
                 Check(!model.CanCustomizeBento, extra + " keeps the Bento customization engine off");
@@ -341,6 +358,18 @@ internal static class RuntimeChecks
     private static void Check(bool passed, string name)
     {
         if (!passed) throw new InvalidOperationException("FAILED: " + name);
+    }
+
+    /// <summary>
+    /// What BentoGrid.MeasureOverride must produce for the width the grid was given:
+    /// every column at or above its CompactWidth, two between 720 and it, one below.
+    /// Read from the grid itself — Columns and CompactWidth are both themed values.
+    /// </summary>
+    private static int ExpectedColumns(BentoGrid grid)
+    {
+        int declared = Math.Max(1, grid.Columns);
+        if (grid.ActualWidth >= grid.CompactWidth) return declared;
+        return grid.ActualWidth >= 720 ? Math.Min(2, declared) : 1;
     }
 
     /// <summary>
