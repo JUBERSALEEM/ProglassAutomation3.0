@@ -5,7 +5,7 @@
         xmlns:inq="clr-namespace:ProGlassAutomation.Inquiry"
         xmlns:cli="clr-namespace:ProGlassAutomation.Clients"
         xmlns:usr="clr-namespace:ProGlassAutomation.Users"
-        xmlns:cmp="clr-namespace:ProGlassAutomation.Company"
+        xmlns:cmp="clr-namespace:ProGlassAutomation.Company" xmlns:prj="clr-namespace:ProGlassAutomation.Projects"
         Title="ProGlass Automation" Height="1000" Width="1700"
         MinHeight="{DynamicResource WindowMinHeight}" MinWidth="{DynamicResource WindowMinWidth}"
         WindowStartupLocation="CenterScreen"
@@ -855,12 +855,11 @@
                 <TabItem Header="_About"><studio:AboutView /></TabItem>
                 <TabItem Header="_Icons Studio"><studio:IconsStudioView /></TabItem>
                 <TabItem Header="_Pages Studio"><studio:PagesStudioView /></TabItem>
-                <!-- step2 — Client Management workspace (index 8). -->
                 <TabItem Header="_Clients"><cli:ClientWorkspaceView /></TabItem>
-                <!-- step3 — User Management workspace (index 9). -->
                 <TabItem Header="_Users"><usr:UserWorkspaceView /></TabItem>
-                <!-- step4 — Company Profile workspace (index 10). -->
+                <!-- step4 (10) Company · step5 (11) Projects -->
                 <TabItem Header="_Company"><cmp:CompanyProfileView /></TabItem>
+                <TabItem Header="_Projects"><prj:ProjectWorkspaceView /></TabItem>
             </TabControl>
         </Grid>
         </Grid>

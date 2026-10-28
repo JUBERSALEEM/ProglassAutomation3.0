@@ -370,6 +370,10 @@ public sealed partial class ThemeStudioViewModel
         // The company itself is an installation setting, not a record list, so
         // it carries the gear rather than a fourth people/business mark.
         10 => IconKind.Settings,
+        // step5 records the jobs a client's inquiries belong to. The engineering
+        // mark is unused in the rail and reads as "the work itself", which is
+        // what a project record is.
+        11 => IconKind.Engineering,
         _ => IconKind.Home
     };
     public string WorkspaceTitle => selectedWorkspace switch
@@ -385,6 +389,7 @@ public sealed partial class ThemeStudioViewModel
         8 => "Clients",
         9 => "Users",
         10 => "Company",
+        11 => "Projects",
         _ => "Home"
     };
     public string WorkspaceSubtitle => selectedWorkspace switch
@@ -400,6 +405,7 @@ public sealed partial class ThemeStudioViewModel
         8 => "Business · Client directory",
         9 => "Administration · Users, departments and roles",
         10 => "Settings · Company profile, contact details and logo",
+        11 => "Business · Project records and the inquiries that belong to them",
         _ => "Home"
     };
     public bool IsMenuOpen { get => isMenuOpen; set { isMenuOpen = value; Changed(nameof(IsMenuOpen)); } }

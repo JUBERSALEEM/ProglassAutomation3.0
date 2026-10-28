@@ -1,0 +1,579 @@
+<UserControl x:Class="ProGlassAutomation.Projects.ProjectWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         step5 — Project Records & Inquiry Integration.
+
+         Three parts, one page: the project register, the editor it opens in
+         place, and — beside the register — the inquiries that belong to the
+         selected project.
+
+         Theme rules obeyed here, the same ones every register obeys:
+           • every colour, brush, metric, radius and font comes from the shared
+             contract through DynamicResource — no literals;
+           • controls with theme-owned templates (TextBox, ComboBox, DataGrid)
+             bind the active implicit style explicitly, so a live theme switch
+             replaces the template as well as the tokens;
+           • register ↔ editor visibility is driven by Style DataTriggers, so no
+             converter and no code-behind is needed for the switch.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <Style x:Key="ProjectChip" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapControl}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ChipCornerRadius}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StatePressed}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Cells and headers keep the theme's own chrome and add none of their
+             own: every setter resolves through DynamicResource, and the templates
+             name only properties those types actually declare. -->
+        <Style x:Key="ProjectCell" TargetType="DataGridCell"
+               BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="True" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ProjectColumnHeader" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridColumnHeader">
+                        <Grid Background="{TemplateBinding Background}">
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="True" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ProjectHeaderLabel" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        </Style>
+        <!-- A trimmed cell keeps its full value in a tooltip: identity belongs in
+             the tooltip and the accessible name, never in a side caption. -->
+        <Style x:Key="ProjectPlainCell" TargetType="TextBlock">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="{DynamicResource PaddingCompact}" />
+        </Style>
+        <Style x:Key="ProjectMonoCell" TargetType="TextBlock" BasedOn="{StaticResource ProjectPlainCell}">
+            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+        </Style>
+        <Style x:Key="ProjectStrongCell" TargetType="TextBlock" BasedOn="{StaticResource ProjectPlainCell}">
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="{DynamicResource PaddingPage}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ── Filter and command plate ──────────────────────────────── -->
+        <ContentControl Grid.Row="0" Style="{DynamicResource Plate}">
+            <Grid Margin="{DynamicResource PaddingCompact}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center"
+                            Margin="{DynamicResource MarginInline}">
+                    <TextBlock Text="{Binding RegisterSummary}" Style="{DynamicResource Caption}"
+                               Margin="{DynamicResource MarginInline}"
+                               TextTrimming="CharacterEllipsis"
+                               AutomationProperties.Name="Project register scope" />
+                    <ItemsControl ItemsSource="{Binding StatusTabs}" Focusable="False"
+                                  AutomationProperties.Name="Project status filters">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource ProjectChip}"
+                                        Command="{Binding DataContext.SelectStatusTabCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Content="{Binding LabelWithCount}"
+                                        AutomationProperties.Name="{Binding Label}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <studio:ShellMark Kind="Search" Width="{DynamicResource ChoiceMarkSize}"
+                                      Height="{DynamicResource ChoiceMarkSize}"
+                                      Margin="{DynamicResource MarginInline}"
+                                      VerticalAlignment="Center" />
+                    <Grid Width="260" VerticalAlignment="Center" Margin="{DynamicResource UiGapControl}">
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 VerticalAlignment="Center"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Search projects" />
+                        <TextBlock Text="Search number, name, client or site…"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource PaddingControl}"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasSearch}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                    <Button Style="{DynamicResource SubtleButton}" Content="EDIT"
+                            Command="{Binding EditSelectedCommand}"
+                            IsEnabled="{Binding CanEditSelected}"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Edit the selected project" />
+                    <Button Style="{DynamicResource SubtleButton}"
+                            Content="{Binding SelectedToggleLabel}"
+                            Command="{Binding ToggleStatusCommand}"
+                            IsEnabled="{Binding HasSelection}"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Close or re-open the selected project" />
+                    <Button Style="{DynamicResource PrimaryButton}" Content="NEW PROJECT"
+                            Command="{Binding NewProjectCommand}"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Create a new project" />
+                </StackPanel>
+            </Grid>
+        </ContentControl>
+
+        <!-- ── Error line ────────────────────────────────────────────── -->
+        <Border Grid.Row="1" Background="{DynamicResource StatusErrorSurface}"
+                BorderBrush="{DynamicResource StatusError}"
+                BorderThickness="{DynamicResource BorderThicknessControl}"
+                CornerRadius="{DynamicResource ControlCornerRadius}"
+                Margin="{DynamicResource MarginItem}"
+                Padding="{DynamicResource PaddingControl}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasError}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StatusError}"
+                       TextWrapping="Wrap" AutomationProperties.Name="Project error" />
+        </Border>
+
+        <!-- ── Status line ───────────────────────────────────────────── -->
+        <Border Grid.Row="2" Background="{DynamicResource StatusInformationSurface}"
+                BorderBrush="{DynamicResource BorderSubtle}"
+                BorderThickness="{DynamicResource BorderThicknessControl}"
+                CornerRadius="{DynamicResource ControlCornerRadius}"
+                Margin="{DynamicResource MarginItem}"
+                Padding="{DynamicResource PaddingControl}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasStatus}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"
+                       TextWrapping="Wrap" AutomationProperties.Name="Project status" />
+        </Border>
+
+        <!-- ── Register ──────────────────────────────────────────────── -->
+        <Grid Grid.Row="3">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ContentControl Grid.Column="0" Style="{DynamicResource Card}">
+                <DataGrid ItemsSource="{Binding Rows}"
+                          SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                          AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                          SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
+                          CanUserReorderColumns="False" CanUserSortColumns="False"
+                          HeadersVisibility="Column" GridLinesVisibility="None"
+                          CellStyle="{StaticResource ProjectCell}"
+                          ColumnHeaderStyle="{StaticResource ProjectColumnHeader}"
+                          CanUserResizeColumns="True" CanUserResizeRows="False"
+                          MinColumnWidth="{DynamicResource ControlMinWidth}"
+                          Margin="{DynamicResource MarginItem}"
+                          AutomationProperties.Name="Project register">
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}" />
+                    </DataGrid.Style>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="110" Binding="{Binding ProjectNumber}"
+                                            ElementStyle="{StaticResource ProjectMonoCell}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="NUMBER" Style="{StaticResource ProjectHeaderLabel}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="2.2*" Binding="{Binding ProjectName}"
+                                            ElementStyle="{StaticResource ProjectStrongCell}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="PROJECT" Style="{StaticResource ProjectHeaderLabel}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="1.8*" Binding="{Binding ClientText}"
+                                            ElementStyle="{StaticResource ProjectPlainCell}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="CLIENT" Style="{StaticResource ProjectHeaderLabel}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="1.2*" Binding="{Binding LocationText}"
+                                            ElementStyle="{StaticResource ProjectPlainCell}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="SITE" Style="{StaticResource ProjectHeaderLabel}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="100" Binding="{Binding StatusText}" IsReadOnly="True"
+                                            ElementStyle="{StaticResource ProjectPlainCell}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="STATUS" Style="{StaticResource ProjectHeaderLabel}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="110" Binding="{Binding LinkedInquiriesText}"
+                                            ElementStyle="{StaticResource ProjectPlainCell}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="INQUIRIES" Style="{StaticResource ProjectHeaderLabel}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Width="130" Binding="{Binding UpdatedText}"
+                                            ElementStyle="{StaticResource ProjectMonoCell}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="UPDATED" Style="{StaticResource ProjectHeaderLabel}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ContentControl>
+
+            <!-- ── The inquiries that belong to the selected project ── -->
+            <ContentControl Grid.Column="1" Style="{DynamicResource Card}" Width="420"
+                            Margin="{DynamicResource MarginItem}">
+                <Grid Margin="{DynamicResource PaddingCard}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="INQUIRIES IN THIS PROJECT"
+                               Style="{DynamicResource Caption}"
+                               Margin="{DynamicResource MarginInline}" />
+
+                    <Border Grid.Row="1" Margin="{DynamicResource MarginInline}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanUseInquiryLink}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="Select a project to see the inquiries that belong to it."
+                                   Style="{DynamicResource Caption}" TextWrapping="Wrap" />
+                    </Border>
+
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding LinkedInquiries}"
+                              SelectedItem="{Binding SelectedLinked, Mode=TwoWay}"
+                              AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                              SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
+                              CanUserReorderColumns="False" CanUserSortColumns="False"
+                              HeadersVisibility="Column" GridLinesVisibility="None"
+                              CellStyle="{StaticResource ProjectCell}"
+                              ColumnHeaderStyle="{StaticResource ProjectColumnHeader}"
+                              MinColumnWidth="{DynamicResource ControlMinWidth}"
+                              Margin="{DynamicResource MarginItem}"
+                              AutomationProperties.Name="Inquiries linked to this project">
+                        <DataGrid.Style>
+                            <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}" />
+                        </DataGrid.Style>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Width="100" Binding="{Binding InquiryNumber}"
+                                                ElementStyle="{StaticResource ProjectMonoCell}">
+                                <DataGridTextColumn.Header>
+                                    <TextBlock Text="NUMBER" Style="{StaticResource ProjectHeaderLabel}" />
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding CustomerName}"
+                                                ElementStyle="{StaticResource ProjectPlainCell}">
+                                <DataGridTextColumn.Header>
+                                    <TextBlock Text="CUSTOMER" Style="{StaticResource ProjectHeaderLabel}" />
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="90" Binding="{Binding ReceivedText}"
+                                                ElementStyle="{StaticResource ProjectMonoCell}">
+                                <DataGridTextColumn.Header>
+                                    <TextBlock Text="RECEIVED" Style="{StaticResource ProjectHeaderLabel}" />
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Button Grid.Row="3" Style="{DynamicResource SubtleButton}" Content="UNLINK SELECTED"
+                            Command="{Binding DetachInquiryCommand}"
+                            IsEnabled="{Binding CanDetach}"
+                            HorizontalAlignment="Left"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Unlink the selected inquiry from this project" />
+
+                    <TextBlock Grid.Row="4" Text="UNLINKED INQUIRIES — the list is unlinked only, so linking never moves an inquiry silently"
+                               Style="{DynamicResource Caption}" TextWrapping="Wrap"
+                               Margin="{DynamicResource MarginInline}" />
+
+                    <DataGrid Grid.Row="5" ItemsSource="{Binding CandidateInquiries}"
+                              SelectedItem="{Binding SelectedCandidate, Mode=TwoWay}"
+                              AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                              SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
+                              CanUserReorderColumns="False" CanUserSortColumns="False"
+                              HeadersVisibility="Column" GridLinesVisibility="None"
+                              CellStyle="{StaticResource ProjectCell}"
+                              ColumnHeaderStyle="{StaticResource ProjectColumnHeader}"
+                              MinColumnWidth="{DynamicResource ControlMinWidth}"
+                              Margin="{DynamicResource MarginItem}"
+                              AutomationProperties.Name="Inquiries not linked to a project">
+                        <DataGrid.Style>
+                            <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}" />
+                        </DataGrid.Style>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Width="100" Binding="{Binding InquiryNumber}"
+                                                ElementStyle="{StaticResource ProjectMonoCell}">
+                                <DataGridTextColumn.Header>
+                                    <TextBlock Text="NUMBER" Style="{StaticResource ProjectHeaderLabel}" />
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding CustomerName}"
+                                                ElementStyle="{StaticResource ProjectPlainCell}">
+                                <DataGridTextColumn.Header>
+                                    <TextBlock Text="CUSTOMER" Style="{StaticResource ProjectHeaderLabel}" />
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </ContentControl>
+        </Grid>
+
+        <!-- ── Editor ──────────────────────────────────────────────────
+             Shown instead of the register while editing. Visibility is driven
+             from a wrapper Grid bound to the workspace view model — the same
+             pattern the client and user workspaces use — so the card keeps the
+             shared theme style instead of a local style derived from it. -->
+        <Grid Grid.Row="3">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <ContentControl Style="{DynamicResource Card}">
+                <Grid Margin="{DynamicResource PaddingCard}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                               Text="{Binding EditorHeading}" Style="{DynamicResource SectionHeading}"
+                               Margin="{DynamicResource MarginInline}" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="NUMBER" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Style="{DynamicResource {x:Type TextBox}}"
+                             Text="{Binding EditNumber, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="{DynamicResource UiGapControl}"
+                             AutomationProperties.Name="Project number" />
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="allocated on save when blank"
+                               Style="{DynamicResource Caption}" VerticalAlignment="Center"
+                               Margin="{DynamicResource MarginInline}" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="PROJECT NAME" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Style="{DynamicResource {x:Type TextBox}}"
+                             Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="{DynamicResource UiGapControl}"
+                             AutomationProperties.Name="Project name" />
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="required" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="CLIENT" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
+                    <!-- ItemTemplate, never DisplayMemberPath: the closed box
+                         renders SelectionBoxItemTemplate, so a path leaves it
+                         showing the item's type name. -->
+                    <ComboBox Grid.Row="3" Grid.Column="1" Style="{DynamicResource {x:Type ComboBox}}"
+                              ItemsSource="{Binding Clients}"
+                              SelectedItem="{Binding EditClient, Mode=TwoWay}"
+                              Margin="{DynamicResource UiGapControl}"
+                              AutomationProperties.Name="Project client">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Grid.Row="3" Grid.Column="2" Style="{DynamicResource SubtleButton}" Content="NO CLIENT"
+                            Command="{Binding ClearClientCommand}"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Clear the project client" />
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="CLIENT NAME" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
+                    <TextBox Grid.Row="4" Grid.Column="1" Style="{DynamicResource {x:Type TextBox}}"
+                             Text="{Binding EditClientName, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="{DynamicResource UiGapControl}"
+                             AutomationProperties.Name="Client name recorded on the project" />
+                    <TextBlock Grid.Row="4" Grid.Column="2" Text="a one-off customer is allowed"
+                               Style="{DynamicResource Caption}" VerticalAlignment="Center"
+                               Margin="{DynamicResource MarginInline}" />
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="SITE" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" />
+                    <TextBox Grid.Row="5" Grid.Column="1" Style="{DynamicResource {x:Type TextBox}}"
+                             Text="{Binding EditLocation, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="{DynamicResource UiGapControl}"
+                             AutomationProperties.Name="Project site or location" />
+
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="DESCRIPTION" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Top" Margin="{DynamicResource MarginInline}" />
+                    <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2"
+                             Style="{DynamicResource {x:Type TextBox}}"
+                             Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80"
+                             Margin="{DynamicResource UiGapControl}"
+                             AutomationProperties.Name="Project description" />
+
+                    <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal"
+                                HorizontalAlignment="Right">
+                        <Button Style="{DynamicResource SubtleButton}" Content="CANCEL"
+                                Command="{Binding CancelCommand}"
+                                Margin="{DynamicResource UiGapControlEnd}"
+                                AutomationProperties.Name="Close the editor without saving" />
+                        <Button Style="{DynamicResource PrimaryButton}" Content="SAVE PROJECT"
+                                Command="{Binding SaveCommand}"
+                                Margin="{DynamicResource UiGapControlEnd}"
+                                AutomationProperties.Name="Save the project" />
+                    </StackPanel>
+                </Grid>
+            </ContentControl>
+        </Grid>
+    </Grid>
+</UserControl>
