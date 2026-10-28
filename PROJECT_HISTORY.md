@@ -9,6 +9,14 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 34.6: step4's checks are green, and a pre-flight for the two that never ran
+- **Green:** the owner's third run printed `step4 company checks: 6 passed, 0 failed` — `PASS: company profile rules, single-profile invariant and isolated persistence.` All six checks in the project now execute and pass, the first time in the project's existence.
+- **Pre-flight instead of another round trip.** `step2.f.ClientTests` and `step3.f.UserTests` have never executed either, and rounds 34.1–34.5 burned six rounds on failures that a compile or a platform assumption caused. Every Windows-only failure class was checked against both files before asking for a run: newline literals (none — now gated), hard-coded path separators (none), culture-sensitive formatting (only int/bool/enum `ToString`, which is digit-stable), `DateTime.Now`/`Today` (none), culture-sensitive sorting (none), directory enumeration order (none — and `CompanyLogoStore.Files()` sorts ordinally), temp-file deletion while SQLite holds the file (all `Directory.Delete` calls are best-effort `try/catch`, so a Windows lock cannot fail a check).
+- **New gate — a check may not name a member the module does not declare.** This is the round-34.1/34.2 failure class: the project could not compile, so none of its checks ran and every "passing" claim about it was empty. It resolves `Type.Member` references in all 14 verification executables against the members their own module declares (positional records handled; framework and cross-module calls out of scope, so a hit is a stale name rather than a guess). A mutation that renames a `UserRules` call in `step3.f.1` fails it, naming the file, the line and the member.
+- **Result of the audit:** 0 stale references across all 14 executables — `step2.f` and `step3.f` name nothing their modules do not declare, so a compile failure there is unlikely (not proven: there is no compiler here).
+- **Verification:** thirteen portable checkers PASS; 17/17 diagnostics mutations; 318 files within caps.
+
+---
 ## 2026-10-28 — Round 34.5: an address that saved one thing and printed another
 - **Reported:** `step4 company checks: 5 passed, 1 failed` — `address keeps its lines and drops blank ones`: expected `"Shop 4|Main Road|Ajman"`, got `"Shop 4||Main Road|Ajman"`.
 - **This is a real defect, not a test bug.** With the newline mask gone (round 34.4) the assertion could finally see what it was comparing: `NormalizeAddress` trims each line, then *collapses* a run of blank lines to one empty one, keeping a paragraph break. `docs/12` says "blank lines dropped". The letterhead renderer (`CompanyProfileLogoViewModel.AddressLines`) skips every blank, so the operator pasted four lines, the profile saved four, and the page printed three — the stored value and the document it feeds could never agree, and nothing said so.

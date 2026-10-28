@@ -238,3 +238,91 @@ assert not offenders, (
     f'platform: {offenders} — compare the lines (a JoinLines-style helper)'
 )
 print('PASS: no verification check compares a raw newline-containing literal.')
+
+# ── A verification check may not reference a member the module does not have ─
+# This is the failure that cost rounds 34.1 and 34.2: the project could not
+# compile, so none of its checks had ever run, and every "passing" claim about it
+# was empty. `CS0117` (no such member) and `CS0246` (no such type) are not runtime
+# faults to be caught on the owner's machine — they are visible in the text.
+#
+# Scope is deliberately narrow to stay honest: only `Type.Member` references whose
+# Type is a type THIS module declares are resolved, and only against the members
+# declared in that module's own sources. Calls into the framework, into another
+# module, or through a local variable are not touched, so a hit is a real stale
+# name rather than a guess.
+def _members_by_type(source_text):
+    """Declared members per type. Crude, but exact for this codebase's style."""
+    stripped = re.sub(r'/\*.*?\*/', '', source_text, flags=re.S)
+    stripped = re.sub(r'//[^\n]*', '', stripped)
+    found = {}
+    for match in re.finditer(r'\b(?:class|record|struct|interface|enum)\s+([A-Za-z_]\w*)', stripped):
+        name = match.group(1)
+        # A positional record's parameters ARE its properties.
+        if re.match(r'\s*record\b', stripped[match.start():]):
+            head = stripped[match.end():match.end() + 400]
+            opened = re.match(r'\s*(?:<[^>]*>)?\s*\(', head)
+            closed = head.find(')')
+            if opened and closed > 0:
+                for parameter in head[opened.end():closed].split(','):
+                    parameter = parameter.strip().split('=')[0].strip()
+                    if parameter:
+                        candidate = parameter.split()[-1]
+                        if re.fullmatch(r'[A-Za-z_]\w*', candidate):
+                            found.setdefault(name, set()).add(candidate)
+        body_start = stripped.find('{', match.end())
+        if body_start < 0:
+            continue
+        depth, index = 0, body_start
+        while index < len(stripped):
+            if stripped[index] == '{':
+                depth += 1
+            elif stripped[index] == '}':
+                depth -= 1
+                if depth == 0:
+                    break
+            index += 1
+        body = stripped[body_start:index].lstrip('{')
+        found.setdefault(name, set()).update(re.findall(
+            r'\b(?:public|private|internal|protected)\s+'
+            r'(?:static\s+|readonly\s+|const\s+|override\s+|virtual\s+|async\s+|sealed\s+)*'
+            r'[A-Za-z_][\w<>,\[\]\.\? ]*?\s+([A-Za-z_]\w*)\s*[\(\{;=]', body))
+        if re.search(r'\benum\s+' + re.escape(name) + r'\b', stripped):
+            for entry in body.split(','):
+                entry = entry.split('=')[0].strip()
+                if re.fullmatch(r'[A-Za-z_]\w*', entry):
+                    found[name].add(entry)
+    return found
+
+
+MODULES = [('Theme', 'Theme/step1.d.tests'),
+           ('step2.ClientManagement', 'step2.ClientManagement/step2.f.tests'),
+           ('step3.UserManagement', 'step3.UserManagement/step3.f.tests'),
+           ('step4.CompanyProfile', 'step4.CompanyProfile/step4.f.tests'),
+           ('Diagnostics', 'Diagnostics/tests')]
+stale = []
+audited_executables = 0
+for module_name, test_directory in MODULES:
+    module_root, test_root = ROOT / module_name, ROOT / test_directory
+    if not test_root.is_dir():
+        stale.append(f'{test_directory} is missing: its checks cannot run at all')
+        continue
+    module_text = '\n'.join(path.read_text(encoding='utf-8', errors='replace')
+                            for path in sorted(module_root.rglob('*.cs'))
+                            if test_root not in path.parents and path.parent != test_root
+                            and not {'bin', 'obj'} & set(path.parts))
+    declared = _members_by_type(module_text)
+    for executable in sorted(test_root.glob('*.cs')):
+        audited_executables += 1
+        text = executable.read_text(encoding='utf-8', errors='replace')
+        for reference in re.finditer(r'\b([A-Z][A-Za-z0-9_]*)\s*\.\s*([A-Za-z_][A-Za-z0-9_]*)', text):
+            owner, member = reference.group(1), reference.group(2)
+            if owner in declared and member not in declared[owner]:
+                line = text[:reference.start()].count('\n') + 1
+                stale.append(f'{executable.relative_to(ROOT)}:{line} uses {owner}.{member}, '
+                             f'which {module_name} does not declare')
+assert audited_executables >= 5, f'expected at least 5 verification executables, audited {audited_executables}'
+assert not stale, (
+    f'a verification check names something the module does not declare, so the project cannot '
+    f'compile and NONE of its checks can run: {stale}'
+)
+print(f'PASS: {audited_executables} verification executable(s) only name members their module declares.')
