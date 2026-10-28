@@ -838,3 +838,33 @@ assert 'private static bool IsInside(' in runtime_text, (
     'the visual-tree membership helper the harness proves ancestors with has disappeared'
 )
 print('PASS: every measured element is proved to be inside the ancestor it is measured against.')
+
+# ── A check may not pin how many elements a page happens to contain ──────────
+# The analytics check opened with `charts.Length == 4, "four real analytics charts"`.
+# The reference page declares eight, and no version of that page ever had four — the
+# same invented-page pattern as "Signals" and "DiagnosticsToggle" in the layout check.
+# A count of live visual elements is not a property of a correct page: it changes when
+# somebody adds a tile, and the failure says nothing about whether the application
+# works. What the check needs is that the page carries charts and that each carries a
+# real dataset; the specific charts it uses are then found by their data, not by index.
+element_counts = []
+for check_file in sorted(ROOT.rglob('*.cs')):
+    parts = set(check_file.relative_to(ROOT).parts)
+    if {'bin', 'obj', '.git'} & parts or not any(part.endswith('.tests') for part in parts):
+        continue
+    text = check_file.read_text(encoding='utf-8', errors='replace')
+    # Where a collection of live elements is bound to a name, that name is followed.
+    pinned = {match.group(1) for match in re.finditer(
+        r'(\w+)\s*=\s*[^;\n]*\.OfType<\w+>\(\)[^;\n]*;', text)}
+    for variable in pinned:
+        for match in re.finditer(r'\b' + re.escape(variable) + r'\.(?:Length|Count)\(?\)?\s*==\s*\d+', text):
+            line = text[:match.start()].count('\n') + 1
+            element_counts.append(f'{check_file.relative_to(ROOT)}:{line} pins {match.group(0).strip()}')
+    for match in re.finditer(r'\.OfType<\w+>\(\)[^\n]*?\.(?:Length|Count)\(?\)?\s*==\s*\d+', text):
+        line = text[:match.start()].count('\n') + 1
+        element_counts.append(f'{check_file.relative_to(ROOT)}:{line} pins {match.group(0).strip()}')
+assert not element_counts, (
+    'a check pins the number of live elements a page contains, which is not a property of '
+    f'correct behaviour and fails when a tile is added: {element_counts}'
+)
+print('PASS: no check pins how many live elements a page happens to contain.')
