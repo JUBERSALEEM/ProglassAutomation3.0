@@ -69,7 +69,8 @@ ROOT = Path(__file__).resolve().parents[2]
 X = '{http://schemas.microsoft.com/winfx/2006/xaml}'
 VIEWS = [ROOT / 'Inquiry/Views/InquiryListView.xaml',
          ROOT / 'step2.ClientManagement/step2.d.1.ClientWorkspaceView.xaml',
-         ROOT / 'step2.ClientManagement/step2.d.2.ClientEditorView.xaml']
+         ROOT / 'step2.ClientManagement/step2.d.2.ClientEditorView.xaml',
+         ROOT / 'step5.ProjectRecords/step5.d.1.ProjectWorkspaceView.xaml']
 
 # 1 ── properties that do not exist on these types, in any file ─────────────
 DENY = {

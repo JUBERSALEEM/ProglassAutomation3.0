@@ -59,7 +59,7 @@ THEMES = sorted(path for path in ROOT.glob("Theme/Theme*/Theme*.xaml")
                 if "UiGapCluster" in path.read_text(encoding="utf-8", errors="ignore"))
 
 SCAN_FOLDERS = ("Inquiry", "step1.ThemeStudio", "step2.ClientManagement",
-                "step3.UserManagement", "step4.CompanyProfile")
+                "step3.UserManagement", "step4.CompanyProfile", "step5.ProjectRecords")
 SHELL = ROOT / "MainWindow.xaml"
 
 SURFACE = ("Button", "RadioButton", "CheckBox", "ComboBox", "ToggleButton", "TextBox", "Border")

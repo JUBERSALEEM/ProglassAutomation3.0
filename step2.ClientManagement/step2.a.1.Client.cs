@@ -20,8 +20,11 @@
 //     historical display and reporting.
 //   • Trn is TEXT: a tax registration number is an identifier, not a number,
 //     and leading zeros must survive.
-//   • No Inquiry relationship exists in this stage. Inquiries keep their
-//     own snapshot columns untouched.
+//   • This module holds no Inquiry relationship. Since step5 (2026-10-28) an
+//     inquiry may carry a nullable ClientId, but that column lives on
+//     Inquiries and step5 owns it: nothing here writes it, and this entity
+//     gains no navigation property. Inquiries keep their own snapshot text
+//     columns untouched, which is why a client rename never rewrites history.
 // ═══════════════════════════════════════════════════════════════════════
 
 using System;
