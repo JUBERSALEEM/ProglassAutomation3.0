@@ -237,10 +237,10 @@ namespace ProGlassAutomation.ViewModels.Company
 
         public bool HasPreviewRepresentativeLine => PreviewRepresentativeLine.Length > 0;
 
-        /// <summary>The address, split for the letterhead mock: two lines is what it prints.</summary>
         /// <summary>True when there is something to print in the page footer.</summary>
         public bool HasPreviewContactLine => PreviewContactLine.Length > 0;
 
+        /// <summary>The address, split for the letterhead mock: two lines is what it prints.</summary>
         public string PreviewAddressLine1 => AddressLines().Count > 0 ? AddressLines()[0] : "";
 
         public string PreviewAddressLine2 => AddressLines().Count > 1 ? AddressLines()[1] : "";
@@ -249,6 +249,11 @@ namespace ProGlassAutomation.ViewModels.Company
 
         public bool HasPreviewAddressLine2 => PreviewAddressLine2.Length > 0;
 
+        /// <summary>
+        /// The address as the letterhead prints it. Blank lines are skipped here —
+        /// which is why NormalizeAddress must drop them too: the stored value and
+        /// the page it feeds have to be the same three lines (round 34.5).
+        /// </summary>
         private List<string> AddressLines()
         {
             var lines = new List<string>(3);

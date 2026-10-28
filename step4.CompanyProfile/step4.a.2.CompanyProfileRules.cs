@@ -80,8 +80,16 @@ namespace ProGlassAutomation.Models.Company
         }
 
         /// <summary>
-        /// Multi-line text: each line is trimmed and blank lines collapse, so an
-        /// address pasted with ragged indentation prints evenly.
+        /// Multi-line text: each line is trimmed and blank lines are DROPPED, so an
+        /// address pasted with ragged indentation or stray empty lines prints
+        /// evenly.
+        ///
+        /// Dropped, not collapsed (round 34.5). This used to keep one empty line
+        /// between blocks, while the letterhead renderer
+        /// (<c>CompanyProfileLogoViewModel.AddressLines</c>) already skipped every
+        /// blank — so the operator saved four lines and the page printed three, and
+        /// the stored value disagreed with the document it feeds. docs/12 states
+        /// the rule plainly: "lines preserved, blank lines dropped".
         /// </summary>
         public static string NormalizeAddress(string? value)
         {
@@ -90,11 +98,9 @@ namespace ProGlassAutomation.Models.Company
             foreach (string raw in value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
             {
                 string line = raw.Trim();
-                if (line.Length == 0 && (lines.Count == 0 || lines[^1].Length == 0)) continue;
-                lines.Add(line);
+                if (line.Length > 0) lines.Add(line);
             }
 
-            while (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
             return string.Join(Environment.NewLine, lines);
         }
 

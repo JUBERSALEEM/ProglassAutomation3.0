@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 34.5: an address that saved one thing and printed another
+- **Reported:** `step4 company checks: 5 passed, 1 failed` — `address keeps its lines and drops blank ones`: expected `"Shop 4|Main Road|Ajman"`, got `"Shop 4||Main Road|Ajman"`.
+- **This is a real defect, not a test bug.** With the newline mask gone (round 34.4) the assertion could finally see what it was comparing: `NormalizeAddress` trims each line, then *collapses* a run of blank lines to one empty one, keeping a paragraph break. `docs/12` says "blank lines dropped". The letterhead renderer (`CompanyProfileLogoViewModel.AddressLines`) skips every blank, so the operator pasted four lines, the profile saved four, and the page printed three — the stored value and the document it feeds could never agree, and nothing said so.
+- **Fixed in the product:** `NormalizeAddress` now keeps only non-blank trimmed lines. The trailing-strip loop and the collapse condition are gone rather than disabled, so the rule is one sentence.
+- **Gate:** `step4.f.2` gained `require_address_blank_lines_dropped`. It asserts the mechanism on both sides — the stored value must not keep a blank, and the renderer must not print one — because a compiled check cannot run here and the collapse survived two rounds with nothing looking at it. Two mutations verified: restoring the collapse fails with two named failures; making the renderer print blanks fails with one.
+- **Compiled coverage widened:** the check now covers a single gap, a run of gaps and an address of nothing but gaps.
+- **Also corrected:** an orphaned doc comment in `step4.c.3` — the address summary sat above `HasPreviewContactLine`, giving that property two `<summary>` tags and leaving `PreviewAddressLine1` undocumented.
+- **Verification:** thirteen portable checkers PASS; 17/17 diagnostics mutations; three changed C# files parse clean; behaviour mirrored in Python over six inputs (gap, run of gaps, blanks only, null, no gap, CRLF) — all as specified. **Not re-run on Windows here.**
+- **Known gap, unchanged:** `step3.c.3.FirstRunViewModel.cs:273` still swallows the first-run probe failure (CS0168).
+
+---
 ## 2026-10-28 — Round 34.4: the last failure was the same defect, in a third place
 - **Reported:** after the round-34.3 fixes, `step4 company checks: 5 passed, 1 failed` — `rules and validation → address keeps its lines and drops blank ones`, the expected and actual printing identically.
 - **Cause:** the *same* platform-newline defect as the two round-34.3 failures, in a third assertion I had missed: `Equal("Shop 4\nMain Road\nAjman", NormalizeAddress(...))` compares a CRLF-joined value with an LF literal, so it can only pass on Linux. The product was correct; the test was asserting the machine.

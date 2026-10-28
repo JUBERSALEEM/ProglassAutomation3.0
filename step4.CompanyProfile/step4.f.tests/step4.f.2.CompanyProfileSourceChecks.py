@@ -28,7 +28,9 @@ They verify the properties that are cheap to get wrong and expensive to miss:
  11. the page reads as a settings page: named sections, a document preview that
      is a real second composition rather than a stretched copy, one scroll
      region, per-field messages, and an honest unsaved-changes line;
- 12. docs record step4 as implemented (registry, roadmap, spec, history, README).
+ 12. the address keeps its lines and drops its blanks, in the stored value as
+     well as on the page, because the two must not disagree;
+ 13. docs record step4 as implemented (registry, roadmap, spec, history, README).
 
 Exit code 0 = pass. Run from anywhere: python3 step4.f.2.CompanyProfileSourceChecks.py
 """
@@ -464,6 +466,40 @@ def require_missing_logo_is_explained():
           "the loader must explain a missing image file to the operator")
 
 
+def require_address_blank_lines_dropped():
+    """An address must keep its lines and DROP its blanks — in the stored value too.
+
+    docs/12: "lines preserved, blank lines dropped". Round 34.5: the rule was
+    implemented as "blank lines collapse to one", so a pasted address with a gap
+    saved four lines while the letterhead renderer — which skips every blank —
+    printed three. The stored value and the document it feeds disagreed, and the
+    author of the document had no way to tell.
+
+    The compiled check in step4.f.1 asserts the behaviour; this one asserts the
+    MECHANISM, because a compiled check cannot run without a Windows SDK and the
+    collapse survived two rounds precisely because nothing here looked at it.
+    """
+    rules = source("step4.a.2.CompanyProfileRules.cs")
+    logo = source("step4.c.3.CompanyProfileLogo.cs")
+    compiled = (MODULE / "step4.f.tests" / "step4.f.1.CompanyProfileChecks.cs").read_text(encoding="utf-8")
+
+    body_start = rules.find("public static string NormalizeAddress")
+    check(body_start >= 0, "NormalizeAddress must exist: it is the one rule both the editor and the repository call")
+    if body_start >= 0:
+        body = rules[body_start:rules.find("\n        public static", body_start + 10)]
+        check("lines[^1].Length == 0" not in body,
+              "NormalizeAddress must not keep one blank line between blocks: blank lines are dropped, "
+              "or the saved address differs from the address the letterhead prints")
+        check("if (line.Length > 0) lines.Add(line);" in body,
+              "NormalizeAddress must skip blank lines outright (docs/12: blank lines dropped)")
+
+    check("if (trimmed.Length > 0) lines.Add(trimmed);" in logo,
+          "the letterhead renderer must skip blank lines, so the stored value and the printed page agree")
+
+    check('JoinLines(CompanyProfileRules.NormalizeAddress("  Shop 4 \\n\\n Main Road\\nAjman  "))' in compiled,
+          "the compiled check must feed a gapped address and compare the resulting LINES")
+
+
 def require_read_path():
     interface = source("step4.b.2.ICompanyProfileRepository.cs")
     model = source("step4.a.1.CompanyProfile.cs")
@@ -861,6 +897,7 @@ def main():
     require_calls_resolve()
     require_read_path()
     require_missing_logo_is_explained()
+    require_address_blank_lines_dropped()
     require_scope_exclusions()
     require_view_contract()
     require_logo_picker_survives_reload()

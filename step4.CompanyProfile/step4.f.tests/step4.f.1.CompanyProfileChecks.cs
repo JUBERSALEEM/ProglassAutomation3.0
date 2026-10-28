@@ -160,6 +160,13 @@ internal static class CompanyProfileChecks
         Equal("Shop 4|Main Road|Ajman",
             JoinLines(CompanyProfileRules.NormalizeAddress("  Shop 4 \n\n Main Road\nAjman  ")),
             "address keeps its lines and drops blank ones");
+        // "Dropped" is not "collapsed to one": a run of blanks leaves no gap at all,
+        // because the letterhead prints the lines and has no blank to print.
+        Equal("Shop 4|Main Road|Ajman",
+            JoinLines(CompanyProfileRules.NormalizeAddress("Shop 4\n \nMain Road\n\n\nAjman")),
+            "a run of blank lines drops completely");
+        Equal("", CompanyProfileRules.NormalizeAddress("   \n\t\n  "),
+            "an address of nothing but blank lines is empty");
 
         // The summary sentence names the fields, so a refused save explains itself.
         var blank = new CompanyProfileDraft();
