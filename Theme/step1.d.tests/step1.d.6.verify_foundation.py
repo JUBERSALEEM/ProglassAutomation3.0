@@ -671,3 +671,71 @@ assert 'BasePackage(' in base_body and 'ClonePack' not in base_body, (
     'caller to mutate'
 )
 print('PASS: reading a theme\'s own values costs a dictionary read, not a package rebuild.')
+
+# ── A split part inherits nothing: usings are per file, not per class ────────
+# Round 36's first compile, on the owner's machine: eight CS0103 "The name
+# 'ThemeService' does not exist in the current context" in the new
+# step1.b.18.Presets.cs. Moving members into a partial part moves the code but not
+# the imports, so the file compiled alone resolved nothing. Round 35.3 had the same
+# shape (66 CS0103 for a missing `using System.IO;`) and produced a rule for one
+# namespace; this one is general: every unqualified type use must be reachable from
+# the file's own namespace or its own usings.
+#
+# The check derives the type→namespace map from the repository itself, so it does not
+# need a C# compiler and cannot go stale the way a hand-kept list would. It ignores
+# qualified uses (`Ns.Type.Member`, which need no using) and comments, and it skips
+# test projects, whose assemblies add their own imports and friend access.
+type_decl = re.compile(
+    r'^[ \t]*(?:(?:public|internal|protected|private|file)\s+)?'
+    r'(?:(?:sealed|static|abstract|partial|readonly|ref|unsafe)\s+)*'
+    r'(class|record|enum|struct|interface)\s+(\w+)', re.M)
+namespace_decl = re.compile(r'^[ \t]*namespace\s+([\w.]+)', re.M)
+using_decl = re.compile(r'^[ \t]*using\s+([\w.]+)\s*;', re.M)
+using_alias = re.compile(r'^[ \t]*using\s+\w+\s*=\s*([\w.]+)\s*;', re.M)
+using_static = re.compile(r'^[ \t]*using\s+static\s+([\w.]+)\s*;', re.M)
+code_comment = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
+code_string = re.compile(r'"(?:[^"\\\n]|\\.)*"|\'(?:[^\'\\\n]|\\.)*\'')
+type_use = re.compile(r'(?<![.\w])([A-Za-z_]\w*)\s*(?=[.(])')
+
+def without_prose(text):
+    return code_string.sub('""', code_comment.sub('', text))
+
+def reachable_namespaces(ns):
+    parts = ns.split('.')
+    return {'.'.join(parts[:index]) for index in range(1, len(parts) + 1)} | {''}
+
+declared_in = {}
+compiled = []
+for source in sorted(ROOT.rglob('*.cs')):
+    if {'bin', 'obj', '.git'} & set(source.relative_to(ROOT).parts):
+        continue
+    raw = source.read_text(encoding='utf-8', errors='replace')
+    code = without_prose(raw)
+    found = namespace_decl.search(raw)
+    file_namespace = found.group(1) if found else ''
+    own_types = {match.group(2) for match in type_decl.finditer(code)}
+    compiled.append((source, raw, code, file_namespace, own_types,
+                     set(using_decl.findall(raw)) | set(using_alias.findall(raw))
+                     | {'.'.join(using.split('.')[:-1]) for using in using_static.findall(raw)}))
+    for name in own_types:
+        declared_in.setdefault(name, set()).add(file_namespace)
+
+unresolved = []
+for source, raw, code, namespace, own_types, imports in compiled:
+    relative = source.relative_to(ROOT)
+    if any(part.endswith('.tests') for part in relative.parts):
+        continue
+    reachable = imports | reachable_namespaces(namespace)
+    for name in set(type_use.findall(code)):
+        namespaces = declared_in.get(name)
+        if namespaces is None or name in own_types or namespaces & reachable:
+            continue
+        hit = next(candidate for candidate in type_use.finditer(code) if candidate.group(1) == name)
+        unresolved.append(f'{relative}:{code[:hit.start()].count(chr(10)) + 1} uses {name} '
+                          f'(declared in {", ".join(sorted(namespaces))})')
+assert not unresolved, (
+    'a file uses a type it cannot reach: a partial part inherits the other part\'s code '
+    'but not its imports, and this is what a first compile reports as CS0103 — the project '
+    f'does not build: {unresolved}'
+)
+print(f'PASS: all {len(compiled)} C# files can reach every type they name.')
