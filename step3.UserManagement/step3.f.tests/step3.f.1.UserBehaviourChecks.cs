@@ -1133,7 +1133,19 @@ internal static class UserBehaviourChecks
         var reactivate = await repository.SetActiveAsync(estimator.Id, true, operatorName);
         True(reactivate.Succeeded, "a deactivated user can be re-activated");
 
-        var stamp = await new UserSession(repository).CaptureStampAsync();
+        // A stamp needs a VERIFIED sign-in. AuthenticationContext is filled by
+        // SignIn after a password has been checked, never by constructing a session,
+        // so the bare `new UserSession(repository)` that used to sit here could only
+        // ever return null — contradicting the round-24 contract and this file's own
+        // assertion that no session exists before a password is verified (round 35.0).
+        SignInResult signIn = await repository.SignInAsync(admin.Username, TestPassword);
+        True(signIn.Succeeded, "the bootstrap password signs the administrator in: " + signIn.Message);
+        True(!signIn.MustChangePassword,
+            "a password chosen at bootstrap is the person's own, not a temporary one");
+        var session = new UserSession(repository);
+        session.SignIn(signIn.User!);
+
+        PreparedByStamp? stamp = await session.CaptureStampAsync();
         True(stamp != null, "an identified, active operator can be stamped as Prepared By");
         Equal(admin.Id, stamp!.UserId, "the stamp carries the stable user id");
         Equal("Ahmed Al Balushi", stamp.FullName, "the stamp carries the name at capture time");
@@ -1158,8 +1170,16 @@ internal static class UserBehaviourChecks
         Equal("ADMINISTRATOR", stored!.Role, "the role is unchanged by a rename");
         Equal(UserRules.UsernameKey(operatorName), stored.NormalizedUsername, "the username key is stable");
 
-        // ── Attribution refuses an unregistered operator ────────────────
-        var unknownStamp = await new UserSession(repository).CaptureStampAsync();
-        True(unknownStamp != null, "the operator is still identified after the rename");
+        // A second session instance shares the sign-in (one context, many views),
+        // and signing out must clear it: the static identity is what the whole
+        // attribution contract rests on, and this check runs before others that
+        // assert no session exists yet.
+        PreparedByStamp? sameSignIn = await new UserSession(repository).CaptureStampAsync();
+        True(sameSignIn != null, "a second session instance sees the same sign-in");
+
+        session.SignOut();
+        True(!session.IsIdentified, "signing out clears the identity the stamp came from");
+        PreparedByStamp? afterSignOut = await new UserSession(repository).CaptureStampAsync();
+        True(afterSignOut == null, "a signed-out workstation cannot be stamped as Prepared By");
     }
 }

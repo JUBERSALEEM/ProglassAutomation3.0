@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 35.0: a stamp without a sign-in
+- **step3: 11 passed, 1 failed.** The two round-34.9 fixes held; the next latent check became reachable now that the ones before it pass: `an identified, active operator can be stamped as Prepared By`.
+- **Cause:** the round-trip check built a bare `new UserSession(repository)` and asserted a stamp. `CaptureStampAsync` reads the process identity, which `SignIn` fills only after a password has been checked (round-24 contract), so the assertion could never pass — and it contradicted this same file's later claim that no session exists before a password is verified.
+- **Fixed in the check, not the product:** the round-trip now signs in through `SignInAsync(admin.Username, TestPassword)`, asserts the bootstrap password is the person's own (`!MustChangePassword`), captures the stamp from the signed-in session, and signs out at the end — otherwise the static identity would leak into the checks that run afterwards.
+- **Coverage added:** a second session instance sees the same sign-in, and after `SignOut` the workstation can no longer be stamped.
+- **Gate:** `step3.f.2` gained `require_stamp_needs_a_verified_sign_in`. It works per check, not per file, and only examines stamps asserted NON-NULL (asserting a null stamp is a legitimate refusal) — the first version passed a mutation because an unrelated sign-in existed earlier in the file, which is exactly the sort of gate that would have been trusted and useless.
+- **Verification:** thirteen portable checkers PASS; 17/17 diagnostics mutations; the changed file parses clean. **Not re-run.**
+
+---
 ## 2026-10-28 — Round 34.9: step2 goes green, and two checks were lying
 - **step2: 7 passed, 0 failed — green.** The TRN fix (34.7) and the bootstrap fix (34.8) both hold; the client module's checks now execute and pass end to end.
 - **step3: 10 passed, 2 failed.** Both remaining failures were the checks themselves, and one was dangerous.

@@ -484,6 +484,40 @@ def require_operator_lookup_uses_its_own_parameter():
           "the operator lookup still references a name that is not in scope (CS0103)")
 
 
+def require_stamp_needs_a_verified_sign_in():
+    """A Prepared By stamp must come from a password-verified sign-in.
+
+    Round 35.0: the round-trip check built a bare `new UserSession(repository)` and
+    asserted a stamp. `CaptureStampAsync` reads the process identity, which only
+    `SignIn` fills after a password is checked — so the assertion could never pass,
+    and it contradicted the file's own claim that no session exists before a
+    password is verified.
+
+    The rule is per CHECK, not per file: a sign-in elsewhere in the file does not
+    make this check's stamp real. Only the non-null stamp assertions are examined,
+    because asserting a NULL stamp (a refusal) is legitimate without a session.
+    """
+    compiled = read(MODULE / "step3.f.tests" / "step3.f.1.UserBehaviourChecks.cs")
+    offenders = []
+    for capture in re.finditer(r"(\w+)\s*=\s*await\s+[^;]{0,120}?CaptureStampAsync\(", compiled):
+        variable = capture.group(1)
+        following = compiled[capture.end():capture.end() + 300]
+        if not re.search(r"True\(\s*" + re.escape(variable) + r"\s*!=\s*null", following):
+            continue  # asserting a refusal: no identity is the point
+        method_start = 0
+        for header in re.finditer(r"(?m)^    private static [^\n]*?\b\w+\(", compiled[:capture.start()]):
+            method_start = header.start()
+        preamble = compiled[method_start:capture.start()]
+        if not re.search(r"SignInAsync\(|\.SignIn\(", preamble):
+            line = compiled[:capture.start()].count("\n") + 1
+            offenders.append(f"{line}: '{variable}' is asserted non-null without a sign-in in its check")
+    check(not offenders,
+          "a stamp must be captured after a password-verified sign-in, not from a bare "
+          f"new UserSession (identity is proved, never assumed): {offenders}")
+    check(".SignOut()" in compiled,
+          "a check that signs in must sign out, or the static identity leaks into later checks")
+
+
 def require_bootstrap_carries_its_password():
     """The first-administrator draft must carry the password it was given.
 
@@ -1233,6 +1267,7 @@ def main():
     require_theme_contract()
     require_register_layout()
     require_operator_lookup_uses_its_own_parameter()
+    require_stamp_needs_a_verified_sign_in()
     require_bootstrap_carries_its_password()
     require_first_run_flow()
     require_first_password_upgrade()
