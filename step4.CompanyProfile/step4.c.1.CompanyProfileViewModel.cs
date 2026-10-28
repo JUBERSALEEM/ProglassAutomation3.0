@@ -23,6 +23,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 using ProGlassAutomation.Models.Company;
+using ProGlassAutomation.Models.Users;
 using ProGlassAutomation.Services.Company;
 using ProGlassAutomation.Services.Users;
 using ProGlassAutomation.ThemeStudio;
@@ -82,7 +83,7 @@ namespace ProGlassAutomation.ViewModels.Company
             RevertCommand = new DelegateCommand(async () => await RevertAsync());
             ChooseLogoCommand = new DelegateCommand(() => RequestLogoPick?.Invoke(this, EventArgs.Empty));
             RemoveLogoCommand = new DelegateCommand(RemoveLogo);
-            RefreshCommand = new DelegateCommand(async () => await LoadAsync());
+            RefreshCommand = new DelegateCommand(async () => await ReloadAsync());
         }
 
         /// <summary>

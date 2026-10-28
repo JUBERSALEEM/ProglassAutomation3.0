@@ -9,6 +9,13 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 28a: two compile errors fixed, and the gate widened
+- **Reported:** Visual Studio found `CS0103 LoadAsync` (the refresh command pointed at a renamed method) and `CS0103 UserCatalog` (used without `using ProGlassAutomation.Models.Users`) in `step4.c.1`.
+- **Fixed:** the command calls `ReloadAsync`; the view model imports the models namespace.
+- **Gate:** `step4.f.2` gained two rules — every unqualified awaited method and every method wired into a command must be declared in that view model, and every cross-namespace type must be imported by the file that uses it. Three mutations, each caught. Two initial false positives (a folder-name string, an event wired into a command) were fixed in the rule rather than tolerated.
+- **Verification:** ten portable checkers re-run, all PASS. No .NET SDK here, so the fix is verified statically; the owner's rebuild decides.
+
+---
 ## 2026-10-28 — Round 28: `step4` Company Profile implemented
 - **Phase:** `step4` (Company Profile) — the owner's request after confirming the first-password flow worked.
 - **Built:** the installation's own identity (name, TRN, address, telephone, website, representative and mobile, company e-mail, bank name and account/IBAN) and a logo stored in the app-data folder with two document placements and a printed size picker. One page under Settings, workspace index 10.

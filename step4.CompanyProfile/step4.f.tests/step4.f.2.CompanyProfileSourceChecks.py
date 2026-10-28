@@ -77,6 +77,18 @@ def strip_code(text):
     return re.sub(r"//[^\n]*", "", text)
 
 
+def strip_literals(text):
+    """C# without comments OR string literals.
+
+    A folder name is not a type reference: `FolderName = "CompanyProfile"` must
+    not be read as a use of the CompanyProfile model.
+    """
+    text = strip_code(text)
+    text = re.sub(r'@"(?:[^"]|"")*"', '""', text, flags=re.S)
+    text = re.sub(r'\$?"(?:[^"\\]|\\.)*"', '""', text)
+    return re.sub(r"'(?:[^'\\]|\\.)'", "''", text)
+
+
 def module_code():
     paths = sorted(MODULE.rglob("*.cs"))
     paths = [p for p in paths if "step4.f.tests" not in p.parts]
@@ -336,6 +348,78 @@ def require_write_path():
 
 # ── 8. The read path for future documents ───────────────────────────────
 
+# A type declared in another namespace must be imported by the file that uses
+# it. Two errors reached the owner's compiler in round 28 for exactly this
+# class of mistake (UserCatalog used without `using ...Models.Users`), and a
+# source gate is the only place that can catch it without a compiler.
+CROSS_NAMESPACE_TYPES = {
+    "User": "ProGlassAutomation.Models.Users",
+    "UserCatalog": "ProGlassAutomation.Models.Users",
+    "AuthenticationContext": "ProGlassAutomation.Services.Users",
+    "UserRepository": "ProGlassAutomation.Services.Users",
+    "CompanyProfile": "ProGlassAutomation.Models.Company",
+    "CompanyProfileRules": "ProGlassAutomation.Models.Company",
+    "CompanyIdentitySnapshot": "ProGlassAutomation.Models.Company",
+    "CompanyLogoLayout": "ProGlassAutomation.Models.Company",
+    "CompanyLogoLayouts": "ProGlassAutomation.Models.Company",
+    "CompanyLogoStore": "ProGlassAutomation.Services.Company",
+    "CompanyProfileSchema": "ProGlassAutomation.Services.Company",
+    "CompanyProfileDbContext": "ProGlassAutomation.Services.Company",
+    "CompanyLogoPreviewLoader": "ProGlassAutomation.Services.Company",
+    "AppDataRoot": "ProGlassAutomation.Services.Database",
+    "SqliteResilience": "ProGlassAutomation.Services.Database",
+    "SchemaMigrationSql": "ProGlassAutomation.Services.Database.SchemaMigrations",
+    "SchemaMigrationRunner": "ProGlassAutomation.Services.Database.SchemaMigrations",
+    "InquiryRepository": "ProGlassAutomation.Services.Inquiry",
+    "InquiryDbContext": "ProGlassAutomation.Services.Inquiry",
+    "DelegateCommand": "ProGlassAutomation.ThemeStudio",
+    "ViewModelBase": "ProGlassAutomation.ViewModels.Inquiry",
+    "CompanyProfileViewModel": "ProGlassAutomation.ViewModels.Company",
+}
+
+
+def require_cross_namespace_imports():
+    for path in sorted(MODULE.rglob("*.cs")):
+        if "step4.f.tests" in path.parts:
+            continue
+        text = strip_literals(read(path))
+        namespace = re.search(r"\bnamespace\s+([A-Za-z0-9_.]+)", text)
+        own = namespace.group(1) if namespace else ""
+        imports = set(re.findall(r"^\s*using\s+([A-Za-z0-9_.]+)\s*;", text, re.M))
+        for type_name, type_namespace in CROSS_NAMESPACE_TYPES.items():
+            if type_namespace == own:
+                continue
+            if re.search(rf"\b{type_name}\b", text) is None:
+                continue
+            check(type_namespace in imports,
+                  f"{path.name}: uses {type_name} but does not import {type_namespace}")
+
+
+def require_calls_resolve():
+    """A method the view model calls on itself must exist in that file.
+
+    Round 28 shipped `RefreshCommand = ... await LoadAsync()`, while the method
+    is `ReloadAsync`. It compiles only if the name exists, so the gate checks the
+    unqualified awaits — the ones that resolve against `this` — against the
+    declarations in the same file. Calls through a receiver (`_repository.X`,
+    `db.Database.X`) are the receiver's business and are not scanned.
+    """
+    view_model = source("step4.c.1.CompanyProfileViewModel.cs")
+    code = strip_code(view_model)
+    declared = set(re.findall(
+        r"\b(?:public|private|internal|protected)\s+(?:static\s+)?[A-Za-z_<>,\[\]\.\?\s]+?\s+"
+        r"([A-Za-z_][A-Za-z0-9_]*)\s*\(", code))
+    declared |= set(re.findall(r"\bevent\s+[A-Za-z0-9_.<>?]+\s+([A-Za-z_][A-Za-z0-9_]*)", code))
+
+    for name in sorted(set(re.findall(r"await\s+([A-Z][A-Za-z0-9_]*)\s*\(", code))):
+        check(name in declared,
+              f"step4.c.1 awaits '{name}', which the view model does not define")
+
+    for name in sorted(set(re.findall(r"new DelegateCommand\(\s*\(\s*\)\s*=>\s*([A-Za-z_][A-Za-z0-9_]*)", code))):
+        check(name in declared,
+              f"step4.c.1 wires '{name}' into a command, but the view model does not define it")
+
+
 def require_read_path():
     interface = source("step4.b.2.ICompanyProfileRepository.cs")
     model = source("step4.a.1.CompanyProfile.cs")
@@ -548,6 +632,8 @@ def main():
     require_single_profile_invariant()
     require_logo_storage()
     require_write_path()
+    require_cross_namespace_imports()
+    require_calls_resolve()
     require_read_path()
     require_scope_exclusions()
     require_view_contract()
