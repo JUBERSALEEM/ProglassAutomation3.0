@@ -519,7 +519,7 @@ public sealed partial class ThemeStudioViewModel
             themes.Apply(restored, lastSaved.Appearance, SharedGeometry.Compose(restored, extended, clay, geometry, neumorph, font, colors, liquid, pages));
             IconService.Apply(icons);
         }
-        catch { }
+        catch (Exception error) { ProGlassAutomation.Diagnostics.AppLog.Error("theme.customization.restore", error, "the saved customisation could not be applied; the Studio is showing defaults"); }
         ResetDesign = new DelegateCommand(() =>
         {
             geometry = new SharedGeometryState();

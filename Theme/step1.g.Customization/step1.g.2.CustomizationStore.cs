@@ -5,6 +5,7 @@ using ProGlassAutomation.Theming;
 using ProGlassAutomation.ThemeClaymorphism;
 using ProGlassAutomation.ThemeLiquidGlass;
 using ProGlassAutomation.ThemeNeumorphism;
+using ProGlassAutomation.Diagnostics;
 
 namespace ProGlassAutomation.Customization;
 
@@ -152,6 +153,17 @@ public static class CustomizationStore
 
     public static void ClearCorrupt()
     {
-        try { if (File.Exists(FilePath)) File.Delete(FilePath); } catch { }
+        try
+        {
+            if (File.Exists(FilePath)) File.Delete(FilePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The file stays, so the same fallback warning will appear on every
+            // launch. That is worth recording once per attempt, otherwise the
+            // owner sees a repeated message and no reason for it.
+            AppLog.Error("theme.customization.clear-corrupt", ex,
+                "the unreadable customisation file could not be removed and will be re-read next launch");
+        }
     }
 }

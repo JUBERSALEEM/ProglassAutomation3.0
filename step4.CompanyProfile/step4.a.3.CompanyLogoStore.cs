@@ -32,6 +32,7 @@ using ProGlassAutomation.Services.Database;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using ProGlassAutomation.Diagnostics;
 
 namespace ProGlassAutomation.Services.Company
 {
@@ -190,7 +191,11 @@ namespace ProGlassAutomation.Services.Company
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException)
             {
-                System.Diagnostics.Debug.WriteLine("Company logo not deleted: " + error.Message);
+                // A logo that will not delete is an orphaned file, not a failed
+                // save: the profile is still correct, the folder slowly fills up.
+                // Worth a record, precisely because nothing on screen says it.
+                AppLog.Error("step4.company.logo-delete", error,
+                    "an orphaned logo file remains in the CompanyProfile folder");
             }
         }
 

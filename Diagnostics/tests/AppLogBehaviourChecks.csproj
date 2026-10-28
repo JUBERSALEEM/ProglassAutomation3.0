@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Diagnostics behaviour checks — the controlled-exception test for the
+    failure-only log (round 33).
+
+    Follows the repository's established verification convention
+    (Theme/step1.d.tests, step2.f.ClientTests, step3.f.UserTests,
+    step4.f.CompanyTests): a Windows console executable that references the
+    application and asserts behaviour, exiting nonzero on failure. No
+    test-framework package is introduced.
+
+    Scope: an isolated folder through AppDataRoot.TestFolderOverride — the real
+    %APPDATA%\ProGlassAutomation folder is never touched and the real log is
+    never written. It proves that:
+      • nothing is written, and no folder is created, before a failure;
+      • a real caught exception produces one readable record with the
+        timestamp+zone, severity, exception type, message, stack, operation,
+        module and application version;
+      • credentials, long account numbers and e-mail addresses are redacted;
+      • a write that cannot happen returns false, throws nothing and leaves the
+        reason in LastWriteFailure (logging never becomes the incident);
+      • an identical repeat inside the window is counted, not re-written.
+
+    It does NOT prove process-level coverage (a dispatcher crash or a fatal
+    AppDomain fault) — those need a real WPF launch, and the audit document says
+    so instead of claiming them.
+
+    Run on Windows/.NET 8:
+      dotnet run --project Diagnostics/tests/AppLogBehaviourChecks.csproj
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>AppLogBehaviourChecks</AssemblyName>
+    <RootNamespace>ProGlassAutomation.Diagnostics.Checks</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../ProGlassAutomation.csproj" />
+  </ItemGroup>
+</Project>

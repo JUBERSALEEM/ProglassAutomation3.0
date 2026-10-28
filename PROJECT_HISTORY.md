@@ -9,6 +9,18 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 33: foundation audit, and the first real error log
+- **Reported/requested:** before any transaction module, audit what works, what is risky and whether an error can be diagnosed afterwards — then add diagnostics only if logging is missing.
+- **Found:** no process-level exception handler, no log file, no logger type; nine `Debug.WriteLine` calls (invisible in Release) were the whole logging surface; a startup failure showed a stack trace in a `MessageBox` and then shut down, leaving nothing behind. 252 `catch` clauses, 49 with an empty body — every one read in context before being called a defect.
+- **Added:** `Diagnostics/AppLog` + `AppLogFile` + `AppLogRedaction` — one failure-only log at `%APPDATA%\ProGlassAutomation\Logs\proglass-errors.log`, created by the first failure, bounded at 1 MB × 5, with a timestamp+zone, `ERROR`/`FATAL`, type, message, stack, operation, module and app version; credentials, account numbers and e-mail addresses masked.
+- **Wired:** dispatcher / AppDomain / unobserved-task traps, startup (recorded before the message box), the client and user write helpers and register loads, the company save and load, the logo delete, the theme restore and the corrupt-settings delete. The nine `Debug.WriteLine` sites were removed (one of them logged a *success* and was deleted, not converted).
+- **Not done, deliberately:** no activity recorder, no second logger, no business-audit duplication, no changes to the frozen Inquiry module or to any theme.
+- **Rule K:** `step2.b.4` and `step3.b.4` are frozen files, so their failure-sentence methods moved into `step2.b.5` and `step3.b.10` (partial classes, logging included); both originals ended smaller. Two register-load sites were left unlogged rather than split a file for one line.
+- **Gate:** new `AppLogSourceChecks.py` (12/12 mutations caught) + `AppLogBehaviourChecks` as the runnable controlled-exception test; thirteen portable checkers PASS.
+- **Verification:** source checks only. No .NET SDK/WPF here: **not compiled, not launched, not rendered; the controlled exception was not executed** — it is provided for the owner to run.
+- **Detail:** [docs/14](docs/14.Foundation-Audit-and-Diagnostic-Logging.md).
+
+---
 ## 2026-10-28 — Round 32: field gutters, a working logo picker, a remembered sign-in, a readable page
 - **Reported:** four arrows between *adjacent field boxes* (the spacing was still wrong), "Choose image" did nothing, and the application asked for the password on every launch. The logo card also had to show a readable document page.
 - **Cause 1 — the wrong spacing was being fixed.** Round 30b fixed the gutter between *buttons*; the arrows are between *fields*. `Grid` has no gap property, and `MarginSection` (`0,0,0,12`) is a row rhythm, never a horizontal gutter, so a row of star columns put its boxes edge to edge.

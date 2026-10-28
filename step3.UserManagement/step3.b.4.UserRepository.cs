@@ -35,11 +35,12 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ProGlassAutomation.Diagnostics;
 
 namespace ProGlassAutomation.Services.Users
 {
     /// <summary>EF Core implementation of <see cref="IUserRepository"/>.</summary>
-    public sealed class UserRepository : IUserRepository
+    public sealed partial class UserRepository : IUserRepository
     {
         private readonly Func<UserDbContext> _createContext;
         private bool _initialized;
@@ -1070,19 +1071,5 @@ namespace ProGlassAutomation.Services.Users
         private static UserSaveResult Refuse(UserDecision decision)
             => UserSaveResult.Fail(decision.Message, decision.Code);
 
-        /// <summary>
-        /// Turns a persistence exception into an operator-facing sentence. The
-        /// exception type is named so a support conversation has something to go
-        /// on, without exposing a stack trace in the UI.
-        /// </summary>
-        private static string DescribeWriteFailure(string action, Exception exception)
-        {
-            if (exception == null) return action + ".";
-            if (SqliteErrorClassifier.IsTransient(exception))
-                return action + ": the database is busy. Close other ProGlass windows and try again.";
-            if (SqliteErrorClassifier.IsUnique(exception))
-                return action + ": that username is already registered to another user.";
-            return action + " (" + exception.GetType().Name + "): " + exception.Message;
-        }
     }
 }

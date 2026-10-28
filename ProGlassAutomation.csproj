@@ -28,7 +28,11 @@
   </ItemGroup>
   <!-- Explicit inclusion keeps the application and verification executable separate. -->
   <ItemGroup>
+    <!-- Diagnostics is shared foundation code, not a numbered feature: it is the
+         one technical error log (docs/14) and every module writes to it. Its
+         tests are a console project of their own, like every other module's. -->
     <Compile Include="App.xaml.cs;MainWindow.xaml.cs;AssemblyInfo.cs" />
+    <Compile Include="Diagnostics/**/*.cs" />
     <Compile Include="Theme/step1.a.ThemeEngine/**/*.cs;Theme/ThemeBento/**/*.cs;Theme/ThemeClaymorphism/**/*.cs;Theme/ThemeFluent/**/*.cs;Theme/ThemeNeumorphism/**/*.cs;Theme/ThemeLiquidGlass/**/*.cs;Theme/ThemeGlassmorphism/**/*.cs;Theme/ThemeSpatial/**/*.cs;Theme/ThemeSwiss/**/*.cs;Theme/ThemeHolographic/**/*.cs;Theme/step1.f.Analytics/**/*.cs;Theme/step1.g.Customization/**/*.cs;step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.cs;Inquiry/**/*.cs;step2.ClientManagement/**/*.cs;step3.UserManagement/**/*.cs;step4.CompanyProfile/**/*.cs" />
     <Page Include="MainWindow.xaml;Theme/ThemeBento/**/*.xaml;Theme/ThemeClaymorphism/**/*.xaml;Theme/ThemeFluent/**/*.xaml;Theme/ThemeNeumorphism/**/*.xaml;Theme/ThemeLiquidGlass/**/*.xaml;Theme/ThemeGlassmorphism/**/*.xaml;Theme/ThemeSpatial/**/*.xaml;Theme/ThemeSwiss/**/*.xaml;Theme/ThemeHolographic/**/*.xaml;step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.xaml;Inquiry/**/*.xaml;step2.ClientManagement/**/*.xaml;step3.UserManagement/**/*.xaml;step4.CompanyProfile/**/*.xaml" />
   </ItemGroup>
@@ -44,6 +48,8 @@
     <None Remove="step3.UserManagement/step3.f.tests/**/*.py" />
     <!-- step4's behaviour checks and its static gate are a console project of
          their own (step4.f), so neither source joins this build. -->
+    <Compile Remove="Diagnostics/tests/**/*.cs" />
+    <None Remove="Diagnostics/tests/**/*.py" />
     <Compile Remove="step4.CompanyProfile/step4.f.tests/**/*.cs" />
     <Page Remove="step4.CompanyProfile/step4.f.tests/**/*.xaml" />
     <None Remove="step4.CompanyProfile/step4.f.tests/**/*.py" />

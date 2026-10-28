@@ -30,6 +30,7 @@ using ProGlassAutomation.ViewModels.Company;
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using ProGlassAutomation.Diagnostics;
 
 namespace ProGlassAutomation.Company
 {
@@ -89,7 +90,7 @@ namespace ProGlassAutomation.Company
             {
                 // Defensive: an async void handler that lets an exception escape
                 // terminates the process.
-                System.Diagnostics.Debug.WriteLine("Company profile load failed: " + error);
+                AppLog.Error("step4.company.load", error, "the Company page showed the failure on its own surface");
             }
         }
 
@@ -114,7 +115,7 @@ namespace ProGlassAutomation.Company
             }
             catch (Exception error)
             {
-                System.Diagnostics.Debug.WriteLine("Company profile refresh failed: " + error);
+                AppLog.Error("step4.company.refresh", error, "returning to the Company page could not reload the profile");
             }
         }
 

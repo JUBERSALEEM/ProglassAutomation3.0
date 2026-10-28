@@ -34,11 +34,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ProGlassAutomation.Diagnostics;
 
 namespace ProGlassAutomation.Services.Clients
 {
     /// <summary>EF Core implementation of <see cref="IClientRepository"/>.</summary>
-    public sealed class ClientRepository : IClientRepository
+    public sealed partial class ClientRepository : IClientRepository
     {
         private readonly Func<ClientDbContext> _createContext;
         private bool _initialized;
@@ -462,21 +463,6 @@ namespace ProGlassAutomation.Services.Clients
                 // the whole editor when the user directory is unreadable.
                 return Array.Empty<ClientRepresentative>();
             }
-        }
-
-        /// <summary>
-        /// Turns a persistence exception into an operator-facing sentence. The
-        /// exception type is named so a support conversation has something to
-        /// go on, without exposing a stack trace in the UI.
-        /// </summary>
-        private static string DescribeWriteFailure(string action, Exception exception)
-        {
-            if (exception == null) return action + ".";
-            if (exception is SqliteException sqlite && SqliteErrorClassifier.IsTransient(exception))
-                return action + ": the database is busy. Close other ProGlass windows and try again.";
-            if (SqliteErrorClassifier.IsUnique(exception))
-                return action + ": a conflicting record already exists.";
-            return action + " (" + exception.GetType().Name + "): " + exception.Message;
         }
     }
 }

@@ -9,6 +9,7 @@ using ProGlassAutomation.Services.Users;
 using ProGlassAutomation.Theming;
 using ProGlassAutomation.ThemeStudio;
 using ProGlassAutomation.ViewModels.Users;
+using ProGlassAutomation.Diagnostics;
 
 namespace ProGlassAutomation;
 
@@ -110,7 +111,8 @@ public partial class MainWindow : Window
             // application was restarted. The sign-in gate is the way in, so it is
             // opened with the reason on it; the Users page needs no rescue plan.
             FirstRunGate.Visibility = Visibility.Collapsed;
-            System.Diagnostics.Debug.WriteLine("First-run gate skipped: " + error);
+            AppLog.Error("shell.first-run-check", error,
+                "the first-run check could not be answered, so the sign-in gate was opened");
             await BeginSignInAsync(
                 problem: "The user directory could not be read, so the first-run check could not be "
                        + "answered: " + error.Message + " Signing in may fail until that is fixed.");
@@ -131,15 +133,16 @@ public partial class MainWindow : Window
         {
             remembered = RememberedSignInResult.None(
                 "The remembered sign-in could not be checked: " + error.Message);
-            System.Diagnostics.Debug.WriteLine("Remembered sign-in failed: " + error);
+            AppLog.Error("shell.remembered-signin", error,
+                "the remembered sign-in could not be checked");
         }
 
         if (remembered.Restored)
         {
             // OnSessionStarted has already refreshed the banner and rewritten the
             // record; the shell opens on its normal page with a live session.
-            System.Diagnostics.Debug.WriteLine(
-                "Session resumed for " + remembered.Username + " (remembered on this device).");
+            // Nothing is logged here: a resumed session is the normal case, and
+            // this log records failures only.
             return;
         }
 
@@ -195,7 +198,8 @@ public partial class MainWindow : Window
                 // pressed.
                 sessionBanner.ReportProblem(
                     "The sign-in screen could not be created: " + error.Message);
-                System.Diagnostics.Debug.WriteLine("Sign-in gate could not be created: " + error);
+                AppLog.Error("shell.sign-in-gate.create", error,
+                    "the sign-in card could not be built");
                 return;
             }
         }
@@ -213,7 +217,8 @@ public partial class MainWindow : Window
         {
             signIn.ReportProblem(
                 "The sign-in screen could not be prepared: " + error.Message);
-            System.Diagnostics.Debug.WriteLine("Sign-in gate could not be prepared: " + error);
+            AppLog.Error("shell.sign-in-gate.prepare", error,
+                "the sign-in card could not be prepared");
         }
 
         SignInGate.FocusFirstField();

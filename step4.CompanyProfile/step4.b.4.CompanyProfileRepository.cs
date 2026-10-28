@@ -36,6 +36,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using ProGlassAutomation.Diagnostics;
 
 namespace ProGlassAutomation.Services.Company
 {
@@ -275,6 +276,11 @@ namespace ProGlassAutomation.Services.Company
             }
             catch (Exception error)
             {
+                // The card shows the sentence below; the record is what lets a
+                // failure be diagnosed after the card has been dismissed.
+                AppLog.Error("step4.company.save", error,
+                    "the company profile save was rolled back; nothing was changed");
+
                 // Nothing was committed: drop the imported copy so a failed save
                 // leaves no orphan, and leave the previous logo untouched.
                 if (!committed && importedLogoName.Length > 0) CompanyLogoStore.Delete(importedLogoName);

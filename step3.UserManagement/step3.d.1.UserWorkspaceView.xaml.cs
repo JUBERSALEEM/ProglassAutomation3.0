@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using ProGlassAutomation.ViewModels.Users;
+using ProGlassAutomation.Diagnostics;
 
 namespace ProGlassAutomation.Users;
 
@@ -56,7 +57,7 @@ public partial class UserWorkspaceView : UserControl
         {
             // The view model surfaces its own failures; never rethrow from an
             // async void handler.
-            System.Diagnostics.Debug.WriteLine("User workspace refresh failed: " + error);
+            AppLog.Error("step3.users.refresh", error, "the Users page refreshed with the failure on its own surface");
         }
     }
 
