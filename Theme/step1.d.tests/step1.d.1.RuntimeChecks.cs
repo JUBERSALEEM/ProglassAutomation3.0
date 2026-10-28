@@ -124,18 +124,27 @@ internal static class RuntimeChecks
             Check(Equals(app.Resources["UnrelatedResource"], "preserve me"), "unrelated resources preserved");
 
             // Round 36: the owner reports the Light/Dark switch is slow, so the run
-            // reports two numbers instead of a recollection — the engine's package
-            // rebuild on its own, and the bound switch the shell banner's button runs.
-            // Printed, not asserted: a slow machine must not fail a fidelity run.
+            // reports numbers instead of a recollection — the engine's package rebuild on
+            // its own, then three complete switches of the bound button. The first switch
+            // after startup also pays for one-time work, so the repeats are what the owner
+            // actually feels. Printed, not asserted: a slow machine must not fail a
+            // fidelity run. Render mode is SoftwareOnly here, which is the pessimistic case.
             var engineClock = Stopwatch.StartNew();
             themes.Apply(ThemeService.Bento, Appearance.Light);
             engineClock.Stop();
-            var shellClock = Stopwatch.StartNew();
-            model.IsDark = true;
+            var switchTimes = new List<long>();
+            for (int pass = 0; pass < 3; pass++)
+            {
+                var clock = Stopwatch.StartNew();
+                if (themes.ActiveAppearance == Appearance.Light) model.IsDark = true; else model.IsLight = true;
+                Pump();
+                clock.Stop();
+                switchTimes.Add(clock.ElapsedMilliseconds);
+            }
+            if (themes.ActiveAppearance != Appearance.Dark) model.IsDark = true;
             Pump();
-            shellClock.Stop();
             Check(themes.ActiveAppearance == Appearance.Dark && model.IsDark, "measured appearance switch lands in dark");
-            Console.WriteLine($"MEASURED: package rebuild {engineClock.ElapsedMilliseconds} ms; bound Light->Dark switch {shellClock.ElapsedMilliseconds} ms (studio realized, software render).");
+            Console.WriteLine($"MEASURED: package rebuild {engineClock.ElapsedMilliseconds} ms; bound switches {string.Join(", ", switchTimes)} ms for {switchTimes.Count} complete Light<->Dark toggles, median {switchTimes.OrderBy(t => t).ElementAt(switchTimes.Count / 2)} ms (studio realized, software render).");
 
             model.SampleName = "x";
             Pump();
@@ -180,22 +189,31 @@ internal static class RuntimeChecks
                     var studio = Descendants(window).OfType<ThemeStudioView>().Single();
                     var modules = (BentoGrid)studio.FindName("Modules");
                     Check((modules.EffectiveColumns < 4) == (modules.ActualWidth < 1100), "Studio responsive column mode");
-                    FrameworkElement[] cards = [
-                        (FrameworkElement)studio.FindName("Settings"), (FrameworkElement)studio.FindName("Controls"),
-                        (FrameworkElement)studio.FindName("Signals"), (FrameworkElement)studio.FindName("DiagnosticsToggle"), (FrameworkElement)studio.FindName("Gallery")];
                     Check(input.Text == model.SampleName && BindingOperations.IsDataBound(input, TextBox.TextProperty), "input binding survives Studio reflow");
-                    var bounds = new List<Rect>();
-                    foreach (FrameworkElement child in cards)
+                    // The page is two columns: a scrolling BentoGrid of modules and the fixed
+                    // Settings sidebar beside it. Cards are therefore measured against the
+                    // page, not against the grid — the sidebar is the grid's sibling, and
+                    // asking the grid to transform it threw "The specified Visual is not an
+                    // ancestor of this Visual" the first time this ran. The names are read
+                    // and asserted, not assumed: this list used to name "Signals" and
+                    // "DiagnosticsToggle", which no page in this repository declares.
+                    var bounds = new List<(string Name, Rect Box)>();
+                    foreach (string moduleName in new[] { "Preview", "Gallery", "StudioMix", "Controls", "Tokens", "Settings" })
                     {
-                        Check(child.ActualWidth > 0 && child.ActualHeight > 0, "module remains laid out");
-                        Rect box = child.TransformToAncestor(modules).TransformBounds(new Rect(child.RenderSize));
-                        Check(box.Left >= -1 && box.Right <= modules.ActualWidth + 1, "module fits horizontal viewport");
-                        foreach (Rect previous in bounds)
+                        object? found = studio.FindName(moduleName);
+                        Check(found is FrameworkElement, $"Studio page declares {moduleName}");
+                        var card = (FrameworkElement)found;
+                        Check(IsInside(card, studio), $"{moduleName} is part of the Studio page");
+                        Check(card.ActualWidth > 0 && card.ActualHeight > 0, $"{moduleName} remains laid out");
+                        Rect box = card.TransformToAncestor(studio).TransformBounds(new Rect(card.RenderSize));
+                        Check(box.Left >= -1 && box.Right <= studio.ActualWidth + 1, $"{moduleName} fits the page width");
+                        foreach (var previous in bounds)
                         {
-                            Rect overlap = Rect.Intersect(previous, box);
-                            Check(overlap.IsEmpty || overlap.Width <= 1 || overlap.Height <= 1, "modules do not overlap");
+                            Rect overlap = Rect.Intersect(previous.Box, box);
+                            Check(overlap.IsEmpty || overlap.Width <= 1 || overlap.Height <= 1,
+                                $"{moduleName} does not overlap {previous.Name}");
                         }
-                        bounds.Add(box);
+                        bounds.Add((moduleName, box));
                     }
                 }
             }
@@ -317,6 +335,18 @@ internal static class RuntimeChecks
     private static void Check(bool passed, string name)
     {
         if (!passed) throw new InvalidOperationException("FAILED: " + name);
+    }
+
+    /// <summary>
+    /// True when <paramref name="node"/> is the ancestor's descendant in the visual tree.
+    /// TransformToAncestor throws an opaque exception when it is not, so the relationship
+    /// is proved before anything is measured through it.
+    /// </summary>
+    private static bool IsInside(DependencyObject node, DependencyObject ancestor)
+    {
+        for (DependencyObject? cursor = node; cursor is not null; cursor = VisualTreeHelper.GetParent(cursor))
+            if (ReferenceEquals(cursor, ancestor)) return true;
+        return false;
     }
 
     private static object WindowFill(ThemeService themes) =>
