@@ -958,3 +958,78 @@ assert len(named_themes) >= len(installed_definitions), (
     'catalogue without a line in the check would throw instead of testing it'
 )
 print(f'PASS: the theme walk names all {len(installed_definitions)} installed themes before switching any.')
+
+# ── The window is painted by the theme's own style, not by a list in the check ─
+# The per-theme walk asserted the window background against a helper that named four
+# material canvases. Holographic / Iridescent was not among them, so the eighth theme
+# of nine failed on a correct product: its ThemedWindow style paints HoloCanvasBrush.
+#
+# Each theme declares its own answer in Theme<Name>/step1.e.Components/
+# step1.e.2.Foundation.xaml, so that is the source of truth. The harness's table must
+# agree with every one of them, and a theme whose style cannot be read is a failure,
+# not a skip.
+theme_constants = dict(re.findall(r'public const string (\w+Name)\s*=\s*"([^"]+)";', catalog_text))
+service_text = (ROOT / 'Theme/step1.a.ThemeEngine/step1.a.2.ThemeService.cs').read_text(encoding='utf-8')
+folders = dict((name, folder) for name, folder in
+               re.findall(r'new ThemeDefinition\((\w+Name),\s*"([\w]+)"', catalog_text))
+assert len(theme_constants) >= 9 and len(folders) >= 9, (
+    f'the catalogue no longer exposes theme names and folders: {len(theme_constants)} names, '
+    f'{len(folders)} folders'
+)
+window_tokens = {}
+unreadable = []
+for constant, folder in folders.items():
+    foundation = ROOT / f'Theme/{folder}/step1.e.Components/step1.e.2.Foundation.xaml'
+    if not foundation.exists():
+        unreadable.append(f'{folder}: no step1.e.2.Foundation.xaml')
+        continue
+    markup = foundation.read_text(encoding='utf-8', errors='replace')
+    style = re.search(r'<Style x:Key="ThemedWindow"[^>]*>(.*?)</Style>', markup, re.S)
+    if not style:
+        unreadable.append(f'{folder}: no ThemedWindow style')
+        continue
+    background = re.search(r'<Setter Property="Background" Value="\{DynamicResource (\w+)\}"', style.group(1))
+    if not background:
+        unreadable.append(f'{folder}: ThemedWindow has no themed Background')
+        continue
+    window_tokens[theme_constants[constant]] = background.group(1)
+assert not unreadable, f'a theme does not declare how its window is painted: {unreadable}'
+assert window_tokens, 'no window token was read: this rule would pass on an empty set'
+
+declared_in_harness = dict(re.findall(
+    r'(ThemeService\.\w+)\s*=>\s*"(\w+)"', runtime_harness))
+fallback = re.search(r'_\s*=>\s*"(\w+)"', runtime_harness)
+assert fallback, 'the window-fill switch has no fallback arm, so a theme with no line of its own resolves to nothing'
+fallback_token = fallback.group(1)
+# ThemeService exposes the names through its own constants, e.g.
+# `public const string Glassmorphism = ThemeCatalog.GlassName;` — a theme's display
+# name and its property name differ (Glassmorphism vs Glass), so the mapping is read
+# from the engine rather than guessed from the catalogue.
+service_constants = re.findall(r'public const string (\w+)\s*=\s*ThemeCatalog\.(\w+);',
+                               service_text)
+assert len(service_constants) >= 9, (
+    f'ThemeService no longer exposes its theme names: {service_constants}'
+)
+property_by_theme = {theme_constants[constant]: property_name
+                     for property_name, constant in service_constants
+                     if constant in theme_constants}
+mismatched = []
+for theme_name, token in sorted(window_tokens.items()):
+    property_name = property_by_theme.get(theme_name)
+    # A theme with no arm of its own resolves through the switch's fallback, so the
+    # fallback has to be read too — ignoring it is how the first version of this rule
+    # passed a mutation that made every unnamed theme paint its window with the wrong
+    # token. Both arms are compared, always.
+    expected = declared_in_harness.get('ThemeService.' + property_name, fallback_token) \
+        if property_name else fallback_token
+    if expected == token:
+        continue
+    mismatched.append(f'{theme_name} paints its window with {token}, the check expects {expected}')
+assert not mismatched, (
+    'the per-theme window assertion disagrees with the theme\'s own ThemedWindow style, '
+    f'so a correct product fails: {mismatched}'
+)
+assert 'HoloCanvasBrush' in runtime_harness, (
+    'the Holographic canvas token is missing from the check again'
+)
+print(f'PASS: the window fill the check expects is what all {len(window_tokens)} themes declare.')
