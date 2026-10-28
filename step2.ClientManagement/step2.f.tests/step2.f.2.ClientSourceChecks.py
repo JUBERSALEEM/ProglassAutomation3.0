@@ -789,6 +789,49 @@ def require_representative_reference():
           "docs/12 still claims the representative reference is deferred")
 
 
+def require_trn_separators_tolerated():
+    """A formatted TRN must be accepted and stored as digits, not refused.
+
+    Round 34.7: `ValidateTrn` rejected any non-digit while `NormalizeTrn` stored
+    digits only and `TrnKey` compared digits — the module's own normalization
+    check feeds it "100-123-4567 00003", and the repository round-trip saves
+    "100-123-456-700-003". So the stripping path was unreachable from any typed
+    or pasted value, and the operator was refused a TRN written the way a
+    certificate prints it, while the Company Profile field accepted it.
+    """
+    rules = read(MODULE / "step2.a.2.ClientRules.cs")
+    validator_start = rules.find("public static string? ValidateTrn")
+    check(validator_start >= 0, "ValidateTrn must exist")
+    if validator_start < 0:
+        return
+    validator = rules[validator_start:rules.find("public static", validator_start + 10)]
+    check('.Replace(" ", "").Replace("-", "")' in validator,
+          "the TRN validator must tolerate the printed separators (space and dash) "
+          "instead of refusing the field")
+    check("digits.Length > TrnMaxLength" in validator,
+          "the TRN length bound must apply to the stored digits, not to the typed "
+          "string, or a valid dashed TRN is refused for being formatted")
+    check("NormalizeTrn" in rules and "=> DigitsOnly(value)" in rules,
+          "NormalizeTrn must still store the TRN as digits only")
+
+
+def require_migration_assertion_derives_the_tip():
+    """A migration check must assert the chain's tip, not the day it was written.
+
+    Round 34.7: step2.f.1 asserted `PRAGMA user_version == "1012"`. When 1013-1016
+    joined the same chain the value became 1016 and the check failed on correct
+    behaviour. The registry is the authority, so the expectation is derived from it.
+    """
+    compiled = read(MODULE / "step2.f.tests/step2.f.1.ClientRuleChecks.cs")
+    check("AppSchemaMigrations.Inquiries.Max(" in compiled,
+          "the compiled migration check must derive the expected version from the "
+          "registered chain instead of hard-coding a number")
+    hard_coded = re.findall(r'user_version[^\n]*\n[^\n]*Equal\("1[0-9]{3}"', compiled)
+    check(not hard_coded,
+          "a hard-coded PRAGMA user_version literal pins today's chain tip and fails "
+          "as soon as a migration is added")
+
+
 def require_docs_recorded():
     registry = read(ROOT / "docs/06.Feature-Registry.md")
     check("| step2 | Client Management |" in registry, "the registry does not record step2")
@@ -843,6 +886,8 @@ def main():
     require_paired_field_widths()
     require_binding_integrity()
     require_representative_reference()
+    require_trn_separators_tolerated()
+    require_migration_assertion_derives_the_tip()
     require_docs_recorded()
 
     if FAILURES:

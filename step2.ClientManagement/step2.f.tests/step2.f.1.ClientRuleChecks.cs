@@ -125,6 +125,18 @@ internal static class ClientRuleChecks
         True(ClientRules.ValidateTrn("") == null, "blank TRN allowed");
         True(ClientRules.ValidateTrn("100123456700003") == null, "digit TRN accepted");
         True(ClientRules.ValidateTrn("1001234567000AB") != null, "non-digit TRN rejected");
+        // The module has always stripped the separators a certificate prints
+        // (the TRN digits check in the normalization section, and the dashed TRN
+        // saved by the repository round-trip), so the validator refusing them made
+        // that stripping unreachable from any typed or pasted value (round 34.7).
+        True(ClientRules.ValidateTrn("100-123-456-700-003") == null, "dashed TRN accepted");
+        True(ClientRules.ValidateTrn("100 123 456 700 003") == null, "spaced TRN accepted");
+        True(ClientRules.ValidateTrn("100-123-456-700-0O3") != null,
+            "a letter inside separators is still rejected");
+        Equal("100123456700003", ClientRules.NormalizeTrn("100-123-456-700-003"),
+            "a dashed TRN is stored as digits");
+        Equal(ClientRules.TrnKey("100-123-456-700-003"), ClientRules.TrnKey("100123456700003"),
+            "both spellings are one registration for duplicate detection");
 
         // Whole-draft validation reports each invalid field once.
         var bad = new ClientDraft { ClientName = "", Email = "nope", Trn = "abc" };
@@ -321,10 +333,20 @@ internal static class ClientRuleChecks
                     "stored person value was preserved through the rename");
             }
 
+            // The chain's TIP, not the version this migration happened to be when
+            // the check was written. 1016 (Company Profile) now follows 1012, so the
+            // old hard-coded "1012" asserted the calendar rather than the behaviour
+            // and failed the moment another step extended the chain (round 34.7).
+            // Derived from the registry, the check stays honest as the chain grows.
+            int chainTip = AppSchemaMigrations.Inquiries.Max(migration => migration.Version);
+            True(chainTip >= ClientSchema.AttentionNameMigrationVersion,
+                "the chain still contains the attention-name migration");
             using (var version = reader.CreateCommand())
             {
                 version.CommandText = "PRAGMA user_version;";
-                Equal("1012", Convert.ToString(version.ExecuteScalar()) ?? "", "user_version advanced");
+                Equal(chainTip.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    Convert.ToString(version.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) ?? "",
+                    "user_version advanced to the chain tip");
             }
 
             // Re-running must be a no-op, not an error.

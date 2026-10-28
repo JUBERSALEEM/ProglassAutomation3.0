@@ -502,6 +502,20 @@ internal static class UserBehaviourChecks
             throw new InvalidOperationException($"{message}: expected \"{expected}\", got \"{actual}\"");
     }
 
+    /// <summary>
+    /// Integer form, for ids and other counts. Three checks compare
+    /// <c>admin.Id</c> and <c>stamp.UserId</c> against each other, which compiled
+    /// only once this overload existed: with the string-only helper the project
+    /// failed with CS1503 and none of its checks could run at all (round 34.7).
+    /// Comparing numbers as numbers is also the correct assertion — a textual
+    /// comparison would make formatting, not identity, the thing under test.
+    /// </summary>
+    private static void Equal(int expected, int actual, string message)
+    {
+        if (expected != actual)
+            throw new InvalidOperationException($"{message}: expected {expected}, got {actual}");
+    }
+
     // ── Rules ────────────────────────────────────────────────────────────
 
     private static void CheckNormalization()

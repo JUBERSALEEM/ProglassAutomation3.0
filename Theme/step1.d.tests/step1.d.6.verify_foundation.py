@@ -326,3 +326,30 @@ assert not stale, (
     f'compile and NONE of its checks can run: {stale}'
 )
 print(f'PASS: {audited_executables} verification executable(s) only name members their module declares.')
+
+# ── A check may not pass a number to a string-only helper (CS1503) ───────────
+# Round 34.7: step3.f.1 compared ids with `Equal(admin.Id, stamp.UserId, ...)`
+# against a helper declared `Equal(string, string, string)`. The project did not
+# compile — six CS1503 errors — so none of its checks could run, and the failure
+# surfaced only on the owner's machine. A missing member was already gated above;
+# this covers the other half of "it cannot build": the right name, wrong type.
+int_helper = re.compile(r'\b(?:private|internal|public)\s+static\s+void\s+Equal\s*\(\s*int\b')
+# The negative lookahead matters: `Equal(admin.Id.ToString(), ...)` is a STRING
+# argument and compiles, so only a bare id (not a member access on it) is an int.
+id_argument = re.compile(r'\bEqual\(\s*[A-Za-z_]\w*[!]?\s*\.\s*(?:Id|UserId)\b(?!\s*\.)')
+type_offenders = []
+for test_file in sorted(ROOT.rglob('*.cs')):
+    if {'bin', 'obj'} & set(test_file.parts) or not any('tests' in part for part in test_file.parts):
+        continue
+    text = test_file.read_text(encoding='utf-8', errors='replace')
+    if int_helper.search(text):
+        continue
+    for match in id_argument.finditer(text):
+        line = text[:match.start()].count('\n') + 1
+        type_offenders.append(f'{test_file.relative_to(ROOT)}:{line}')
+assert not type_offenders, (
+    'a check passes an id (an int) to an Equal helper that only takes strings, so the '
+    f'project cannot compile and none of its checks run: {type_offenders} — declare an '
+    'int overload or compare .ToString()'
+)
+print('PASS: no verification check passes an int id to a string-only Equal helper.')

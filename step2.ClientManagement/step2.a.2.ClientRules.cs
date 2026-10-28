@@ -175,11 +175,27 @@ namespace ProGlassAutomation.Models.Clients
         {
             string text = (value ?? "").Trim();
             if (text.Length == 0) return null;
-            if (text.Length > TrnMaxLength)
-                return $"TRN must be {TrnMaxLength} characters or fewer.";
+
+            // A TRN arrives written with separators — pasted from a certificate, an
+            // invoice or an e-mail — and this module is built for exactly that:
+            // NormalizeTrn stores it as digits only and TrnKey compares digits, so
+            // "100-123-456-700-003" and "100123456700003" are the same registration.
+            // Refusing the separators here contradicted both, made that stripping
+            // path unreachable from any user input, and differed from the Company
+            // Profile TRN the same operator types (round 34.7).
             string digits = DigitsOnly(text);
-            if (digits.Length != text.Length)
+            // A non-blank TRN of nothing but separators ("- -") would otherwise
+            // normalize to an empty string and be silently accepted as blank.
+            if (digits.Length == 0)
                 return "TRN must contain digits only.";
+            if (digits.Length != text.Replace(" ", "").Replace("-", "").Length)
+                return "TRN must contain digits only.";
+
+            // The column stores the digits, so the bound belongs on the stored
+            // value: counting separators against it would refuse a valid TRN for
+            // being typed the way the certificate prints it.
+            if (digits.Length > TrnMaxLength)
+                return $"TRN must be {TrnMaxLength} digits or fewer.";
             return null;
         }
 
