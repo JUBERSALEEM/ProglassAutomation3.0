@@ -140,8 +140,21 @@ internal static class InquiryInboxDeliveryOrderingChecks
             InquiryInboxClient.SetHttpHandlerFactoryForTests(() => handler);
             using var service = new InquiryInboxService(Settings(inboxRoot));
             var failedAck = service.SynchronizeAsync().GetAwaiter().GetResult();
-            if (failedAck.Failed != 1 || handler.AckCalls != 1 || handler.DownloadCalls != 1)
-                throw new InvalidOperationException("An acknowledgement failure did not stop at one fetch/ack attempt.");
+            // The payload WAS placed, so this is not a failure — it is an item waiting
+            // for local import. The old guard demanded Failed == 1 AND, two lines
+            // below, that the same item be ImportPending: the product can never satisfy
+            // both, because InquiryInboxService increments exactly one of them
+            // (ImportPending when the folder holds READY/manifest, Failed only when it
+            // does not). It failed on correct code and would have passed on code that
+            // mislabelled a complete download as failed (round 35.5).
+            if (failedAck.ImportPending != 1 || failedAck.Failed != 0)
+                throw new InvalidOperationException(
+                    "A placed payload after an acknowledgement failure must be ImportPending, not Failed: "
+                    + $"ImportPending={failedAck.ImportPending}, Failed={failedAck.Failed}.");
+            if (handler.AckCalls != 1 || handler.DownloadCalls != 1)
+                throw new InvalidOperationException(
+                    "An acknowledgement failure must stop at one fetch and one acknowledgement attempt: "
+                    + $"AckCalls={handler.AckCalls}, DownloadCalls={handler.DownloadCalls}.");
             using (var db = new InquiryDbContext())
             {
                 var item = db.InboxItems.Single(i => i.SubmissionId == fixture.SubmissionId);
@@ -153,7 +166,20 @@ internal static class InquiryInboxDeliveryOrderingChecks
                 throw new InvalidOperationException("The placed payload was deleted after acknowledgement failure.");
             service.SynchronizeAsync().GetAwaiter().GetResult();
             if (handler.AckCalls != 1 || handler.DownloadCalls != 1)
-                throw new InvalidOperationException("A later check repeated the fetch or acknowledgement for ImportPending.");
+                throw new InvalidOperationException(
+                    "A later check repeated the fetch or acknowledgement for ImportPending: "
+                    + $"AckCalls={handler.AckCalls}, DownloadCalls={handler.DownloadCalls}.");
+            // Assert the LEDGER, not the per-sync counter: the ImportPending branch
+            // preserves the item and continues, so it deliberately reports nothing new
+            // for that item on the second pass. Checking the stored state is the claim
+            // that actually matters.
+            using (var db = new InquiryDbContext())
+            {
+                var kept = db.InboxItems.Single(i => i.SubmissionId == fixture.SubmissionId);
+                if (kept.State != InquiryInboxStates.ImportPending)
+                    throw new InvalidOperationException(
+                        "A later check changed the state of an item awaiting local import: " + kept.State + ".");
+            }
         }
         finally
         {

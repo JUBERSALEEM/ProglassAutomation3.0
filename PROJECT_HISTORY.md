@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 35.5: the Theme harness ran, and found a check that could never pass
+- **First execution of `step1.d.1` in its existence.** Three checks printed PASS before it stopped: `216 customization/mode combinations`, `63 chart/scenario contracts, invalid/empty/immutable data and analytics contrast`, and `customization controls affect resources, save/load, built-in protection, corrupt fallback, chart isolation`.
+- **Then `RunAckFailureDoesNotReack` threw** — `An acknowledgement failure did not stop at one fetch/ack attempt.` The cause was not the fetch/ack counts but the first clause: the check demanded `failedAck.Failed == 1` and, two lines later, that the item be `ImportPending`.
+- **Those are mutually exclusive by design.** `InquiryInboxService` increments `ImportPending` when the delivery folder holds `READY`/`manifest.json` (the documents are on disk, awaiting local import) and `Failed` only when it does not. One item, one counter. The old check could never pass on correct code — and would have passed on code that told the operator their documents had failed when they were sitting on disk.
+- **Fixed in the check:** it now asserts `ImportPending == 1` and `Failed == 0`, with a separate message for the fetch/ack counts, and the second pass asserts the stored ledger state rather than a per-sync counter (the `ImportPending` branch deliberately reports nothing new).
+- **Two gates, both mutation-proven:** the product invariant (`outcome.Failed++` must sit after an `else if (payloadPlaced)`, with `ImportPending` incremented in between) and the check shape (no single check may require a non-zero failure count and an import-pending outcome). The first version of the second rule was scoped per `if` and let the real defect through; it is now scoped per check.
+- **Verification:** thirteen portable checkers PASS; 17/17 diagnostics mutations; the changed file parses clean.
+
+---
 ## 2026-10-28 — Round 35.4: the fifth executable finally compiles
 - **`Theme/step1.d.tests` built for the first time in its existence**: `step1.d.ThemeTests net8.0-windows7.0 succeeded`. The round-35.3 `using System.IO;` was the whole obstacle — 66 `CS0103` errors, one import.
 - **The run then aborted at `Usage: [--contracts-only]`, and the fault was the runbook, not the harness.** `--no-incremental` is a **build** option; `dotnet run` does not accept it and forwards it to the application, and `step1.d.1` validates its arguments. The other three executables declare `Main()` with no parameters, so the same flag was silently discarded there — this one is the only one that notices.

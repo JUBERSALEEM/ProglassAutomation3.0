@@ -428,3 +428,62 @@ assert not io_offenders, (
     f'does not get System.IO implicitly, so the project cannot compile: {io_offenders}'
 )
 print('PASS: every check that touches the file system imports System.IO.')
+
+# ── A placed payload is never counted as Failed ──────────────────────────────
+# Round 35.5: step1.d.16 asserted that an acknowledgement failure produced
+# `Failed == 1` AND, two lines later, that the same item was `ImportPending`. The
+# service increments exactly one, on purpose: a folder holding READY/manifest is a
+# complete download awaiting local import, and calling it "Failed" would tell the
+# operator their documents are missing when they are on disk.
+#
+# The invariant is worth locking in the product source, because the alternative
+# ordering (count first, then decide) reads just as plausible.
+service_source = ROOT / 'Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxService.cs'
+assert service_source.exists(), f'{service_source} is missing'
+service_text = service_source.read_text(encoding='utf-8', errors='replace')
+failed_index = service_text.find('outcome.Failed++')
+assert failed_index > 0, 'outcome.Failed++ has disappeared: the outcome no longer counts failures'
+decision_window = service_text[max(0, failed_index - 900):failed_index]
+assert 'else if (payloadPlaced)' in decision_window, (
+    'outcome.Failed++ must sit after an else-if on payloadPlaced: a submission whose documents '
+    'are already on disk is awaiting import, not failed'
+)
+assert 'outcome.ImportPending++' in decision_window, (
+    'the placed-payload branch must increment ImportPending before the failure branch'
+)
+
+# ── A check may not demand two mutually exclusive outcomes at once ───────────
+# The same defect from the check side. The original looked like this:
+#     if (failedAck.Failed != 1 || ...) throw ...;
+#     if (item.State != InquiryInboxStates.ImportPending) throw ...;
+# Two statements in one check, each impossible given the other, because the service
+# increments exactly one of the two counters per item.
+#
+# So the rule is scoped PER CHECK rather than per `if`: a single check may not
+# require a non-zero failure count and an import-pending outcome, because no single
+# item can be both. Scoping wider (per file) would flag deliberately mixed fixtures;
+# scoping narrower (per condition) let the real defect through — which is how this
+# rule was found to be wrong the first time it was written.
+contradictions = []
+for test_file in sorted(ROOT.rglob('*.cs')):
+    if {'bin', 'obj'} & set(test_file.parts) or not any('tests' in part for part in test_file.parts):
+        continue
+    text = test_file.read_text(encoding='utf-8', errors='replace')
+    headers = [m.start() for m in
+               re.finditer(r'(?m)^    (?:private|public|internal) static [^\n]*?\b\w+\(', text)]
+    bounds = headers + [len(text)]
+    for index in range(len(headers)):
+        body_start, body_end = bounds[index], bounds[index + 1]
+        body = text[body_start:body_end]
+        demands_failure = re.search(r'\.Failed\s*(?:!=|==)\s*[1-9]', body)
+        mentions_pending = 'ImportPending' in body
+        if demands_failure and mentions_pending:
+            line = text[:body_start + demands_failure.start()].count('\n') + 1
+            name = text[body_start:body_start + 80].split('(')[0].strip().split()[-1]
+            contradictions.append(f'{test_file.relative_to(ROOT)}:{line} in {name}')
+assert not contradictions, (
+    'a check requires both a non-zero failure count and an import-pending outcome, but the '
+    'service sets exactly one per item — so the check can never pass on correct code and would '
+    f'pass on code that mislabels complete downloads: {contradictions}'
+)
+print('PASS: a placed payload is never counted as failed, and no check demands both outcomes.')
