@@ -339,9 +339,9 @@
         <ScrollViewer Grid.Row="1"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
-                      Padding="{DynamicResource PaddingPage}"
-                      SizeChanged="OnBodySizeChanged">
-            <Grid x:Name="BodyGrid">
+                      Padding="{DynamicResource PaddingPage}">
+            <Grid x:Name="BodyGrid"
+                  SizeChanged="OnBodySizeChanged">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />

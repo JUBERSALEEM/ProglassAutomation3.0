@@ -41,6 +41,9 @@ namespace ProGlassAutomation.Company
         /// </summary>
         private const double TwoColumnMinimumWidth = 940;
 
+        /// <summary>The approved mockup fixes the panel's width at 300 px.</summary>
+        private const double PanelWidth = 300;
+
         private readonly CompanyProfileViewModel _viewModel;
         private bool _loadedOnce;
         private bool _twoColumn = true;
@@ -102,8 +105,10 @@ namespace ProGlassAutomation.Company
         /// Reflows the body when the content width crosses the threshold.
         /// </summary>
         /// <remarks>
-        /// Only a CROSSING does any work, and the first pass sets the flag to the
-        /// arrangement XAML already declares, so a resize storm costs nothing.
+        /// Only a CROSSING does any work, and XAML already declares the wide
+        /// arrangement, so the first measurement at a wide window costs nothing.
+        /// Measured on the grid itself, which is already inside the page padding
+        /// and excludes the scrollbar: no arithmetic on someone else's size.
         /// </remarks>
         private void OnBodySizeChanged(object sender, SizeChangedEventArgs e)
         {
@@ -115,26 +120,25 @@ namespace ProGlassAutomation.Company
             if (twoColumn == _twoColumn) return;
             _twoColumn = twoColumn;
 
+            // Move first, then rebuild the columns: an index beyond the current
+            // column count is clamped, and clamping is not an error worth having.
+            Grid.SetColumn(LogoPanel, twoColumn ? 1 : 0);
+            Grid.SetRow(LogoPanel, twoColumn ? 0 : 1);
+
             BodyGrid.ColumnDefinitions.Clear();
             BodyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             if (twoColumn)
                 BodyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            // Two columns: the panel sits beside the form and keeps its 300 px.
-            // One column: it moves under the form and stretches to the card width.
-            Grid.SetColumn(LogoPanel, twoColumn ? 1 : 0);
-            Grid.SetRow(LogoPanel, twoColumn ? 0 : 1);
-            LogoPanel.Width = twoColumn ? 300 : double.NaN;
+            // The panel keeps its 300 px only while it has a column of its own;
+            // stacked, it takes the card width instead of leaving a dead gutter.
+            LogoPanel.Width = twoColumn ? PanelWidth : double.NaN;
 
-            if (twoColumn)
-            {
-                LogoPanel.ClearValue(MarginProperty);
-            }
-            else
-            {
-                // The gap comes from the contract, never from a number typed here.
-                LogoPanel.SetResourceReference(MarginProperty, "UiGapGroup");
-            }
+            // The gap between the two cards is the contract's direction token:
+            // side by side it is a RIGHT gap, stacked it is a BOTTOM gap. Swapping
+            // which token the card carries keeps one 16 px gutter either way —
+            // giving both cards a margin would double it to 32.
+            FormCard.SetResourceReference(MarginProperty, twoColumn ? "UiGapCluster" : "UiGapGroup");
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)

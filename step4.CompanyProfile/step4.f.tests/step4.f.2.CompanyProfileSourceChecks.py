@@ -606,6 +606,10 @@ def require_view_contract():
           "the narrow arrangement must move the panel under the form, not squeeze it")
     check("SetResourceReference(MarginProperty" in code_behind,
           "the stacked arrangement must take its gap from the contract, not a literal")
+    # The two gap tokens are directional (right vs bottom). Carrying one on each
+    # card would make a 32 px gutter; the card must swap tokens instead.
+    check('"UiGapCluster" : "UiGapGroup"' in code_behind,
+          "the reflow must swap the directional gap token, not add a second margin")
     check("OpenFileDialog" in code_behind,
           "the view owns the file picker (a view model cannot open a dialog)")
     check("SetPickedLogo" in code_behind, "the picked file must reach the view model")
