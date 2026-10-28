@@ -9,6 +9,14 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 35.2: the first run happened, and a lock that reads like a compile error
+- **The owner ran the application and set up the first administrator and users.** That is the first real execution of the round-34.8 bootstrap fix, which had made a fresh installation impossible: the person who could not have been created two rounds ago now exists.
+- **The Theme harness run failed for a reason that is not a defect.** `MSB3026` × 10, then `MSB3027`/`MSB3021`: MSBuild could not overwrite `bin\Debug\net8.0-windows7.0\ProGlassAutomation.exe` because the running application (PID 20992) held it. Every verification project references the application, so running the app blocks building the checks. The output names the file and the process, but reads as a build failure.
+- **The folder rename failed for the same lock**: `Rename-Item` on `%APPDATA%\ProGlassAutomation` returned "Access is denied" because the open `inquiries.db` lives inside it.
+- **Recorded in `docs/03`** as a prerequisite, because it will recur: close the application before building the checks, running them, or moving the data folder.
+- **Still not executed:** `step1.d.1` Theme tests (blocked by the lock this round, not by any code), the letterhead/missing-logo/TNTR checks in the running app, the nine themes rendered, and a deliberate crash producing one FATAL record.
+
+---
 ## 2026-10-28 — Round 35.1: every module's checks are green — except the one that was never run
 - **step3: 12 passed, 0 failed** — `PASS: user rules, permissions and isolated persistence.` With that, **step2 (7/7), step3 (12/12), step4 (6/6) and the diagnostics log (39 assertions) are all green**, every one of them for the first time in its existence.
 - **The balance, stated plainly.** Five compiled verification executables exist. Four have now run. The fifth — `Theme/step1.d.tests/step1.d.ThemeTests.csproj`, an STA WPF harness covering the nine themes, the contract checks and the inquiry-inbox storage — **has never been executed on any machine**, so nothing it checks is verified. It is recorded as *never executed* in the evidence table rather than counted as passing.
