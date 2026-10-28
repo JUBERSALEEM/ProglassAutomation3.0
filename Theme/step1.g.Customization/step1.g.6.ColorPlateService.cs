@@ -231,7 +231,7 @@ public static class ColorPlateService
 
     private static void RestoreRoles(ResourceDictionary package, string theme, Appearance mode)
     {
-        var fresh = ThemeService.Load(mode, theme);
+        var fresh = ThemeService.ReadOnlyBase(theme, mode);
         foreach (string role in Roles.Append("TextOnAccent"))
         {
             if (fresh[role] is not SolidColorBrush source) continue;
@@ -298,7 +298,7 @@ public static class ColorPlateService
     private static void ApplyCardTint(ResourceDictionary package, Appearance mode, ColorPlateState state, string? theme)
     {
         if (string.IsNullOrWhiteSpace(theme)) return;
-        var fresh = ThemeService.Load(mode, theme);
+        var fresh = ThemeService.ReadOnlyBase(theme, mode);
         Color? tint = ParseHex(state.CardTint);
         Color? tintEnd = ParseHex(state.CardTintEnd);
         double amount = Math.Clamp(state.CardSaturation, 0, 100) / 100d;

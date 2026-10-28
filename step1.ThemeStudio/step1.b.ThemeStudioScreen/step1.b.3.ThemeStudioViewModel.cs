@@ -89,18 +89,50 @@ public sealed partial class ThemeStudioViewModel : INotifyPropertyChanged, IData
 
     private void ThemeChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(ThemeService.ActiveAppearance) && e.PropertyName != nameof(ThemeService.ActiveTheme)) return;
-        RefreshTokens();
-        colorRoleHexDraft = ColorPlateService.ResolvedHex(colors, themes.ActiveAppearance, selectedColorRole);
-        foreach (string property in new[] { nameof(IsLight), nameof(IsDark), nameof(AppearanceLabel), nameof(SelectedTheme), nameof(IsClay), nameof(IsFluent), nameof(IsNeumorph), nameof(IsLiquid), nameof(IsGlass), nameof(IsSpatial), nameof(IsSwiss), nameof(IsHolographic), nameof(CanCustomizeBento), nameof(CanCustomizeClay), nameof(CanCustomizeNeumorph), nameof(CanCustomizeLiquid), nameof(CanCustomizeGeometry), nameof(CanCustomize), nameof(DesignSummary), nameof(SelectedRounding), nameof(SelectedFontFamily), nameof(HeadingBold), nameof(BodyItalic), nameof(BodyUnderline), nameof(SelectedIconStyle), nameof(SelectedIconCaption), nameof(SelectedColorPlate), nameof(ColorStopSummary), nameof(ColorRoleSummary), nameof(ColorRoleHex), nameof(FontFamilyChoices), nameof(IsDirty) }) Changed(property);
-        CommandManager.InvalidateRequerySuggested();
+        // ThemeService.Apply raises ActiveAppearance first and ActiveTheme after it,
+        // for one package. Everything package-bound is refreshed once, here. The old
+        // handler did all of it for both names, so every switch rebuilt the 164-row
+        // token list twice and republished ~45 properties twice for the same package.
+        if (e.PropertyName == nameof(ThemeService.ActiveAppearance))
+        {
+            RefreshTokens();
+            colorRoleHexDraft = ColorPlateService.ResolvedHex(colors, themes.ActiveAppearance, selectedColorRole);
+            foreach (string property in new[] { nameof(IsLight), nameof(IsDark), nameof(AppearanceLabel), nameof(SelectedTheme), nameof(IsClay), nameof(IsFluent), nameof(IsNeumorph), nameof(IsLiquid), nameof(IsGlass), nameof(IsSpatial), nameof(IsSwiss), nameof(IsHolographic), nameof(CanCustomizeBento), nameof(CanCustomizeClay), nameof(CanCustomizeNeumorph), nameof(CanCustomizeLiquid), nameof(CanCustomizeGeometry), nameof(CanCustomize), nameof(DesignSummary), nameof(SelectedRounding), nameof(SelectedFontFamily), nameof(HeadingBold), nameof(BodyItalic), nameof(BodyUnderline), nameof(SelectedIconStyle), nameof(SelectedIconCaption), nameof(SelectedColorPlate), nameof(ColorStopSummary), nameof(ColorRoleSummary), nameof(ColorRoleHex), nameof(FontFamilyChoices), nameof(IsDirty) }) Changed(property);
+            CommandManager.InvalidateRequerySuggested();
+            return;
+        }
+        if (e.PropertyName != nameof(ThemeService.ActiveTheme)) return;
+        // The package was handled by the appearance notification above; a theme
+        // change only has to republish what names the theme itself.
+        foreach (string property in new[] { nameof(SelectedTheme), nameof(AppearanceLabel), nameof(IsClay), nameof(IsFluent), nameof(IsNeumorph), nameof(IsLiquid), nameof(IsGlass), nameof(IsSpatial), nameof(IsSwiss), nameof(IsHolographic), nameof(CanCustomizeBento), nameof(CanCustomizeClay), nameof(CanCustomizeNeumorph), nameof(CanCustomizeLiquid), nameof(CanCustomizeGeometry), nameof(CanCustomize), nameof(DesignSummary), nameof(ThemeError), nameof(IsDirty) }) Changed(property);
     }
 
     private void RefreshTokens()
     {
-        Tokens.Clear();
-        foreach (string key in ThemeContract.Required.Keys.OrderBy(key => key))
-            Tokens.Add(TokenRow.From(key, themes.GetToken(key)));
+        // The contract key set never changes, only the values. Rebuilding the rows
+        // on every switch threw away and re-created every container in the token
+        // list, so rows are replaced in place, and only when the value changed.
+        var keys = ThemeContract.Required.Keys.OrderBy(key => key).ToList();
+        if (Tokens.Count != keys.Count)
+        {
+            Tokens.Clear();
+            foreach (string key in keys) Tokens.Add(TokenRow.From(key, themes.GetToken(key)));
+            Changed(nameof(TokenCount));
+            return;
+        }
+        for (int index = 0; index < keys.Count; index++)
+        {
+            if (Tokens[index].Name == keys[index]) continue;
+            Tokens.Clear();
+            foreach (string key in keys) Tokens.Add(TokenRow.From(key, themes.GetToken(key)));
+            Changed(nameof(TokenCount));
+            return;
+        }
+        for (int index = 0; index < keys.Count; index++)
+        {
+            var row = TokenRow.From(keys[index], themes.GetToken(keys[index]));
+            if (Tokens[index] != row) Tokens[index] = row;
+        }
         Changed(nameof(TokenCount));
     }
 

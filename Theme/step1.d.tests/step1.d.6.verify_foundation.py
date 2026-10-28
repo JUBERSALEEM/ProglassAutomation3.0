@@ -487,6 +487,7 @@ assert not contradictions, (
     f'pass on code that mislabels complete downloads: {contradictions}'
 )
 print('PASS: a placed payload is never counted as failed, and no check demands both outcomes.')
+
 # ── A corrected source rule does not correct the runtime harness ─────────────
 # Round 36: step1.d.1 asserted `model.SelectedWorkspace == 1` ("business reference
 # is the startup page"), but no source sets 1 — step1.b.17 initialises it to 2, the
@@ -610,3 +611,63 @@ for switch in re.finditer(r'SelectAppearance\(ThemeService\.(\w+),', apply_body)
     )
 print('PASS: a preset pick rebuilds the theme package once, with its state already in place.')
 
+# ── One package change is refreshed once ─────────────────────────────────────
+# ThemeService.Apply raises ActiveAppearance and then ActiveTheme for the same
+# package. The studio handled both identically, so every switch rebuilt the 164-row
+# token list and republished ~45 properties twice.
+service_text = (ROOT / 'Theme/step1.a.ThemeEngine/step1.a.2.ThemeService.cs').read_text(encoding='utf-8')
+raised = service_text.find('new[] { nameof(ActiveAppearance), nameof(ActiveTheme) }')
+assert raised > 0, (
+    'the appearance/theme notification pair has changed shape: this rule and the '
+    'studio handler both depend on ActiveAppearance being raised first'
+)
+assert 'nameof(ActiveAppearance), nameof(ActiveTheme)' in service_text, (
+    'ActiveAppearance must be raised before ActiveTheme so the package refresh happens once'
+)
+vm_text = (ROOT / 'step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.3.ThemeStudioViewModel.cs').read_text(encoding='utf-8')
+handler_start = vm_text.find('private void ThemeChanged(')
+assert handler_start > 0, 'the theme-change handler has disappeared'
+handler_end = vm_text.find('private void RefreshTokens()', handler_start)
+assert handler_end > handler_start
+handler_body = vm_text[handler_start:handler_end]
+assert handler_body.count('RefreshTokens();') == 1, (
+    'the handler refreshes the token list more than once per package change: '
+    f'{handler_body.count("RefreshTokens();")} calls'
+)
+appearance_branch = handler_body.find('nameof(ThemeService.ActiveAppearance)')
+theme_branch = handler_body.find('nameof(ThemeService.ActiveTheme)')
+assert 0 < appearance_branch < theme_branch, (
+    'the handler must refresh on the ActiveAppearance notification and only republish '
+    'theme identity on ActiveTheme'
+)
+assert 'ThemeService.ActiveTheme)) Changed(property)' not in handler_body.split('if (e.PropertyName !=')[1][:handler_body.split('if (e.PropertyName !=')[1].find('}') + 1], (
+    'the ActiveTheme branch must not repeat the package refresh'
+)
+print('PASS: one package change refreshes the studio once.')
+
+# ── Reading a theme's own values must not rebuild the package ────────────────
+# Every `themes.Apply` already builds one candidate package. The shared colour
+# overlay then called ThemeService.Load — a second whole-package clone plus a full
+# contract validation — twice per activation, only to read three brush colours that
+# the theme itself declares, and a third time when the plate is "Theme". Reading the
+# cached base is the same values without the rebuild. It must stay read-only: the
+# base is what every activation is cloned from.
+plate_service = (ROOT / 'Theme/step1.g.Customization/step1.g.6.ColorPlateService.cs').read_text(encoding='utf-8')
+loads = re.findall(r'ThemeService\.Load\([^)]*\)', plate_service)
+assert not loads, (
+    'the colour overlay rebuilds a whole theme package to read a colour, which it does '
+    f'on every activation: {loads}'
+)
+assert plate_service.count('ThemeService.ReadOnlyBase(theme, mode)') == 2, (
+    'both base reads in the colour overlay must use the cached base package'
+)
+assert 'internal static ResourceDictionary ReadOnlyBase(' in service_text, (
+    'the cached base accessor has disappeared from the theme engine'
+)
+base_body = service_text[service_text.find('internal static ResourceDictionary ReadOnlyBase('):]
+base_body = base_body[:base_body.find('\n\n')]
+assert 'BasePackage(' in base_body and 'ClonePack' not in base_body, (
+    'the read-only accessor must return the cached base, never a clone it invites a '
+    'caller to mutate'
+)
+print('PASS: reading a theme\'s own values costs a dictionary read, not a package rebuild.')

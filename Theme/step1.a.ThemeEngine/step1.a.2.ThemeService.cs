@@ -105,6 +105,16 @@ public sealed class ThemeService : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// The cached base package, for reading a theme's own values only. It is the
+    /// shared source every activation is cloned from, so it must never be mutated;
+    /// a caller that needs to write takes a clone from <see cref="Load"/>. Reading it
+    /// replaces a full Load — a whole-package clone plus contract validation — in the
+    /// shared colour overlay, which runs on every activation.
+    /// </summary>
+    internal static ResourceDictionary ReadOnlyBase(string theme, Appearance appearance) =>
+        BasePackage(ThemeCatalog.Find(theme), appearance);
+
     private static ResourceDictionary BasePackage(ThemeDefinition definition, Appearance appearance)
     {
         var key = (definition.Name, appearance);
