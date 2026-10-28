@@ -403,11 +403,23 @@ internal static class RuntimeChecks
         return false;
     }
 
+    /// <summary>
+    /// The token each theme's own ThemedWindow style paints the window with. Four of the
+    /// nine declare a material canvas of their own; the rest use ApplicationBackground.
+    /// Holographic was missing here and cost a run — step1.d.6 now parses every theme's
+    /// Foundation.xaml and fails if this table and those styles disagree.
+    /// </summary>
+    private static string WindowFillToken(string theme) => theme switch
+    {
+        ThemeService.LiquidGlass => "LiquidCanvasBrush",
+        ThemeService.Glassmorphism => "GlassCanvasBrush",
+        ThemeService.Spatial => "SpatialCanvasBrush",
+        ThemeService.Holographic => "HoloCanvasBrush",
+        _ => "ApplicationBackground"
+    };
+
     private static object WindowFill(ThemeService themes) =>
-        themes.ActiveTheme == ThemeService.LiquidGlass ? themes.GetToken("LiquidCanvasBrush")
-            : themes.ActiveTheme == ThemeService.Glassmorphism ? themes.GetToken("GlassCanvasBrush")
-            : themes.ActiveTheme == ThemeService.Spatial ? themes.GetToken("SpatialCanvasBrush")
-            : themes.GetToken("ApplicationBackground");
+        themes.GetToken(WindowFillToken(themes.ActiveTheme));
 
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
 
