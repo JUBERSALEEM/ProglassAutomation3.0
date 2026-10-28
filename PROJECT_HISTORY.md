@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 34: diagnostics verified, dispatcher policy corrected
+- **Verified:** HEAD `5ce1f54`, clean tree, local = remote. Thirteen portable checkers executed and PASS; mutation harness 16/16 caught.
+- **Could not execute:** `dotnet run --project Diagnostics/tests/AppLogBehaviourChecks.csproj` — no .NET SDK here (`dotnet: command not found`), target `net8.0-windows7.0` needs Windows. No build, no launch, no screenshot, no dispatcher crash test. Not claimed.
+- **Fixed 1 — the dispatcher no longer pretends to recover:** it records FATAL, tells the operator where the log is, and closes through `Shutdown(1)`; `Handled = true` only lets the runtime unwind into that shutdown.
+- **Fixed 2 — traps attached early:** an `App` static constructor takes the AppDomain and task traps before the field initialisers run (a `ThemeService` fault used to end the process silently), `OnStartup` adds the dispatcher trap, and the attachment flags are separate so "already attached" can never mean "only two of three".
+- **Fixed 3 — one record can no longer break the bound:** 64 KB per-record clamp with a quarter-byte character budget and an explicit `[record truncated: …]` marker.
+- **Rule K:** `AppLog.cs` split into `AppLog.cs` (292) + `AppLogProcessTraps.cs` (205); gate extended with the dispatcher policy, early attachment and the clamp, plus four new mutations.
+- **Ownership:** `Diagnostics/` confirmed as unnumbered root-level shared infrastructure (docs/06, docs/14 §8.1, rule N).
+- **Client gap (reported only):** `Clients` has timestamps but no `CreatedByUserId`/`UpdatedByUserId`; recommended as one additive migration inside a future approved client task. No migration made.
+
+---
 ## 2026-10-28 — Round 33: foundation audit, and the first real error log
 - **Reported/requested:** before any transaction module, audit what works, what is risky and whether an error can be diagnosed afterwards — then add diagnostics only if logging is missing.
 - **Found:** no process-level exception handler, no log file, no logger type; nine `Debug.WriteLine` calls (invisible in Release) were the whole logging surface; a startup failure showed a stack trace in a `MessageBox` and then shut down, leaving nothing behind. 252 `catch` clauses, 49 with an empty body — every one read in context before being called a defect.

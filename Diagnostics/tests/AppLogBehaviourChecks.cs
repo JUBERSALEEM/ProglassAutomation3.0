@@ -49,6 +49,8 @@ internal static class AppLogBehaviourChecks
             SecretsAndBusinessDataAreRedacted(root);
             AWriteFaultIsSwallowedAndReported(root);
             ARepeatIsCountedNotRewritten(root);
+            AnEnormousRecordIsClamped(root);
+            AttachmentDoesNotOverclaim();
         }
         finally
         {
@@ -203,6 +205,50 @@ internal static class AppLogBehaviourChecks
         string text = File.ReadAllText(AppLogFile.CurrentPath);
         Check(text.Contains("app.log.repeat-suppressed"),
             "the suppressed count is emitted with the next distinct record");
+    }
+
+    // ── 6. One record cannot outgrow the budget ────────────────────────
+    private static void AnEnormousRecordIsClamped(string root)
+    {
+        long before = new FileInfo(AppLogFile.CurrentPath).Length;
+
+        string huge = new string('x', 300 * 1024);
+        AppLog.Error("check.enormous", new InvalidOperationException(huge), "a record far past the limit");
+
+        long after = new FileInfo(AppLogFile.CurrentPath).Length;
+        long added = after - before;
+
+        Check(added > 0, "the clamped record was still written");
+        Check(added <= AppLogFile.MaxEntryBytes + 256,
+            $"one record added {added} bytes, within the {AppLogFile.MaxEntryBytes}-byte budget");
+
+        string text = File.ReadAllText(AppLogFile.CurrentPath);
+        Check(text.Contains("[record truncated: "),
+            "a clamped record says it was truncated instead of looking complete");
+        Check(text.Contains("check.enormous"),
+            "the head of a clamped record still names the operation");
+    }
+
+    // ── 7. The traps do not claim coverage they do not have ────────────
+    private static void AttachmentDoesNotOverclaim()
+    {
+        bool hasApplication = System.Windows.Application.Current != null;
+        if (hasApplication)
+        {
+            // Running inside a real WPF application: nothing to prove here.
+            return;
+        }
+
+        AppLog.AttachProcessHandlers();
+        AppLog.AttachProcessHandlers();       // idempotent
+
+        Check(!AppLog.DispatcherHandlerAttached,
+            "without an Application the dispatcher trap is NOT claimed as attached");
+        Check(!AppLog.ProcessHandlersAttached,
+            "'all three attached' is not claimed when only two of the three exist");
+
+        AppLog.DetachProcessHandlers();
+        Check(!AppLog.ProcessHandlersAttached, "detaching clears the state");
     }
 
     // ── helpers ────────────────────────────────────────────────────────

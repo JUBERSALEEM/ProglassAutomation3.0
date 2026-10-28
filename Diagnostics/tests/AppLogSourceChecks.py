@@ -44,6 +44,7 @@ import sys
 ROOT = Path(os.environ.get("PROGLASS_ROOT") or Path(__file__).resolve().parents[2])
 DIAG = ROOT / "Diagnostics"
 APP = DIAG / "AppLog.cs"
+TRAPS = DIAG / "AppLogProcessTraps.cs"
 STORE = DIAG / "AppLogFile.cs"
 REDACT = DIAG / "AppLogRedaction.cs"
 APP_XAML_CS = ROOT / "App.xaml.cs"
@@ -57,9 +58,9 @@ FAILURES = []
 REQUIRED_SITES = {
     "app.startup": "App.xaml.cs",
     "app.startup.customization-restore": "App.xaml.cs",
-    "app.dispatcher.unhandled": "Diagnostics/AppLog.cs",
-    "app.domain.unhandled": "Diagnostics/AppLog.cs",
-    "app.task.unobserved": "Diagnostics/AppLog.cs",
+    "app.dispatcher.unhandled": "Diagnostics/AppLogProcessTraps.cs",
+    "app.domain.unhandled": "Diagnostics/AppLogProcessTraps.cs",
+    "app.task.unobserved": "Diagnostics/AppLogProcessTraps.cs",
     "shell.first-run-check": "MainWindow.xaml.cs",
     "shell.remembered-signin": "MainWindow.xaml.cs",
     "shell.sign-in-gate.create": "MainWindow.xaml.cs",
@@ -214,7 +215,7 @@ def require_one_logger():
         check("AppendAllText" not in source and "StreamWriter" not in source,
               f"{path.name}: writes a file of its own instead of using AppLog")
 
-    for required in (APP, STORE, REDACT):
+    for required in (APP, TRAPS, STORE, REDACT):
         check(required.exists(), f"missing {required.name}")
 
 
@@ -302,6 +303,12 @@ def require_bounded():
         value = int(files.group(1))
         check(2 <= value <= 10, f"MaxFiles={value} is outside the bounded range (2–10)")
     check("RotateIfFull" in store, "there must be a rotation step")
+    check("MaxEntryBytes" in store,
+          "a single record must be clamped, or one huge stack trace breaks 'bounded'")
+    check("record truncated" in store,
+          "a clamped record must say so instead of looking complete")
+    check("MaxEntryBytes / 4" in store,
+          "the character budget must be a quarter of the byte budget, so 4-byte characters cannot overflow")
     check("File.Move" in store, "rotation must move the full file aside")
     check("File.Delete(oldest)" in store, "rotation must delete the oldest file, not grow forever")
 
@@ -350,15 +357,22 @@ def require_redaction():
 
 
 def require_process_traps():
-    app = read(APP)
+    app = read(APP) + read(TRAPS)
     for handler in ("DispatcherUnhandledException", "AppDomain.CurrentDomain.UnhandledException",
                     "TaskScheduler.UnobservedTaskException"):
         check(handler in app, f"missing process trap: {handler}")
 
     dispatcher = app[app.find("void OnDispatcherUnhandled"):app.find("void OnAppDomainUnhandled")]
-    check("args.Handled = true;" in dispatcher,
-          "the dispatcher fault must be marked handled so one bad click does not close the shell")
     check("Fatal(" in dispatcher, "a dispatcher fault must be recorded as FATAL")
+    check("System.Windows.MessageBox.Show" in dispatcher,
+          "the operator must be told what happened, not left on a half-updated screen")
+    check("Shutdown(" in dispatcher,
+          "the application must close through its own shutdown path after a dispatcher fault")
+    check("args.Handled = true;" in dispatcher,
+          "Handled must stop the runtime aborting mid-unwind; the shutdown follows it")
+    if "Fatal(" in dispatcher and "Shutdown(" in dispatcher:
+        check(dispatcher.index("Fatal(") < dispatcher.index("Shutdown("),
+              "the failure must be recorded before the application closes")
 
     domain = app[app.find("void OnAppDomainUnhandled"):app.find("void OnUnobservedTask")]
     check("Fatal(" in domain, "an AppDomain fault must be recorded as FATAL")
@@ -368,7 +382,15 @@ def require_process_traps():
     task = app[app.find("void OnUnobservedTask"):]
     check("Error(" in task, "an unobserved task fault must be recorded")
 
-    check("ProcessHandlersAttached" in app, "AttachProcessHandlers must be idempotent")
+    # Late attachment: the App type's static constructor runs before there is an
+    # Application object, so the dispatcher flag must be separate or the trap is
+    # lost for the life of the process.
+    check("DispatcherHandlerAttached" in app,
+          "the dispatcher trap needs its own attached flag")
+    check("if (ProcessHandlersAttached) return;" not in app,
+          "an early 'already attached' return would silently skip the dispatcher trap")
+    check("ProcessHandlersAttached = _domainAttached && _taskAttached && DispatcherHandlerAttached;" in app,
+          "the 'all attached' flag must be computed, not assumed")
 
 
 def require_severity_vocabulary():
@@ -388,11 +410,25 @@ def require_severity_vocabulary():
 def require_wired():
     """Startup must attach the traps, and record before it shows anything."""
     app_cs = read(APP_XAML_CS)
-    if not check("AppLog.AttachProcessHandlers();" in app_cs,
+
+    # Two attachment points, both needed and both asserted by LOCATION: a string
+    # that appears somewhere in the file proves nothing about where it runs.
+    on_startup = app_cs[app_cs.find("protected override void OnStartup"):]
+    if not check("AppLog.AttachProcessHandlers();" in on_startup,
                  "startup must attach the process traps"):
         return
-    check(app_cs.index("AppLog.AttachProcessHandlers();") < app_cs.index("Themes.Initialize(Resources);"),
+    check(on_startup.index("AppLog.AttachProcessHandlers();")
+          < on_startup.index("Themes.Initialize(Resources);"),
           "the traps must be attached before theme setup can fail")
+
+    if not check("static App()" in app_cs,
+                 "a trap must exist before the shell is constructed: the App field "
+                 "initialisers run before OnStartup, and a fault there would leave no record"):
+        return
+    check("AppLog.AttachProcessHandlers()" in app_cs[app_cs.find("static App()"):].split("public ThemeService")[0],
+          "the static constructor must attach the traps")
+    check(app_cs.index("static App()") < app_cs.index("public ThemeService Themes"),
+          "the static constructor must run before the fields initialise")
 
     start = app_cs.find("MainWindow = new MainWindow")
     check(start >= 0, "startup must create the shell")

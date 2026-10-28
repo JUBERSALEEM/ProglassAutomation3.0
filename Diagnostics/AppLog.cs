@@ -49,7 +49,7 @@ namespace ProGlassAutomation.Diagnostics
     }
 
     /// <summary>The single, failure-only diagnostic log for the application.</summary>
-    public static class AppLog
+    public static partial class AppLog
     {
         /// <summary>
         /// Identical failures repeated inside this window are counted, not
@@ -62,9 +62,6 @@ namespace ProGlassAutomation.Diagnostics
         private static string _lastSignature = "";
         private static DateTimeOffset _lastWrittenAt;
         private static int _suppressed;
-
-        /// <summary>True once <see cref="AttachProcessHandlers"/> has run.</summary>
-        public static bool ProcessHandlersAttached { get; private set; }
 
         /// <summary>Entries recorded this run (a suppressed repeat is not one).</summary>
         public static int EntriesRecorded => AppLogFile.RecordsWritten;
@@ -139,99 +136,6 @@ namespace ProGlassAutomation.Diagnostics
 
         /// <summary>Why the last write failed, or "" when the last write succeeded.</summary>
         public static string LastWriteFailure => AppLogFile.LastFailure;
-
-        /// <summary>
-        /// Registers the three process-level traps. Idempotent: calling twice does
-        /// not double-record.
-        ///
-        /// What each one can and cannot do:
-        ///   • dispatcher — a fault on the UI thread the app did not handle. We log
-        ///     it, then set Handled so the shell is not torn down for one bad click;
-        ///     the app continuing is deliberate, not a claim the fault was harmless.
-        ///   • AppDomain — a fault on a background thread with no handler. The
-        ///     runtime is already terminating; setting Handled does nothing.
-        ///   • task — a fault nobody awaited, observed before finalisation. The
-        ///     application is NOT terminating; logging and marking it observed is
-        ///     what stops an unrelated finalizer from killing the process later.
-        /// </summary>
-        public static void AttachProcessHandlers()
-        {
-            if (ProcessHandlersAttached) return;
-            ProcessHandlersAttached = true;
-
-            if (System.Windows.Application.Current != null)
-            {
-                System.Windows.Application.Current.DispatcherUnhandledException += OnDispatcherUnhandled;
-            }
-
-            AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandled;
-            TaskScheduler.UnobservedTaskException += OnUnobservedTask;
-        }
-
-        /// <summary>Removes the traps. Used by the isolated checks only.</summary>
-        public static void DetachProcessHandlers()
-        {
-            if (!ProcessHandlersAttached) return;
-            ProcessHandlersAttached = false;
-
-            if (System.Windows.Application.Current != null)
-            {
-                System.Windows.Application.Current.DispatcherUnhandledException -= OnDispatcherUnhandled;
-            }
-
-            AppDomain.CurrentDomain.UnhandledException -= OnAppDomainUnhandled;
-            TaskScheduler.UnobservedTaskException -= OnUnobservedTask;
-        }
-
-        private static void OnDispatcherUnhandled(object? sender, DispatcherUnhandledExceptionEventArgs args)
-        {
-            try
-            {
-                Fatal("app.dispatcher.unhandled",
-                    args.Exception,
-                    "thread: UI dispatcher; the fault reached the top of the message loop");
-            }
-            catch (Exception)
-            {
-                // never let the logger change what the application does next
-            }
-
-            // The shell stays up: a single unhandled click handler is not proof the
-            // whole application is unusable, and terminating would lose the owner's
-            // unsaved work. The record above is the evidence.
-            args.Handled = true;
-        }
-
-        private static void OnAppDomainUnhandled(object? sender, UnhandledExceptionEventArgs args)
-        {
-            try
-            {
-                Fatal("app.domain.unhandled",
-                    args.ExceptionObject as Exception,
-                    "isTerminating: " + args.IsTerminating
-                    + (args.ExceptionObject is Exception ? "" : "; non-exception object: "
-                        + (args.ExceptionObject?.GetType().Name ?? "null")));
-            }
-            catch (Exception)
-            {
-                // The runtime is terminating either way; nothing to recover.
-            }
-        }
-
-        private static void OnUnobservedTask(object? sender, UnobservedTaskExceptionEventArgs args)
-        {
-            try
-            {
-                Error("app.task.unobserved",
-                    args.Exception,
-                    "an awaitable faulted and nothing observed it");
-            }
-            catch (Exception)
-            {
-                // ignore
-
-            }
-        }
 
         /// <summary>
         /// Formats one record. Public so the checks can assert the exact shape

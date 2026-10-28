@@ -10,15 +10,26 @@ namespace ProGlassAutomation;
 
 public partial class App : Application
 {
+    /// <summary>
+    /// The earliest code this application owns. The generated entry point creates
+    /// this object, so its field initialisers run BEFORE <see cref="OnStartup"/>:
+    /// without a trap here, a fault while the theme service is being constructed
+    /// would end the process with no record at all. The dispatcher trap cannot
+    /// attach yet (there is no Application object), so <see cref="OnStartup"/>
+    /// attaches again — both calls are idempotent by design.
+    /// </summary>
+    static App() => AppLog.AttachProcessHandlers();
+
     public ThemeService Themes { get; } = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // Attach before anything can fail: a fault in theme setup, in the saved
-        // customisation file or in the first window must leave a record behind.
-        // Failure-only — nothing is written unless a handler is actually entered.
+        // Second call: the static constructor already took the AppDomain and task
+        // traps, and this one adds the dispatcher trap now that the Application
+        // object exists. Idempotent; failure-only, so nothing is written unless a
+        // handler is actually entered.
         AppLog.AttachProcessHandlers();
 
         try

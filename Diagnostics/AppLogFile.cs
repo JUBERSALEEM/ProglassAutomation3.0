@@ -48,7 +48,15 @@ namespace ProGlassAutomation.Diagnostics
         /// <summary>Files kept, including the current one. Oldest is deleted first.</summary>
         public const int MaxFiles = 5;
 
+        /// <summary>
+        /// Largest single record. A pathological stack trace could otherwise exceed
+        /// the whole file budget in one entry, which would make "bounded" untrue.
+        /// </summary>
+        public const int MaxEntryBytes = 64 * 1024;
+
         private static readonly object Gate = new();
+
+        private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
 
         /// <summary>
         /// Recursion guard: a failure while writing must not start a second write.
@@ -90,8 +98,21 @@ namespace ProGlassAutomation.Diagnostics
             try
             {
                 _writing = true;
-                byte[] bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)
-                    .GetBytes(entry.Replace("\r\n", "\n").TrimEnd() + Environment.NewLine);
+                string text = entry.Replace("\r\n", "\n").TrimEnd();
+                byte[] bytes = Utf8.GetBytes(text + Environment.NewLine);
+
+                if (bytes.Length > MaxEntryBytes)
+                {
+                    // Keep the head of the record — timestamp, severity, operation and
+                    // the first frames — and say plainly that the rest was dropped.
+                    // The character budget is a quarter of the byte budget, so even
+                    // four-byte characters cannot push the entry over the limit.
+                    string marker = "\n... [record truncated: " + bytes.Length
+                        + " bytes, limit " + MaxEntryBytes + "]\n";
+                    int keepChars = Math.Max(0, (MaxEntryBytes / 4) - marker.Length);
+                    if (keepChars > text.Length) keepChars = text.Length;
+                    bytes = Utf8.GetBytes(text.Substring(0, keepChars) + marker);
+                }
 
                 lock (Gate)
                 {

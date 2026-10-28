@@ -43,9 +43,9 @@ MUTATIONS = [
      "Line(context)", "context",
      "the caller's context must be scrubbed"),
 
-    ("a dispatcher fault closes the shell again", "Diagnostics/AppLog.cs",
+    ("a dispatcher fault stops being recorded as handled", "Diagnostics/AppLogProcessTraps.cs",
      "args.Handled = true;", "args.Handled = false;",
-     "marked handled so one bad click"),
+     "Handled must stop the runtime aborting"),
 
     ("e-mail addresses stop being redacted", "Diagnostics/AppLogRedaction.cs",
      "result = Email.Replace(result, Mask);", "",
@@ -74,6 +74,22 @@ MUTATIONS = [
      'AppLog.Error("shell.first-run-check", error,',
      'AppLog.Error("shell.first-run-navigated", error,',
      "names a routine event"),
+
+    ("a dispatcher fault no longer closes the application", "Diagnostics/AppLogProcessTraps.cs",
+     "System.Windows.Application.Current?.Shutdown(1);", "",
+     "must close through its own shutdown path"),
+
+    ("nothing is attached before the shell is constructed", "App.xaml.cs",
+     "static App() => AppLog.AttachProcessHandlers();", "",
+     "a trap must exist before the shell is constructed"),
+
+    ("a clamped record stops saying it was clamped", "Diagnostics/AppLogFile.cs",
+     "[record truncated: ", "[record shortened: ",
+     "must say so instead of looking complete"),
+
+    ("the character budget matches the whole byte budget", "Diagnostics/AppLogFile.cs",
+     "(MaxEntryBytes / 4)", "(MaxEntryBytes)",
+     "a quarter of the byte budget"),
 
     ("a failed startup is no longer recorded", "App.xaml.cs",
      """            AppLog.Fatal("app.startup", error,
