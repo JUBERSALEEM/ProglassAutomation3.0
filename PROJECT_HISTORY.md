@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 30b: control spacing fixed at the root, and the no-god-files rule
+- **Reported:** on the Company page the state chip, reload button and "Save company" were almost touching, and the read-only sentence was printed twice on one screen. The owner asked what in the code makes every new page repeat it.
+- **Cause:** `MarginInline` — a **text** token (8 px right, 4 px bottom) — was spacing button rows everywhere: 24 clickable surfaces in horizontal rows used it, 14 had nothing, 4 used another 8 px token. 8 px between 36–40 px filled pills reads as touching, and the 4 px bottom pushed rows off centre.
+- **Fixed:** `UiGapControl` (16 px right, left-anchored rows) and `UiGapControlEnd` (16 px left, right-anchored rows, last control flush with the card edge) in all 18 theme dictionaries; 35 surfaces migrated in the shell and step2/3/4. The read-only reason is printed once, in the footer.
+- **Pinned:** new `step1.d.18` — token parity, a 12 px floor, no text token on a clickable surface, and the row rule; Theme Studio and Inquiry frozen at today's counts. Six mutations, all caught.
+- **Owner rule K:** no god files (C# ≤ 400, XAML ≤ 750, styles in their own merged dictionary). New `step1.d.19` enforces it with frozen sizes for the nineteen pre-existing files; a stale exemption fails. First split: `step4.d.1` 946 → 724 lines, styles now `step4.d.3`.
+- **Verification:** twelve portable checkers PASS. No .NET SDK/WPF here: not compiled, not rendered.
+
+---
 ## 2026-10-28 — Round 30: the sign-in gate can no longer be lost, and the shell shows the session
 - **Why:** two `catch` blocks hid the sign-in gate when preparing it failed. With no session every write is refused, so the application sat read-only with nothing that could ask for a password again — only a restart recovered. There was also no visible "Sign in" anywhere except that gate.
 - **Fixed:** `BeginSignInAsync` shows the gate *before* the step that can fail and never collapses it; a failure goes to the card's own error box (`SignInViewModel.ReportProblem`). The first-run check failing no longer swallows the way in — it opens the sign-in gate with the reason on it.

@@ -232,6 +232,28 @@ for path in files:
 # defined in the file nor in the theme/application resources is not "empty", it is
 # a XamlParseException on open. Step 3 already carried one (`UserFieldErrorPlateX`,
 # written from memory while the real key is `UserFieldErrorPlate`).
+# A page may merge its own dictionaries (docs/00 rule K: styles live in a
+# separate part). A StaticResource in the view still resolves through the merged
+# dictionary, so its keys are local to this file — and a `Source` that points at
+# nothing is itself a crash on open, so the file is checked for existence.
+def local_keys_of(path, text):
+    keys = set(re.findall(r'x:Key="([^\":]+)"', text))
+    for source in re.findall(r'<ResourceDictionary\s+Source="([^"]+)"', text):
+        if source.startswith('pack://application:,,,/'):
+            merged = (ROOT / source[len('pack://application:,,,/'):]).resolve()
+        elif '://' in source:
+            continue
+        else:
+            merged = (path.parent / source).resolve()
+        if not merged.is_file():
+            problems.append(f'{path.relative_to(ROOT)}: merged dictionary {source!r} '
+                            'does not exist; the page fails to load')
+            continue
+        keys |= set(re.findall(r'x:Key="([^\":]+)"',
+                               merged.read_text(encoding='utf-8')))
+    return keys
+
+
 FRAMEWORK_KEYS = {'BoolVis'}
 static_refs = 0
 THEME_AND_APP_KEYS = set()
@@ -241,7 +263,7 @@ for dictionary in list(ROOT.glob('Theme/Theme*/**/*.xaml')) + [ROOT / 'App.xaml'
     THEME_AND_APP_KEYS |= set(re.findall(r'x:Key="([^":]+)"', dictionary.read_text(encoding='utf-8')))
 for path in files:
     text = code_only(path.read_text(encoding='utf-8'))
-    local = set(re.findall(r'x:Key="([^":]+)"', text))
+    local = local_keys_of(path, text)
     for reference in re.finditer(r'\{StaticResource\s+([^}]+?)\s*\}', text):
         key = reference.group(1).strip()
         if key.startswith('{x:Type') or key.startswith('{x:Static') or ' ' in key:
@@ -384,7 +406,7 @@ for view in files:
     text = code_only(view.read_text(encoding='utf-8'))
     # A view may also define and reference its own keys (the Inquiry register's
     # ContextMenu, for example) - those are local, not theme tokens.
-    local_keys = set(re.findall(r'x:Key="([^":]+)"', text))
+    local_keys = local_keys_of(view, text)
     for key in re.findall(r'\{DynamicResource\s+([^}]+?)\s*\}', text):
         if key.startswith('{x:Type') or ' ' in key:
             continue  # {DynamicResource {x:Type DataGrid}} is a style lookup

@@ -356,7 +356,7 @@
                         <TextBlock Text="Department" Style="{DynamicResource Caption}"
                                    VerticalAlignment="Center"
                                    Margin="{DynamicResource UiGapAction}" />
-                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                        <ComboBox Margin="{DynamicResource UiGapControl}" Style="{DynamicResource {x:Type ComboBox}}"
                                   MinWidth="150"
                                   MinHeight="{DynamicResource UiActionMinHeight}"
                                   ItemsSource="{Binding DepartmentFilters}"
@@ -383,7 +383,7 @@
                         <TextBlock Text="Role" Style="{DynamicResource Caption}"
                                    VerticalAlignment="Center"
                                    Margin="{DynamicResource UiGapAction}" />
-                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                        <ComboBox Margin="{DynamicResource UiGapControl}" Style="{DynamicResource {x:Type ComboBox}}"
                                   MinWidth="130"
                                   MinHeight="{DynamicResource UiActionMinHeight}"
                                   ItemsSource="{Binding RoleFilters}"
@@ -408,7 +408,7 @@
                            HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding EditSelectedCommand}"
-                            Margin="{DynamicResource UiGapAction}"
+                            Margin="{DynamicResource UiGapControlEnd}"
                             MinHeight="{DynamicResource UiActionMinHeight}"
                             Padding="{DynamicResource UiActionPadding}"
                             VerticalAlignment="Center"
@@ -425,7 +425,7 @@
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding ToggleActiveCommand}"
                             CommandParameter="{Binding SelectedRow}"
-                            Margin="{DynamicResource UiGapAction}"
+                            Margin="{DynamicResource UiGapControlEnd}"
                             MinHeight="{DynamicResource UiActionMinHeight}"
                             Padding="{DynamicResource UiActionPadding}"
                             VerticalAlignment="Center"
@@ -446,7 +446,7 @@
                          is a plain button, named as an action. -->
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding RefreshCommand}"
-                            Margin="{DynamicResource UiGapAction}"
+                            Margin="{DynamicResource UiGapControlEnd}"
                             MinHeight="{DynamicResource UiActionMinHeight}"
                             Padding="{DynamicResource UiActionPadding}"
                             VerticalAlignment="Center"
@@ -467,7 +467,7 @@
                          workstation must be able to end it. -->
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding SignOutCommand}"
-                            Margin="{DynamicResource UiGapAction}"
+                            Margin="{DynamicResource UiGapControlEnd}"
                             MinHeight="{DynamicResource UiActionMinHeight}"
                             Padding="{DynamicResource UiActionPadding}"
                             VerticalAlignment="Center"
@@ -485,7 +485,7 @@
 
                     <Button Style="{DynamicResource PrimaryButton}"
                             Command="{Binding NewUserCommand}"
-                            Margin="{DynamicResource UiGapCluster}"
+                            Margin="{DynamicResource UiGapControlEnd}"
                             MinHeight="{DynamicResource UiActionMinHeight}"
                             Padding="{DynamicResource UiActionPadding}"
                             VerticalAlignment="Center"

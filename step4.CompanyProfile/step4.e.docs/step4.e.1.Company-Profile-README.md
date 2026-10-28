@@ -40,6 +40,19 @@ that runs it.
 
 ---
 
+## Where the markup lives (rule K — no god files)
+
+| File | Content |
+| --- | --- |
+| `step4.d.1.CompanyProfileView.xaml` | the page: three bands, the form, the logo panel (724 lines) |
+| `step4.d.3.CompanyProfileStyles.xaml` | the page's styles: state chip, captions, hairline, placement tile, file chip (239 lines), merged by `step4.d.1` |
+| `step4.d.2.CompanyProfileView.xaml.cs` | load, the width-driven reflow, focus |
+
+A `StaticResource` inside the view resolves through that merged dictionary, so a
+style may move between the two files without any element changing. `step4.f.2`
+checks the merge exists and scans the dictionary for the same rules (no literal
+colours or sizes) as the page itself.
+
 ## The page (owner-approved 2026-10-28)
 
 Three bands, one scroll region:

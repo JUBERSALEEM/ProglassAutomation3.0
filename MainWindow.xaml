@@ -227,7 +227,7 @@
                 <DockPanel Margin="{DynamicResource PaddingCompact}">
                     <Button DockPanel.Dock="Right" Content="◀◀" Command="{Binding ToggleMenu}" Style="{StaticResource ShellIconButton}" ToolTip="Hide menu" AutomationProperties.Name="Close menu" />
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="{DynamicResource ControlMinHeight}" Height="{DynamicResource ControlMinHeight}" CornerRadius="{DynamicResource ChipCornerRadius}" Background="{DynamicResource AccentPrimary}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center">
+                        <Border Width="{DynamicResource ControlMinHeight}" Height="{DynamicResource ControlMinHeight}" CornerRadius="{DynamicResource ChipCornerRadius}" Background="{DynamicResource AccentPrimary}" Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center">
                             <Image Source="{StaticResource AppMark}" Stretch="Uniform" Margin="{DynamicResource PaddingMark}" />
                         </Border>
                         <StackPanel VerticalAlignment="Center">
@@ -755,7 +755,7 @@
                         <Button Content="☰"
                                 Command="{Binding ToggleMenu}"
                                 Style="{StaticResource ShellMenuToggleButton}"
-                                Margin="{DynamicResource MarginInline}"
+                                Margin="{DynamicResource UiGapControl}"
                                 VerticalAlignment="Center"
                                 ToolTip="Open menu"
                                 AutomationProperties.Name="Toggle menu" />
@@ -804,18 +804,18 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                                <Button Style="{StaticResource ShellBannerButton}"
+                                <Button Margin="{DynamicResource UiGapControl}" Style="{StaticResource ShellBannerButton}"
                                         Command="{Binding ActionCommand}"
                                         Content="{Binding ActionLabel}"
                                         ToolTip="{Binding ActionTooltip}"
                                         AutomationProperties.Name="{Binding ActionAccessibleName}" />
                             </StackPanel>
-                            <Border Style="{StaticResource ShellBannerRule}" />
+                            <Border Margin="{DynamicResource UiGapControl}" Style="{StaticResource ShellBannerRule}" />
                             <TextBlock Text="{Binding ShellClock}" Style="{DynamicResource Caption}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
-                            <Border Style="{StaticResource ShellBannerRule}" />
-                            <Button Content="Home" Command="{Binding ShowBusiness}" Style="{StaticResource ShellBannerButton}" ToolTip="Home" AutomationProperties.Name="Go home" />
-                            <Border Style="{StaticResource ShellBannerRule}" />
-                            <Button Content="Dark" Command="{Binding ToggleAppearance}" Style="{StaticResource ShellBannerButton}" AutomationProperties.Name="Toggle appearance" />
+                            <Border Margin="{DynamicResource UiGapControl}" Style="{StaticResource ShellBannerRule}" />
+                            <Button Margin="{DynamicResource UiGapControl}" Content="Home" Command="{Binding ShowBusiness}" Style="{StaticResource ShellBannerButton}" ToolTip="Home" AutomationProperties.Name="Go home" />
+                            <Border Margin="{DynamicResource UiGapControl}" Style="{StaticResource ShellBannerRule}" />
+                            <Button Margin="{DynamicResource UiGapControl}" Content="Dark" Command="{Binding ToggleAppearance}" Style="{StaticResource ShellBannerButton}" AutomationProperties.Name="Toggle appearance" />
                         </StackPanel>
                     </ContentControl>
                 </Grid>

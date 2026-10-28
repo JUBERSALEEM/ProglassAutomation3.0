@@ -224,7 +224,7 @@
                             Command="{Binding RegisterCommand}"
                             MinHeight="{DynamicResource UiActionMinHeight}"
                             Padding="{DynamicResource UiActionPadding}"
-                            Margin="{DynamicResource UiGapAction}"
+                            Margin="{DynamicResource UiGapControl}"
                             AutomationProperties.Name="{Binding SubmitAccessibleName}">
                         <StackPanel Orientation="Horizontal">
                             <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
@@ -238,7 +238,7 @@
                             Command="{Binding DismissCommand}"
                             MinHeight="{DynamicResource UiActionMinHeight}"
                             Padding="{DynamicResource UiActionPadding}"
-                            Margin="{DynamicResource UiGapCluster}"
+                            Margin="{DynamicResource UiGapControl}"
                             ToolTip="Continue without an administrator; the Users page keeps this step available"
                             AutomationProperties.Name="Set up later">
                         <TextBlock Text="Set up later" VerticalAlignment="Center" />

@@ -74,6 +74,17 @@ public static class ThemeContract
         ["UiGapSection"] = typeof(Thickness),
         ["UiGapAction"] = typeof(Thickness),
         ["UiGapCluster"] = typeof(Thickness),
+        // Control-to-control spacing (round 30b). Two jobs used to share one
+        // token: `MarginInline` (a TEXT token: 8 right, 4 bottom) was carrying
+        // every button row in the application, so filled pills 36–40 px tall sat
+        // 8 px apart and read as touching. These two are the only tokens a
+        // clickable surface or a chip may use inside a horizontal row:
+        //   Control     left-anchored row: the gap sits to the RIGHT of each item
+        //   ControlEnd  right-anchored row: the gap sits to the LEFT of each item,
+        //               so the last control stays flush with the card edge
+        // Both are one 16 px gutter, never smaller: docs/00.Project-Rules.md, rule K.
+        ["UiGapControl"] = typeof(Thickness),
+        ["UiGapControlEnd"] = typeof(Thickness),
         ["UiPagePadding"] = typeof(Thickness),
         ["UiCardPadding"] = typeof(Thickness),
         ["UiActionMinHeight"] = typeof(double),

@@ -370,7 +370,7 @@
 
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding ClearSearchCommand}"
-                            Margin="{DynamicResource MarginInline}"
+                            Margin="{DynamicResource UiGapControl}"
                             ToolTip="Clear the search"
                             AutomationProperties.Name="Clear search">
                         <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"
@@ -383,7 +383,7 @@
                          a row that was never selected. -->
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding EditSelectedCommand}"
-                            Margin="{DynamicResource MarginInline}"
+                            Margin="{DynamicResource UiGapControl}"
                             IsEnabled="{Binding HasSelection}"
                             ToolTip="Edit the selected client"
                             AutomationProperties.Name="Edit selected client">
@@ -397,7 +397,7 @@
                     <Button Style="{DynamicResource SubtleButton}"
                             Command="{Binding ToggleActiveCommand}"
                             CommandParameter="{Binding SelectedRow}"
-                            Margin="{DynamicResource MarginInline}"
+                            Margin="{DynamicResource UiGapControl}"
                             IsEnabled="{Binding HasSelection}"
                             ToolTip="Activate or deactivate the selected client"
                             AutomationProperties.Name="Activate or deactivate selected client">
@@ -412,7 +412,7 @@
 
                     <Button Style="{DynamicResource PrimaryButton}"
                             Command="{Binding NewClientCommand}"
-                            Margin="{DynamicResource MarginInline}"
+                            Margin="{DynamicResource UiGapControl}"
                             AutomationProperties.Name="New client">
                         <StackPanel Orientation="Horizontal">
                             <studio:ShellMark Kind="Add" Width="{DynamicResource ChoiceMarkSize}"
@@ -421,7 +421,7 @@
                             <TextBlock Text="NEW CLIENT" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <Button x:Name="MoreActionsButton" Style="{DynamicResource SubtleButton}"
+                    <Button Margin="{DynamicResource UiGapControl}" x:Name="MoreActionsButton" Style="{DynamicResource SubtleButton}"
                             Content="⋯"
                             Click="OnMoreActionsClick"
                             ToolTip="More actions"

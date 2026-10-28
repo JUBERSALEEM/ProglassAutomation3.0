@@ -49,6 +49,8 @@
   <Thickness x:Key="UiGapSection">0,0,0,24</Thickness>
   <Thickness x:Key="UiGapAction">0,0,8,0</Thickness>
   <Thickness x:Key="UiGapCluster">0,0,16,0</Thickness>
+  <Thickness x:Key="UiGapControl">0,0,16,0</Thickness>
+  <Thickness x:Key="UiGapControlEnd">16,0,0,0</Thickness>
   <Thickness x:Key="UiPagePadding">24</Thickness>
   <Thickness x:Key="UiCardPadding">16</Thickness>
   <sys:Double x:Key="UiActionMinHeight">36</sys:Double>

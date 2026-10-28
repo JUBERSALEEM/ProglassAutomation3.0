@@ -463,6 +463,20 @@ def require_view_contract():
     controls = set(re.findall(r"\[typeof\(([A-Za-z0-9]+)\)\]\s*=\s*typeof", contract))
     local = set(re.findall(r'x:Key="([A-Za-z0-9]+)"', text))
 
+    # The page's own styles live in step4.d.3 and are merged here (docs/00 rule L:
+    # no god files). A key defined in that dictionary is a local key of this page,
+    # and the dictionary must really exist — a `Source` pointing at nothing is a
+    # XamlParseException at start-up, not a compile error.
+    merged_markup = ""
+    for source in re.findall(r'<ResourceDictionary\s+Source="([^"]+)"', text):
+        merged_path = (view_path.parent / source).resolve()
+        check(merged_path.is_file(),
+              f"{view_path.name}: merged dictionary '{source}' does not exist")
+        if merged_path.is_file():
+            merged_text = read(merged_path)
+            merged_markup += merged_text
+            local |= set(re.findall(r'x:Key="([A-Za-z0-9]+)"', merged_text))
+
     for key in re.findall(r"\{DynamicResource ([A-Za-z0-9]+)\}", text):
         check(key in declared, f"unknown theme resource '{key}'")
     for key in re.findall(r"\{StaticResource ([A-Za-z0-9]+)\}", text):
@@ -477,7 +491,9 @@ def require_view_contract():
         (r'FontSize="(\d+(?:\.\d+)?)"', "literal font size"),
         (r'FontFamily="([^"{]+)"', "literal font family"),
     ):
-        for literal in re.findall(pattern, text):
+        # The merged styles are scanned too: moving markup into another file must
+        # not move it out of the gates.
+        for literal in re.findall(pattern, text + merged_markup):
             check(False, f"{view_path.name}: {label} {literal}")
 
     # Theme-owned card roles are looked up dynamically, never captured statically.
@@ -550,8 +566,17 @@ def require_view_contract():
     require_bindings_exist(text)
 
     # Honest state: unsaved changes, a refusal reason, a save confirmation.
-    for binding in ("HasUnsavedNotice", "UnsavedText", "HasReadOnlyReason", "HasError", "HasStatus"):
+    for binding in ("HasUnsavedNotice", "UnsavedText", "HasError", "HasStatus"):
         check(binding in text, f"{view_path.name}: missing the state binding {binding}")
+
+    # One sentence, one place. The page printed the read-only reason in a banner
+    # above the form AND in the footer, so the same line appeared twice on screen
+    # (owner screenshot, round 30b). FooterNote composes it; the view binds that.
+    check("ReadOnlyReason" not in text,
+          f"{view_path.name}: the read-only reason belongs in the footer sentence "
+          "(FooterNote): a second copy prints one sentence twice on one screen")
+    check("FooterNote" in text,
+          f"{view_path.name}: the footer must carry the read-only reason")
 
     # Radio buttons, not a canvas or a bespoke toggle, choose the composition:
     # every installed theme templates RadioButton. The owner approved the

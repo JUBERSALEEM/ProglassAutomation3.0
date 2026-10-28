@@ -46,227 +46,15 @@
          every image is Stretch="Uniform" so no logo can be distorted.
          ───────────────────────────────────────────────────────────────── -->
     <UserControl.Resources>
-        <!-- Visibility from a boolean, expressed without a Style:
-             `BasedOn` is a plain CLR property on Style, not a dependency
-             property, so `BasedOn="{DynamicResource ...}"` throws
-             XamlParseException at load. -->
-        <BooleanToVisibilityConverter x:Key="CompanyVisibility" />
-
-        <!-- ── Header state chip ──────────────────────────────────────
-             One chip, three states, styled by DataTrigger. The colour is the
-             theme's own status surface, so it reads correctly in all nine
-             packages and in both modes. -->
-        <Style x:Key="CompanyStateChip" TargetType="Border">
-            <Setter Property="CornerRadius" Value="{DynamicResource ChipCornerRadius}" />
-            <Setter Property="Background" Value="{DynamicResource SurfaceSecondary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
-            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsHeaderSaved}" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource StatusSuccessSurface}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource StatusSuccess}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsHeaderDirty}" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource StatusWarningSurface}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource StatusWarning}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="CompanyStateText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsHeaderSaved}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource StatusSuccess}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsHeaderDirty}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource StatusWarning}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- The dot beside the state text carries the same colour as the chip. -->
-        <Style x:Key="CompanyStateDot" TargetType="Ellipse">
-            <Setter Property="Width" Value="{DynamicResource ChoiceMarkSize}" />
-            <Setter Property="Height" Value="{DynamicResource ChoiceMarkSize}" />
-            <Setter Property="Fill" Value="{DynamicResource TextMuted}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsHeaderSaved}" Value="True">
-                    <Setter Property="Fill" Value="{DynamicResource StatusSuccess}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsHeaderDirty}" Value="True">
-                    <Setter Property="Fill" Value="{DynamicResource StatusWarning}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- ── Section heading ────────────────────────────────────────
-             Caption + hairline rule, the dense pattern from the mockup: the rule
-             does the separating, so a section costs 16 px, not a new card. -->
-        <Style x:Key="CompanySectionCaption" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
-        </Style>
-
-        <Style x:Key="CompanyHairline" TargetType="Border">
-            <Setter Property="Height" Value="{DynamicResource StrokeWidth}" />
-            <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
-        </Style>
-
-        <!-- Field label: the field's name, above its own box, at every width.
-             Stacked labels are what keep the three-per-row grid readable when
-             the window narrows. -->
-        <Style x:Key="CompanyFieldLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
-        </Style>
-
-        <Style x:Key="CompanyHint" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
-        </Style>
-
-        <!-- A validation message sits directly under its own field, in the
-             theme's error colour, and disappears as the field is corrected. -->
-        <Style x:Key="CompanyFieldError" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-            <Setter Property="Foreground" Value="{DynamicResource StatusError}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
-        </Style>
-
-        <!-- ── Placement tile ─────────────────────────────────────────
-             A three-way choice rendered as three equal tiles instead of three
-             radio buttons: selected takes the accent border and the accent
-             surface, the way the mockup shows it. It is still a RadioButton, so
-             the group, the keyboard behaviour and the accessible name are the
-             platform's own. -->
-        <Style x:Key="CompanyPlacementTile" TargetType="RadioButton">
-            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
-            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Tile"
-                                Background="{DynamicResource SurfaceSecondary}"
-                                BorderBrush="{DynamicResource BorderSubtle}"
-                                BorderThickness="{DynamicResource BorderThicknessControl}"
-                                CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Padding="{DynamicResource PaddingCompact}">
-                            <ContentPresenter />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Tile" Property="BorderBrush"
-                                        Value="{DynamicResource BorderStrong}" />
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Tile" Property="BorderBrush"
-                                        Value="{DynamicResource AccentPrimary}" />
-                                <Setter TargetName="Tile" Property="Background"
-                                        Value="{DynamicResource AccentSoft}" />
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Tile" Property="Opacity"
-                                        Value="{DynamicResource DisabledOpacity}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="CompanyTileCaption" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="TextAlignment" Value="Center" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
-        </Style>
-
-        <!-- The little diagram inside a placement tile. It is drawn from theme
-             brushes, never from an image, so it recolours with the package. -->
-        <Style x:Key="CompanyTileDiagram" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
-            <Setter Property="CornerRadius" Value="{DynamicResource ChipCornerRadius}" />
-            <Setter Property="Padding" Value="{DynamicResource PaddingMark}" />
-            <Setter Property="Height" Value="38" />
-            <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
-        </Style>
-
-        <Style x:Key="CompanyTileLogoBlock" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-            <Setter Property="CornerRadius" Value="{DynamicResource ChipCornerRadius}" />
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-        </Style>
-
-        <Style x:Key="CompanyTileTextLine" TargetType="Border">
-            <Setter Property="Height" Value="{DynamicResource StrokeWidth}" />
-            <Setter Property="Background" Value="{DynamicResource BorderStrong}" />
-            <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
-        </Style>
-
-        <!-- ── Letterhead mock ───────────────────────────────────────
-             The sheet the identity will print on. Primary surface inside a
-             hairline, so it reads as paper on any theme without a fixed white. -->
-        <Style x:Key="CompanySheet" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
-            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
-            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
-            <Setter Property="Margin" Value="{DynamicResource MarginSection}" />
-        </Style>
-
-        <Style x:Key="CompanySheetName" TargetType="TextBlock">
-            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-
-        <Style x:Key="CompanySheetLine" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-
-        <!-- ── File chip ─────────────────────────────────────────────
-             Thumbnail, name, size — one row, the mockup's file chip. It shows
-             the PICKED file before a save and the stored asset after it. -->
-        <Style x:Key="CompanyFileChip" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfaceSecondary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
-            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
-            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
-            <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
-        </Style>
-
-        <Style x:Key="CompanyFileName" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Styles live in step4.d.3: the page is markup for one screen,
+                     the styles are a separate part. Merged here so every
+                     StaticResource below resolves exactly as it did when the
+                     two sat in one 950-line file. -->
+                <ResourceDictionary Source="step4.d.3.CompanyProfileStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid>
@@ -302,7 +90,7 @@
                      never set up. The long sentence stays in ProfileStateText and
                      is shown in the footer, so the header stays one line high. -->
                 <Border Style="{StaticResource CompanyStateChip}"
-                        Margin="{DynamicResource MarginInline}"
+                        Margin="{DynamicResource UiGapControlEnd}"
                         ToolTip="{Binding ProfileStateText}">
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Style="{StaticResource CompanyStateDot}" />
@@ -314,7 +102,7 @@
 
                 <Button Style="{DynamicResource SubtleButton}"
                         Command="{Binding RefreshCommand}"
-                        Margin="{DynamicResource MarginInline}"
+                        Margin="{DynamicResource UiGapControlEnd}"
                         ToolTip="Read the saved profile again"
                         AutomationProperties.Name="Reload the company profile">
                     <studio:ShellMark Kind="Refresh" Width="{DynamicResource ChoiceMarkSize}"
@@ -323,7 +111,7 @@
 
                 <Button Style="{DynamicResource PrimaryButton}"
                         Command="{Binding SaveCommand}"
-                        Margin="{DynamicResource MarginInline}"
+                        Margin="{DynamicResource UiGapControlEnd}"
                         IsEnabled="{Binding CanSave}"
                         ToolTip="Save the company profile"
                         AutomationProperties.Name="Save the company profile">
@@ -360,21 +148,11 @@
                                 Margin="{DynamicResource UiGapCluster}"
                                 VerticalAlignment="Top">
                     <StackPanel>
-                        <!-- Read-only notice: only when this person cannot save.
-                             The reason is printed; a disabled Save would not say
-                             why, and the repository refuses the write anyway. -->
-                        <Border Background="{DynamicResource StatusInformationSurface}"
-                                BorderBrush="{DynamicResource StatusInformation}"
-                                BorderThickness="{DynamicResource BorderThicknessControl}"
-                                CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Padding="{DynamicResource PaddingControl}"
-                                Margin="{DynamicResource MarginSection}"
-                                Visibility="{Binding HasReadOnlyReason, Converter={StaticResource CompanyVisibility}}">
-                            <TextBlock Text="{Binding ReadOnlyReason}"
-                                       Style="{StaticResource CompanyHint}"
-                                       Foreground="{DynamicResource TextPrimary}"
-                                       AutomationProperties.Name="Why the profile is read-only" />
-                        </Border>
+                        <!-- The read-only reason is printed ONCE, in the footer
+                             sentence (FooterNote). It used to appear here as well,
+                             so the same line ran twice on one screen (owner
+                             screenshot, round 30b). The footer is sticky, so the
+                             reason is still on screen beside the disabled form. -->
 
                         <!-- Refused save: the sentence names what to fix. -->
                         <Border Background="{DynamicResource StatusErrorSurface}"
@@ -925,7 +703,7 @@
             <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button Style="{DynamicResource SubtleButton}"
                         Command="{Binding RevertCommand}"
-                        Margin="{DynamicResource MarginInline}"
+                        Margin="{DynamicResource UiGapControlEnd}"
                         IsEnabled="{Binding HasUnsavedChanges}"
                         ToolTip="Discard the changes on this page and reload the saved profile"
                         AutomationProperties.Name="Revert unsaved changes">
@@ -933,7 +711,7 @@
                 </Button>
                 <Button Style="{DynamicResource PrimaryButton}"
                         Command="{Binding SaveCommand}"
-                        Margin="{DynamicResource MarginInline}"
+                        Margin="{DynamicResource UiGapControlEnd}"
                         IsEnabled="{Binding CanSave}"
                         ToolTip="Save the company profile"
                         AutomationProperties.Name="Save the company profile from the footer">

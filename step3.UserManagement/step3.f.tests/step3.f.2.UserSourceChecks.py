@@ -952,10 +952,14 @@ def require_layout_contract():
                 page_buttons += 1
                 check('MinHeight="{DynamicResource UiActionMinHeight}"' in tag,
                       f"{path.name}: action button without the 36 px minimum height")
+                # Round 30b: a button carries a shared gap token. Inside a row it
+                # is the 16 px control gap (UiGapControl / UiGapControlEnd); a
+                # standalone action under a card uses the vertical scale instead.
+                # step1.d.18 owns the row rule; this one owns "not margin-less".
                 check(any(token in tag for token in (
-                          'Margin="{DynamicResource UiActionGap}"',
-                          'Margin="{DynamicResource UiGapAction}"',
-                          'Margin="{DynamicResource UiGapCluster}"',
+                          'Margin="{DynamicResource UiGapControl}"',
+                          'Margin="{DynamicResource UiGapControlEnd}"',
+                          'Margin="{DynamicResource UiGapGroup}"',
                           'Margin="{DynamicResource UiGapSection}"')),
                       f"{path.name}: action button without a shared gap token")
     check(page_buttons >= 6, "the step3 views must still expose their action buttons")
@@ -966,11 +970,12 @@ def require_layout_contract():
               f'Command="{{Binding {command}}}"' in editor,
               f"the module must still offer {command}")
 
-    # Adjacent buttons inside one cluster use the 8 px action gap: SAVE USER,
-    # the status action and Cancel sit in the same footer cluster.
+    # Adjacent buttons inside one cluster use the control gap: SAVE USER, the
+    # status action and Cancel sit in the same right-anchored footer cluster, so
+    # each carries the END token and the last one stays flush with the card edge.
     footer = editor[editor.index("<WrapPanel HorizontalAlignment=\"Right\">"):]
-    check(footer.count('Margin="{DynamicResource UiGapAction}"') >= 3,
-          "the editor footer buttons must be separated by the shared action gap")
+    check(footer.count('Margin="{DynamicResource UiGapControlEnd}"') >= 3,
+          "the editor footer buttons must be separated by the 16 px control gap")
 
     # B6 — no surface inside a surface. The footer used to be a Plate inside the
     # Card, and because Plate ships PaddingPlate while the card pins UiCardPadding

@@ -397,7 +397,7 @@
                                 Command="{Binding SaveCommand}"
                                 MinHeight="{DynamicResource UiActionMinHeight}"
                                 Padding="{DynamicResource UiActionPadding}"
-                                Margin="{DynamicResource UiGapAction}"
+                                Margin="{DynamicResource UiGapControlEnd}"
                                 AutomationProperties.Name="Save user">
                             <StackPanel Orientation="Horizontal">
                                 <studio:ShellMark Kind="Save" Width="{DynamicResource ChoiceMarkSize}"
@@ -410,7 +410,7 @@
                                 Command="{Binding DeactivateCommand}"
                                 MinHeight="{DynamicResource UiActionMinHeight}"
                                 Padding="{DynamicResource UiActionPadding}"
-                                Margin="{DynamicResource UiGapAction}"
+                                Margin="{DynamicResource UiGapControlEnd}"
                                 IsEnabled="{Binding CanChangeStatus}"
                                 AutomationProperties.Name="Activate or deactivate user">
                             <StackPanel Orientation="Horizontal">
@@ -424,7 +424,7 @@
                                 Command="{Binding CancelCommand}"
                                 MinHeight="{DynamicResource UiActionMinHeight}"
                                 Padding="{DynamicResource UiActionPadding}"
-                                Margin="{DynamicResource UiGapAction}"
+                                Margin="{DynamicResource UiGapControlEnd}"
                                 AutomationProperties.Name="Cancel editing">
                             <StackPanel Orientation="Horizontal">
                                 <studio:ShellMark Kind="Cancel" Width="{DynamicResource ChoiceMarkSize}"

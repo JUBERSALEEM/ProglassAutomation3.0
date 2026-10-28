@@ -169,7 +169,7 @@
                         <Button Command="{Binding SignInCommand}"
                                 MinHeight="{DynamicResource UiActionMinHeight}"
                                 Padding="{DynamicResource UiActionPadding}"
-                                Margin="{DynamicResource UiGapAction}"
+                                Margin="{DynamicResource UiGapControlEnd}"
                                 IsEnabled="{Binding IsIdle}"
                                 AutomationProperties.Name="Sign in">
                             <Button.Style>
@@ -194,7 +194,7 @@
                         <Button Command="{Binding ChangePasswordCommand}"
                                 MinHeight="{DynamicResource UiActionMinHeight}"
                                 Padding="{DynamicResource UiActionPadding}"
-                                Margin="{DynamicResource UiGapAction}"
+                                Margin="{DynamicResource UiGapControlEnd}"
                                 IsEnabled="{Binding IsIdle}"
                                 AutomationProperties.Name="Set the new password">
                             <Button.Style>
