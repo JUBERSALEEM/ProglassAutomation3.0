@@ -148,6 +148,24 @@ namespace ProGlassAutomation.ViewModels.Users
             : Explanation;
 
         /// <summary>
+        /// Puts a failure the person must know about on the card's own error
+        /// surface, above the buttons where the retry is.
+        /// </summary>
+        /// <remarks>
+        /// Round 30: the shell no longer collapses this gate when preparing it
+        /// fails — that left the application with no session and no way in. The
+        /// gate now stays on screen and this is how it says why it is there.
+        /// </remarks>
+        public void ReportProblem(string message)
+        {
+            IsBusy = false;                        // a stuck spinner would hide the retry
+            StatusMessage = "";
+            ErrorMessage = string.IsNullOrWhiteSpace(message)
+                ? "The sign-in screen could not be prepared. Try again."
+                : message;
+        }
+
+        /// <summary>
         /// Prepares the card. The directory is expected to be initialized already
         /// (the shell runs first-run setup first).
         /// </summary>

@@ -9,6 +9,14 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 30: the sign-in gate can no longer be lost, and the shell shows the session
+- **Why:** two `catch` blocks hid the sign-in gate when preparing it failed. With no session every write is refused, so the application sat read-only with nothing that could ask for a password again — only a restart recovered. There was also no visible "Sign in" anywhere except that gate.
+- **Fixed:** `BeginSignInAsync` shows the gate *before* the step that can fail and never collapses it; a failure goes to the card's own error box (`SignInViewModel.ReportProblem`). The first-run check failing no longer swallows the way in — it opens the sign-in gate with the reason on it.
+- **Added:** `step3.c.5.ShellSessionViewModel` — the shell banner now shows who is operating and offers one action, **Sign in** or **Sign out**, on every page, plus a "Sign-in problem" marker with the reason in its tooltip and accessible name. It reads the session and writes nothing.
+- **Gate:** `step3.f.2` gained `require_sign_in_is_reachable`, with `catch` bodies matched by braces rather than a fixed-width regex. Eight mutations reinstated; two survived at first and the rules were tightened until each failed with its own message. `step3.f.1` gained a database-free behaviour check for the banner and the card's error surface.
+- **Verification:** ten portable checkers PASS. No .NET SDK/WPF here: not compiled, not rendered; `step3.f.1` was not run.
+
+---
 ## 2026-10-28 — Round 29: Company Profile page rebuilt to the approved mockup (10)
 - **Why:** the first build opened but looked unprofessional — dead band between two columns, mixed 16/24 spacing systems, no row rhythm, a floating read-only strip, and no bottom bar.
 - **Approved:** mockup 10 of ten directions — compact 1280×800 ERP page, 8 px grid, equal-height cards, sticky footer, placement tiles, file chip.

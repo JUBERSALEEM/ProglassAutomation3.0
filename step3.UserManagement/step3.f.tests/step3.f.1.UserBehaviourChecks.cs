@@ -29,6 +29,7 @@ using ProGlassAutomation.Models.Users;
 using ProGlassAutomation.Services.Database;
 using ProGlassAutomation.Services.Database.SchemaMigrations;
 using ProGlassAutomation.Services.Users;
+using ProGlassAutomation.ViewModels.Users;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -61,6 +62,7 @@ internal static class UserBehaviourChecks
         Run("first-run flow (service)", CheckFirstRunFlow);
         Run("credentials and read scope (isolated database)", CheckCredentials);
         Run("first password on an upgraded directory (isolated database)", CheckFirstPasswordUpgrade);
+        Run("shell session control and the gate's error surface", CheckShellSession);
 
         Console.WriteLine();
         Console.WriteLine($"step3 user checks: {_passed} passed, {Failures.Count} failed.");
@@ -395,6 +397,81 @@ internal static class UserBehaviourChecks
             "while locked, even the right password is refused");
         True(lockedOut.Message.Contains("second", StringComparison.OrdinalIgnoreCase),
             "and the operator is told how long to wait: " + lockedOut.Message);
+    }
+
+    /// <summary>
+    /// Round 30 (owner report): a failed gate preparation collapsed the only way
+    /// into a session, and nothing else in the shell offered it — the application
+    /// stayed read-only until it was restarted. Two things must be true now:
+    /// the shell always shows the session and offers the step, and a failure has
+    /// a surface to land on instead of a silent collapse.
+    ///
+    /// Pure state, no database: this is about what the banner says and what the
+    /// card does with a message.
+    /// </summary>
+    private static void CheckShellSession()
+    {
+        AuthenticationContext.SignOut();
+
+        var banner = new ShellSessionViewModel();
+        banner.Refresh();
+
+        Equal("Sign in", banner.ActionLabel,
+            "with nobody signed in the banner must offer the way in");
+        Equal("Not signed in", banner.SessionLabel,
+            "and must say so, rather than showing an empty label");
+        True(banner.SessionTooltip.Contains("read-only", StringComparison.OrdinalIgnoreCase),
+            "the tooltip must say what being signed out means: " + banner.SessionTooltip);
+        True(!banner.HasProblem, "a healthy banner must not show a problem marker");
+
+        int requests = 0;
+        banner.ActionRequested += (_, _) => requests++;
+        banner.ActionCommand.Execute(null);
+        True(requests == 1, "the banner's command must ask the shell for the gate");
+
+        var admin = new User
+        {
+            Id = 4242,
+            Username = "fsalem",
+            NormalizedUsername = "FSALEM",
+            FullName = "Fatima Al Zaabi",
+            Role = UserCatalog.AdministratorRole,
+            IsActive = true
+        };
+        AuthenticationContext.SignIn(admin);
+        banner.Refresh();
+
+        Equal("Sign out", banner.ActionLabel,
+            "with a session open the banner must offer to end it");
+        Equal("Fatima Al Zaabi", banner.SessionLabel,
+            "the banner shows the person, not an empty chip");
+        True(banner.ActionAccessibleName.Contains("Fatima Al Zaabi", StringComparison.Ordinal),
+            "the accessible name must say whose session ends: " + banner.ActionAccessibleName);
+        True(banner.SessionTooltip.Contains("Administrator", StringComparison.Ordinal),
+            "the tooltip must still carry the role: " + banner.SessionTooltip);
+
+        banner.ReportProblem("The sign-in screen could not be created: disk unavailable.");
+        True(banner.HasProblem, "a reported failure must be visible in the banner");
+        True(banner.ProblemDetail.Contains("disk unavailable", StringComparison.Ordinal),
+            "the banner must keep the reason, not a generic marker: " + banner.ProblemDetail);
+        banner.ClearProblem();
+        True(!banner.HasProblem, "a successful preparation must clear the marker");
+
+        AuthenticationContext.SignOut();
+        banner.Refresh();
+        Equal("Sign in", banner.ActionLabel,
+            "after signing out the banner must offer the way in again");
+
+        // The card's own surface: the gate stays visible when preparation fails,
+        // so the reason has to be readable on it.
+        var card = new SignInViewModel(new UserRepository());
+        True(!card.HasErrorMessage, "a freshly prepared card starts with no error");
+        card.ReportProblem("The sign-in screen could not be prepared: no directory.");
+        True(card.HasErrorMessage, "ReportProblem must reach the card's error surface");
+        True(card.ErrorMessage.Contains("no directory", StringComparison.Ordinal),
+            "and must carry the reason: " + card.ErrorMessage);
+        True(!card.IsBusy, "a failure must leave the card retryable, not stuck busy");
+        True(!card.HasStatusMessage, "a failure must not leave a stale status line");
     }
 
     // ── Harness ──────────────────────────────────────────────────────────

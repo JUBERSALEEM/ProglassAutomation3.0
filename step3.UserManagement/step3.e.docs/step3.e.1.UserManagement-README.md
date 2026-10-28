@@ -143,6 +143,34 @@ used for a week is not temporary.
   its salesman or its preparer, and the single-record fetch refuses an inquiry
   outside that set, so a row cannot be opened by id alone.
 
+### The session is never out of reach (round 30)
+
+The gate is the way in, and until round 30 it was the **only** way in — and it
+collapsed itself whenever its own preparation failed. With no session every write
+is refused by the repository, so the shell sat there read-only with nothing on
+screen that could ask for a password again, and only a restart recovered it.
+
+Three rules now hold:
+
+1. **A failure never hides the gate.** `BeginSignInAsync` shows it *before* the
+   step that can fail, and no `catch` block touches its visibility. The failure is
+   handed to `SignInViewModel.ReportProblem`, which puts it on the card's own error
+   box, directly above the retry.
+2. **The first-run check failing opens the way in rather than closing it.** If the
+   directory cannot be read, the gate is shown with that reason on it. It says
+   plainly that signing in may fail until the directory is fixed — it does not
+   pretend the problem is the password.
+3. **The shell shows the session itself.** `step3.c.5.ShellSessionViewModel` draws,
+   in the banner on every page: who is operating (name, with role and meaning in
+   the tooltip *and* the accessible name), one action — **Sign in** when nobody is
+   signed in, **Sign out** when somebody is — and a "Sign-in problem" marker whose
+   tooltip carries the reason. It reads `AuthenticationContext` and never writes
+   it; pressing the button asks the shell to act, and the shell is the one place
+   that knows about gates.
+
+The banner control is built from strings, so it cannot fail the way the gate could.
+That is the point: the recovery path must be simpler than the path that broke.
+
 ## Layout contract
 
 Every gap and size in these screens comes from the shared layout scale in the theme
@@ -196,9 +224,12 @@ check instead of returning the defect to the owner.
 | `step3.c.1.UserEditorViewModel.cs` | editor presentation state |
 | `step3.c.2.UserWorkspaceViewModel.cs` | register, filters, lifecycle commands, bootstrap card |
 | `step3.c.3.FirstRunViewModel.cs` | presentation for the startup first-run gate |
+| `step3.c.4.SignInViewModel.cs` | the two-step sign-in card, and the surface it reports a failure on |
+| `step3.c.5.ShellSessionViewModel.cs` | who is operating, and Sign in / Sign out, in the shell banner |
 | `step3.d.1.UserWorkspaceView.xaml` | register + command bar + bootstrap card |
 | `step3.d.2.UserEditorView.xaml` | add/edit form |
 | `step3.d.3.FirstRunSetupView.xaml` | the startup gate shown while the directory is empty |
+| `step3.d.4.SignInView.xaml` | the sign-in gate |
 | `step3.f.1.UserBehaviourChecks.cs` | behaviour checks against an isolated database |
 | `step3.f.2.UserSourceChecks.py` | portable source, contract and layout checks |
 

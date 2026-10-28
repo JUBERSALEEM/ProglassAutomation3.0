@@ -767,6 +767,50 @@
                     </StackPanel>
                     <ContentControl Grid.Column="1" Style="{StaticResource ShellBannerCluster}">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- ── Session (round 30) ────────────────────────
+                                 The shell says who is operating and offers the one
+                                 transition, on every page. It exists because the
+                                 sign-in gate used to be the only door: when it was
+                                 collapsed by a failure there was nothing anywhere
+                                 that could ask for a session again.
+
+                                 DataContext is assigned in the code-behind to a
+                                 ShellSessionViewModel — strings and a read of
+                                 AuthenticationContext, so this control cannot fail
+                                 the way the gate could. "Sign-in problem" appears
+                                 only when the gate could not be prepared, and its
+                                 tooltip and accessible name carry the reason. -->
+                            <StackPanel x:Name="SessionBanner" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SessionLabel}"
+                                           Style="{DynamicResource Caption}"
+                                           Foreground="{DynamicResource TextPrimary}"
+                                           VerticalAlignment="Center"
+                                           ToolTip="{Binding SessionTooltip}"
+                                           AutomationProperties.Name="{Binding SessionTooltip}" />
+                                <TextBlock Text="Sign-in problem"
+                                           Margin="{DynamicResource MarginInline}"
+                                           VerticalAlignment="Center"
+                                           ToolTip="{Binding ProblemDetail}"
+                                           AutomationProperties.Name="{Binding ProblemDetail}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                                            <Setter Property="Foreground" Value="{DynamicResource StatusError}" />
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasProblem}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Button Style="{StaticResource ShellBannerButton}"
+                                        Command="{Binding ActionCommand}"
+                                        Content="{Binding ActionLabel}"
+                                        ToolTip="{Binding ActionTooltip}"
+                                        AutomationProperties.Name="{Binding ActionAccessibleName}" />
+                            </StackPanel>
+                            <Border Style="{StaticResource ShellBannerRule}" />
                             <TextBlock Text="{Binding ShellClock}" Style="{DynamicResource Caption}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
                             <Border Style="{StaticResource ShellBannerRule}" />
                             <Button Content="Home" Command="{Binding ShowBusiness}" Style="{StaticResource ShellBannerButton}" ToolTip="Home" AutomationProperties.Name="Go home" />

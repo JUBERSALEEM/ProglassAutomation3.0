@@ -23,7 +23,9 @@ They verify the properties that are cheap to get wrong and expensive to miss:
  12. the first-run flow exists as one service, is reachable from the shell before
      the app is usable, reads the Windows account instead of accepting one, and
      verifies that the new row is really recognised;
- 13. the layout rules hold: a command bar that wraps instead of overlapping, a
+ 13. the shell can always be signed into: a failure never hides the gate, and the
+     banner shows the session and offers Sign in / Sign out on every page;
+ 14. the layout rules hold: a command bar that wraps instead of overlapping, a
      visible caption on every filter dropdown, one page padding, one scroll
      region per screen, action buttons on the shared height/gap tokens, and a
      shell whose sidebar and content stay in their own columns with no floating
@@ -58,6 +60,31 @@ def module_sources(include_tests=False):
     return "\n".join(read(p) for p in paths)
 
 
+def catch_blocks(source):
+    """The body of every catch block, found by brace matching.
+
+    Regexes over whole files are the wrong tool here: the distance from a `catch`
+    to the statement that matters is set by whatever comment happens to sit in
+    between, and an over-long window quietly matches the next method's code. That
+    is how a check turns green while the defect is still there.
+    """
+    bodies = []
+    for match in re.finditer(r"\bcatch\b", source):
+        start = source.find("{", match.end())
+        if start < 0:
+            continue
+        depth = 0
+        for index in range(start, len(source)):
+            if source[index] == "{":
+                depth += 1
+            elif source[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    bodies.append(source[start:index + 1])
+                    break
+    return bodies
+
+
 def require_files():
     expected = [
         "step3.a.1.User.cs",
@@ -73,12 +100,16 @@ def require_files():
         "step3.c.1.UserEditorViewModel.cs",
         "step3.c.2.UserWorkspaceViewModel.cs",
         "step3.c.3.FirstRunViewModel.cs",
+        "step3.c.4.SignInViewModel.cs",
+        "step3.c.5.ShellSessionViewModel.cs",
         "step3.d.1.UserWorkspaceView.xaml",
         "step3.d.1.UserWorkspaceView.xaml.cs",
         "step3.d.2.UserEditorView.xaml",
         "step3.d.2.UserEditorView.xaml.cs",
         "step3.d.3.FirstRunSetupView.xaml",
         "step3.d.3.FirstRunSetupView.xaml.cs",
+        "step3.d.4.SignInView.xaml",
+        "step3.d.4.SignInView.xaml.cs",
         "step3.e.docs/step3.e.1.UserManagement-README.md",
         "step3.f.tests/step3.f.UserTests.csproj",
         "step3.f.tests/step3.f.1.UserBehaviourChecks.cs",
@@ -979,6 +1010,79 @@ def require_layout_contract():
           "the menu toggle must live inside the banner and take layout space")
 
 
+def require_sign_in_is_reachable():
+    """Round 30 (owner report): the shell must always offer a way into a session.
+
+    The defect was not a wrong password. `BeginSignInAsync` collapsed the sign-in
+    gate inside its own `catch`, and the first-run check collapsed both gates the
+    same way. With no session every write is refused, so the application sat
+    read-only with nothing on screen that could ask for a password again — only a
+    restart recovered it. Both halves are guarded here:
+
+      * a failure never hides the gate, and always has a surface to be reported on;
+      * the shell itself shows the session and offers the step (Sign in / Sign
+        out) on every page, so the gate is not the only door.
+    """
+    shell_view = read(ROOT / "MainWindow.xaml")
+    shell = read(ROOT / "MainWindow.xaml.cs")
+    banner = read(MODULE / "step3.c.5.ShellSessionViewModel.cs")
+    gate_vm = read(MODULE / "step3.c.4.SignInViewModel.cs")
+
+    # The gate is shown before anything that can fail, and nothing collapses it.
+    check("SignInGate.Visibility = Visibility.Visible" in shell,
+          "the sign-in gate must be shown by the shell")
+    check("await signIn.InitializeAsync" in shell,
+          "the shell must prepare the sign-in card")
+    check(shell.index("SignInGate.Visibility = Visibility.Visible")
+          < shell.index("await signIn.InitializeAsync"),
+          "the gate must be visible BEFORE the step that can fail, or a failure "
+          "leaves the shell with no way in")
+    blocks = catch_blocks(shell)
+    check(not any("SignInGate.Visibility" in body and "Collapsed" in body for body in blocks),
+          "a failed sign-in preparation must never hide the gate: that is the "
+          "defect this rule exists for")
+
+    # Every failure has a surface.
+    check("signIn.ReportProblem(" in shell,
+          "a failure while preparing the card must land on the card's own error surface")
+    check("signIn.ReportProblem(problem" in shell,
+          "the reason the gate was opened must reach the card, not only the debug log")
+    check("sessionBanner.ReportProblem(" in shell,
+          "a failure that cannot even build the card must be reported in the banner")
+    check("public void ReportProblem" in gate_vm,
+          "the sign-in card must be able to display a failure it did not cause")
+    check(any("BeginSignInAsync" in body for body in blocks),
+          "a failure answering the first-run question must still open the way in")
+
+    # The shell shows the session itself, on every page.
+    check('x:Name="SessionBanner"' in shell_view,
+          "the shell banner must host the session control")
+    check('Command="{Binding ActionCommand}"' in shell_view,
+          "the session control must be pressable")
+    check("SessionBanner.DataContext = sessionBanner" in shell,
+          "the session control's view model must be assigned by the shell")
+    # The exact label expression, not the two words: "Sign in" also appears in a
+    # tooltip and an accessible name, so a substring check stays green even when
+    # the button itself stops offering the step.
+    check('public string ActionLabel => IsSignedIn ? "Sign out" : "Sign in";' in banner,
+          "the session control's button must offer Sign in when nobody is signed in "
+          "and Sign out when somebody is")
+
+    # It reads the session; it never writes one, and it never becomes a second
+    # authority over who may act.
+    check("AuthenticationContext.IsSignedIn" in banner,
+          "the session control must read the process-wide session")
+    for forbidden in ("AuthenticationContext.SignIn(", "AuthenticationContext.SignOut("):
+        check(forbidden not in banner,
+              f"the session control must not write the session itself ({forbidden})")
+    check("SignInCommand" not in banner and "SignInAsync(" not in banner,
+          "the banner must ask the shell to open the gate, not verify a password itself")
+
+    # Collapsing the gate is only ever right on success, never to hide a failure.
+    check(sum(1 for body in blocks if "SignInGate.Visibility" in body) == 0,
+          "no catch block may touch the gate's visibility at all")
+
+
 def require_docs_recorded():
     registry = read(ROOT / "docs/06.Feature-Registry.md")
     row = next((line for line in registry.splitlines() if line.startswith("| step3 |")), "")
@@ -1017,6 +1121,7 @@ def main():
     require_writes_are_tracked()
     require_command_namespace()
     require_layout_contract()
+    require_sign_in_is_reachable()
     require_docs_recorded()
 
     if FAILURES:

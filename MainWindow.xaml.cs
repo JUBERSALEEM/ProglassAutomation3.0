@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private readonly ThemeStudioViewModel viewModel;
     private FirstRunViewModel? firstRun;
     private SignInViewModel? signIn;
+    private readonly ShellSessionViewModel sessionBanner;
     private PreviewWindow? preview;
     private readonly BlurEffect spotlightBlur = new() { Radius = 16, KernelType = KernelType.Gaussian, RenderingBias = RenderingBias.Performance };
 
@@ -26,12 +27,21 @@ public partial class MainWindow : Window
         if (FindResource("AppMark") is ImageSource mark) Icon = mark;
         DataContext = viewModel = new ThemeStudioViewModel(themes);
         viewModel.DialogRequested += OpenPreview;
+
+        // Round 30: the shell shows the session itself, so the way in is never a
+        // page that happens to be open. Created here because it cannot fail —
+        // it is strings and a read of AuthenticationContext, no database, no disk.
+        sessionBanner = new ShellSessionViewModel();
+        SessionBanner.DataContext = sessionBanner;
+        sessionBanner.ActionRequested += OnSessionActionRequested;
+        sessionBanner.Refresh();
         OverflowSpotlight.Changed += OnSpotlight;
         SpotlightScrim.PreviewMouseLeftButtonDown += (_, _) => OverflowSpotlight.Set(false);
         Closed += (_, _) =>
         {
             OverflowSpotlight.Changed -= OnSpotlight;
             viewModel.DialogRequested -= OpenPreview;
+            sessionBanner.ActionRequested -= OnSessionActionRequested;
             AuthenticationContext.SignedOut -= OnSignedOut;
             AuthenticationContext.SignInRequested -= OnSignInRequested;
             viewModel.Dispose();
@@ -62,6 +72,7 @@ public partial class MainWindow : Window
     private async void OnShellLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnShellLoaded;
+        sessionBanner.Refresh();
 
         try
         {
@@ -79,19 +90,25 @@ public partial class MainWindow : Window
                 FirstRunGate.FocusFirstField();
                 return;
             }
-
-            // A directory with users but no verified session: the gate is the way
-            // in. Nothing else is reachable until it hands the session over.
-            await BeginSignInAsync();
         }
         catch (Exception error)
         {
-            // The gate must never take the shell down. If it cannot even be
-            // prepared, the Users page still offers the same step and reports
-            // the same failure in its own error surface.
+            // Round 30: "is this a first run" could not be answered. This used to
+            // collapse BOTH gates, which left the shell with no session, no gate
+            // and no control that could ask for one — read-only pages until the
+            // application was restarted. The sign-in gate is the way in, so it is
+            // opened with the reason on it; the Users page needs no rescue plan.
             FirstRunGate.Visibility = Visibility.Collapsed;
             System.Diagnostics.Debug.WriteLine("First-run gate skipped: " + error);
+            await BeginSignInAsync(
+                problem: "The user directory could not be read, so the first-run check could not be "
+                       + "answered: " + error.Message + " Signing in may fail until that is fixed.");
+            return;
         }
+
+        // A directory with users but no verified session: the gate is the way in.
+        // Nothing else is reachable until it hands the session over.
+        await BeginSignInAsync();
     }
 
     /// <summary>
@@ -115,35 +132,60 @@ public partial class MainWindow : Window
     /// The session object is shared with the Users page (same repository, same
     /// process-wide authentication context), so once this returns a session the
     /// whole shell is operating as that person.
+    ///
+    /// Round 30: the gate is shown BEFORE the card is prepared and no failure
+    /// below collapses it. Until now a failure here collapsed the only way into a
+    /// session, and the shell sat there read-only with nothing to click — the
+    /// defect the owner reported. A failure now lands on the card's own error
+    /// surface, and if even the card cannot be built the banner says so.
     /// </remarks>
-    private async Task BeginSignInAsync(string? prefillUsername = null)
+    private async Task BeginSignInAsync(string? prefillUsername = null, string? problem = null)
     {
-        try
+        if (signIn == null)
         {
-            if (signIn == null)
+            try
             {
                 var repository = new UserRepository();
                 signIn = new SignInViewModel(repository, new UserSession(repository));
                 signIn.SignedIn += OnSignedIn;
                 SignInGate.DataContext = signIn;
             }
+            catch (Exception error)
+            {
+                // Nothing exists to ask with. The banner still offers the step and
+                // carries the reason; a blank card would say less and cannot be
+                // pressed.
+                sessionBanner.ReportProblem(
+                    "The sign-in screen could not be created: " + error.Message);
+                System.Diagnostics.Debug.WriteLine("Sign-in gate could not be created: " + error);
+                return;
+            }
+        }
 
+        // The door is open from here on: everything below can only add a message.
+        SignInGate.Visibility = Visibility.Visible;
+        sessionBanner.ClearProblem();
+
+        try
+        {
             await signIn.InitializeAsync(prefillUsername);
-            SignInGate.Visibility = Visibility.Visible;
-            SignInGate.FocusFirstField();
+            if (!string.IsNullOrWhiteSpace(problem)) signIn.ReportProblem(problem!);
         }
         catch (Exception error)
         {
-            // The gate must never take the shell down silently; the Users page
-            // reports the same failure in its own error surface once signed in.
-            SignInGate.Visibility = Visibility.Collapsed;
-            System.Diagnostics.Debug.WriteLine("Sign-in gate skipped: " + error);
+            signIn.ReportProblem(
+                "The sign-in screen could not be prepared: " + error.Message);
+            System.Diagnostics.Debug.WriteLine("Sign-in gate could not be prepared: " + error);
         }
+
+        SignInGate.FocusFirstField();
     }
 
     private void OnSignedIn(object? sender, EventArgs e)
     {
         SignInGate.Visibility = Visibility.Collapsed;
+        sessionBanner.ClearProblem();
+        sessionBanner.Refresh();
 
         // Land on the register: that is the page a person needs first, and it is
         // the only page that depends on who is signed in.
@@ -170,6 +212,29 @@ public partial class MainWindow : Window
         if (!Dispatcher.CheckAccess())
         {
             Dispatcher.Invoke(() => OnSignedOut(sender, e));
+            return;
+        }
+
+        sessionBanner.Refresh();
+        _ = BeginSignInAsync();
+    }
+
+    /// <summary>
+    /// The banner's one session action. It is the shell's decision, not the view
+    /// model's: show the gate when the way in is needed, end the session when the
+    /// person is finished (signing out raises SignedOut, which opens the gate).
+    /// </summary>
+    private void OnSessionActionRequested(object? sender, EventArgs e)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => OnSessionActionRequested(sender, e));
+            return;
+        }
+
+        if (AuthenticationContext.IsSignedIn)
+        {
+            AuthenticationContext.SignOut();
             return;
         }
 
