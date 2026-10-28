@@ -375,3 +375,29 @@ assert not tip_pinners, (
     f'migration is added: {tip_pinners} — derive it from AppSchemaMigrations.Inquiries'
 )
 print('PASS: no verification check pins the migration chain tip with a literal.')
+
+# ── A check may not assert success while its message says it is impossible ───
+# Round 34.9: `True(deactivation.Succeeded, "the sole administrator cannot be
+# deactivated")` asserted the OPPOSITE of its own message. It failed against
+# correct code, and — worse — it would have PASSED if the last-administrator guard
+# had been broken, which is the failure it was written to catch. A check that
+# contradicts its own description is not a weak check, it is a reversed one.
+inverted = []
+for test_file in sorted(ROOT.rglob('*.cs')):
+    if {'bin', 'obj'} & set(test_file.parts) or not any('tests' in part for part in test_file.parts):
+        continue
+    text = test_file.read_text(encoding='utf-8', errors='replace')
+    for match in re.finditer(r'True\(\s*([^;]{0,200}?)\.Succeeded\s*,\s*"([^"]{0,200})"', text):
+        expression, message = match.group(1), match.group(2)
+        if expression.lstrip().startswith('!'):
+            continue
+        # Only "cannot": a message mentioning a PREVIOUS refusal ("the refused second
+        # attempt changed nothing") is legitimate, so broader keywords produce noise.
+        if re.search(r'\bcannot\b', message, re.I):
+            line = text[:match.start()].count('\n') + 1
+            inverted.append(f'{test_file.relative_to(ROOT)}:{line} asserts success but says "{message[:60]}"')
+assert not inverted, (
+    'a check asserts that an operation SUCCEEDED while its message says it cannot, so it '
+    f'fails on correct code and passes on broken code: {inverted}'
+)
+print('PASS: no verification check asserts success against a message that forbids it.')

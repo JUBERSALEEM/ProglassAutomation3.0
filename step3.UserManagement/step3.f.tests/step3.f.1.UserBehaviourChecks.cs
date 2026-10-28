@@ -854,8 +854,14 @@ internal static class UserBehaviourChecks
         User? winner = await repository.FindByUsernameAsync(operatorName);
         True(winner != null, "the workstation account matches the bootstrap row");
 
+        // The assertion was INVERTED: it asserted success while its own message said
+        // the deactivation is impossible, so a broken guard would have passed and a
+        // working one failed (round 34.9). The last-administrator check runs before
+        // the self-deactivation check, so the code is LastAdministrator.
         var deactivation = await repository.SetActiveAsync(winner!.Id, false, operatorName);
-        True(deactivation.Succeeded, "the sole administrator cannot be deactivated");
+        True(!deactivation.Succeeded, "the sole administrator cannot be deactivated");
+        Equal(nameof(UserDecisionCode.LastAdministrator), deactivation.Code.ToString(),
+            "the refusal is the last-administrator guard, not a silent failure");
 
         var otherAdmin = await repository.CreateAsync(new UserDraft
         {
@@ -1094,8 +1100,16 @@ internal static class UserBehaviourChecks
             "an inactive user cannot manage users");
 
         // ── Filters and search ───────────────────────────────────────────
+        // The estimator was deactivated a few lines above (and is re-activated a few
+        // lines below), so exactly the administrator is active here; the two
+        // deactivated users are the estimator and the second administrator. The
+        // expectation of 2 was written before this deactivation moved above the
+        // filter block (round 34.9).
         var actives = await repository.QueryAsync(new UserQuery { IsActive = true });
-        Equal("2", actives.Count.ToString(), "two active users (the bootstrap admin and one other)");
+        Equal("1", actives.Count.ToString(), "the only active user is the administrator");
+        Equal(nameof(UserDecisionCode.Inactive), UserAuthorization
+            .CanManageUsers(await repository.FindByUsernameAsync(estimator.Username)).Code.ToString(),
+            "the deactivated estimator is refused for user management");
 
         var inactives = await repository.QueryAsync(new UserQuery { IsActive = false });
         Equal("2", inactives.Count.ToString(), "two inactive users");

@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 34.9: step2 goes green, and two checks were lying
+- **step2: 7 passed, 0 failed — green.** The TRN fix (34.7) and the bootstrap fix (34.8) both hold; the client module's checks now execute and pass end to end.
+- **step3: 10 passed, 2 failed.** Both remaining failures were the checks themselves, and one was dangerous.
+- **An assertion that contradicted its own message.** `True(deactivation.Succeeded, "the sole administrator cannot be deactivated")` asserted the *opposite* of what it says. The product correctly refused (`LastAdministrator`), so the check failed on correct code — and, far worse, it would have **passed if the last-administrator guard were broken**, which is the exact failure it existed to catch. Fixed to assert the refusal and its code.
+- **A count written before a state change moved.** The filter block deactivated the estimator 14 lines above, then expected 2 active users; the state was 1 active and 2 inactive, which the neighbouring assertions already expected. Fixed, and the block now also proves the deactivated estimator is found and refused as `Inactive`.
+- **Gate:** `step1.d.6` gained a rule that no check may assert `.Succeeded` while its message says "cannot" — the shape that made a broken guard look healthy. Mutation-proven by restoring the inverted line. A broader keyword set produced a false positive ("the refused second attempt changed nothing"), so the rule is deliberately narrow.
+- **Verification:** thirteen portable checkers PASS; 17/17 diagnostics mutations; the changed file parses clean. **step3 not re-run.**
+
+---
 ## 2026-10-28 — Round 34.8: the first administrator could never be created
 - **step2 after round 34.7's fixes: 6 passed, 1 failed.** Both fixes held — the migration check and the TRN round-trip now pass. The single remaining failure was a *setup* step: `a first administrator exists for the reference checks: Password is required for a new user.`
 - **step3's first execution ever: 6 passed, 6 failed.** Five shared that same message; the sixth pinned `user_version` to `"1013"`.
