@@ -87,8 +87,8 @@
     <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginSection}">
      <StackPanel>
       <TextBlock Text="Presets — built-in stay protected" Style="{DynamicResource Caption}"/>
-      <ListBox ItemsSource="{Binding BuiltInPresets}" DisplayMemberPath="Name" AutomationProperties.Name="Built-in presets" Margin="{DynamicResource MarginItem}"/>
-      <ListBox ItemsSource="{Binding CustomPresets}" DisplayMemberPath="Name" AutomationProperties.Name="Your saved presets" Margin="{DynamicResource MarginItem}"/>
+      <ListBox ItemsSource="{Binding BuiltInPresets}" DisplayMemberPath="Name" SelectedValue="{Binding SelectedPresetName}" SelectedValuePath="Name" AutomationProperties.Name="Built-in presets" Margin="{DynamicResource MarginItem}"/>
+      <ListBox ItemsSource="{Binding CustomPresets}" DisplayMemberPath="Name" SelectedValue="{Binding SelectedPresetName}" SelectedValuePath="Name" AutomationProperties.Name="Your saved presets" Margin="{DynamicResource MarginItem}"/>
       <DockPanel Margin="{DynamicResource MarginItem}"><TextBox Width="120" Text="{Binding PresetNameInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="New preset name" Margin="{DynamicResource MarginInline}"/><Button Content="Save preset" Command="{Binding SavePreset}" AutomationProperties.Name="Save as preset"/></DockPanel>
       <Button Visibility="Collapsed" Command="{Binding ResetDesign}" AutomationProperties.Name="Legacy reset design binding"/>
       <WrapPanel Margin="{DynamicResource MarginItem}"><Button Content="Open reference" Command="{Binding ShowBusiness}" Style="{DynamicResource PrimaryButton}"/></WrapPanel>
@@ -102,9 +102,9 @@
       <TextBlock Text="Clay is a plump volume engine: hue-matched far/near drop, inner rim, sheen, and inset wells. Volume, plumpness, sheen, lighting and relief below stay Clay-owned. Not Bento, not Fluent, not Neumorphism." Style="{DynamicResource Caption}"/>
       <Label Content="Clay preset" Foreground="{DynamicResource TextSecondary}"/><ComboBox ItemsSource="{Binding ClayPresetNames}" SelectedItem="{Binding SelectedClayPresetName}" AutomationProperties.Name="Clay preset" Margin="{DynamicResource MarginItem}"/>
       <TextBlock Text="Clay built-in presets" Style="{DynamicResource Caption}"/>
-      <ListBox ItemsSource="{Binding ClayBuiltInPresets}" DisplayMemberPath="Name" AutomationProperties.Name="Clay built-in presets" Margin="{DynamicResource MarginItem}"/>
+      <ListBox ItemsSource="{Binding ClayBuiltInPresets}" DisplayMemberPath="Name" SelectedValue="{Binding SelectedClayPresetName}" SelectedValuePath="Name" AutomationProperties.Name="Clay built-in presets" Margin="{DynamicResource MarginItem}"/>
       <TextBlock Text="Your clay presets" Style="{DynamicResource Caption}"/>
-      <ListBox ItemsSource="{Binding ClayCustomPresets}" DisplayMemberPath="Name" AutomationProperties.Name="Your clay presets" Margin="{DynamicResource MarginItem}"/>
+      <ListBox ItemsSource="{Binding ClayCustomPresets}" DisplayMemberPath="Name" SelectedValue="{Binding SelectedClayPresetName}" SelectedValuePath="Name" AutomationProperties.Name="Your clay presets" Margin="{DynamicResource MarginItem}"/>
       <DockPanel Margin="{DynamicResource MarginItem}"><TextBox Width="120" Text="{Binding PresetNameInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="New clay preset name" Margin="{DynamicResource MarginInline}"/><Button Content="Save clay preset" Command="{Binding SavePreset}" AutomationProperties.Name="Save as clay preset"/></DockPanel>
      </StackPanel>
     </ContentControl>
@@ -177,9 +177,9 @@
       <TextBlock Text="Depth, blur and intensity are Neumorph-owned. Card rounding above stays shared geometry. Gaussian dual shadows render inside a layout gutter so they do not clip." Style="{DynamicResource Caption}"/>
       <Label Content="Neumorph preset" Foreground="{DynamicResource TextSecondary}"/><ComboBox ItemsSource="{Binding NeumorphPresetNames}" SelectedItem="{Binding SelectedNeumorphPresetName}" AutomationProperties.Name="Neumorph preset" Margin="{DynamicResource MarginItem}"/>
       <TextBlock Text="Neumorph built-in presets" Style="{DynamicResource Caption}"/>
-      <ListBox ItemsSource="{Binding NeumorphBuiltInPresets}" DisplayMemberPath="Name" AutomationProperties.Name="Neumorph built-in presets" Margin="{DynamicResource MarginItem}"/>
+      <ListBox ItemsSource="{Binding NeumorphBuiltInPresets}" DisplayMemberPath="Name" SelectedValue="{Binding SelectedNeumorphPresetName}" SelectedValuePath="Name" AutomationProperties.Name="Neumorph built-in presets" Margin="{DynamicResource MarginItem}"/>
       <TextBlock Text="Your neumorph presets" Style="{DynamicResource Caption}"/>
-      <ListBox ItemsSource="{Binding NeumorphCustomPresets}" DisplayMemberPath="Name" AutomationProperties.Name="Your neumorph presets" Margin="{DynamicResource MarginItem}"/>
+      <ListBox ItemsSource="{Binding NeumorphCustomPresets}" DisplayMemberPath="Name" SelectedValue="{Binding SelectedNeumorphPresetName}" SelectedValuePath="Name" AutomationProperties.Name="Your neumorph presets" Margin="{DynamicResource MarginItem}"/>
       <DockPanel Margin="{DynamicResource MarginItem}"><TextBox Width="120" Text="{Binding PresetNameInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="New neumorph preset name" Margin="{DynamicResource MarginInline}"/><Button Content="Save neumorph preset" Command="{Binding SavePreset}" AutomationProperties.Name="Save as neumorph preset"/></DockPanel>
      </StackPanel>
     </ContentControl>
@@ -216,9 +216,9 @@
       <TextBlock Text="Liquid Glass uses shared rounding. Frost, specular and tint are owned. Not Fluent acrylic, not Clay plumpness, not Glassmorphism frost-only." Style="{DynamicResource Caption}"/>
       <Label Content="Liquid preset" Foreground="{DynamicResource TextSecondary}"/><ComboBox ItemsSource="{Binding LiquidPresetNames}" SelectedItem="{Binding SelectedLiquidPresetName}" AutomationProperties.Name="Liquid Glass preset" Margin="{DynamicResource MarginItem}"/>
       <TextBlock Text="Liquid built-in presets" Style="{DynamicResource Caption}"/>
-      <ListBox ItemsSource="{Binding LiquidBuiltInPresets}" DisplayMemberPath="Name" AutomationProperties.Name="Liquid Glass built-in presets" Margin="{DynamicResource MarginItem}"/>
+      <ListBox ItemsSource="{Binding LiquidBuiltInPresets}" DisplayMemberPath="Name" SelectedValue="{Binding SelectedLiquidPresetName}" SelectedValuePath="Name" AutomationProperties.Name="Liquid Glass built-in presets" Margin="{DynamicResource MarginItem}"/>
       <TextBlock Text="Your liquid presets" Style="{DynamicResource Caption}"/>
-      <ListBox ItemsSource="{Binding LiquidCustomPresets}" DisplayMemberPath="Name" AutomationProperties.Name="Your liquid glass presets" Margin="{DynamicResource MarginItem}"/>
+      <ListBox ItemsSource="{Binding LiquidCustomPresets}" DisplayMemberPath="Name" SelectedValue="{Binding SelectedLiquidPresetName}" SelectedValuePath="Name" AutomationProperties.Name="Your liquid glass presets" Margin="{DynamicResource MarginItem}"/>
       <DockPanel Margin="{DynamicResource MarginItem}"><TextBox Width="120" Text="{Binding PresetNameInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="New liquid preset name" Margin="{DynamicResource MarginInline}"/><Button Content="Save liquid preset" Command="{Binding SavePreset}" AutomationProperties.Name="Save as liquid glass preset"/></DockPanel>
      </StackPanel>
     </ContentControl>

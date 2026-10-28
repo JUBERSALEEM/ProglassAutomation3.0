@@ -37,7 +37,6 @@ public sealed partial class ThemeStudioViewModel
     private string customizationCategory = "Appearance";
 
     private string selectedComponentId = "";
-    private string presetNameInput = "";
     private string? lastSavedSnapshot;
     private string? lastSavedClaySnapshot;
     private string? lastSavedNeumorphSnapshot;
@@ -206,60 +205,15 @@ public sealed partial class ThemeStudioViewModel
     public IReadOnlyList<NeumorphDepth> NeumorphDepthChoices { get; } = Enum.GetValues<NeumorphDepth>();
     public IReadOnlyList<NeumorphBlur> NeumorphBlurChoices { get; } = Enum.GetValues<NeumorphBlur>();
     public IReadOnlyList<NeumorphIntensity> NeumorphIntensityChoices { get; } = Enum.GetValues<NeumorphIntensity>();
-    public IReadOnlyList<NeumorphNamedPreset> NeumorphBuiltInPresets => NeumorphCustomization.BuiltIn;
-    public IReadOnlyList<NeumorphNamedPreset> NeumorphCustomPresets => lastSaved.NeumorphPresets ?? [];
-    public IReadOnlyList<string> NeumorphPresetNames => NeumorphCustomization.BuiltIn.Select(p => p.Name).Concat((lastSaved.NeumorphPresets ?? []).Select(p => p.Name)).ToList();
-    private string selectedNeumorphPresetName = NeumorphCustomization.BuiltIn[0].Name;
-    public string SelectedNeumorphPresetName
-    {
-        get => selectedNeumorphPresetName;
-        set
-        {
-            if (string.IsNullOrWhiteSpace(value) || value == selectedNeumorphPresetName) return;
-            selectedNeumorphPresetName = value;
-            Changed(nameof(SelectedNeumorphPresetName));
-            ApplyPreset.Execute(value);
-        }
-    }
     public NeumorphDepth SelectedNeumorphDepth { get => neumorph.Depth; set => UpdateNeumorph(neumorph with { Depth = value }); }
     public NeumorphBlur SelectedNeumorphBlur { get => neumorph.Blur; set => UpdateNeumorph(neumorph with { Blur = value }); }
     public NeumorphIntensity SelectedNeumorphIntensity { get => neumorph.Intensity; set => UpdateNeumorph(neumorph with { Intensity = value }); }
     public IReadOnlyList<LiquidFrost> LiquidFrostChoices { get; } = Enum.GetValues<LiquidFrost>();
     public IReadOnlyList<LiquidSpecular> LiquidSpecularChoices { get; } = Enum.GetValues<LiquidSpecular>();
     public IReadOnlyList<LiquidTint> LiquidTintChoices { get; } = Enum.GetValues<LiquidTint>();
-    public IReadOnlyList<LiquidNamedPreset> LiquidBuiltInPresets => LiquidCustomization.BuiltIn;
-    public IReadOnlyList<LiquidNamedPreset> LiquidCustomPresets => lastSaved.LiquidPresets ?? [];
-    public IReadOnlyList<string> LiquidPresetNames => LiquidCustomization.BuiltIn.Select(p => p.Name).Concat((lastSaved.LiquidPresets ?? []).Select(p => p.Name)).ToList();
-    private string selectedLiquidPresetName = LiquidCustomization.BuiltIn[0].Name;
-    public string SelectedLiquidPresetName
-    {
-        get => selectedLiquidPresetName;
-        set
-        {
-            if (string.IsNullOrWhiteSpace(value) || value == selectedLiquidPresetName) return;
-            selectedLiquidPresetName = value;
-            Changed(nameof(SelectedLiquidPresetName));
-            ApplyPreset.Execute(value);
-        }
-    }
     public LiquidFrost SelectedLiquidFrost { get => liquid.Frost; set => UpdateLiquid(liquid with { Frost = value }); }
     public LiquidSpecular SelectedLiquidSpecular { get => liquid.Specular; set => UpdateLiquid(liquid with { Specular = value }); }
     public LiquidTint SelectedLiquidTint { get => liquid.Tint; set => UpdateLiquid(liquid with { Tint = value }); }
-    public IReadOnlyList<ClayNamedPreset> ClayBuiltInPresets => ClayCustomization.BuiltIn;
-    public IReadOnlyList<ClayNamedPreset> ClayCustomPresets => lastSaved.ClayPresets ?? [];
-    public IReadOnlyList<string> ClayPresetNames => ClayCustomization.BuiltIn.Select(p => p.Name).Concat((lastSaved.ClayPresets ?? []).Select(p => p.Name)).ToList();
-    private string selectedClayPresetName = ClayCustomization.BuiltIn[0].Name;
-    public string SelectedClayPresetName
-    {
-        get => selectedClayPresetName;
-        set
-        {
-            if (string.IsNullOrWhiteSpace(value) || value == selectedClayPresetName) return;
-            selectedClayPresetName = value;
-            Changed(nameof(SelectedClayPresetName));
-            ApplyPreset.Execute(value);
-        }
-    }
     public ClayAccent SelectedClayAccent { get => clay.Accent; set => UpdateClay(clay with { Accent = value }); }
     public ClayVolume SelectedClayVolume { get => clay.Volume; set => UpdateClay(clay with { Volume = value }); }
     public ClayPlumpness SelectedClayPlumpness { get => clay.Plumpness; set => UpdateClay(clay with { Plumpness = value }); }
@@ -273,8 +227,6 @@ public sealed partial class ThemeStudioViewModel
     public ClayLighting SelectedClayLighting { get => clay.Lighting; set => UpdateClay(clay with { Lighting = value }); }
     public ClayRelief SelectedClayRelief { get => clay.Relief; set => UpdateClay(clay with { Relief = value }); }
     public ClayEffects SelectedClayEffects { get => clay.Effects; set => UpdateClay(clay with { Effects = value }); }
-    public IReadOnlyList<NamedPreset> BuiltInPresets => PresetCatalog.BuiltIn;
-    public IReadOnlyList<NamedPreset> CustomPresets => lastSaved.CustomPresets ?? [];
     public BentoAccent SelectedAccent { get => extended.Accent; set => UpdateExtended(extended with { Accent = value }); }
     public BentoDensity SelectedDensity { get => extended.Density; set => UpdateExtended(extended with { Density = value }); }
     public BentoShape SelectedShape
@@ -319,7 +271,6 @@ public sealed partial class ThemeStudioViewModel
     public string CustomizationCategory { get => customizationCategory; set { customizationCategory = value; Changed(nameof(CustomizationCategory)); } }
     public string SelectedComponentId { get => selectedComponentId; set { selectedComponentId = value; Changed(nameof(SelectedComponentId)); Changed(nameof(ContextualTitle)); } }
     public string ContextualTitle => string.IsNullOrEmpty(selectedComponentId) ? "Select a card in the preview" : $"Editing: {selectedComponentId}";
-    public string PresetNameInput { get => presetNameInput; set { presetNameInput = value; Changed(nameof(PresetNameInput)); } }
     public bool IsClay => SelectedTheme == ThemeService.Clay;
     public bool IsFluent => SelectedTheme == ThemeService.Fluent;
     public bool IsNeumorph => SelectedTheme == ThemeService.Neumorphism;
@@ -787,235 +738,9 @@ public sealed partial class ThemeStudioViewModel
                 Feedback = "Restored your preview.";
             }
         }, () => CanCustomize);
-        ApplyPreset = new DelegateCommand<string>(name =>
-        {
-            if (IsClay)
-            {
-                var clayPreset = ClayCustomization.BuiltIn.Concat(lastSaved.ClayPresets ?? []).FirstOrDefault(p => p.Name == name);
-                if (clayPreset == null) return;
-                if (clayPreset.Appearance != themes.ActiveAppearance) SelectAppearance(ThemeService.Clay, clayPreset.Appearance);
-                ApplyClayState(clayPreset.State);
-                Feedback = $"Clay preset applied: {clayPreset.Name}";
-                return;
-            }
-            if (IsNeumorph)
-            {
-                var neuPreset = NeumorphCustomization.BuiltIn.Concat(lastSaved.NeumorphPresets ?? []).FirstOrDefault(p => p.Name == name);
-                if (neuPreset == null) return;
-                if (neuPreset.Appearance != themes.ActiveAppearance) SelectAppearance(ThemeService.Neumorphism, neuPreset.Appearance);
-                ApplyNeumorphState(neuPreset.State);
-                Feedback = $"Neumorph preset applied: {neuPreset.Name}";
-                return;
-            }
-            if (IsLiquid)
-            {
-                var glassPreset = LiquidCustomization.BuiltIn.Concat(lastSaved.LiquidPresets ?? []).FirstOrDefault(p => p.Name == name);
-                if (glassPreset == null) return;
-                if (glassPreset.Appearance != themes.ActiveAppearance) SelectAppearance(ThemeService.LiquidGlass, glassPreset.Appearance);
-                ApplyLiquidState(glassPreset.State);
-                Feedback = $"Liquid Glass preset applied: {glassPreset.Name}";
-                return;
-            }
-            var preset = BuiltInPresets.Concat(CustomPresets).FirstOrDefault(p => p.Name == name);
-            if (preset != null)
-            {
-                ApplyState(preset.State);
-                if (preset.Appearance != themes.ActiveAppearance) SelectAppearance(ThemeService.Bento, preset.Appearance);
-                Feedback = $"Preset applied: {preset.Name}";
-            }
-        });
-        SavePreset = new DelegateCommand(() =>
-        {
-            var n = presetNameInput.Trim();
-            if (string.IsNullOrEmpty(n))
-            {
-                ThemeError = "Enter unique name not conflicting with built-in presets.";
-                Changed(nameof(ThemeError));
-                return;
-            }
-            if (IsClay)
-            {
-                if (ClayCustomization.IsBuiltIn(n))
-                {
-                    ThemeError = "Enter unique name not conflicting with built-in presets.";
-                    Changed(nameof(ThemeError));
-                    return;
-                }
-                var clayList = (lastSaved.ClayPresets ?? []).ToList();
-                clayList.RemoveAll(p => p.Name == n);
-                clayList.Add(new ClayNamedPreset(n, clay, themes.ActiveAppearance));
-                lastSaved = lastSaved with { ClayPresets = clayList, Clay = clay, Theme = themes.ActiveTheme, Appearance = themes.ActiveAppearance };
-                PersistSaved(lastSaved);
-                PresetNameInput = "";
-                Feedback = $"Clay preset saved: {n}";
-                Changed(nameof(ThemeError));
-                Changed(nameof(ClayCustomPresets));
-                Changed(nameof(ClayPresetNames));
-                return;
-            }
-            if (IsNeumorph)
-            {
-                if (NeumorphCustomization.IsBuiltIn(n))
-                {
-                    ThemeError = "Enter unique name not conflicting with built-in presets.";
-                    Changed(nameof(ThemeError));
-                    return;
-                }
-                var neuList = (lastSaved.NeumorphPresets ?? []).ToList();
-                neuList.RemoveAll(p => p.Name == n);
-                neuList.Add(new NeumorphNamedPreset(n, neumorph, themes.ActiveAppearance));
-                lastSaved = lastSaved with { NeumorphPresets = neuList, Neumorph = neumorph, Theme = themes.ActiveTheme, Appearance = themes.ActiveAppearance };
-                PersistSaved(lastSaved);
-                PresetNameInput = "";
-                Feedback = $"Neumorph preset saved: {n}";
-                Changed(nameof(ThemeError));
-                Changed(nameof(NeumorphCustomPresets));
-                Changed(nameof(NeumorphPresetNames));
-                return;
-            }
-            if (IsLiquid)
-            {
-                if (LiquidCustomization.IsBuiltIn(n))
-                {
-                    ThemeError = "Enter unique name not conflicting with built-in presets.";
-                    Changed(nameof(ThemeError));
-                    return;
-                }
-                var glassList = (lastSaved.LiquidPresets ?? []).ToList();
-                glassList.RemoveAll(p => p.Name == n);
-                glassList.Add(new LiquidNamedPreset(n, liquid, themes.ActiveAppearance));
-                lastSaved = lastSaved with { LiquidPresets = glassList, Liquid = liquid, Theme = themes.ActiveTheme, Appearance = themes.ActiveAppearance };
-                PersistSaved(lastSaved);
-                PresetNameInput = "";
-                Feedback = $"Liquid Glass preset saved: {n}";
-                Changed(nameof(ThemeError));
-                Changed(nameof(LiquidCustomPresets));
-                Changed(nameof(LiquidPresetNames));
-                return;
-            }
-            if (PresetCatalog.IsBuiltIn(n))
-            {
-                ThemeError = "Enter unique name not conflicting with built-in presets.";
-                Changed(nameof(ThemeError));
-                return;
-            }
-            var list = (lastSaved.CustomPresets ?? []).ToList();
-            list.RemoveAll(p => p.Name == n);
-            list.Add(new NamedPreset(n, extended, themes.ActiveAppearance));
-            lastSaved = lastSaved with { CustomPresets = list };
-            PersistSaved(lastSaved);
-            PresetNameInput = "";
-            Feedback = $"Preset saved: {n}";
-            Changed(nameof(ThemeError));
-        }, () => !string.IsNullOrWhiteSpace(presetNameInput) && CanCustomize);
-        DeletePreset = new DelegateCommand<string>(name =>
-        {
-            if (IsClay)
-            {
-                if (ClayCustomization.IsBuiltIn(name)) return;
-                var clayList = (lastSaved.ClayPresets ?? []).ToList();
-                clayList.RemoveAll(p => p.Name == name);
-                lastSaved = lastSaved with { ClayPresets = clayList };
-                PersistSaved(lastSaved);
-                Feedback = $"Deleted clay preset: {name}";
-                Changed(nameof(ClayCustomPresets));
-                Changed(nameof(ClayPresetNames));
-                return;
-            }
-            if (IsNeumorph)
-            {
-                if (NeumorphCustomization.IsBuiltIn(name)) return;
-                var neuList = (lastSaved.NeumorphPresets ?? []).ToList();
-                neuList.RemoveAll(p => p.Name == name);
-                lastSaved = lastSaved with { NeumorphPresets = neuList };
-                PersistSaved(lastSaved);
-                Feedback = $"Deleted neumorph preset: {name}";
-                Changed(nameof(NeumorphCustomPresets));
-                Changed(nameof(NeumorphPresetNames));
-                return;
-            }
-            if (IsLiquid)
-            {
-                if (LiquidCustomization.IsBuiltIn(name)) return;
-                var glassList = (lastSaved.LiquidPresets ?? []).ToList();
-                glassList.RemoveAll(p => p.Name == name);
-                lastSaved = lastSaved with { LiquidPresets = glassList };
-                PersistSaved(lastSaved);
-                Feedback = $"Deleted liquid glass preset: {name}";
-                Changed(nameof(LiquidCustomPresets));
-                Changed(nameof(LiquidPresetNames));
-                return;
-            }
-            if (PresetCatalog.IsBuiltIn(name)) return;
-            var list = (lastSaved.CustomPresets ?? []).ToList();
-            list.RemoveAll(p => p.Name == name);
-            lastSaved = lastSaved with { CustomPresets = list };
-            PersistSaved(lastSaved);
-            Feedback = $"Deleted preset: {name}";
-        });
-        RenamePreset = new DelegateCommand<(string oldName, string newName)>(pair =>
-        {
-            var n = pair.newName.Trim();
-            if (string.IsNullOrEmpty(n)) return;
-            if (IsClay)
-            {
-                if (ClayCustomization.IsBuiltIn(n)) return;
-                var clayList = (lastSaved.ClayPresets ?? []).ToList();
-                var clayIdx = clayList.FindIndex(p => p.Name == pair.oldName);
-                if (clayIdx >= 0)
-                {
-                    clayList[clayIdx] = clayList[clayIdx] with { Name = n };
-                    lastSaved = lastSaved with { ClayPresets = clayList };
-                    PersistSaved(lastSaved);
-                    Feedback = $"Renamed to {n}";
-                    Changed(nameof(ClayCustomPresets));
-                    Changed(nameof(ClayPresetNames));
-                }
-                return;
-            }
-            if (IsNeumorph)
-            {
-                if (NeumorphCustomization.IsBuiltIn(n)) return;
-                var neuList = (lastSaved.NeumorphPresets ?? []).ToList();
-                var neuIdx = neuList.FindIndex(p => p.Name == pair.oldName);
-                if (neuIdx >= 0)
-                {
-                    neuList[neuIdx] = neuList[neuIdx] with { Name = n };
-                    lastSaved = lastSaved with { NeumorphPresets = neuList };
-                    PersistSaved(lastSaved);
-                    Feedback = $"Renamed to {n}";
-                    Changed(nameof(NeumorphCustomPresets));
-                    Changed(nameof(NeumorphPresetNames));
-                }
-                return;
-            }
-            if (IsLiquid)
-            {
-                if (LiquidCustomization.IsBuiltIn(n)) return;
-                var glassList = (lastSaved.LiquidPresets ?? []).ToList();
-                var glassIdx = glassList.FindIndex(p => p.Name == pair.oldName);
-                if (glassIdx >= 0)
-                {
-                    glassList[glassIdx] = glassList[glassIdx] with { Name = n };
-                    lastSaved = lastSaved with { LiquidPresets = glassList };
-                    PersistSaved(lastSaved);
-                    Feedback = $"Renamed to {n}";
-                    Changed(nameof(LiquidCustomPresets));
-                    Changed(nameof(LiquidPresetNames));
-                }
-                return;
-            }
-            if (PresetCatalog.IsBuiltIn(n)) return;
-            var list = (lastSaved.CustomPresets ?? []).ToList();
-            var idx = list.FindIndex(p => p.Name == pair.oldName);
-            if (idx >= 0)
-            {
-                list[idx] = list[idx] with { Name = n };
-                lastSaved = lastSaved with { CustomPresets = list };
-                PersistSaved(lastSaved);
-                Feedback = $"Renamed to {n}";
-            }
-        });
+        // The preset commands live in step1.b.18.Presets.cs: this file is one of the
+        // grandfathered long ones and may be split, never grown (step1.d.19).
+        CreatePresetCommands();
     }
     private Action<ResourceDictionary, Appearance> LiveConfigure() =>
         SharedGeometry.Compose(SelectedTheme, extended, clay, geometry, neumorph, font, colors, liquid, pages);
@@ -1043,6 +768,10 @@ public sealed partial class ThemeStudioViewModel
         }
         catch (ThemeNotificationException error) { extended = next; preferences = next.ToLegacy(); ThemeError = error.Message; }
         catch (Exception error) when (error is InvalidOperationException or ArgumentException or System.IO.IOException or System.Windows.Markup.XamlParseException) { ThemeError=$"Design unchanged: {error.Message}"; }
+        PublishBentoState();
+    }
+    private void PublishBentoState()
+    {
         foreach (var n in new[] { nameof(SelectedAccent), nameof(SelectedDensity), nameof(SelectedShape), nameof(SelectedTypography), nameof(SelectedCanvas), nameof(SelectedSurface), nameof(SelectedTextContrast), nameof(SelectedBorder), nameof(SelectedShadow), nameof(SelectedSpacing), nameof(SelectedPadding), nameof(SelectedWeight), nameof(SelectedLayoutPreset), nameof(HeroCompact), nameof(ShowKpiTrend), nameof(DesignSummary), nameof(ThemeError), nameof(IsDirty) }) Changed(n);
     }
     private void ApplyClayState(ClayCustomizationState next)
@@ -1054,6 +783,10 @@ public sealed partial class ThemeStudioViewModel
         }
         catch (ThemeNotificationException error) { clay = next; ThemeError = error.Message; }
         catch (Exception error) when (error is InvalidOperationException or ArgumentException or System.IO.IOException or System.Windows.Markup.XamlParseException) { ThemeError=$"Design unchanged: {error.Message}"; }
+        PublishClayState();
+    }
+    private void PublishClayState()
+    {
         foreach (var n in new[] { nameof(SelectedClayAccent), nameof(SelectedClayVolume), nameof(SelectedClayPlumpness), nameof(SelectedClayDensity), nameof(SelectedClayCanvas), nameof(SelectedClayTypography), nameof(SelectedClaySpacing), nameof(SelectedClayTextContrast), nameof(SelectedClaySheen), nameof(SelectedClayWeight), nameof(SelectedClayLighting), nameof(SelectedClayRelief), nameof(SelectedClayEffects), nameof(DesignSummary), nameof(ThemeError), nameof(IsDirty) }) Changed(n);
     }
 
@@ -1071,6 +804,10 @@ public sealed partial class ThemeStudioViewModel
         }
         catch (ThemeNotificationException error) { neumorph = next; ThemeError = error.Message; }
         catch (Exception error) when (error is InvalidOperationException or ArgumentException or IOException or System.Windows.Markup.XamlParseException) { ThemeError = $"Design unchanged: {error.Message}"; }
+        PublishNeumorphState();
+    }
+    private void PublishNeumorphState()
+    {
         foreach (var n in new[] { nameof(SelectedNeumorphDepth), nameof(SelectedNeumorphBlur), nameof(SelectedNeumorphIntensity), nameof(DesignSummary), nameof(ThemeError), nameof(IsDirty) }) Changed(n);
     }
 
@@ -1088,6 +825,10 @@ public sealed partial class ThemeStudioViewModel
         }
         catch (ThemeNotificationException error) { liquid = next; ThemeError = error.Message; }
         catch (Exception error) when (error is InvalidOperationException or ArgumentException or IOException or System.Windows.Markup.XamlParseException) { ThemeError = $"Design unchanged: {error.Message}"; }
+        PublishLiquidState();
+    }
+    private void PublishLiquidState()
+    {
         foreach (var n in new[] { nameof(SelectedLiquidFrost), nameof(SelectedLiquidSpecular), nameof(SelectedLiquidTint), nameof(DesignSummary), nameof(ThemeError), nameof(IsDirty) }) Changed(n);
     }
 

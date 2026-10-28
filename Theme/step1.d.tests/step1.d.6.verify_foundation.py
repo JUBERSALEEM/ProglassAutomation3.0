@@ -529,3 +529,84 @@ assert 'MEASURED: package rebuild' in runtime_text, (
 )
 print('PASS: the runtime harness asserts the documented startup rule, sets the page it reads, and measures the switch.')
 
+# ── A preset list that nothing is bound to cannot select anything ────────────
+# Round 36, owner report: "Night Berry does not select in dark mode". Night Berry is
+# an ordinary Clay built-in preset (step1.e.8, Appearance.Dark). The lists that show
+# presets had no selection binding at all and ApplyPreset was bound in no XAML file,
+# so a click on a row could only highlight it. The Bento family had no picker
+# property at all. The rule now: every list of presets selects through its family's
+# picker property, and every picker property applies the preset it names.
+panel_path = ROOT / 'step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.16.CustomizationPanel.xaml'
+customization_path = ROOT / 'step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.17.Customization.cs'
+panel_text = panel_path.read_text(encoding='utf-8')
+customization_text = customization_path.read_text(encoding='utf-8')
+# Round 36 split the preset half of the view model into its own partial file, because
+# step1.b.17 is one of the grandfathered long files and may be split, never grown.
+preset_part = ROOT / 'step1.ThemeStudio/step1.b.ThemeStudioScreen/step1.b.18.Presets.cs'
+assert preset_part.exists(), f'{preset_part} is missing'
+preset_text = preset_part.read_text(encoding='utf-8')
+picker_text = customization_text + preset_text
+list_boxes = re.findall(r'<ListBox\b[^>]*>', panel_text)
+assert list_boxes, 'the customization panel shows no preset lists at all'
+preset_lists = [tag for tag in list_boxes if re.search(r'ItemsSource="\{Binding \w*Presets\}"', tag)]
+assert len(preset_lists) == 8, (
+    'expected the eight preset lists (Bento, Clay, Neumorph, Liquid × built-in and '
+    f'saved): {len(preset_lists)}'
+)
+unbound_lists = [tag for tag in preset_lists
+                 if 'SelectedValuePath="Name"' not in tag
+                 or not re.search(r'SelectedValue="\{Binding Selected\w*PresetName\}"', tag)]
+assert not unbound_lists, (
+    'a preset list has no selection binding, so picking a preset only highlights a '
+    f'row: {unbound_lists}'
+)
+picked = sorted({m.group(1) for tag in preset_lists
+                 for m in [re.search(r'SelectedValue="\{Binding (Selected\w*PresetName)\}"', tag)] if m})
+for name in picked:
+    definition = re.search(r'public string ' + name + r'\b', picker_text)
+    assert definition, f'{name} is bound by a preset list but is not a view-model property'
+    setter_start = picker_text.find('set', definition.end())
+    assert setter_start > 0, f'{name} has no setter, so a pick cannot reach the command'
+    setter = picker_text[setter_start:setter_start + 700]
+    assert 'ApplyPreset.Execute(value)' in setter, (
+        f'{name} does not apply the picked preset: a pick would change the selection '
+        'and nothing else'
+    )
+    assert 'PresetPickNeedsApply' in setter, (
+        f'{name} must decide with PresetPickNeedsApply: an equality guard alone makes '
+        'the second pick of the same preset do nothing after an appearance switch'
+    )
+for family, presets in (('Clay', 'ClayCustomization.BuiltIn'),
+                        ('Neumorph', 'NeumorphCustomization.BuiltIn'),
+                        ('Liquid', 'LiquidCustomization.BuiltIn')):
+    assert presets in picker_text, f'{family} preset catalogue is missing'
+assert 'PresetCatalog.BuiltIn' in picker_text, 'the Bento preset catalogue is missing'
+assert 'Night Berry' in (ROOT / 'Theme/ThemeClaymorphism/step1.e.8.ClayCustomization.cs').read_text(encoding='utf-8'), (
+    'the Night Berry preset has disappeared from the Clay catalogue'
+)
+print(f'PASS: all {len(preset_lists)} preset lists select through a picker that applies what it names.')
+
+# ── A preset that also changes mode must not rebuild the package twice ───────
+# Each package replacement re-resolves every DynamicResource reference in the live
+# tree, so a pick that switched appearance and then applied the state rebuilt the
+# whole package twice in a row. The state goes in place first and the single
+# appearance switch composes it.
+apply_preset = preset_text.find('ApplyPreset = new DelegateCommand<string>')
+assert apply_preset > 0, 'the preset command has disappeared'
+apply_body = preset_text[apply_preset:preset_text.find('SavePreset = new DelegateCommand', apply_preset)]
+assert apply_body, 'the preset command has no body'
+switch_then_state = re.search(
+    r'SelectAppearance\(ThemeService\.\w+,\s*[\w.]+\);\s*\n\s*Apply\w*State\(', apply_body)
+assert not switch_then_state, (
+    'a preset pick switches appearance and then applies the state, which rebuilds the '
+    'whole theme package twice for one pick'
+)
+for switch in re.finditer(r'SelectAppearance\(ThemeService\.(\w+),', apply_body):
+    window = apply_body[max(0, switch.start() - 400):switch.start()]
+    field = {'Clay': 'clay', 'Neumorphism': 'neumorph', 'LiquidGlass': 'liquid', 'Bento': 'extended'}[switch.group(1)]
+    assert re.search(r'\b' + field + r' = \w+\.State;', window), (
+        f'the {switch.group(1)} preset switches appearance without putting the state in '
+        'place first, so the switch composes the old state'
+    )
+print('PASS: a preset pick rebuilds the theme package once, with its state already in place.')
+
