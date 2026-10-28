@@ -102,11 +102,20 @@ internal static class CompanyProfileChecks
         Equal("0", CompanyProfileRules.Validate(minimal).Count.ToString(),
             "only the company name is required");
 
-        // Shape checks that must not invent rules: an e-mail without a domain, a
-        // website without a dot and an IBAN with punctuation are all refused.
+        // Shape checks that must not invent rules: an e-mail without a domain and
+        // a malformed website are refused, while a bare host is not.
         True(CompanyProfileRules.ValidateEmail("not-an-email") != null, "a malformed e-mail is refused");
         True(CompanyProfileRules.ValidateEmail("office@proglass.ae") == null, "a real e-mail is accepted");
-        True(CompanyProfileRules.ValidateWebsite("proglass") != null, "a website without a dot is refused");
+        // docs/12: website is "optional; shape checked, NO INVENTED REQUIREMENT".
+        // A dot was an invented requirement: a single-label host ("proglass") is a
+        // legitimate intranet address, and the field is a caption on the letterhead,
+        // not a link. What the rule does guarantee is that the value cannot be
+        // nonsense the page would print.
+        True(CompanyProfileRules.ValidateWebsite("pro glass") != null, "a website with a space is refused");
+        True(CompanyProfileRules.ValidateWebsite("proglass@example.com") != null,
+            "an e-mail typed into the website field is refused");
+        True(CompanyProfileRules.ValidateWebsite("proglass") == null,
+            "a single-label host is accepted (no invented requirement)");
         True(CompanyProfileRules.ValidateWebsite("https://proglass.ae") == null, "a URL is accepted");
         True(CompanyProfileRules.ValidateAccountNumber("AE07 0331 2345 6789 0123 456") == null,
             "an IBAN with spaces is accepted");
@@ -336,7 +345,10 @@ internal static class CompanyProfileChecks
             True(stored != null, "the profile reads back");
             Equal("Pro Glass LLC", stored!.CompanyName, "the name is trimmed and inner runs collapsed");
             Equal("100000000000003", stored.Trn, "the TRN is stored as digits");
-            Equal("Shop 4\nMain Road\nAjman", stored.Address, "the address keeps its lines");
+            // docs/12: "lines preserved, blank lines dropped" — the LINES are the
+            // promise. The separator is Environment.NewLine, so a literal "\n" in
+            // this file pinned a Linux assumption and only ever failed on Windows.
+            Equal("Shop 4|Main Road|Ajman", JoinLines(stored.Address), "the address keeps its lines");
             Equal("Emirates NBD", stored.BankName, "the bank name round-trips");
             Equal("AE07 0331 2345 6789 0123 456", stored.AccountNumber, "the account number round-trips");
             Equal("32", stored.LogoSizeMm.ToString("0", CultureInfo.InvariantCulture), "the logo size round-trips");
@@ -355,7 +367,8 @@ internal static class CompanyProfileChecks
 
             CompanyProfile? reread = repository.GetAsync().GetAwaiter().GetResult();
             Equal("Pro Glass Industries LLC", reread!.CompanyName, "the update is stored");
-            Equal("Shop 4\nMain Road\nAjman", reread.Address, "the rest of the profile survives an update");
+            Equal("Shop 4|Main Road|Ajman", JoinLines(reread.Address),
+                "the rest of the profile survives an update");
 
             // Every optional field may be empty — only the name is required.
             CompanyProfileSaveResult onlyName = repository
@@ -669,6 +682,14 @@ internal static class CompanyProfileChecks
     {
         if (!condition) throw new InvalidOperationException(message);
     }
+
+    /// <summary>
+    /// The newline-independent form of a stored multi-line value: the lines, in
+    /// order, joined by "|". A test that compares the raw string is asserting the
+    /// platform's newline, not the rule.
+    /// </summary>
+    private static string JoinLines(string? value) =>
+        string.Join("|", (value ?? "").Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'));
 
     private static void Equal(string expected, string actual, string message)
     {

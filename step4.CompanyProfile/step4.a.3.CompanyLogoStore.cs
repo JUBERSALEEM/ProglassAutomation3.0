@@ -85,6 +85,24 @@ namespace ProGlassAutomation.Services.Company
         }
 
         /// <summary>
+        /// The path a stored file name POINTS AT, whether or not the file is still
+        /// there, or null when the value is not a name this module could have
+        /// written.
+        ///
+        /// Two callers need two different answers, and conflating them hid a real
+        /// failure (round 34.3): the printed letterhead must simply omit a logo it
+        /// cannot read, but the editor must TELL the operator that a stored logo
+        /// has gone. Passing the existence-checked path to the preview made the
+        /// page show nothing at all, and the explanation written for exactly that
+        /// case was unreachable.
+        /// </summary>
+        public static string? PathForStoredName(string? fileName)
+        {
+            if (!IsSafeFileName(fileName)) return null;
+            return Path.Combine(Folder, fileName!);
+        }
+
+        /// <summary>
         /// True when the stored value is a bare file name this module could have
         /// written. Separators and ".." are refused, so a hand-edited database
         /// row can never point the store at an arbitrary file on disk.

@@ -322,6 +322,9 @@ def require_logo_storage():
 
     check("HasLogoPreviewProblem" in view_model,
           "the editor must be able to report a missing logo file")
+    # Existence is not behaviour: the property existed while the branch that sets
+    # it was unreachable. The reachable form is asserted in
+    # require_missing_logo_is_explained().
 
 
 # ── 7. The write path ───────────────────────────────────────────────────
@@ -433,6 +436,32 @@ def require_calls_resolve():
     for name in sorted(set(re.findall(r"new DelegateCommand\(\s*\(\s*\)\s*=>\s*([A-Za-z_][A-Za-z0-9_]*)", code))):
         check(name in declared,
               f"step4.c.1 wires '{name}' into a command, but the view model does not define it")
+
+
+def require_missing_logo_is_explained():
+    """A stored logo whose file has gone must be REPORTED, not silently ignored.
+
+    Round 34.3: the editor resolved the stored name through
+    CompanyLogoStore.ResolvePath, which returns null when the file is missing, so
+    the preview took its "there is no logo" branch. The page showed nothing, said
+    nothing, and the explanation written for this exact case (in
+    CompanyLogoPreviewLoader) could never be reached. The old check here passed
+    throughout, because it only asked whether the property existed.
+    """
+    logo = source("step4.c.3.CompanyProfileLogo.cs")
+    store = source("step4.a.3.CompanyLogoStore.cs")
+    preview = source("step4.c.2.CompanyLogoPreview.cs")
+
+    check("public static string? PathForStoredName" in store,
+          "the store must expose the path a stored name points at, whether or not the file exists")
+    check("CompanyLogoStore.PathForStoredName(_storedLogoFileName)" in logo,
+          "the preview must use the stored pointer, so a missing file reaches the loader")
+    check("CompanyLogoStore.ResolvePath(_storedLogoFileName)" not in logo,
+          "the existence-checked resolver turns a missing logo into silence on the page")
+    check("File.Exists(path) ? path : null" in store,
+          "the printing path keeps the existence check: a missing file prints no logo")
+    check("not on disk" in preview,
+          "the loader must explain a missing image file to the operator")
 
 
 def require_read_path():
@@ -831,6 +860,7 @@ def main():
     require_cross_namespace_imports()
     require_calls_resolve()
     require_read_path()
+    require_missing_logo_is_explained()
     require_scope_exclusions()
     require_view_contract()
     require_logo_picker_survives_reload()

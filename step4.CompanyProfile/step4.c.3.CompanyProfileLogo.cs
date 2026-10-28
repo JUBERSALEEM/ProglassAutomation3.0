@@ -324,13 +324,19 @@ namespace ProGlassAutomation.ViewModels.Company
             MarkDirty();
         }
 
-        /// <summary>Which file the preview should show right now.</summary>
+        /// <summary>
+        /// Which file the preview should show right now. The stored name resolves
+        /// to its path even when the file has gone: the loader then reports "the
+        /// image file is not on disk", which is the only way the operator learns
+        /// that a logo they still see referenced in the database is missing. An
+        /// existence check here would turn that into silence (round 34.3).
+        /// </summary>
         private string? PreviewSourcePath =>
             _pendingLogoPath.Length > 0
                 ? _pendingLogoPath
                 : _logoRemoved
                     ? null
-                    : CompanyLogoStore.ResolvePath(_storedLogoFileName);
+                    : CompanyLogoStore.PathForStoredName(_storedLogoFileName);
 
         private void RefreshLogoPreview()
         {
