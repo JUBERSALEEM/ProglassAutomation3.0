@@ -4,6 +4,7 @@ using ProGlassAutomation.ThemeBento;
 using ProGlassAutomation.ThemeClaymorphism;
 using ProGlassAutomation.ThemeLiquidGlass;
 using ProGlassAutomation.ThemeNeumorphism;
+using ProGlassAutomation.Theming;
 
 namespace ProGlassAutomation.ThemeStudio;
 
