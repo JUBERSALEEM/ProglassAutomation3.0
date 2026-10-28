@@ -153,7 +153,12 @@ internal static class CompanyProfileChecks
         // Normalisation: text is trimmed and inner runs collapse, address lines
         // survive, and the TRN loses its separators.
         Equal("Pro Glass LLC", CompanyProfileRules.NormalizeText("  Pro   Glass  LLC "), "text normalises");
-        Equal("Shop 4\nMain Road\nAjman", CompanyProfileRules.NormalizeAddress("  Shop 4 \n\n Main Road\nAjman  "),
+        // The promise (docs/12) is "lines preserved, blank lines dropped" — the
+        // LINES, not a separator. NormalizeAddress joins with Environment.NewLine,
+        // so comparing the raw string asserted this machine's newline and failed
+        // on Windows for a run that was actually correct.
+        Equal("Shop 4|Main Road|Ajman",
+            JoinLines(CompanyProfileRules.NormalizeAddress("  Shop 4 \n\n Main Road\nAjman  ")),
             "address keeps its lines and drops blank ones");
 
         // The summary sentence names the fields, so a refused save explains itself.

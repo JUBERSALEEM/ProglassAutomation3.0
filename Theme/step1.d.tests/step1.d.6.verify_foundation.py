@@ -211,3 +211,30 @@ for csproj in sorted(ROOT.rglob('*.csproj')):
         checked += 1
 assert checked >= 3, f'expected the verification executables that call internal helpers, found {checked}'
 print(f'PASS: {checked} verification executable(s) are named as friends for the internal helper(s) they call.')
+
+# ── A test must not assert the platform's newline ───────────────────────────
+# Windows joins multi-line values with CRLF, Linux with LF. A verification check
+# that compares a stored value against a literal containing "\n" is therefore
+# asserting the machine it happens to run on, not the rule — and it fails on
+# Windows against correct code. That happened twice in step4.f.1 (round 34.3 and
+# 34.4), both times reported as a product failure when the product was right.
+#
+# The rule: an equality assertion may not take a newline-containing literal as
+# its expected value. Compare the LINES instead (step4.f.1 has JoinLines, which
+# splits and rejoins with a fixed separator).
+equality = re.compile(r'\b(Equal|EqualLine|AreEqual|Assert\.Equal)\s*\(\s*"((?:[^"\\]|\\.)*)"')
+offenders = []
+for test_file in sorted(ROOT.rglob('*.cs')):
+    if {'bin', 'obj'} & set(test_file.parts) or not any('tests' in part for part in test_file.parts):
+        continue
+    text = test_file.read_text(encoding='utf-8', errors='replace')
+    for match in equality.finditer(text):
+        literal = match.group(2)
+        if '\\n' in literal or '\\r' in literal:
+            line = text[:match.start()].count('\n') + 1
+            offenders.append(f'{test_file.relative_to(ROOT)}:{line} ({match.group(1)}("{literal[:40]}"))')
+assert not offenders, (
+    'a check asserts a line separator instead of the lines, so it passes or fails by '
+    f'platform: {offenders} — compare the lines (a JoinLines-style helper)'
+)
+print('PASS: no verification check compares a raw newline-containing literal.')

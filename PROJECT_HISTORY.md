@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 34.4: the last failure was the same defect, in a third place
+- **Reported:** after the round-34.3 fixes, `step4 company checks: 5 passed, 1 failed` — `rules and validation → address keeps its lines and drops blank ones`, the expected and actual printing identically.
+- **Cause:** the *same* platform-newline defect as the two round-34.3 failures, in a third assertion I had missed: `Equal("Shop 4\nMain Road\nAjman", NormalizeAddress(...))` compares a CRLF-joined value with an LF literal, so it can only pass on Linux. The product was correct; the test was asserting the machine.
+- **Why it was missed:** my earlier scan was a single regex over file text, which silently failed to match this line. The replacement scan parses the *literal* of every equality assertion in every test project — it found exactly one offender, in the whole repository.
+- **Fixed:** the assertion compares the lines (`JoinLines`), so it states the rule from `docs/12` — "lines preserved, blank lines dropped" — instead of the separator.
+- **Gate:** `step1.d.6` now fails on ANY equality assertion whose expected literal contains `\n` or `\r`, naming the file and line. A mutation restoring this exact line is caught.
+- **Verification:** thirteen portable checkers PASS, 17/17 diagnostics mutations, the changed file parses clean. **Not re-run here** — the owner's next `dotnet run` is the closing evidence.
+
+---
 ## 2026-10-28 — Round 34.3: the first real test run, and the logo it caught
 - **First evidence:** on the owner's Windows machine `dotnet build` succeeded (`step4.f.CompanyTests` compiled — the round-34.2 friend line was the whole CS0117), `AppLogBehaviourChecks` printed **PASS (39 assertions)**, and `step4.f.CompanyTests` ran for the **first time ever** — this project had been unloadable since the XML defect, so none of its checks had ever executed.
 - **Result: 3 passed, 3 failed.** Each judged on its merits rather than assumed to be a test bug.
