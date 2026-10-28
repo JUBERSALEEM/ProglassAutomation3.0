@@ -791,13 +791,22 @@ namespace ProGlassAutomation.Services.Users
             string departmentCode = UserRules.NormalizeDepartment(department);
             DateTime now = DateTime.UtcNow;
 
+            // The draft must carry the password: UserRules.Validate refuses a NEW
+            // user (Id <= 0) that has not been given one, so leaving these unset made
+            // this method fail every single time with "Password is required for a new
+            // user" — the first administrator could never be registered and a fresh
+            // installation could not be set up at all (round 34.8). The password has
+            // already been checked against the policy above; it is carried here so
+            // the one validation path sees the same state the write path will use.
             var draft = new UserDraft
             {
                 FullName = fullName,
                 Username = username,
                 Department = departmentCode,
                 Role = UserCatalog.AdministratorRole,
-                IsActive = true
+                IsActive = true,
+                Password = password,
+                PasswordConfirm = password
             };
 
             var errors = UserRules.Validate(draft);

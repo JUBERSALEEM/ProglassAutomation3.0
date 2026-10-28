@@ -484,6 +484,29 @@ def require_operator_lookup_uses_its_own_parameter():
           "the operator lookup still references a name that is not in scope (CS0103)")
 
 
+def require_bootstrap_carries_its_password():
+    """The first-administrator draft must carry the password it was given.
+
+    Round 34.8: `RegisterFirstAdministratorAsync` checked the password policy and
+    then built a `UserDraft` without `Password`, so `UserRules.Validate` refused it
+    every time with "Password is required for a new user". The FIRST administrator
+    could never be registered — a fresh installation could not be set up at all.
+    Six checks failed across two projects for that one missing initializer.
+    """
+    repository = read(MODULE / "step3.b.4.UserRepository.cs")
+    start = repository.find("public async Task<UserSaveResult> RegisterFirstAdministratorAsync")
+    check(start >= 0, "RegisterFirstAdministratorAsync must exist: it is the only way into a new directory")
+    if start < 0:
+        return
+    body = repository[start:repository.find("public async Task<UserSaveResult> SetFirstPasswordAsync", start)]
+    check("Password = password" in body,
+          "the bootstrap draft must carry the validated password, or every registration fails")
+    check("PasswordConfirm = password" in body,
+          "the bootstrap draft must confirm the same password, or the match rule refuses it")
+    check(body.find("UserPassword.Validate(password)") < body.find("UserRules.Validate(draft)"),
+          "the password policy must be checked before the draft is validated")
+
+
 def require_first_run_flow():
     """The first-run path must exist, be reachable before the app is used, and
     have exactly one implementation."""
@@ -1210,6 +1233,7 @@ def main():
     require_theme_contract()
     require_register_layout()
     require_operator_lookup_uses_its_own_parameter()
+    require_bootstrap_carries_its_password()
     require_first_run_flow()
     require_first_password_upgrade()
     require_writes_are_tracked()

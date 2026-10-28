@@ -750,10 +750,19 @@ internal static class UserBehaviourChecks
                         "existing client data is untouched by 1013");
                 }
 
+                // The chain's TIP, derived from the registry, not the number 1013
+                // that happened to be the tip when this check was written: 1014-1016
+                // joined the same chain and the value became 1016, so the literal
+                // failed against correct behaviour (round 34.8).
+                int chainTip = AppSchemaMigrations.Inquiries.Max(migration => migration.Version);
+                True(chainTip >= UserSchema.MigrationVersion,
+                    "the chain still contains the user-directory migration");
                 using (var version = reader.CreateCommand())
                 {
                     version.CommandText = "PRAGMA user_version;";
-                    Equal("1013", Convert.ToString(version.ExecuteScalar()) ?? "", "user_version advanced");
+                    Equal(chainTip.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        Convert.ToString(version.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) ?? "",
+                        "user_version advanced to the chain tip");
                 }
             }
 

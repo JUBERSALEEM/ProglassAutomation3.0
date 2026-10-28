@@ -9,6 +9,16 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 34.8: the first administrator could never be created
+- **step2 after round 34.7's fixes: 6 passed, 1 failed.** Both fixes held — the migration check and the TRN round-trip now pass. The single remaining failure was a *setup* step: `a first administrator exists for the reference checks: Password is required for a new user.`
+- **step3's first execution ever: 6 passed, 6 failed.** Five shared that same message; the sixth pinned `user_version` to `"1013"`.
+- **One product defect explains five failures: `RegisterFirstAdministratorAsync` could never succeed.** It validated the password, then built its `UserDraft` **without** `Password`/`PasswordConfirm`, and passed it to `UserRules.Validate`, which refuses any new user (Id ≤ 0) with no password. Every call returned "Password is required for a new user." The write path was already correct (`ApplyNewPassword` takes the parameter directly), which is why the defect was invisible to inspection — a fresh installation could not be set up at all. Fixed by carrying the validated password on the draft.
+- **Sixth failure: the calendar again.** step3's `user_version == "1013"` was the same pin step2 had; the chain now ends at 1016. Fixed by deriving the tip from `AppSchemaMigrations.Inquiries`.
+- **Gates:** `step3.f.2` gained `require_bootstrap_carries_its_password` (both initializers present, and the policy check ordered before draft validation); `step1.d.6` gained a general rule — no verification executable may compare `PRAGMA user_version` with a four-digit literal, which covers step2, step3 and everything later. Both mutation-proven.
+- **Verification:** thirteen portable checkers PASS; 17/17 diagnostics mutations; two changed C# files parse clean. **Neither project re-run** — those runs are the owner's next command.
+- **Worth stating plainly:** this defect would have blocked the very first launch of the application on a clean machine. It was found by executing tests that had been skipped (or unbuildable) for the entire life of the project.
+
+---
 ## 2026-10-28 — Round 34.7: three failures, three different kinds of wrong
 - **Owner's run.** `step2.f.1`: **5 passed, 2 failed**. `step3.f.1`: **did not compile** — six `CS1503` errors, so nothing executed and nothing can be called passed.
 - **step3 was my miss.** Three checks compare ids — `Equal(admin.Id, estimator.CreatedByUserId ?? 0, ...)`, `Equal(admin.Id, stamp!.UserId, ...)` — but the helper is `Equal(string, string, string)`. My round-34.6 gate looked for *missing members* and this is the other half of "it cannot build": right name, wrong type. Fixed with an `int` overload (comparing ids as numbers is also the correct assertion); `step1.d.6` now reproduces the compiler's own three line numbers from source alone.

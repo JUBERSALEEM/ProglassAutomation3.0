@@ -353,3 +353,25 @@ assert not type_offenders, (
     'int overload or compare .ToString()'
 )
 print('PASS: no verification check passes an int id to a string-only Equal helper.')
+
+# ── A migration check may not pin the chain's tip ────────────────────────────
+# The chain is shared and keeps growing: step2's check asserted user_version "1012"
+# and step3's asserted "1013"; 1014-1016 joined the same chain and BOTH began
+# failing against correct behaviour (round 34.8). The registry is the authority, so
+# any executable that reads PRAGMA user_version must derive the expected value from
+# AppSchemaMigrations.Inquiries instead of comparing a four-digit literal.
+tip_pinners = []
+for test_file in sorted(ROOT.rglob('*.cs')):
+    if {'bin', 'obj'} & set(test_file.parts) or not any('tests' in part for part in test_file.parts):
+        continue
+    text = test_file.read_text(encoding='utf-8', errors='replace')
+    if 'PRAGMA user_version' not in text:
+        continue
+    for match in re.finditer(r'\bEqual\(\s*"(\d{4})"', text):
+        line = text[:match.start()].count('\n') + 1
+        tip_pinners.append(f'{test_file.relative_to(ROOT)}:{line} compares user_version with "{match.group(1)}"')
+assert not tip_pinners, (
+    'a check pins the migration chain tip with a literal, so it fails as soon as a '
+    f'migration is added: {tip_pinners} — derive it from AppSchemaMigrations.Inquiries'
+)
+print('PASS: no verification check pins the migration chain tip with a literal.')
