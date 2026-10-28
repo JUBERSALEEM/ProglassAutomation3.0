@@ -2,8 +2,8 @@
 // FILE: step5.ProjectRecords/step5.c.3.ProjectWorkspaceViewModel.Commands.cs
 // MODULE: step5 — project workspace, commands.
 //
-        // There is no delete command anywhere in this module. A project is closed,
-        // never removed; the inquiry link is attached and detached, never rewritten.
+// There is no delete command anywhere in this module. A project is closed, never
+// removed; the inquiry link is attached and detached, never rewritten.
 //
 // Split from step5.c.1 so no file carries more than one job: the presenter owns
 // its state and commands, this owns commands and nothing else.

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════
-// FILE: step5.ProjectRecords/step5.b.5.ProjectRepository.Link.cs
+// FILE: step5.ProjectRecords/step5.b.6.ProjectRepository.Link.cs
 // MODULE: step5 — the inquiry link (attach / detach / read).
 //
 // This is the "& Inquiry Integration" half of the module, and it is deliberately

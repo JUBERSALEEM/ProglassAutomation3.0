@@ -2,9 +2,9 @@
 // FILE: step5.ProjectRecords/step5.c.2.ProjectWorkspaceViewModel.Load.cs
 // MODULE: step5 — project workspace, reading.
 //
-        // Every read reports its own failure on the error surface instead of
-        // throwing: a register that crashes when the ERP file is busy is worse
-        // than one that says why it is empty.
+// Every read reports its own failure on the error surface instead of throwing:
+// a register that crashes when the ERP file is busy is worse than one that says
+// why it is empty.
 //
 // Split from step5.c.1 so no file carries more than one job: the presenter owns
 // its state and commands, this owns reading and nothing else.
