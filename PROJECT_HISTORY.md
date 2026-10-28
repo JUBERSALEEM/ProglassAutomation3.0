@@ -9,6 +9,19 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 32: field gutters, a working logo picker, a remembered sign-in, a readable page
+- **Reported:** four arrows between *adjacent field boxes* (the spacing was still wrong), "Choose image" did nothing, and the application asked for the password on every launch. The logo card also had to show a readable document page.
+- **Cause 1 — the wrong spacing was being fixed.** Round 30b fixed the gutter between *buttons*; the arrows are between *fields*. `Grid` has no gap property, and `MarginSection` (`0,0,0,12`) is a row rhythm, never a horizontal gutter, so a row of star columns put its boxes edge to edge.
+- **Fixed 1:** new token `UiGapFieldInline` (`16,0,0,12`) in all eighteen dictionaries and the contract; the second and later field of every row carries it (Company: Representative↔Mobile↔E-mail, Telephone↔Website, Bank↔Account, Company name↔TRN). `step1.d.18` now walks every `Grid` with two or more columns, so a new field row cannot ship edge to edge; the two Inquiry views are frozen.
+- **Cause 2 — the button was disconnected, not broken.** The picker handler was attached in the constructor and removed on `Unloaded`; a `TabControl` unloads the view when another tab is chosen, so after the first tab switch "Choose image" was dead for the rest of the session. `CanEdit` also read a process-wide session that nothing refreshed.
+- **Fixed 2:** attach on every `Loaded`, detach on `Unloaded`, guarded against a double attach; the view model follows `SignedIn`/`SignedOut` and the view re-reads the permission when shown; a disabled button explains itself in its tooltip.
+- **Fixed 3 — remembered sign-in:** `step3.b.8` stores the directory id, username, Windows account and password stamp in `%LOCALAPPDATA%` (never a password or hash); `step3.b.9` resumes it only while every check holds and clears it otherwise; the shell remembers on every sign-in and forgets on **Sign out**. A password reset ends the remembered session — that is what the stamp is for.
+- **Fixed 4 — the card is a page:** a 236 × 300 px sheet on the mockup's grey stage, printing the real logo, name, address, TRN and contact line from the working copy, with the document body suggested beneath the header.
+- **Splits (rule K):** `step4.c.1` 999 → 711 (logo surface now `step4.c.3`, one partial class); `step4.d.1` 782 → 468 (logo card now `step4.d.4`).
+- **Gate:** `step4.f.2` gained `require_logo_picker_survives_reload` and `require_document_page_preview`; `step3.f.2` gained `require_session_is_remembered`; `step1.d.18` gained the field-gutter rule. Sixteen mutations reinstated, all sixteen caught.
+- **Verification:** twelve portable checkers PASS. No .NET SDK/WPF here: not compiled, not rendered, no screenshot claimed.
+
+---
 ## 2026-10-28 — Round 30b: control spacing fixed at the root, and the no-god-files rule
 - **Reported:** on the Company page the state chip, reload button and "Save company" were almost touching, and the read-only sentence was printed twice on one screen. The owner asked what in the code makes every new page repeat it.
 - **Cause:** `MarginInline` — a **text** token (8 px right, 4 px bottom) — was spacing button rows everywhere: 24 clickable surfaces in horizontal rows used it, 14 had nothing, 4 used another 8 px token. 8 px between 36–40 px filled pills reads as touching, and the 4 px bottom pushed rows off centre.

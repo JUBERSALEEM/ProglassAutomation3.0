@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
+             xmlns:cmp="clr-namespace:ProGlassAutomation.Company"
              Focusable="True"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
@@ -218,7 +219,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="3"
-                                        Margin="{DynamicResource MarginSection}">
+                                        Margin="{DynamicResource UiGapFieldInline}">
                                 <TextBlock Text="TRN" Style="{StaticResource CompanyFieldLabel}" />
                                 <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                          Text="{Binding Trn, UpdateSourceTrigger=PropertyChanged}"
@@ -292,7 +293,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2"
-                                        Margin="{DynamicResource MarginSection}">
+                                        Margin="{DynamicResource UiGapFieldInline}">
                                 <TextBlock Text="Mobile" Style="{StaticResource CompanyFieldLabel}" />
                                 <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                          Text="{Binding RepresentativeMobile, UpdateSourceTrigger=PropertyChanged}"
@@ -307,7 +308,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Row="0" Grid.Column="4" Grid.ColumnSpan="2"
-                                        Margin="{DynamicResource MarginSection}">
+                                        Margin="{DynamicResource UiGapFieldInline}">
                                 <TextBlock Text="E-mail" Style="{StaticResource CompanyFieldLabel}" />
                                 <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                          Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
@@ -337,7 +338,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="3"
-                                        Margin="{DynamicResource MarginSection}">
+                                        Margin="{DynamicResource UiGapFieldInline}">
                                 <TextBlock Text="Website" Style="{StaticResource CompanyFieldLabel}" />
                                 <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                          Text="{Binding Website, UpdateSourceTrigger=PropertyChanged}"
@@ -387,7 +388,7 @@
                             </StackPanel>
 
                             <StackPanel Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="3"
-                                        Margin="{DynamicResource MarginSection}">
+                                        Margin="{DynamicResource UiGapFieldInline}">
                                 <TextBlock Text="Account number / IBAN" Style="{StaticResource CompanyFieldLabel}" />
                                 <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                          Text="{Binding AccountNumber, UpdateSourceTrigger=PropertyChanged}"
@@ -414,264 +415,7 @@
                                 Padding="{DynamicResource UiCardPadding}"
                                 Width="300"
                                 VerticalAlignment="Top">
-                    <StackPanel>
-                        <TextBlock Text="Logo and document header"
-                                   Style="{StaticResource CompanySectionCaption}"
-                                   AutomationProperties.Name="Logo section" />
-                        <Border Style="{StaticResource CompanyHairline}" />
-                        <TextBlock Text="What prints on every document. The image is copied into the application's data folder, so a backup or a moved installation keeps it."
-                                   Style="{StaticResource CompanyHint}" />
-
-                        <!-- The sheet, in the chosen composition. -->
-                        <Border Style="{StaticResource CompanySheet}">
-                            <Grid MinHeight="104">
-                                <!-- Left portrait: mark beside the identity. -->
-                                <Grid Visibility="{Binding IsLeftPortraitLayout, Converter={StaticResource CompanyVisibility}}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Image Grid.Column="0"
-                                           Source="{Binding LogoPreview}"
-                                           Stretch="Uniform"
-                                           MaxHeight="56"
-                                           MaxWidth="60"
-                                           Margin="{DynamicResource MarginInline}"
-                                           VerticalAlignment="Top"
-                                           AutomationProperties.Name="Logo in the portrait header" />
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="{Binding PreviewCompanyName}" Style="{StaticResource CompanySheetName}" />
-                                        <TextBlock Text="{Binding PreviewAddressLine1}"
-                                                   Style="{StaticResource CompanySheetLine}"
-                                                   Visibility="{Binding HasPreviewAddressLine1, Converter={StaticResource CompanyVisibility}}" />
-                                        <TextBlock Text="{Binding PreviewAddressLine2}"
-                                                   Style="{StaticResource CompanySheetLine}"
-                                                   Visibility="{Binding HasPreviewAddressLine2, Converter={StaticResource CompanyVisibility}}" />
-                                        <TextBlock Text="{Binding PreviewTrnLine}" Style="{StaticResource CompanySheetLine}" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <!-- Top masthead: full-width band, rule beneath. -->
-                                <StackPanel Visibility="{Binding IsTopPanelLayout, Converter={StaticResource CompanyVisibility}}">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Image Grid.Column="0"
-                                               Source="{Binding LogoPreview}"
-                                               Stretch="Uniform"
-                                               MaxHeight="36"
-                                               MaxWidth="96"
-                                               Margin="{DynamicResource MarginInline}"
-                                               VerticalAlignment="Center"
-                                               AutomationProperties.Name="Logo in the top masthead" />
-                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                                            <TextBlock Text="{Binding PreviewCompanyName}"
-                                                       Style="{StaticResource CompanySheetName}"
-                                                       TextAlignment="Right" />
-                                            <TextBlock Text="{Binding PreviewTrnLine}"
-                                                       Style="{StaticResource CompanySheetLine}"
-                                                       TextAlignment="Right" />
-                                        </StackPanel>
-                                    </Grid>
-                                    <Border Style="{StaticResource CompanyHairline}" />
-                                    <TextBlock Text="{Binding PreviewAddressLine1}"
-                                               Style="{StaticResource CompanySheetLine}"
-                                               Visibility="{Binding HasPreviewAddressLine1, Converter={StaticResource CompanyVisibility}}" />
-                                    <TextBlock Text="{Binding PreviewAddressLine2}"
-                                               Style="{StaticResource CompanySheetLine}"
-                                               Visibility="{Binding HasPreviewAddressLine2, Converter={StaticResource CompanyVisibility}}" />
-                                </StackPanel>
-
-                                <!-- Text only. -->
-                                <StackPanel Visibility="{Binding IsNoLogoLayout, Converter={StaticResource CompanyVisibility}}">
-                                    <TextBlock Text="{Binding PreviewCompanyName}" Style="{StaticResource CompanySheetName}" />
-                                    <TextBlock Text="{Binding PreviewAddressLine1}"
-                                               Style="{StaticResource CompanySheetLine}"
-                                               Visibility="{Binding HasPreviewAddressLine1, Converter={StaticResource CompanyVisibility}}" />
-                                    <TextBlock Text="{Binding PreviewAddressLine2}"
-                                               Style="{StaticResource CompanySheetLine}"
-                                               Visibility="{Binding HasPreviewAddressLine2, Converter={StaticResource CompanyVisibility}}" />
-                                    <TextBlock Text="{Binding PreviewTrnLine}" Style="{StaticResource CompanySheetLine}" />
-                                    <TextBlock Text="Text-only letterhead — no logo is printed."
-                                               Style="{StaticResource CompanyHint}" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <!-- Placement: three equal tiles, one radio group. -->
-                        <TextBlock Text="Placement on documents" Style="{StaticResource CompanyFieldLabel}" />
-                        <Grid Margin="{DynamicResource MarginItem}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <RadioButton Grid.Column="0"
-                                         GroupName="CompanyLogoLayout"
-                                         Style="{StaticResource CompanyPlacementTile}"
-                                         IsEnabled="{Binding CanEdit}"
-                                         IsChecked="{Binding IsNoLogoLayout, Mode=TwoWay}"
-                                         AutomationProperties.Name="No logo, text only">
-                                <StackPanel>
-                                    <Border Style="{StaticResource CompanyTileDiagram}">
-                                        <StackPanel VerticalAlignment="Center">
-                                            <Border Style="{StaticResource CompanyTileTextLine}" />
-                                            <Border Style="{StaticResource CompanyTileTextLine}" />
-                                            <Border Style="{StaticResource CompanyTileTextLine}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <TextBlock Text="No logo" Style="{StaticResource CompanyTileCaption}" />
-                                </StackPanel>
-                            </RadioButton>
-
-                            <RadioButton Grid.Column="1"
-                                         GroupName="CompanyLogoLayout"
-                                         Style="{StaticResource CompanyPlacementTile}"
-                                         IsEnabled="{Binding CanEdit}"
-                                         IsChecked="{Binding IsLeftPortraitLayout, Mode=TwoWay}"
-                                         AutomationProperties.Name="Logo to the left of the identity">
-                                <StackPanel>
-                                    <Border Style="{StaticResource CompanyTileDiagram}">
-                                        <Grid VerticalAlignment="Center">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Style="{StaticResource CompanyTileLogoBlock}"
-                                                    Width="14" Height="14" />
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <Border Style="{StaticResource CompanyTileTextLine}" />
-                                                <Border Style="{StaticResource CompanyTileTextLine}" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                    <TextBlock Text="Left portrait" Style="{StaticResource CompanyTileCaption}" />
-                                </StackPanel>
-                            </RadioButton>
-
-                            <RadioButton Grid.Column="2"
-                                         GroupName="CompanyLogoLayout"
-                                         Style="{StaticResource CompanyPlacementTile}"
-                                         IsEnabled="{Binding CanEdit}"
-                                         IsChecked="{Binding IsTopPanelLayout, Mode=TwoWay}"
-                                         AutomationProperties.Name="Logo in a full-width top masthead">
-                                <StackPanel>
-                                    <Border Style="{StaticResource CompanyTileDiagram}">
-                                        <StackPanel VerticalAlignment="Center">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Style="{StaticResource CompanyTileLogoBlock}"
-                                                        Width="14" Height="8" />
-                                                <Border Grid.Column="1" Style="{StaticResource CompanyTileTextLine}"
-                                                        VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource CompanyTileTextLine}" />
-                                            <Border Style="{StaticResource CompanyTileTextLine}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <TextBlock Text="Top masthead" Style="{StaticResource CompanyTileCaption}" />
-                                </StackPanel>
-                            </RadioButton>
-                        </Grid>
-                        <TextBlock Text="{Binding LogoPlacementHint}" Style="{StaticResource CompanyHint}" />
-                        <TextBlock Text="{Binding LogoLayoutError}"
-                                   Style="{StaticResource CompanyFieldError}"
-                                   AutomationProperties.Name="Logo placement error"
-                                   Visibility="{Binding HasLogoLayoutError, Converter={StaticResource CompanyVisibility}}" />
-
-                        <!-- Printed size: a picker, because it is a set of sane sizes. -->
-                        <TextBlock Text="Printed size" Style="{StaticResource CompanyFieldLabel}" />
-                        <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
-                                  ItemsSource="{Binding LogoSizeOptions}"
-                                  SelectedItem="{Binding SelectedLogoSizeOption, Mode=TwoWay}"
-                                  Margin="{DynamicResource MarginItem}"
-                                  IsEnabled="{Binding CanEdit}"
-                                  ToolTip="The logo's long edge on the printed page"
-                                  AutomationProperties.Name="Printed logo size">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <TextBlock Text="Long edge in millimetres. The other edge follows the image's own proportions, so the logo is never stretched."
-                                   Style="{StaticResource CompanyHint}" />
-                        <TextBlock Text="{Binding LogoSizeError}"
-                                   Style="{StaticResource CompanyFieldError}"
-                                   AutomationProperties.Name="Logo size error"
-                                   Visibility="{Binding HasLogoSizeError, Converter={StaticResource CompanyVisibility}}" />
-
-                        <!-- The file chip: thumbnail, name, size, Remove. -->
-                        <TextBlock Text="Logo file" Style="{StaticResource CompanyFieldLabel}" />
-                        <Border Style="{StaticResource CompanyFileChip}"
-                                Visibility="{Binding HasLogo, Converter={StaticResource CompanyVisibility}}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <Image Grid.Column="0"
-                                       Source="{Binding LogoPreview}"
-                                       Stretch="Uniform"
-                                       MaxHeight="32"
-                                       MaxWidth="32"
-                                       Margin="{DynamicResource MarginInline}"
-                                       VerticalAlignment="Center"
-                                       AutomationProperties.Name="Logo file thumbnail"
-                                       Visibility="{Binding HasLogoPreview, Converter={StaticResource CompanyVisibility}}" />
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding LogoDisplayName}"
-                                               Style="{StaticResource CompanyFileName}"
-                                               ToolTip="{Binding LogoDisplayName}"
-                                               AutomationProperties.Name="Logo file name" />
-                                    <TextBlock Text="{Binding LogoImageInfo}"
-                                               Style="{StaticResource CompanyHint}"
-                                               Visibility="{Binding HasLogoImageInfo, Converter={StaticResource CompanyVisibility}}" />
-                                </StackPanel>
-
-                                <Button Grid.Column="2"
-                                        Style="{DynamicResource SubtleButton}"
-                                        Command="{Binding RemoveLogoCommand}"
-                                        VerticalAlignment="Center"
-                                        ToolTip="Remove the logo from the profile"
-                                        AutomationProperties.Name="Remove the company logo">
-                                    <TextBlock Text="Remove" />
-                                </Button>
-                            </Grid>
-                        </Border>
-
-                        <!-- A missing or unreadable file says so here, and nothing
-                             pretends the logo is still there. -->
-                        <TextBlock Text="{Binding LogoPreviewProblem}"
-                                   Style="{StaticResource CompanyFieldError}"
-                                   AutomationProperties.Name="Logo problem"
-                                   Visibility="{Binding HasLogoPreviewProblem, Converter={StaticResource CompanyVisibility}}" />
-
-                        <Button Style="{DynamicResource SubtleButton}"
-                                Command="{Binding ChooseLogoCommand}"
-                                Margin="{DynamicResource MarginItem}"
-                                HorizontalAlignment="Left"
-                                IsEnabled="{Binding CanEdit}"
-                                ToolTip="Choose a PNG or JPEG image"
-                                AutomationProperties.Name="Choose a logo image">
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Add" Width="{DynamicResource ChoiceMarkSize}"
-                                                  Height="{DynamicResource ChoiceMarkSize}"
-                                                  Margin="{DynamicResource MarginInline}"
-                                                  VerticalAlignment="Center" />
-                                <TextBlock Text="Choose image" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
+                    <cmp:CompanyLogoPanel />
                 </ContentControl>
             </Grid>
         </ScrollViewer>

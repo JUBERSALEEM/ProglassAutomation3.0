@@ -242,3 +242,30 @@ check instead of returning the defect to the owner.
 
 Windows build, WPF runtime and nine-theme visual verification have **not** been
 run by the agent that wrote this module; the owner's MSBuild is the only compiler.
+
+---
+
+## Round 32: the sign-in is remembered on this device
+
+Owner instruction: *"the app asks for device login repeatedly — remember the last
+login until Sign out."* The session used to live in one static field, so it died
+with the process and every launch asked for the same password again.
+
+- **`step3.b.8.DeviceSessionStore`** writes
+  `%LOCALAPPDATA%\ProGlassAutomation\device-session.json`: the directory id, the
+  username, the Windows account the sign-in was made under, the row's password
+  stamp and a timestamp. **No** password, hash, salt or token. Writes go to a
+  temporary file and are moved into place; reads are size-bounded and never
+  throw.
+- **`step3.b.9.RememberedSignIn`** resumes it only while every check holds: this
+  Windows account, the row still present, active, credentialed, not waiting on a
+  password change, password stamp unchanged. Any failure clears the record and
+  opens the gate with the reason on it.
+- **`AuthenticationContext.SignedIn`** joins `SignedOut`; the shell remembers on
+  every sign-in and clears the record as the first thing **Sign out** does — that
+  is the one explicit "do not remember me".
+- **Why the stamp matters:** an administrator resetting a compromised password
+  expects the workstation that was left signed in to stop resuming. It does.
+
+`step3.f.2.require_session_is_remembered` pins all of it, including that the file
+contains no secret and that a resumed session does not fall through to the gate.

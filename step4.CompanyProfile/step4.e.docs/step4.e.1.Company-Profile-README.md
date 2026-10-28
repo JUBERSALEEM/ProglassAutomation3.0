@@ -125,6 +125,35 @@ allowed — "keep the artwork on file, print text only" is a letterhead choice.
 
 ---
 
+## Round 32: the card is a page, and "Choose image" works
+
+Two owner reports shaped this round.
+
+**"Choose image does not work."** It was not the dialog. The view attached its
+`RequestLogoPick` handler in the constructor and removed it on `Unloaded`; the
+page sits in a `TabControl`, whose template hosts a single content presenter, so
+choosing another tab unloads the view and returning loads it again. After the
+first tab switch the handler was gone for the session — a button that replies
+with nothing. `AttachLogoPick`/`DetachLogoPick` now pair on `Loaded`/`Unloaded`
+with a guard against a double attach. `CanEdit` also reads a process-wide
+session, so the view model follows `AuthenticationContext.SignedIn`/`SignedOut`,
+the view re-reads the permission every time it is shown, and a disabled button
+carries the reason in its tooltip (`ToolTipService.ShowOnDisabled="True"`).
+
+**"Extend this card so the page preview is readable."** The 104 px strip is
+gone. The card shows a 236 × 300 px sheet on the mockup's grey stage
+(`CompanyPageStage` + `CompanyPage`, `step4.d.3`): the real logo, name, address,
+TRN and contact line from the working copy, so it changes as you type, with the
+document body suggested in hairlines under the header. The three placements are
+unchanged and still one radio group.
+
+**Files (rule K — no god files).** `step4.c.1` 999 → 711 lines, with the logo and
+preview surface in `step4.c.3.CompanyProfileLogo.cs` (one `partial` class: same
+object, same contract). `step4.d.1` 782 → 468 lines, with the card as
+`step4.d.4.CompanyLogoPanel` — a `UserControl` that inherits the page's data
+context and merges the same style dictionary. `step4.f.2` reads the page and its
+band files as one page, so a split cannot silently drop a control.
+
 ## Verification state
 
 - **Portable checks:** `step4.f.2` runs anywhere with Python 3 and needs no .NET.

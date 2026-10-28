@@ -83,6 +83,10 @@ public static class ThemeContract
         //   ControlEnd  right-anchored row: the gap sits to the LEFT of each item,
         //               so the last control stays flush with the card edge
         // Both are one 16 px gutter, never smaller: docs/00.Project-Rules.md, rule K.
+        // The same 16 px gutter, for fields that sit side by side in one Grid row
+        // (a Grid has no gap property): 16 left, 12 bottom, so a field that follows
+        // another in its row keeps the row rhythm as well as the column gap.
+        ["UiGapFieldInline"] = typeof(Thickness),
         ["UiGapControl"] = typeof(Thickness),
         ["UiGapControlEnd"] = typeof(Thickness),
         ["UiPagePadding"] = typeof(Thickness),

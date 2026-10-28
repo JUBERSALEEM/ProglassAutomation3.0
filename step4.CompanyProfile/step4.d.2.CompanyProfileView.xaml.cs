@@ -6,7 +6,13 @@
 //   1. builds the view model and reads the profile the first time the tab is
 //      shown (and again on return, but only when there is nothing unsaved);
 //   2. shows the file picker, because a view model cannot open a dialog and a
-//      test must not be able to;
+//      test must not be able to — and it attaches that handler on EVERY load,
+//      because this view lives in a TabControl: the WPF tab template hosts one
+//      content presenter, so leaving the Company tab UNLOADS this view and
+//      coming back LOADS it again. Round 32: the handler was attached once in
+//      the constructor and removed on Unloaded, so after the first visit to
+//      another tab "Choose image" opened nothing at all — a dead button with no
+//      message, which is exactly what the owner reported;
 //   3. contains every failure. A database that will not open must report on the
 //      page's error surface, never take the shell down from an async void.
 //   4. reflows the BODY between two columns and one. Above 940 px of content
@@ -47,13 +53,13 @@ namespace ProGlassAutomation.Company
         private readonly CompanyProfileViewModel _viewModel;
         private bool _loadedOnce;
         private bool _twoColumn = true;
+        private bool _logoPickAttached;
 
         public CompanyProfileView()
         {
             InitializeComponent();
 
             _viewModel = new CompanyProfileViewModel();
-            _viewModel.RequestLogoPick += OnRequestLogoPick;
             DataContext = _viewModel;
 
             Loaded += OnLoaded;
@@ -64,6 +70,15 @@ namespace ProGlassAutomation.Company
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
             _loadedOnce = true;
+
+            // Every load, not just the first: see the file header. Attaching twice
+            // would open two dialogs, so the flag is what makes this idempotent.
+            AttachLogoPick();
+
+            // Who may edit is a process-wide fact, and this view may be shown long
+            // after the session changed. Re-read it on every load so "Choose image"
+            // and the fields are never left disabled by a stale answer.
+            _viewModel.RefreshAuthorization();
             try
             {
                 // EnsureLoadedAsync keeps its own failures on the page's error
@@ -88,6 +103,8 @@ namespace ProGlassAutomation.Company
         private async void OnVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             if (e.NewValue is not true) return;
+
+            _viewModel.RefreshAuthorization();
             if (!_loadedOnce || !IsLoaded) return;
             if (_viewModel.HasUnsavedChanges) return;
 
@@ -144,8 +161,23 @@ namespace ProGlassAutomation.Company
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
             // The view model is owned by this view; unsubscribing keeps the
-            // handler from outliving it.
+            // handler from outliving it. OnLoaded attaches it again — the pair is
+            // what makes leaving and returning to the tab safe in both directions.
+            DetachLogoPick();
+        }
+
+        private void AttachLogoPick()
+        {
+            if (_logoPickAttached) return;
+            _viewModel.RequestLogoPick += OnRequestLogoPick;
+            _logoPickAttached = true;
+        }
+
+        private void DetachLogoPick()
+        {
+            if (!_logoPickAttached) return;
             _viewModel.RequestLogoPick -= OnRequestLogoPick;
+            _logoPickAttached = false;
         }
 
         /// <summary>

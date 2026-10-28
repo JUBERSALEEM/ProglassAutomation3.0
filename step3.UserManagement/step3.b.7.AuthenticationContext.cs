@@ -33,6 +33,16 @@ namespace ProGlassAutomation.Services.Users
         public static event EventHandler? SignedOut;
 
         /// <summary>
+        /// Raised after a password has been verified and the session exists.
+        /// </summary>
+        /// <remarks>
+        /// The shell listens so the identity in the banner is never stale, and so
+        /// this device can remember the sign-in (step3.b.8) in exactly one place —
+        /// whether the session came from the gate or from the remembered record.
+        /// </remarks>
+        public static event EventHandler? SignedIn;
+
+        /// <summary>
         /// Raised when something needs the gate shown while nobody is signed in.
         /// </summary>
         /// <remarks>
@@ -68,6 +78,10 @@ namespace ProGlassAutomation.Services.Users
         {
             if (user == null) throw new ArgumentNullException(nameof(user));
             lock (Gate) _current = user;
+
+            // Outside the lock: a handler must never be able to deadlock the
+            // context by reading it back (the shell's does exactly that).
+            SignedIn?.Invoke(null, EventArgs.Empty);
         }
 
         /// <summary>Refreshes the cached row after it changed (rename, role change).</summary>

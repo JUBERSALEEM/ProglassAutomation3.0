@@ -44,7 +44,7 @@ BASELINE = {
     "Inquiry/Services/Inquiry/InquiryInbox/InquiryInboxService.cs": 1091,
     "step3.UserManagement/step3.b.4.UserRepository.cs": 1088,
     "step3.UserManagement/step3.c.2.UserWorkspaceViewModel.cs": 1037,
-    "step4.CompanyProfile/step4.c.1.CompanyProfileViewModel.cs": 999,
+    "step4.CompanyProfile/step4.c.1.CompanyProfileViewModel.cs": 711,
     "Inquiry/ViewModels/InquiryEditorViewModel.cs": 922,
     "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs": 913,
     "step3.UserManagement/step3.d.1.UserWorkspaceView.xaml": 900,

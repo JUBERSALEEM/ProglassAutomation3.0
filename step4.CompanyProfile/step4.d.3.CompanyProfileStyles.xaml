@@ -7,7 +7,7 @@
          for a screen: they are the page's vocabulary (state chip, section
          caption, hairline, placement tile, file chip). Keeping them beside
          the markup made one file hold two jobs, which is the pattern the
-         owner rejected as a "god file" (docs/00.Project-Rules.md, rule L).
+         owner rejected as a "god file" (docs/00.Project-Rules.md, rule K).
 
          The view merges this dictionary, so every StaticResource below is
          resolved exactly as before; nothing here depends on the view.
@@ -193,28 +193,91 @@
             <Setter Property="Margin" Value="{DynamicResource MarginInline}" />
         </Style>
 
-        <!-- ── Letterhead mock ───────────────────────────────────────
-             The sheet the identity will print on. Primary surface inside a
-             hairline, so it reads as paper on any theme without a fixed white. -->
-        <Style x:Key="CompanySheet" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+        <!-- ── Document page preview ─────────────────────────────────
+             The sheet the identity will print on, at a size that can be READ
+             (owner instruction, round 32: "extend this card so normal page logo
+             and details preview can be visible like a read documented page").
+             Round 29 shipped the mockup's grey stage with a 104 px strip inside
+             it; a letterhead you cannot read is a thumbnail, not a preview.
+
+             Two layers, the way the mockup draws it:
+               CompanyPageStage  the grey desk the sheet lies on
+               CompanyPage       the sheet itself — primary surface inside a
+                                 hairline, so it reads as paper on all nine
+                                 themes and in both modes without a fixed white,
+                                 at a fixed 236 px so it never stretches into a
+                                 landscape sheet when the panel is stacked. -->
+
+        <Style x:Key="CompanyPageStage" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceSecondary}" />
             <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
             <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
             <Setter Property="Margin" Value="{DynamicResource MarginSection}" />
+            <Setter Property="ClipToBounds" Value="True" />
         </Style>
 
+        <!-- The sheet. 236 × at least 300 px is a portrait page at reading size:
+             the header, three or four body paragraphs and the footer line all
+             fit, and the panel stays 300 px wide as the mockup fixes it. -->
+        <Style x:Key="CompanyPage" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource ChipCornerRadius}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingControl}" />
+            <Setter Property="Width" Value="236" />
+            <Setter Property="MinHeight" Value="300" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
+        <!-- The identity, as printed. Body size, not caption size: this is the
+             one place on the page where the wording has to be legible. -->
         <Style x:Key="CompanySheetName" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
             <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
             <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
         </Style>
 
         <Style x:Key="CompanySheetLine" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <!-- The document body is suggested, never invented: rules of the theme's
+             own hairline colour, one short one per paragraph so the block reads
+             as text rather than as a table. -->
+        <Style x:Key="CompanyPageBodyHeading" TargetType="Border">
+            <Setter Property="Height" Value="{DynamicResource StrokeWidth}" />
+            <Setter Property="Background" Value="{DynamicResource BorderStrong}" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Width" Value="96" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+
+        <Style x:Key="CompanyPageBodyLine" TargetType="Border">
+            <Setter Property="Height" Value="{DynamicResource StrokeWidth}" />
+            <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+
+        <Style x:Key="CompanyPageBodyShort" TargetType="Border">
+            <Setter Property="Height" Value="{DynamicResource StrokeWidth}" />
+            <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Width" Value="140" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+        </Style>
+
+        <!-- The page footer: who to contact, in one truncated line. -->
+        <Style x:Key="CompanyPageFooter" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
         </Style>
 
         <!-- ── File chip ─────────────────────────────────────────────

@@ -43,12 +43,19 @@ public partial class MainWindow : Window
             viewModel.DialogRequested -= OpenPreview;
             sessionBanner.ActionRequested -= OnSessionActionRequested;
             AuthenticationContext.SignedOut -= OnSignedOut;
+            AuthenticationContext.SignedIn -= OnSessionStarted;
             AuthenticationContext.SignInRequested -= OnSignInRequested;
             viewModel.Dispose();
         };
 
         // Signing out (from the Users page) must bring the gate straight back.
         AuthenticationContext.SignedOut += OnSignedOut;
+
+        // ... and while a session lasts, the banner says who it is, and this
+        // device remembers the sign-in so the next launch does not ask again
+        // (owner instruction, round 32). One handler, whichever way the session
+        // was established — a verified password or the remembered record.
+        AuthenticationContext.SignedIn += OnSessionStarted;
 
         // ... and so must setting the first password from the page: the page is
         // reachable with no session when the first-run gate was dismissed, and
@@ -74,9 +81,13 @@ public partial class MainWindow : Window
         Loaded -= OnShellLoaded;
         sessionBanner.Refresh();
 
+        // Declared outside the guard so the remembered-sign-in step below can use
+        // it; assigned inside it so nothing here can take the shell down.
+        UserRepository? repository = null;
+
         try
         {
-            var repository = new UserRepository();
+            repository = new UserRepository();
             firstRun = new FirstRunViewModel(new FirstRunService(repository));
             FirstRunGate.DataContext = firstRun;
             firstRun.Completed += OnFirstRunCompleted;
@@ -106,9 +117,36 @@ public partial class MainWindow : Window
             return;
         }
 
-        // A directory with users but no verified session: the gate is the way in.
-        // Nothing else is reachable until it hands the session over.
-        await BeginSignInAsync();
+        // The directory is readable and not new. Before asking for a password,
+        // ask this device whether it already knows who is operating: the owner's
+        // instruction is that the password is typed once, not once per launch
+        // (round 32). Every reason a remembered session stops counting is
+        // decided in step3.b.9, not here; this only reports the outcome.
+        RememberedSignInResult remembered;
+        try
+        {
+            remembered = await RememberedSignIn.TryRestoreAsync(repository!);
+        }
+        catch (Exception error)
+        {
+            remembered = RememberedSignInResult.None(
+                "The remembered sign-in could not be checked: " + error.Message);
+            System.Diagnostics.Debug.WriteLine("Remembered sign-in failed: " + error);
+        }
+
+        if (remembered.Restored)
+        {
+            // OnSessionStarted has already refreshed the banner and rewritten the
+            // record; the shell opens on its normal page with a live session.
+            System.Diagnostics.Debug.WriteLine(
+                "Session resumed for " + remembered.Username + " (remembered on this device).");
+            return;
+        }
+
+        // Nobody is signed in: the gate is the way in, and it carries the reason
+        // the remembered session did not apply, when there was one.
+        await BeginSignInAsync(remembered.Username,
+            problem: remembered.Message.Length > 0 ? remembered.Message : null);
     }
 
     /// <summary>
@@ -181,6 +219,28 @@ public partial class MainWindow : Window
         SignInGate.FocusFirstField();
     }
 
+    /// <summary>
+    /// A session now exists — from a verified password or from this device's
+    /// remembered record. Two things follow, and both belong here so there is one
+    /// place that knows them: the banner says who is operating, and the sign-in
+    /// is written down for the next launch. There is no password in that record
+    /// (step3.b.8); it is cleared the moment the session ends.
+    /// </summary>
+    private void OnSessionStarted(object? sender, EventArgs e)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => OnSessionStarted(sender, e));
+            return;
+        }
+
+        sessionBanner.ClearProblem();
+        sessionBanner.Refresh();
+        DeviceSessionStore.Remember(
+            AuthenticationContext.Current,
+            ProGlassAutomation.Services.Audit.CurrentOperator.Username);
+    }
+
     private void OnSignedIn(object? sender, EventArgs e)
     {
         SignInGate.Visibility = Visibility.Collapsed;
@@ -207,6 +267,11 @@ public partial class MainWindow : Window
 
     private void OnSignedOut(object? sender, EventArgs e)
     {
+        // Signing out is the one explicit "do not remember me" (owner instruction,
+        // round 32), so the record goes first and goes on whatever thread raised
+        // the event — before any marshalling that could be lost with the window.
+        DeviceSessionStore.Forget();
+
         // Raised from the Users page; marshal to the UI thread before touching
         // any control.
         if (!Dispatcher.CheckAccess())

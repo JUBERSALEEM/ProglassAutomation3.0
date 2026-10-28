@@ -97,6 +97,9 @@ def require_files():
         "step3.b.4.UserRepository.cs",
         "step3.b.5.UserSession.cs",
         "step3.b.6.FirstRunService.cs",
+        "step3.b.7.AuthenticationContext.cs",
+        "step3.b.8.DeviceSessionStore.cs",
+        "step3.b.9.RememberedSignIn.cs",
         "step3.c.1.UserEditorViewModel.cs",
         "step3.c.2.UserWorkspaceViewModel.cs",
         "step3.c.3.FirstRunViewModel.cs",
@@ -1088,6 +1091,92 @@ def require_sign_in_is_reachable():
           "no catch block may touch the gate's visibility at all")
 
 
+def require_session_is_remembered():
+    """Round 32 (owner report): "remember the last login until Sign out".
+
+    The session used to live in one static field, so every launch of the same
+    application on the same workstation asked for the same password again. It is
+    now remembered on this device — and because "remember me" is a security
+    decision, the remembering is checked here, not just exercised:
+
+      * the record holds no password, no hash and no salt;
+      * it is bound to the Windows account and to the password stamp;
+      * every reason it could be stale (row gone, inactive, no password, a reset,
+        another Windows account) clears it instead of resuming;
+      * one explicit Sign out clears it, and the shell is the only place that
+        writes or clears it.
+    """
+    store = read(MODULE / "step3.b.8.DeviceSessionStore.cs")
+    restorer = read(MODULE / "step3.b.9.RememberedSignIn.cs")
+    context = read(MODULE / "step3.b.7.AuthenticationContext.cs")
+    shell = read(ROOT / "MainWindow.xaml.cs")
+
+    # What is stored: an id, a name, the Windows account and a password stamp.
+    check("public int UserId { get; set; }" in store,
+          "the remembered sign-in must be keyed by the directory id")
+    check("WindowsAccount" in store,
+          "the record must name the Windows account it was made under")
+    check("PasswordUpdatedAtUtc" in store,
+          "the record must carry the password stamp, so a reset invalidates it")
+    for secret in ("PasswordHash", "PasswordSalt", "PasswordIterations", "Password ="):
+        check(secret not in store,
+              f"the remembered sign-in must never store {secret.strip()}")
+
+    # The file is a device fact, not a database: LocalApplicationData, bounded.
+    check("LocalApplicationData" in store,
+          "the record belongs in this device's local application data")
+    check("MaxBytes" in store and "MaxBytes)" in store,
+          "the record must be size-bounded before it is trusted")
+
+    # Every way a remembered session can stop being true must clear it.
+    for guard, why in (
+        ('StringComparison.OrdinalIgnoreCase', "the Windows account must match"),
+        ("user == null", "a row that no longer exists must not resume"),
+        ("!user.IsActive", "an inactive user must not resume"),
+        ("!user.HasPassword", "an account with no password must not resume"),
+        ("user.MustChangePassword", "an account that must change its password must not resume"),
+        ("if (!SameStamp(remembered.PasswordUpdatedAtUtc, user.PasswordUpdatedAt))",
+         "a password set since the record must invalidate it"),
+    ):
+        check(guard in restorer, f"the remembered sign-in must refuse to resume: {why}")
+    check(restorer.count("DeviceSessionStore.Forget();") >= 3,
+          "every failed check must clear the record, not leave it to be retried forever")
+
+    # The session announces itself, so exactly one place can remember it.
+    check("public static event EventHandler? SignedIn;" in context,
+          "AuthenticationContext must announce a session, not only its end")
+    check("SignedIn?.Invoke(null, EventArgs.Empty);" in context,
+          "the announcement must be raised when a session is established")
+
+    # The shell: resume before asking, remember on every sign-in, forget on exit.
+    check("RememberedSignIn.TryRestoreAsync(" in shell,
+          "the shell must try this device's remembered sign-in at launch")
+    check("await BeginSignInAsync(remembered.Username" in shell,
+          "a refused remembered sign-in must still open the gate, with its reason")
+    try:
+        ordered = shell.index("RememberedSignIn.TryRestoreAsync(") \
+            < shell.index("await BeginSignInAsync(remembered.Username")
+    except ValueError:
+        ordered = False
+    check(ordered,
+          "the remembered sign-in must be tried BEFORE the gate is opened")
+    check("DeviceSessionStore.Remember(" in shell,
+          "a sign-in must be written down for the next launch")
+    check("DeviceSessionStore.Forget();" in shell,
+          "signing out must clear the remembered sign-in")
+    sign_out = shell[shell.index("private void OnSignedOut"):]
+    sign_out = sign_out[:sign_out.index("\n    }")]
+    check("DeviceSessionStore.Forget();" in sign_out,
+          "Sign out is the explicit \"do not remember me\": the record goes there, first")
+    check("remembered.Restored" in shell,
+          "the shell must act on the outcome instead of asking anyway")
+    restored_block = shell[shell.index("if (remembered.Restored)") + 1:]
+    restored_block = restored_block[:restored_block.index("\n        }")]
+    check("return;" in restored_block,
+          "a resumed session must NOT fall through to the gate: the password it "
+          "just avoided asking for would be asked anyway")
+
+
 def require_docs_recorded():
     registry = read(ROOT / "docs/06.Feature-Registry.md")
     row = next((line for line in registry.splitlines() if line.startswith("| step3 |")), "")
@@ -1127,6 +1216,7 @@ def main():
     require_command_namespace()
     require_layout_contract()
     require_sign_in_is_reachable()
+    require_session_is_remembered()
     require_docs_recorded()
 
     if FAILURES:

@@ -14,11 +14,18 @@ Two things did:
     used it, 14 more had no margin at all.
   * There was no rule. Each page spaced its own controls from memory.
 
+A third gap had no token at all (owner report, round 31): a Grid has no gap
+property, so two or three FIELDS in one row were placed in adjacent star columns
+with, at most, a 4 px bottom margin — their boxes shared an edge. `UiGapFieldInline`
+(16 left, 12 bottom) is the gutter for a field that follows another in its row.
+
 The fix is a token per job and a gate that refuses the old shape:
 
   UiGapControl     left-anchored row: one 16 px gap to the RIGHT of each item
   UiGapControlEnd  right-anchored row: one 16 px gap to the LEFT of each item,
                    so the last control stays flush with the card edge
+  UiGapFieldInline a field that follows another in the same Grid row: 16 left,
+                   12 bottom; the first field in a row keeps MarginSection
 
 What is checked
 ---------------
@@ -27,7 +34,9 @@ What is checked
   2. no Button / RadioButton / CheckBox / ToggleButton is spaced with the text
      token anywhere;
   3. inside a horizontal StackPanel or WrapPanel, every surface (control or chip
-     Border) carries the row's token, and the anchor decides which one.
+     Border) carries the row's token, and the anchor decides which one;
+  4. two fields side by side in one Grid row are separated by the field gutter —
+     the field after the first carries `UiGapFieldInline`.
 
 Grandfathered files
 -------------------
@@ -160,6 +169,63 @@ def inside_button(el):
     return False
 
 
+INPUTS = ("TextBox", "ComboBox", "PasswordBox", "DatePicker")
+
+
+def holds_input(element, found, depth=0):
+    """True when this element is, or directly wraps, an input control."""
+    if element["name"] in INPUTS:
+        return True
+    if depth >= 2:
+        return False
+    return any(holds_input(child, found, depth + 1) for child in found.get(id(element), ()))
+
+
+def local(name):
+    """`Grid.ColumnDefinitions` is a property element, not a child of type Grid."""
+    return name.split(".")[-1]
+
+
+def field_gutters(found):
+    """(element, reason) for two fields in one Grid row with no gutter between."""
+    problems = []
+    children = {}
+    for element in found:
+        children.setdefault(id(element["parent"]), []).append(element)
+
+    for grid in found:
+        if local(grid["name"]) != "Grid":
+            continue
+        kids = children.get(id(grid), ())
+        columns = 0
+        for kid in kids:
+            if local(kid["name"]) == "ColumnDefinitions":
+                columns += sum(1 for c in children.get(id(kid), ())
+                               if local(c["name"]) == "ColumnDefinition")
+        if columns < 2:
+            continue
+
+        rows = {}
+        for kid in kids:
+            if local(kid["name"]) == "ColumnDefinitions":
+                continue
+            row = int(kid["attrs"].get("Grid.Row") or 0)
+            column = int(kid["attrs"].get("Grid.Column") or 0)
+            rows.setdefault(row, []).append((column, kid))
+
+        for row, items in rows.items():
+            items.sort(key=lambda item: item[0])
+            fields = [kid for _, kid in items if holds_input(kid, children)]
+            if len(fields) < 2:
+                continue
+            for kid in fields[1:]:
+                if token_of(kid["attrs"].get("Margin")) != "UiGapFieldInline":
+                    problems.append((kid["name"],
+                                     "shares a Grid row with another field and no gutter "
+                                     "(needs UiGapFieldInline)"))
+    return problems
+
+
 def violations(path):
     """The list of (element, reason) that break the rule in one file."""
     found = []
@@ -184,7 +250,8 @@ def require_tokens():
     values = {}
     for path in THEMES:
         text = read(path)
-        for token, side in (("UiGapControl", 2), ("UiGapControlEnd", 0)):
+        for token, side in (("UiGapControl", 2), ("UiGapControlEnd", 0),
+                            ("UiGapFieldInline", 0)):
             match = re.search(r'x:Key="%s">([\d.,\s]+)</Thickness>' % token, text)
             if not match:
                 check(False, f"{path.name}: the contract is missing {token}")
@@ -203,6 +270,33 @@ def require_tokens():
     for token, seen in values.items():
         check(len(seen) == 1,
               f"{token} must mean one thing in every theme, found {sorted(seen)}")
+
+
+# The field gutter is a round-31 rule; the two Inquiry views predate it and the
+# owner's standing instruction is not to restyle that module. Frozen at round 31.
+FIELD_GRANDFATHERED = {
+    "Inquiry/Views/InquiryInboxView.xaml": 4,
+    "Inquiry/Views/InquiryListView.xaml": 2,
+}
+
+
+def require_field_gutters():
+    counts = {}
+    for path in targets():
+        found = field_gutters(elements(read(path)))
+        if found:
+            counts[relative(path)] = found
+
+    for name, found in sorted(counts.items()):
+        allowed = FIELD_GRANDFATHERED.get(name)
+        if allowed is None:
+            for element, reason in found:
+                check(False, f"{name}: <{element}> {reason}")
+        else:
+            check(len(found) <= allowed,
+                  f"{name}: {len(found)} field row(s) without a gutter, up from the "
+                  f"frozen {allowed} — a grandfathered file may get better, never worse")
+    return counts
 
 
 def require_spacing():
@@ -240,6 +334,7 @@ def relative(path):
 def main():
     require_tokens()
     counts = require_spacing()
+    require_field_gutters()
 
     if FAILURES:
         print(f"layout spacing checks: {len(FAILURES)} failure(s).")
@@ -250,7 +345,9 @@ def main():
     frozen = sum(GRANDFATHERED.values())
     print(f"layout spacing checks: PASS ({len(THEMES)} theme dictionaries, "
           f"{len(targets())} XAML files; {frozen} legacy surface(s) still frozen "
-          f"in {len(GRANDFATHERED)} file(s)).")
+          f"in {len(GRANDFATHERED)} file(s); "
+          f"{sum(FIELD_GRANDFATHERED.values())} legacy field row(s) in "
+          f"{len(FIELD_GRANDFATHERED)} file(s)).")
     return 0
 
 

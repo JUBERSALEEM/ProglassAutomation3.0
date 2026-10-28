@@ -45,6 +45,7 @@
   <sys:Double x:Key="SpacingSection">28</sys:Double>
   <sys:Double x:Key="SpacingPage">20</sys:Double>
   <Thickness x:Key="UiGapField">0,0,0,6</Thickness>
+  <Thickness x:Key="UiGapFieldInline">16,0,0,12</Thickness>
   <Thickness x:Key="UiGapGroup">0,0,0,16</Thickness>
   <Thickness x:Key="UiGapSection">0,0,0,24</Thickness>
   <Thickness x:Key="UiGapAction">0,0,8,0</Thickness>

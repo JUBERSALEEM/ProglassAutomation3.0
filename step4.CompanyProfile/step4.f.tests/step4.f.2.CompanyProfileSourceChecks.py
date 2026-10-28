@@ -62,6 +62,17 @@ def module_sources(include_tests=False):
 def source(name):
     return read(MODULE / name)
 
+
+def view_model_source():
+    """The Company Profile view model, as one class in several parts.
+
+    step4.c.1 is the page's state and commands; step4.c.3 is the logo and the
+    document preview (docs/00 rule K: no god files). A partial class is ONE
+    scope, so a member declared in any part is a member of the class: a check
+    that looked at one file would call a legal call illegal and miss a real one.
+    """
+    return "\n".join(read(path) for path in sorted(MODULE.glob("step4.c.*.cs")))
+
 def strip_markup(text):
     """Markup with comments removed.
 
@@ -110,8 +121,12 @@ def require_files():
         "step4.b.4.CompanyProfileRepository.cs",
         "step4.c.1.CompanyProfileViewModel.cs",
         "step4.c.2.CompanyLogoPreview.cs",
+        "step4.c.3.CompanyProfileLogo.cs",
         "step4.d.1.CompanyProfileView.xaml",
         "step4.d.2.CompanyProfileView.xaml.cs",
+        "step4.d.3.CompanyProfileStyles.xaml",
+        "step4.d.4.CompanyLogoPanel.xaml",
+        "step4.d.4.CompanyLogoPanel.xaml.cs",
         "step4.e.docs/step4.e.1.Company-Profile-README.md",
         "step4.f.tests/step4.f.CompanyTests.csproj",
         "step4.f.tests/step4.f.1.CompanyProfileChecks.cs",
@@ -267,7 +282,7 @@ def require_logo_storage():
     store = source("step4.a.3.CompanyLogoStore.cs")
     repository = source("step4.b.4.CompanyProfileRepository.cs")
     model = source("step4.a.1.CompanyProfile.cs")
-    view_model = source("step4.c.1.CompanyProfileViewModel.cs")
+    view_model = view_model_source()
 
     check("AppDataRoot.CurrentFolder" in store,
           "the logo must live in the application's own data folder")
@@ -404,7 +419,7 @@ def require_calls_resolve():
     declarations in the same file. Calls through a receiver (`_repository.X`,
     `db.Database.X`) are the receiver's business and are not scanned.
     """
-    view_model = source("step4.c.1.CompanyProfileViewModel.cs")
+    view_model = view_model_source()
     code = strip_code(view_model)
     declared = set(re.findall(
         r"\b(?:public|private|internal|protected)\s+(?:static\s+)?[A-Za-z_<>,\[\]\.\?\s]+?\s+"
@@ -453,9 +468,22 @@ def require_scope_exclusions():
 
 def require_view_contract():
     view_path = MODULE / "step4.d.1.CompanyProfileView.xaml"
-    text = strip_markup(read(view_path))
+    page_text = strip_markup(read(view_path))
     root = ET.parse(view_path).getroot()  # must be well-formed
     check(root.tag.endswith("UserControl"), "the profile view must be a UserControl")
+
+    # The logo card is its own band file (step4.d.4 — docs/00 rule K, no god
+    # files). The page must PLACE the card, and the card must hold what it must.
+    # `text` below is therefore the page AND its bands read as one page: that is
+    # how the checks survive a split without losing a control, and how they fail
+    # if a band is dropped from the page.
+    card_path = MODULE / "step4.d.4.CompanyLogoPanel.xaml"
+    check(card_path.is_file(), "the logo card must be its own band file (step4.d.4)")
+    check(ET.parse(card_path).getroot().tag.endswith("UserControl"),
+          "the logo card must be a UserControl")
+    check("cmp:CompanyLogoPanel" in page_text,
+          "step4.d.1.CompanyProfileView.xaml: the page must place the logo card")
+    text = page_text + "\n" + strip_markup(read(card_path))
 
     contract = read(ROOT / "Theme/step1.a.ThemeEngine/step1.a.1.ThemeContract.cs")
     declared = set(re.findall(r'\["([A-Za-z0-9]+)"\]\s*=\s*typeof', contract))
@@ -463,7 +491,7 @@ def require_view_contract():
     controls = set(re.findall(r"\[typeof\(([A-Za-z0-9]+)\)\]\s*=\s*typeof", contract))
     local = set(re.findall(r'x:Key="([A-Za-z0-9]+)"', text))
 
-    # The page's own styles live in step4.d.3 and are merged here (docs/00 rule L:
+    # The page's own styles live in step4.d.3 and are merged here (docs/00 rule K:
     # no god files). A key defined in that dictionary is a local key of this page,
     # and the dictionary must really exist — a `Source` pointing at nothing is a
     # XamlParseException at start-up, not a compile error.
@@ -685,11 +713,17 @@ def require_docs_recorded():
 
 
 def require_bindings_exist(markup):
-    view_model = source("step4.c.1.CompanyProfileViewModel.cs")
+    # The view model is ONE partial class in several parts (step4.c.1 is the
+    # page's state and commands, step4.c.3 the logo and preview surface). A
+    # binding may therefore resolve to a member declared in any part, and a
+    # member that moved must keep resolving.
+    view_model = view_model_source()
+    # A declaration, not a mention: `nameof(HasPreviewContactLine)` keeps the
+    # name in the file after the property itself is deleted, which is exactly how
+    # a binding can outlive its member and fail silently at run time.
     declared = set(re.findall(
         r"\b(?:public|private|internal|protected)\s+(?:static\s+)?[A-Za-z_<>,\[\]\.\?\s]+?\s+"
         r"([A-Za-z_][A-Za-z0-9_]*)\s*(?:\{|=>|;|\()", view_model))
-    declared |= set(re.findall(r"nameof\(([A-Za-z_][A-Za-z0-9_]*)\)", view_model))
 
     for path in re.findall(r"\{Binding ([^},]+)", markup):
         name = path.strip().split(".")[0].strip()
@@ -698,6 +732,92 @@ def require_bindings_exist(markup):
         check(name in declared,
               f"step4.d.1.CompanyProfileView.xaml binds '{name}', "
               f"which the view model does not expose")
+
+
+def require_logo_picker_survives_reload():
+    """Round 32 (owner report): "Choose image" stopped working, with no message.
+
+    The button was not broken; it was disconnected. The handler was attached once
+    in the constructor and removed on Unloaded, and this page lives in a
+    TabControl — the WPF tab template hosts one content presenter, so leaving the
+    Company tab UNLOADS the view and coming back LOADS it again. After the first
+    visit to another tab the handler was gone for the rest of the session.
+
+    A second, quieter half: CanEdit reads a process-wide session and nothing told
+    it when that session changed, so the button could stay disabled on a page its
+    operator was allowed to edit. Both halves are checked, because a dead button
+    with a greyed face and a dead button with a live face look the same to the
+    person pressing it.
+    """
+    code = read(MODULE / "step4.d.2.CompanyProfileView.xaml.cs")
+    view_model = view_model_source()
+    card = read(MODULE / "step4.d.4.CompanyLogoPanel.xaml")
+
+    # The handler follows the view's own lifecycle, and attaches every load.
+    check("private void AttachLogoPick()" in code and "private void DetachLogoPick()" in code,
+          "the logo picker handler must be attachable and removable as a pair")
+    check("_logoPickAttached" in code,
+          "attaching twice must be guarded, or one click would open two dialogs")
+    check("_viewModel.RequestLogoPick += OnRequestLogoPick;" in code,
+          "the view must subscribe to the pick request")
+    loaded = code[code.index("private async void OnLoaded"):]
+    loaded = loaded[:loaded.index("\n        }")]
+    check("AttachLogoPick();" in loaded,
+          "every LOAD must re-attach the picker: a TabControl unloads this view")
+    unloaded = code[code.index("private void OnUnloaded"):]
+    unloaded = unloaded[:unloaded.index("\n        }")]
+    check("DetachLogoPick();" in unloaded,
+          "unloading must detach the handler, so it cannot outlive the view")
+    constructor = code[code.index("public CompanyProfileView()"):]
+    constructor = constructor[:constructor.index("\n        }")]
+    check("RequestLogoPick +=" not in constructor,
+          "the picker must not be attached only in the constructor: one Unloaded "
+          "would end it for the life of the session")
+
+    # Who may edit is process-wide, so it must be re-read when it changes.
+    check("public void RefreshAuthorization()" in view_model,
+          "the view model must be able to re-read the session's permission")
+    check("AuthenticationContext.SignedIn +=" in view_model
+          and "AuthenticationContext.SignedOut +=" in view_model,
+          "the view model must follow sign-in and sign-out")
+    check("_viewModel.RefreshAuthorization();" in code,
+          "the view must re-read the permission when it is shown")
+
+    # A disabled "Choose image" says why.
+    check("ChooseLogoTooltip" in view_model,
+          "the choose button must explain a disabled state instead of going silent")
+    check('ToolTip="{Binding ChooseLogoTooltip}"' in card,
+          "the card must bind that explanation to the button")
+    check('ToolTipService.ShowOnDisabled="True"' in card,
+          "a tooltip on a disabled button is not shown unless it asks to be")
+
+
+def require_document_page_preview():
+    """Round 32 (owner instruction): the card must show a readable document page.
+
+    Round 29 shipped the mockup's grey stage with a 104 px strip inside it, so the
+    owner saw a thumbnail where the mockup promised a page. The page is now a
+    sheet at reading size with the real identity and a suggested body, and the
+    strip must not come back: a preview you cannot read is not a preview.
+    """
+    card = read(MODULE / "step4.d.4.CompanyLogoPanel.xaml")
+    styles = read(MODULE / "step4.d.3.CompanyProfileStyles.xaml")
+
+    for key in ("CompanyPageStage", "CompanyPage", "CompanyPageBodyLine",
+                "CompanyPageBodyHeading", "CompanyPageFooter"):
+        check(f'x:Key="{key}"' in styles, f"the document page needs the {key} style")
+        check(f'Style="{{StaticResource {key}}}"' in card,
+              f"the document page must use {key}")
+    check('MinHeight="104"' not in card,
+          "the card must show a document page, not the 104 px strip that was there")
+    check('MinHeight' in styles[styles.index('x:Key="CompanyPage"'):],
+          "the sheet must have a minimum height, or an empty profile collapses it")
+    # The page prints the working copy, not a decorative sample: the same idents
+    # the form edits, so typing changes the preview.
+    for binding in ("PreviewCompanyName", "PreviewAddressLine1", "PreviewTrnLine",
+                    "PreviewContactLine", "LogoPreview"):
+        check(f"{{Binding {binding}" in card,
+              f"the document page must print {binding} from the working copy")
 
 
 def main():
@@ -713,6 +833,8 @@ def main():
     require_read_path()
     require_scope_exclusions()
     require_view_contract()
+    require_logo_picker_survives_reload()
+    require_document_page_preview()
     require_docs_recorded()
 
     if FAILURES:

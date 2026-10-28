@@ -180,13 +180,13 @@
                                        Style="{StaticResource ClientFieldLabel}" />
                             <TextBox Grid.Row="1" Grid.Column="0"
                                      Style="{DynamicResource {x:Type TextBox}}"
-                                     Margin="{DynamicResource MarginInline}"
+                                     Margin="{DynamicResource MarginSection}"
                                      VerticalAlignment="Center"
                                      Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
                                      MaxLength="50" AutomationProperties.Name="Phone" />
                             <TextBox Grid.Row="1" Grid.Column="1"
                                      Style="{DynamicResource {x:Type TextBox}}"
-                                     Margin="{DynamicResource MarginInline}"
+                                     Margin="{DynamicResource UiGapFieldInline}"
                                      VerticalAlignment="Center"
                                      Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
                                      MaxLength="200" AutomationProperties.Name="E-mail" />
