@@ -1033,3 +1033,27 @@ assert 'HoloCanvasBrush' in runtime_harness, (
     'the Holographic canvas token is missing from the check again'
 )
 print(f'PASS: the window fill the check expects is what all {len(window_tokens)} themes declare.')
+
+# ── A performance number must say where the time went ───────────────────────
+# "The switch takes 435 ms" is not actionable: rebuilding the package, handing a new
+# dictionary to WPF, notifying subscribers and drawing are four different problems with
+# four different fixes. The measurement therefore separates them, and it prints rather
+# than asserts — a slow machine must not fail a fidelity run. Its probe must also be
+# detached again, or it keeps timing every later switch.
+measurement = runtime_harness[runtime_harness.find('MEASURED'):]
+assert measurement, 'the run no longer reports a measurement'
+for part in ('swaps', 'notifies', 'renders'):
+    assert f'{part}.Add(' in runtime_harness, (
+        f'the switch measurement does not separate {part}, so the reported number cannot '
+        'say which of rebuild / swap / notify / render is slow'
+    )
+assert 'themes.PropertyChanged += probe;' in runtime_harness, (
+    'nothing timestamps the end of the dictionary swap, so swap and notify cannot be told apart'
+)
+assert 'themes.PropertyChanged -= probe;' in runtime_harness, (
+    'the measurement leaves its probe attached, so every later switch is timed twice'
+)
+assert not re.search(r'Check\(\s*Median\(', runtime_harness), (
+    'the switch timing is asserted; timings vary by machine and must be printed only'
+)
+print('PASS: the switch measurement separates rebuild, swap, notify and render, and prints without asserting.')

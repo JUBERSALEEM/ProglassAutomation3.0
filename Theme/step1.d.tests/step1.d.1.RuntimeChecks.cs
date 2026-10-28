@@ -123,28 +123,53 @@ internal static class RuntimeChecks
             Check(model.Tokens.Single(t => t.Name == "SurfacePrimary").Preview == themes.GetToken("SurfacePrimary"), "live token reference");
             Check(Equals(app.Resources["UnrelatedResource"], "preserve me"), "unrelated resources preserved");
 
-            // Round 36: the owner reports the Light/Dark switch is slow, so the run
-            // reports numbers instead of a recollection — the engine's package rebuild on
-            // its own, then three complete switches of the bound button. The first switch
-            // after startup also pays for one-time work, so the repeats are what the owner
-            // actually feels. Printed, not asserted: a slow machine must not fail a
-            // fidelity run. Render mode is SoftwareOnly here, which is the pessimistic case.
-            var engineClock = Stopwatch.StartNew();
-            themes.Apply(ThemeService.Bento, Appearance.Light);
-            engineClock.Stop();
+            // Round 36: the owner reports the Light/Dark switch is slow. A total is not
+            // actionable, so this reports where the time goes. Four costs, separated
+            // without touching production code:
+            //   rebuild = clone the cached package, apply the customization overlay and
+            //             validate every token — ThemeService.Load, timed on its own
+            //   swap    = handing the new dictionary to WPF, which then re-resolves every
+            //             DynamicResource reference in the realized tree
+            //   notify  = the PropertyChanged subscribers (studio, pages, open dialog)
+            //   render  = layout and draw after Apply has returned
+            // The service raises PropertyChanged *after* the dictionary is already in
+            // place, so a probe subscriber timestamps the end of the swap from outside.
+            // Printed, never asserted: a slow machine must not fail a fidelity run, and
+            // SoftwareOnly render is the pessimistic case.
+            var rebuildClock = Stopwatch.StartNew();
+            ThemeService.Load(Appearance.Light, ThemeService.Bento);
+            rebuildClock.Stop();
             var switchTimes = new List<long>();
+            var swaps = new List<long>();
+            var notifies = new List<long>();
+            var renders = new List<long>();
             for (int pass = 0; pass < 3; pass++)
             {
                 var clock = Stopwatch.StartNew();
+                long notifiedAt = -1;
+                System.ComponentModel.PropertyChangedEventHandler probe = (sender, args) =>
+                {
+                    if (notifiedAt < 0) notifiedAt = clock.ElapsedMilliseconds;
+                };
+                themes.PropertyChanged += probe;
                 if (themes.ActiveAppearance == Appearance.Light) model.IsDark = true; else model.IsLight = true;
+                long appliedAt = clock.ElapsedMilliseconds;
+                themes.PropertyChanged -= probe;
                 Pump();
                 clock.Stop();
+                long swapped = notifiedAt < 0 ? appliedAt : notifiedAt;
+                swaps.Add(swapped);
+                notifies.Add(appliedAt - swapped);
+                renders.Add(clock.ElapsedMilliseconds - appliedAt);
                 switchTimes.Add(clock.ElapsedMilliseconds);
             }
             if (themes.ActiveAppearance != Appearance.Dark) model.IsDark = true;
             Pump();
             Check(themes.ActiveAppearance == Appearance.Dark && model.IsDark, "measured appearance switch lands in dark");
-            Console.WriteLine($"MEASURED: package rebuild {engineClock.ElapsedMilliseconds} ms; bound switches {string.Join(", ", switchTimes)} ms for {switchTimes.Count} complete Light<->Dark toggles, median {switchTimes.OrderBy(t => t).ElementAt(switchTimes.Count / 2)} ms (studio realized, software render).");
+            long Median(List<long> values) => values.OrderBy(t => t).ElementAt(values.Count / 2);
+            Console.WriteLine($"MEASURED: package rebuild {rebuildClock.ElapsedMilliseconds} ms; three Light<->Dark toggles {string.Join(", ", switchTimes)} ms, median {Median(switchTimes)} ms "
+                + $"= swap {string.Join("/", swaps)} + notify {string.Join("/", notifies)} + render {string.Join("/", renders)} ms "
+                + $"(median rebuild {rebuildClock.ElapsedMilliseconds} + swap {Median(swaps)} + notify {Median(notifies)} + render {Median(renders)}; studio realized, software render).");
 
             model.SampleName = "x";
             Pump();
