@@ -1,3 +1,8 @@
+// System.IO is NOT among the implicit usings of a UseWPF project — the WPF
+// implicit set differs from the plain SDK's — so a check that touches the file
+// system must say so. Its 66 uses of Path/File/Directory were 66 CS0103 errors
+// until round 35.3 (the project had never been built).
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;

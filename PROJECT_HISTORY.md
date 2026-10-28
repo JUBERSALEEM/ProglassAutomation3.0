@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 35.3: the largest unrun executable still cannot compile
+- **The Theme harness did not run.** The build failed with **66 `CS0103` errors, all in `Theme/step1.d.tests/step1.d.16.InquiryInboxDeliveryOrderingChecks.cs`**: `Path`, `File` and `Directory` were unknown at 66 sites.
+- **One missing import.** The file had no `using System.IO;`. A `UseWPF` project gets the WPF implicit-using set, which does **not** include `System.IO` — so the names never resolved. Its sibling check files were unaffected because none of them touched the file system. Fixed by declaring the import.
+- **Verified safe:** if `System.Windows.Shapes` (which declares its own `Path`) had been in scope, the compiler would have reported `CS0117` ("Path has no Combine") rather than `CS0103`; every error was `CS0103`, so the new import binds `Path` for the first time and cannot introduce an ambiguity. No file in the project imports `System.Windows.Shapes`.
+- **Gate:** `step1.d.6` now fails if any verification executable uses `Path`/`File`/`Directory`/stream types without importing `System.IO`. A mutation restoring the omission is caught, quoting the reference count and first line — it reproduces the owner's 66 exactly.
+- **Also checked:** the other nine files in the project parse clean, and the only other namespace suspicion (`System.Text.Json` in `step1.d.9`) is fully qualified, so it was a false positive.
+- **Honest position:** this project has now been *proved* never to have compiled, so a further error on the next attempt is expected rather than surprising.
+
+---
 ## 2026-10-28 — Round 35.2: the first run happened, and a lock that reads like a compile error
 - **The owner ran the application and set up the first administrator and users.** That is the first real execution of the round-34.8 bootstrap fix, which had made a fresh installation impossible: the person who could not have been created two rounds ago now exists.
 - **The Theme harness run failed for a reason that is not a defect.** `MSB3026` × 10, then `MSB3027`/`MSB3021`: MSBuild could not overwrite `bin\Debug\net8.0-windows7.0\ProGlassAutomation.exe` because the running application (PID 20992) held it. Every verification project references the application, so running the app blocks building the checks. The output names the file and the process, but reads as a build failure.

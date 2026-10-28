@@ -401,3 +401,30 @@ assert not inverted, (
     f'fails on correct code and passes on broken code: {inverted}'
 )
 print('PASS: no verification check asserts success against a message that forbids it.')
+
+# ── A check that touches the file system must import System.IO ───────────────
+# Round 35.3: step1.d.16 used Path/File/Directory 66 times with no `using
+# System.IO;`, and the Theme test project had never been built, so all 66 surfaced
+# as CS0103 on the owner's machine at once. They were invisible to every other gate
+# because a missing using is not a missing member — the names simply do not resolve.
+#
+# This is NOT covered by ImplicitUsings: a UseWPF project gets the WPF implicit set,
+# which does not include System.IO. So the import must be explicit, and this rule
+# keeps it that way for every verification executable.
+io_api = re.compile(r'\b(Path|File|Directory|FileStream|StreamReader|StreamWriter|FileInfo|DirectoryInfo)\s*\.')
+io_offenders = []
+for test_file in sorted(ROOT.rglob('*.cs')):
+    if {'bin', 'obj'} & set(test_file.parts) or not any('tests' in part for part in test_file.parts):
+        continue
+    text = test_file.read_text(encoding='utf-8', errors='replace')
+    references = [m for m in io_api.finditer(text)
+                  if not text[max(0, m.start() - 9):m.start()].endswith('System.IO.')]
+    if references and 'using System.IO;' not in text:
+        lines = sorted({text[:m.start()].count('\n') + 1 for m in references})
+        io_offenders.append(f'{test_file.relative_to(ROOT)} ({len(references)} reference(s), '
+                            f'first at line {lines[0]})')
+assert not io_offenders, (
+    'a verification check uses System.IO types without importing them, and a UseWPF project '
+    f'does not get System.IO implicitly, so the project cannot compile: {io_offenders}'
+)
+print('PASS: every check that touches the file system imports System.IO.')
