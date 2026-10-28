@@ -868,3 +868,63 @@ assert not element_counts, (
     f'correct behaviour and fails when a tile is added: {element_counts}'
 )
 print('PASS: no check pins how many live elements a page happens to contain.')
+
+# ── A responsive rule is the control's, not a number remembered from a screenshot ─
+# The Studio responsive check compared `EffectiveColumns < 4` with `ActualWidth < 1100`.
+# BentoGrid declares three columns on the Studio page, so "< 4" was true at every
+# width — the assertion could not fail for the reason it named — and CompactWidth is a
+# themed resource that need not be 1100. The grid's MeasureOverride is the only place
+# that decides this, so the check must state the same rule from the grid's own values.
+column_pins = []
+for check_file in sorted(ROOT.rglob('*.cs')):
+    parts = set(check_file.relative_to(ROOT).parts)
+    if {'bin', 'obj', '.git'} & parts or not any(part.endswith('.tests') for part in parts):
+        continue
+    text = check_file.read_text(encoding='utf-8', errors='replace')
+    for match in re.finditer(r'EffectiveColumns\s*[<>=!]+\s*\d+', text):
+        line = text[:match.start()].count('\n') + 1
+        column_pins.append(f'{check_file.relative_to(ROOT)}:{line} pins {match.group(0).strip()}')
+assert not column_pins, (
+    'a check compares the grid\'s effective column count with a literal, which is only '
+    f'meaningful for one grid size and theme: {column_pins}'
+)
+grid_source = (ROOT / 'Theme/ThemeBento/step1.e.11.BentoGrid.cs').read_text(encoding='utf-8')
+rule = re.search(r'usedColumns\s*=\s*width\s*>=\s*CompactWidth[^;]*;', grid_source)
+assert rule, 'the grid\'s compact-width rule has changed shape and the check that mirrors it must be reread'
+assert '>= 720' in rule.group(0) and 'EffectiveColumns = usedColumns' in grid_source, (
+    'the compact-width rule and the published EffectiveColumns must stay the ones the check mirrors'
+)
+runtime_harness = (ROOT / 'Theme/step1.d.tests/step1.d.1.RuntimeChecks.cs').read_text(encoding='utf-8')
+assert runtime_harness.count('ExpectedColumns(') >= 2, (
+    'the responsive checks must compare against ExpectedColumns, which derives the rule '
+    'from the grid itself'
+)
+print('PASS: responsive assertions state the grid\'s own compact rule, not a remembered number.')
+
+# ── A theme's "defaults" are only defaults after a reset ─────────────────────
+# The Studio restores this workstation's saved design on construction, so a check that
+# asserts a theme's own values right after activating it is really asserting whatever
+# was last saved here. On the owner's machine that is not a test, it is a memory of his
+# last session. Every assertion of a default must therefore follow a reset.
+default_markers = [
+    'SelectedAccent == ProGlassAutomation.ThemeBento.BentoAccent.Ocean',
+    'DesignSummary.Contains("Rose")',
+    'SelectedClayAccent == ProGlassAutomation.ThemeClaymorphism.ClayAccent.Rose',
+    'SelectedNeumorphDepth == ProGlassAutomation.ThemeNeumorphism.NeumorphDepth.Standard',
+    'SelectedLiquidFrost == ProGlassAutomation.ThemeLiquidGlass.LiquidFrost.Standard',
+]
+unreset = []
+for marker in default_markers:
+    position = runtime_harness.find(marker)
+    assert position > 0, f'the default assertion has disappeared and this rule describes nothing: {marker}'
+    activation = runtime_harness.rfind('SelectedTheme = ', 0, position)
+    assert activation > 0, f'no theme activation precedes {marker}'
+    if 'ResetDesign.Execute' not in runtime_harness[activation:position]:
+        line = runtime_harness[:position].count('\n') + 1
+        unreset.append(f'step1.d.1.RuntimeChecks.cs:{line} asserts a default ({marker.split(" == ")[0]}) '
+                       'without a reset after the theme was activated')
+assert not unreset, (
+    'a check asserts a theme default on a workstation whose saved design is restored at '
+    f'startup, so it tests the saved file, not the engine: {unreset}'
+)
+print('PASS: every asserted theme default follows a reset of that theme.')
