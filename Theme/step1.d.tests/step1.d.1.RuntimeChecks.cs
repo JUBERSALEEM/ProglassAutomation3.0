@@ -52,10 +52,23 @@ internal static class RuntimeChecks
             Pump();
             Check(window.IsVisible, "startup main window is visible");
             var model = (ThemeStudioViewModel)window.DataContext;
-            Check(model.SelectedWorkspace == 1, "business reference is the startup page");
+            // The startup page is the inquiry register: step1.b.17 initialises
+            // selectedWorkspace = 2, and the rule recorded in docs/05 and enforced by
+            // step1.d.3 is "the shell must not boot into Theme Studio (workspace 0)",
+            // not "boot into page 1". This check used to pin the literal page 1, which
+            // no source sets, so it could only ever fail. Assert the rule and the page
+            // the model actually names — never a second literal.
+            Check(model.SelectedWorkspace != 0 && model.SelectedWorkspace <= 10,
+                "business reference is the startup page, not Theme Studio");
+            Check(model.IsInquiry, "startup page is the inquiry register");
+            Check(model.WorkspaceTitle == "Inquiries" && model.WorkspaceSubtitle == "Business · Inquiry register",
+                "startup chrome names the business reference");
             // AppData may restore Liquid/Clay; Bento-specific smoke (Border popup, AccentPrimary) must not depend on that.
             model.SelectedTheme = ThemeService.Bento;
             model.IsLight = true;
+            // The chrome-title checks below are about page 1, so the page is set
+            // explicitly instead of relying on the startup page happening to be it.
+            model.SelectedWorkspace = 1;
             Pump();
             Check(themes.ActiveTheme == ThemeService.Bento && model.IsLight, "STA smoke pins Bento Light");
             Check(model.IsMenuOpen, "shell menu starts open");
@@ -109,6 +122,20 @@ internal static class RuntimeChecks
             Check(model.Tokens.Count == ThemeContract.Required.Count, "live token completeness");
             Check(model.Tokens.Single(t => t.Name == "SurfacePrimary").Preview == themes.GetToken("SurfacePrimary"), "live token reference");
             Check(Equals(app.Resources["UnrelatedResource"], "preserve me"), "unrelated resources preserved");
+
+            // Round 36: the owner reports the Light/Dark switch is slow, so the run
+            // reports two numbers instead of a recollection — the engine's package
+            // rebuild on its own, and the bound switch the shell banner's button runs.
+            // Printed, not asserted: a slow machine must not fail a fidelity run.
+            var engineClock = Stopwatch.StartNew();
+            themes.Apply(ThemeService.Bento, Appearance.Light);
+            engineClock.Stop();
+            var shellClock = Stopwatch.StartNew();
+            model.IsDark = true;
+            Pump();
+            shellClock.Stop();
+            Check(themes.ActiveAppearance == Appearance.Dark && model.IsDark, "measured appearance switch lands in dark");
+            Console.WriteLine($"MEASURED: package rebuild {engineClock.ElapsedMilliseconds} ms; bound Light->Dark switch {shellClock.ElapsedMilliseconds} ms (studio realized, software render).");
 
             model.SampleName = "x";
             Pump();

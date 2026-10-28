@@ -487,3 +487,45 @@ assert not contradictions, (
     f'pass on code that mislabels complete downloads: {contradictions}'
 )
 print('PASS: a placed payload is never counted as failed, and no check demands both outcomes.')
+# ── A corrected source rule does not correct the runtime harness ─────────────
+# Round 36: step1.d.1 asserted `model.SelectedWorkspace == 1` ("business reference
+# is the startup page"), but no source sets 1 — step1.b.17 initialises it to 2, the
+# inquiry register. The rule was already recorded in docs/05 and enforced here for
+# step1.d.3 ("the shell must not boot into Theme Studio", i.e. not workspace 0), but
+# the compiled check kept a literal because the harness had never been run. A check
+# that pins a page number fails the moment the startup page moves, and says nothing
+# about the property that actually matters.
+runtime_source = ROOT / 'Theme/step1.d.tests/step1.d.1.RuntimeChecks.cs'
+assert runtime_source.exists(), f'{runtime_source} is missing'
+runtime_text = runtime_source.read_text(encoding='utf-8', errors='replace')
+pinned_pages = [m.group(0) for m in
+                re.finditer(r'SelectedWorkspace\s*==\s*\d+', runtime_text)]
+assert not pinned_pages, (
+    'the runtime harness pins a workspace page number, which is not a property of a '
+    f'correct shell — assert the documented rule instead: {pinned_pages}'
+)
+assert re.search(r'SelectedWorkspace\s*!=\s*0\b', runtime_text), (
+    'the harness must assert the documented rule that the shell does not boot into '
+    'Theme Studio (workspace 0)'
+)
+assert runtime_text.count('"business reference is the startup page') >= 1, (
+    'the startup-page check must keep its name'
+)
+# The chrome-title check reads the workspace it names, so that workspace has to be
+# selected first. It used to pass only because the startup page happened to be 1;
+# at the documented startup page it reads "Inquiries"/"Business · Inquiry register".
+home_titles = runtime_text.find('"home chrome titles"')
+assert home_titles > 0, 'the home chrome title check has disappeared'
+sets_page_one = runtime_text.rfind('SelectedWorkspace = 1;', 0, home_titles)
+assert sets_page_one > 0, (
+    'the home chrome title check must select page 1 explicitly instead of relying on '
+    'the startup page'
+)
+# The owner reports a slow Light/Dark switch, so the harness reports the cost of the
+# switch it runs. A printed measurement keeps the next report a number, not a memory.
+assert 'MEASURED: package rebuild' in runtime_text, (
+    'the runtime harness must print how long the package rebuild and the bound '
+    'appearance switch took'
+)
+print('PASS: the runtime harness asserts the documented startup rule, sets the page it reads, and measures the switch.')
+
