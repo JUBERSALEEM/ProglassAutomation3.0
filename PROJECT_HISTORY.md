@@ -9,6 +9,16 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 58b: full audit of steps 2–5, and the first step5 behaviour tests
+- **Asked:** one engineering audit of `step2`–`step5` plus their Inquiry integration, fixes for verified defects, and one report before `step6`.
+- **Baseline:** `9213d74`, clean tree, 18/18 portable checkers. Every G1 finding re-checked against the source rather than the document.
+- **Fixed (G1-08):** `step5` was the only foundation module with no behaviour tests and the only one that writes into another module's table. It now has three files behind one `--behaviour` switch: numbering (a gap is never filled), migration 1017 on an isolated database, round-trip and restart, duplicate-number refusal, and **the inquiry link with a whole-row comparison** — only `ProjectRecordId` may change. `step5.f.1` rule 23 keeps the assertions from being deleted; 8/8 mutations caught.
+- **New findings:** no foreign keys anywhere in the module schemas (A-01); `step2` client rows carry no author at all (A-02); an inactive user can be assigned as a client representative on create/update (A-03); attribution is three different models across four modules (A-04).
+- **Not fixed on purpose:** A-01 needs a migration against live data, A-03 changes a rule the owner has not set, and G1-06/G1-07 are owner decisions. Guessing them would be inventing business rules.
+- **Still blocked:** the 1017 preservation test. The owner's last run stopped before migrating — `no database at D:\G1\run-20261029_180350\inquiries.db`, i.e. the copy was never created because the source path held no file. That is a missing file, not a migration result.
+- **Verdict: NOT ACCEPTED for `step6`.** Reported as such in `docs/19`.
+
+---
 ## 2026-10-29 — Round 58: the rewind audited against 1017 itself; still NOT RUN
 - **Context:** the 17:21 run reported `NOT RUN` because the copy was already at `user_version = 1017`. The runner had nothing to do, and a no-op is not evidence.
 - **Rewind audited, not assumed.** 1017 creates eight objects: the `Projects` table, three of its indexes, `Inquiries.ClientId`, `Inquiries.ProjectRecordId` and their two indexes. `Rewind1017` drops the four indexes, the table (which takes `IX_Projects_Number` with it), both columns, then sets `user_version` to 1016 — and refuses outright if any project row or linked inquiry exists.
