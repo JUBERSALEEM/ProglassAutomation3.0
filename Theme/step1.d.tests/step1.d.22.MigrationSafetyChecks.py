@@ -62,6 +62,88 @@ def without_comments(text):
     return re.sub(r"//[^\n]*", "", text)
 
 
+def lint_powershell(text):
+    """Problems that stop Windows PowerShell parsing the file at all.
+
+    Deliberately narrow: the migration procedure is the one artefact the owner
+    runs by hand on their own machine, and a parse error there cannot be caught
+    by building the application. The construct that bit us is a double-quoted
+    string ending in a backslash before the closing quote.
+    """
+    problems = []
+    i, n, state, opened_at, line = 0, len(text), "code", 0, 1
+    while i < n:
+        c = text[i]
+        if state == "code":
+            if text.startswith("<#", i):
+                state, opened_at = "block", line
+                i += 2
+                continue
+            if c == "#":
+                j = text.find("\n", i)
+                i = n if j < 0 else j
+                continue
+            if c == "'":
+                state, opened_at = "sq", line
+                i += 1
+                continue
+            if c == '"':
+                state, opened_at = "dq", line
+                i += 1
+                continue
+            i += 1
+            continue
+        if c == "\n":
+            line += 1
+        if state == "block":
+            j = text.find("#>", i)
+            if j < 0:
+                problems.append(f"line {opened_at}: comment block <# is never closed")
+                break
+            line += text.count("\n", i, j + 2)
+            i = j + 2
+            state = "code"
+            continue
+        if state == "sq":
+            if c == "\n":
+                problems.append(
+                    f"line {opened_at}: a single-quoted string runs past the end of its line - "
+                    f"one missing quote swallows the rest of the script and Windows PowerShell "
+                    f"reports the error in an unrelated place")
+                state = "code"
+                i += 1
+                continue
+            if c == "'":
+                if i + 1 < n and text[i + 1] == "'":
+                    i += 2
+                    continue
+                state = "code"
+                i += 1
+                continue
+            i += 1
+            continue
+        if c == "`":
+            i += 2
+            continue
+        if c == '"':
+            if i > 0 and text[i - 1] == "\\":
+                problems.append(
+                    f"line {line}: a double-quoted string ends with a backslash before its "
+                    f'closing quote - Windows PowerShell can read that as an escaped quote and '
+                    f"the whole script fails to parse")
+            state = "code"
+            i += 1
+            continue
+        i += 1
+    if state in ("sq", "dq"):
+        problems.append(f"line {opened_at}: a {state} string is never closed")
+    return problems
+
+
+for script_path in sorted(ROOT.glob("tools/*.ps1")):
+    for problem in lint_powershell(read(script_path)):
+        PROBLEMS.append(f"{script_path.name} would not parse: {problem}")
+
 # ── 1. One chain, ordered, tip 1017 ───────────────────────────────────────
 chain = read(MIGRATIONS)
 versions = [int(v) for v in re.findall(r"new\((\d+),\s*\"", chain)]

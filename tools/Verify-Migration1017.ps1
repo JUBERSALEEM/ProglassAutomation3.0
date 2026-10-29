@@ -246,9 +246,9 @@ Write-Host "   original (untouched) : $($sourcePath)"
 Write-Host "   original SHA256      : $sourceHash"
 Write-Host "   archive copy         : $frozenFile"
 Write-Host "   migrated copy        : $workingFile"
-Write-Host "   runner's own backup  : $workingFolder\MigrationBackups\"
-Write-Host "   report               : $workingFile.g1-migration-report.md"
-Write-Host "   console log          : $logFolder\verify.log"
+Write-Host ("   runner backup folder : " + (Join-Path $workingFolder 'MigrationBackups'))
+Write-Host ("   report               : " + $workingFile + ".g1-migration-report.md")
+Write-Host ("   console log          : " + (Join-Path $logFolder 'verify.log'))
 
 try { Stop-Transcript | Out-Null } catch { }
 exit $code
