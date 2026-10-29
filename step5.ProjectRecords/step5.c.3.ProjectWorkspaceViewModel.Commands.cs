@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ProGlassAutomation.Diagnostics;
 using ProGlassAutomation.Models.Projects;
 using ProGlassAutomation.Services.Projects;
 
@@ -143,7 +144,25 @@ namespace ProGlassAutomation.ViewModels.Projects
                     : $"{result.Project?.ProjectNumber} was saved.";
                 ErrorMessage = "";
                 CloseEditor();
-                await ReloadAsync().ConfigureAwait(true);
+
+                // The row is already written at this point. Whatever the refresh
+                // does, it cannot turn a successful save into a failed one — the
+                // operator would retype and create a duplicate.
+                try
+                {
+                    // NOT the saved id. A selection is what opens the inquiry
+                    // panel, so selecting the row we just wrote would pop the
+                    // panel open on a row nobody clicked (owner, round 44). The
+                    // status sentence above names the record instead.
+                    await ReloadAsync().ConfigureAwait(true);
+                }
+                catch (Exception refresh)
+                {
+                    StatusMessage = $"{result.Project?.ProjectNumber} was saved, but the register "
+                        + "could not be refreshed: " + refresh.Message;
+                    AppLog.Error("step5.projects.refresh-after-save", refresh,
+                        "the project was saved; the register refresh failed");
+                }
             }
             catch (Exception error)
             {
@@ -239,9 +258,16 @@ namespace ProGlassAutomation.ViewModels.Projects
 
         public void Dispose()
         {
-            _loadCts?.Cancel();
-            _loadCts?.Dispose();
+            // Same rule as ReloadAsync: take the source out of the field first,
+            // then cancel, then dispose — and never touch it again afterwards.
+            var pending = _loadCts;
             _loadCts = null;
+            if (pending != null)
+            {
+                try { pending.Cancel(); }
+                catch (ObjectDisposedException) { /* already retired */ }
+                pending.Dispose();
+            }
             if (_ownsRepository && _repository is IDisposable disposable) disposable.Dispose();
         }
     }

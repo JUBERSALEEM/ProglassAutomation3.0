@@ -46,7 +46,23 @@ namespace ProGlassAutomation.ViewModels.Projects
         {
             if (!_initialized) return;
 
-            _loadCts?.Cancel();
+            // Retire the previous load BEFORE creating the next one, and never
+            // Cancel a source we have already disposed: a disposed
+            // CancellationTokenSource throws ObjectDisposedException from
+            // Cancel(), which is not a cancellation — it is a defect. It used to
+            // surface as "The project could not be saved: The
+            // CancellationTokenSource has been disposed." on the SECOND save,
+            // because the save's refresh cancelled the source the first refresh
+            // had disposed (owner screenshot, round 42).
+            var previous = _loadCts;
+            _loadCts = null;
+            if (previous != null)
+            {
+                try { previous.Cancel(); }
+                catch (ObjectDisposedException) { /* already retired */ }
+                previous.Dispose();
+            }
+
             var cts = new CancellationTokenSource();
             _loadCts = cts;
             var token = cts.Token;
@@ -88,7 +104,13 @@ namespace ProGlassAutomation.ViewModels.Projects
             }
             finally
             {
-                if (ReferenceEquals(_loadCts, cts)) IsBusy = false;
+                // Clear the field before disposing, so the next load can never
+                // reach a disposed source through it.
+                if (ReferenceEquals(_loadCts, cts))
+                {
+                    _loadCts = null;
+                    IsBusy = false;
+                }
                 cts.Dispose();
             }
         }
@@ -114,9 +136,17 @@ namespace ProGlassAutomation.ViewModels.Projects
             Rows.Clear();
             foreach (var row in shown) Rows.Add(row);
 
-            SelectedRow = keepId == null
-                ? Rows.FirstOrDefault()
-                : Rows.FirstOrDefault(row => row.Id == keepId) ?? Rows.FirstOrDefault();
+            // NO IMPLICIT SELECTION. Owner, round 43: the inquiry panel was
+            // open with nothing clicked, because this line selected the first
+            // row on every load and CanUseInquiryLink is satisfied by any
+            // selection at all. A panel that opens by itself is a panel that
+            // says "an inquiry is linked here" about a project nobody chose.
+            // The register therefore starts with no row selected, and a row is
+            // selected only by a click — or by a save, which selects the row it
+            // just wrote so the operator can see what happened.
+            SelectedRow = keepId.HasValue
+                ? Rows.FirstOrDefault(row => row.Id == keepId.Value)
+                : null;
         }
 
         private async Task LoadClientsAsync()

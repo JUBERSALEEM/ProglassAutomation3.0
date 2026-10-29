@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-28 — Round 48: hard reset to d492fb4, and the Sheet Store pattern read properly
+- **Branch reset to `d492fb4`** as instructed, and the remote force-updated to match. Every shell change from rounds 41–47 is gone: `MainWindow.xaml` back to 895 lines, `ShellNavEntry` untouched, `CloseMenu` removed, the rail-shaped gate rules removed.
+- **Only `step5.ProjectRecords/*` carried forward**, as one commit on top of `d492fb4` — the project fixes already asked for, plus the toggle.
+- **The Sheet Store pattern, with locations, from ADV's most recently updated branch (`arena/2611f8ff`, 24 Oct) — not `main`:**
+  `SelectSheetCommand` toggles `SelectedSheet = ReferenceEquals(SelectedSheet, sheet) ? null : sheet` (`SheetStoreViewModel.Part1.cs:338`); the row feeds it via `ClickToCommandBehavior` (`SheetStoreView.xaml:439`); `IsRowSelected => SelectedSheet != null` (`Part1.cs:248`); the details rail shows on that state (`SheetStoreView.xaml.cs:52-56`) and carries total used and balance (`Part1.cs:230-237`).
+- **Ported one for one:** `SelectProjectCommand` toggles `SelectedRow`; the register's `RowStyle` carries the row click (not the grid); `CanUseInquiryLink` is the gate; and the handler consumes the click, or the grid re-selects the row it was just told to close and the panel reopens at once.
+- **Five mutations caught**, including "names the command but never executes it".
+
+---
 ## 2026-10-28 — Round 39: the Projects page could not be opened
 - **The report:** built and launched, the Projects module was not in the navigation — Company was followed by the Studio entries. The `TabItem` had been there since round 38. It was not the problem.
 - **Root cause, three parts, only one done.** The shell's visible navigation is the **sidebar rail**; every `TabItem` header is collapsed on purpose by `TabControl.Resources`. So a page needs a page, an index guard that accepts its index, and a rail entry that selects it. Round 38 delivered only the first. `SelectedWorkspace` was `if (value is >= 0 and <= 10)` — index 11 was **silently discarded** — and there was no `IsProjects`, no `ShowProjects` and no rail button. The module was compiled in, correct, and unreachable.

@@ -103,9 +103,11 @@ namespace ProGlassAutomation.ViewModels.Projects
             SaveCommand = new DelegateCommand(() => _ = SaveAsync());
             CancelCommand = new DelegateCommand(CloseEditor);
             ToggleStatusCommand = new DelegateCommand(() => _ = ToggleStatusAsync());
-            RefreshCommand = new DelegateCommand(() => _ = ReloadAsync());
             SelectStatusTabCommand = new DelegateCommand<ProjectStatusTab>(tab => { if (tab != null) SelectStatusTab(tab); });
-            ClearSearchCommand = new DelegateCommand(() => SearchText = "");
+            // ADV's SelectSheetCommand, ported: the click that opens the panel is
+            // the click that closes it. Bound to the register row, never to the
+            // DataGrid's own selection, so the toggle cannot be skipped.
+            SelectProjectCommand = new DelegateCommand<ProjectListRow>(row => ToggleSelection(row));
             ClearClientCommand = new DelegateCommand(() => { EditClient = null; EditClientName = ""; });
             AttachInquiryCommand = new DelegateCommand(() => _ = AttachAsync());
             DetachInquiryCommand = new DelegateCommand(() => _ = DetachAsync());
@@ -120,13 +122,13 @@ namespace ProGlassAutomation.ViewModels.Projects
         public ObservableCollection<InquiryCandidateRow> CandidateInquiries { get; } = new();
 
         public ICommand NewProjectCommand { get; }
+        /// <summary>One click on a register row: open that project's inquiries, or close them.</summary>
+        public ICommand SelectProjectCommand { get; }
         public ICommand EditSelectedCommand { get; }
         public ICommand SaveCommand { get; }
         public ICommand CancelCommand { get; }
         public ICommand ToggleStatusCommand { get; }
-        public ICommand RefreshCommand { get; }
         public ICommand SelectStatusTabCommand { get; }
-        public ICommand ClearSearchCommand { get; }
         public ICommand ClearClientCommand { get; }
         public ICommand AttachInquiryCommand { get; }
         public ICommand DetachInquiryCommand { get; }
@@ -156,8 +158,50 @@ namespace ProGlassAutomation.ViewModels.Projects
                 OnPropertyChanged(nameof(HasSelection));
                 OnPropertyChanged(nameof(SelectedToggleLabel));
                 OnPropertyChanged(nameof(CanEditSelected));
+                // The inquiry panel is enabled by a selection and disabled
+                // without one, so every one of its gates has to be re-raised
+                // here. Without these three the panel stayed disabled and kept
+                // telling the operator to select the row they had just clicked
+                // (owner screenshot, round 40).
+                OnPropertyChanged(nameof(CanUseInquiryLink));
+                OnPropertyChanged(nameof(CanAttach));
+                OnPropertyChanged(nameof(CanDetach));
                 _ = LoadLinkedInquiriesAsync();
             }
+        }
+
+        /// <summary>
+        /// Closes the inquiry panel by dropping the selection.
+        ///
+        /// OWNER, round 47: "single click open this, next click close this" — the
+        /// panel on the right of the register. Clicking a project row selects it
+        /// and the panel appears; clicking that SAME row again clears the
+        /// selection and the panel goes away. The rule lives here because this is
+        /// what owns the selection; the view only decides which row was clicked.
+        /// </summary>
+        public void ClearSelection() => SelectedRow = null;
+
+        /// <summary>
+        /// One click on a register row: a different row opens that project's
+        /// inquiries, the row already open closes the panel again.
+        ///
+        /// The shape is ADV's, copied rather than invented. On
+        /// `arena/2611f8ff-proglassautomationadv` (its most recently updated
+        /// branch, 24 Oct 2026), `SheetStoreViewModel.Part1.cs:338` is:
+        ///
+        ///     SelectSheetCommand = new RelayCommand(p =>
+        ///     {
+        ///         if (p is GlassSheet sheet)
+        ///             SelectedSheet = ReferenceEquals(SelectedSheet, sheet) ? null : sheet;
+        ///     });
+        ///
+        /// and the details rail shows because `IsRowSelected` is simply
+        /// `SelectedSheet != null` (Part1.cs:248). There is no "deselect" path,
+        /// no modifier key and no second control: the same click toggles.
+        /// </summary>
+        public void ToggleSelection(ProjectListRow? row)
+        {
+            SelectedRow = ReferenceEquals(row, _selectedRow) ? null : row;
         }
 
         public bool HasSelection => _selectedRow != null;
@@ -189,6 +233,8 @@ namespace ProGlassAutomation.ViewModels.Projects
                 OnPropertyChanged(nameof(EditorHeading));
                 OnPropertyChanged(nameof(CanEditSelected));
                 OnPropertyChanged(nameof(CanUseInquiryLink));
+                OnPropertyChanged(nameof(CanAttach));
+                OnPropertyChanged(nameof(CanDetach));
             }
         }
 

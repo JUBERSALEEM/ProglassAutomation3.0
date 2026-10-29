@@ -80,9 +80,9 @@ Three parts, one page:
 
 | Part | Contents |
 | --- | --- |
-| Filter plate | status chips (`All` / `Active` / `Closed`), a search box over number, name, client and site, and the register summary |
-| Register | seven columns — number, project, client, site, status, inquiries, created — newest first, read-only, one row selected at a time |
-| Inquiry panel | two stacked grids: the inquiries already linked to the selected project, and the unlinked ones that may be taken. Attach and detach are explicit buttons, never a drag |
+| Filter plate | **one row**: the register scope, the status chips (`All` / `Active` / `Closed`), a search box over number, name, client and site, then EDIT / close-or-reopen / NEW PROJECT |
+| Register | seven columns — number, project, client, site, status, inquiries, updated — newest first, read-only, one row selected at a time. The header row carries a hairline between its columns (the theme's `StrokeWidth` in `BorderStrong`), dropped on the last column so the table does not end on a floating line |
+| Inquiry panel | two stacked grids: the inquiries already linked to the selected project, and the unlinked ones that may be taken. **LINK SELECTED** and **UNLINK SELECTED** are explicit buttons, never a drag. The whole body — both lists and both buttons — is **hidden until a project row is clicked**, and the hint occupies that space instead |
 | Editor | opens **in place of** the register: number, project name, client picker + a **NO CLIENT** button, client name, site, description, cancel and save |
 
 The chips filter a cached row set; they never re-query. A single
