@@ -245,6 +245,29 @@ check("Write-Warn" in probe_catch and "Fail " not in probe_catch,
       "the lock probe can stop the run again; it cannot distinguish 'in use' from its own "
       "failure, so it must warn and let the copy decide")
 
+# An empty path must never travel. It did: the probe and the copy both received
+# nothing and the failure read like a locked database.
+check('Write-Host "   -SourceFile   : <$SourceFile>"' in script,
+      "the script no longer echoes the -SourceFile value it received, so a path that never "
+      "arrived cannot be told from one that arrived wrongly")
+check('if ([string]::IsNullOrWhiteSpace($rawSource))' in script,
+      "the script no longer refuses an empty source path before using it")
+check('if ([string]::IsNullOrWhiteSpace($sourcePath))' in script,
+      "the script no longer re-checks the resolved path; an empty path must stop the run, "
+      "not surface later as a copy failure")
+check('-PathType Leaf' in script,
+      "the script no longer requires the source to be a file, so a folder path would be copied")
+
+# Nothing may stop without saying where.
+check("trap {" in script and "UNEXPECTED STOP at line" in script,
+      "the script has no script-level trap; an unexpected error ends it with no line number, "
+      "which is how two runs died without a usable message")
+
+# Evidence first: the log must exist before the source is even read.
+check(script.index("Start-Transcript") < script.index("Get-Item -LiteralPath"),
+      "the transcript starts after the source is inspected, so the parameters and the resolved "
+      "path are missing from the log - exactly what made the failed runs undiagnosable")
+
 # The copy step must not be able to die silently: it is the step that produced
 # empty run folders with no log on 29-Oct.
 check(script.index("Start-Transcript") < script.index("Copy-Item -LiteralPath"),

@@ -58,6 +58,37 @@ function Write-Ok   { param([string] $Text) Write-Host "   OK   $Text" -Foregrou
 function Write-Warn { param([string] $Text) Write-Host "   WARN $Text" -ForegroundColor Yellow }
 function Fail       { param([string] $Text) Write-Host "`nSTOPPED: $Text" -ForegroundColor Red; exit 2 }
 
+# Nothing in this script may stop without saying where. An empty path once got
+# past every guard and surfaced three steps later as a copy failure, which read
+# like a locked file. A trap turns any such surprise into a line number.
+trap {
+    Write-Host ""
+    Write-Host "UNEXPECTED STOP at line $($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor Red
+    Write-Host "  command : $($_.InvocationInfo.Line.Trim())" -ForegroundColor Red
+    Write-Host "  problem : $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "  Nothing was migrated. Report this output." -ForegroundColor Red
+    try { Stop-Transcript | Out-Null } catch { }
+    exit 2
+}
+
+# The evidence folder and the log are created FIRST. Previously the transcript
+# started at step 3, so steps 0-2 - the parameters and the resolved path - were
+# never in the log, and a run that failed early could not be diagnosed.
+$stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+$runFolder = Join-Path $Destination "G1-migration-$stamp"
+$frozenFolder = Join-Path $runFolder 'frozen'
+$workingFolder = Join-Path $runFolder 'working'
+$logFolder = Join-Path $runFolder 'log'
+try {
+    foreach ($folder in @($frozenFolder, $workingFolder, $logFolder)) {
+        New-Item -ItemType Directory -Path $folder -Force | Out-Null
+    }
+    Start-Transcript -Path (Join-Path $logFolder 'verify.log') | Out-Null
+    $transcript = $true
+} catch {
+    $transcript = $false
+}
+
 Write-Step '0. Which checkout is this?'
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Write-Ok  "repository folder: $repoRoot"
@@ -70,22 +101,42 @@ try {
 Write-Step '1. Locate the database to copy (read only)'
 $productionFolder = Join-Path $env:APPDATA 'ProGlassAutomation'
 $productionFile = Join-Path $productionFolder 'inquiries.db'
+
+# Say exactly what arrived on the command line before interpreting it. Two runs
+# failed with an empty path, and neither could show what the parameter held.
+Write-Host "   -Destination  : <$Destination>"
+Write-Host "   -SourceFile   : <$SourceFile>"
+Write-Host "   -Rewind       : $($Rewind.IsPresent)"
+
 $usingProduction = [string]::IsNullOrWhiteSpace($SourceFile)
-if ($usingProduction) {
-    if (-not (Test-Path -LiteralPath $productionFile)) {
-        Fail "no database at $productionFile — start the application once, or check the account you are signed in to."
-    }
-    $sourcePath = $productionFile
-} else {
-    $sourcePath = [System.IO.Path]::GetFullPath($SourceFile)
-    if (-not (Test-Path -LiteralPath $sourcePath)) { Fail "no database at $sourcePath" }
+if ($usingProduction) { $rawSource = $productionFile } else { $rawSource = $SourceFile }
+if ([string]::IsNullOrWhiteSpace($rawSource)) {
+    Fail ("no source path: -SourceFile was empty and the production path resolved to nothing.`n" +
+          "         Nothing was copied and nothing was changed.")
 }
-$sourcePath = [System.IO.Path]::GetFullPath($sourcePath)
+
+$sourcePath = $rawSource
+try {
+    $sourcePath = [System.IO.Path]::GetFullPath($rawSource)
+} catch {
+    Fail ("the source path could not be resolved: $rawSource`n" +
+          "         $($_.Exception.Message)`n" +
+          "         Nothing was copied and nothing was changed.")
+}
+if ([string]::IsNullOrWhiteSpace($sourcePath)) {
+    Fail ("the source path resolved to nothing, although it was given as: $rawSource`n" +
+          "         Nothing was copied and nothing was changed.")
+}
+if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
+    Fail ("there is no file at: $sourcePath`n" +
+          "         Nothing was copied and nothing was changed.")
+}
 $sourceItem = Get-Item -LiteralPath $sourcePath
+
 if ($usingProduction) {
-    Write-Ok "source: the production file"
+    Write-Ok 'source: the production file'
 } else {
-    Write-Ok "source: supplied with -SourceFile"
+    Write-Ok 'source: supplied with -SourceFile'
 }
 Write-Ok "path         : $sourcePath"
 Write-Ok "size         : $($sourceItem.Length) bytes, last written $($sourceItem.LastWriteTime)"
@@ -126,25 +177,18 @@ foreach ($sidecar in @("$($sourcePath)-wal", "$($sourcePath)-shm")) {
 }
 
 Write-Step '3. Create the archive copy and the working copy'
-$stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-$runFolder = Join-Path $Destination "G1-migration-$stamp"
-$frozenFolder = Join-Path $runFolder 'frozen'
-$workingFolder = Join-Path $runFolder 'working'
-$logFolder = Join-Path $runFolder 'log'
-foreach ($folder in @($frozenFolder, $workingFolder, $logFolder)) {
-    New-Item -ItemType Directory -Path $folder -Force | Out-Null
-}
-
 $frozenFile = Join-Path $frozenFolder 'inquiries.db'
 $workingFile = Join-Path $workingFolder 'inquiries.db'
-
-# Start logging BEFORE the copy. An empty folder with no log tells an operator
-# nothing; the log now exists from the first write onward.
-try { Start-Transcript -Path (Join-Path $logFolder 'verify.log') | Out-Null } catch { Write-Warn 'could not start the transcript; the console output below is still the evidence' }
+if (-not $transcript) {
+    Write-Warn 'the log could not be started; the console output is still the evidence'
+}
 
 # A failed copy used to end the script with an unhandled error and three empty
 # folders. Every failure below produces a message and a log instead.
-foreach ($pair in @(@($frozenFile, 'archive'), @($workingFile, 'working'))) {
+if ([string]::IsNullOrWhiteSpace($sourcePath)) {
+    Fail 'internal check: the source path is empty at the copy step — nothing was copied'
+}
+foreach ($pair in @(@($frozenFile, 'archive'), @(@($workingFile, 'working')))) {
     try {
         Copy-Item -LiteralPath $sourcePath -Destination $pair[0] -ErrorAction Stop
     } catch {
