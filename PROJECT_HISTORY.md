@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 56: Gate G1 reviewed — eleven findings, nine confirmed, one wrong, one stale
+- **Deliverable:** [`docs/17.Gate-G1-Foundation-Review.md`](docs/17.Gate-G1-Foundation-Review.md). Every finding in the submitted draft was re-checked against the code at `cbd0e5b` before being recorded; the report states what was measured and what was not run.
+- **Verdict: G1 NOT ACCEPTED** — four decisions are the owner's and three pieces of evidence can only come from a Windows machine.
+- **Confirmed with locations:** one migration chain with backup + single transaction + verify + integrity check (`SchemaMigrationRunner.cs:89-136`); `step2` reads the Users table directly at **three** sites, not one (`step2.b.4.ClientRepository.cs:221, 419, 439`); `step4` resolves user names with raw SQL (`step4.b.4.CompanyProfileRepository.cs:140-152`); `step5` writes `Inquiries` from a single guarded one-column UPDATE (`step5.b.6.ProjectRepository.Link.cs`); `step5` has no behaviour tests while `step2`/`step3`/`step4` each have a test project.
+- **Confirmed and worse than drafted:** `step5`'s `CreatedBy`/`UpdatedBy` do not hold the signed-in app user. They hold `CurrentOperator.DisplayName`, which is `Environment.UserDomainName\Environment.UserName` — the **Windows workstation login**. On a shared machine every project records the same name, and a rename in Users cannot resolve it.
+- **Sharpened:** `step2` has **no role check on any write path** (`CreateAsync`, `UpdateAsync`, `SetActiveAsync`); its administrator test guards only the read query. `step5` has no authorization at any layer. Company Profile and Users do enforce Administrator in the repository.
+- **Wrong in the draft:** all nine themes *are* registered and installed (`ThemeCatalog.cs:46-56`), each with Light and Dark, each defining the same 118 typed tokens. The document that said otherwise was stale and has been rewritten.
+- **Stale in the draft:** the Projects navigation is present (`MainWindow.xaml:416, :863`) and visible in the owner's last three screenshots.
+- **New permanent gate:** `step1.d.21.ModuleBoundaryChecks.py` — the cross-module access register is closed at the four measured sites, `Inquiries` may be written only by its own module and the one approved link file, nine themes must stay registered with identical token sets across 18 dictionaries. **5 mutations, 5 caught.** 17/17 checkers PASS.
+
+---
 ## 2026-10-29 — Round 55: the band centres its label the way the cells do
 - **The owner's screenshot:** Projects — every value centred, and `NUMBER PROJECT CLIENT SITE STATUS INQUIRIES UPDATED` flush left and light. "column heading header still not in centre and not bold dont you even know what is column? number project client site etc section"
 - **The lesson, taken from the same screenshot:** the cells were centred and the headers were not, in the *same* grid, from the *same* build. The cells centre by a `TextBlock` (`ListText`, `TextAlignment=Center`) inside a stretched presenter. The headers were centring by a `HorizontalContentAlignment` setter, which on this control does nothing that reaches the rendered text. That is the whole difference — and it is why five rounds of setter fixes had no effect.
