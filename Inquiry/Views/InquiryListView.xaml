@@ -317,7 +317,7 @@
                     <TextBlock Text="{Binding ErrorText}" Foreground="{DynamicResource StatusError}" TextWrapping="Wrap" />
                 </Border>
                 <Grid Grid.Row="1" Margin="{DynamicResource MarginItem}">
-                    <DataGrid Style="{DynamicResource ListGrid}"
+                    <DataGrid Style="{StaticResource ListGrid}"
                               ItemsSource="{Binding Inquiries}"
                               SelectedItem="{Binding SelectedInquiry, Mode=TwoWay}"
                               CanUserReorderColumns="False"
@@ -414,10 +414,7 @@
                                                 ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}"
                                                 ElementStyle="{StaticResource ListText}" />
-                            <DataGridTemplateColumn CanUserSort="False">
-                                <DataGridTemplateColumn.Header>
-                                    <TextBlock Text="Status" />
-                                </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn Header="Status" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StatusTag}"

@@ -107,7 +107,10 @@ ALLOW = {
                   # IsHitTestVisible is UIElement's, and a TextBlock overlay needs
                   # it so clicks fall through to the TextBox underneath (the
                   # search hint). Reviewed, not invented.
-                  'ToolTip', 'Visibility', 'IsHitTestVisible', 'x:Name',
+                  'ToolTip', 'Visibility', 'IsHitTestVisible', 'SnapsToDevicePixels', 'x:Name',
+                  # The register's header label is drawn by its own template, so
+                  # TemplateBinding carries the column's Header string into it.
+                  'Text' ,
                   'Grid.Row', 'Grid.Column',
                   'Grid.RowSpan', 'Grid.ColumnSpan', 'DockPanel.Dock',
                   'AutomationProperties.Name', 'AutomationProperties.LiveSetting',
@@ -392,7 +395,7 @@ for path in files:
 # testing it in two views, because it now covers every module.
 for view in VIEWS[:2]:
     text = view.read_text()
-    problems += [] if 'Style="{DynamicResource ListGrid}"' in text else [
+    problems += [] if 'Style="{StaticResource ListGrid}"' in text else [
         f'{view.relative_to(ROOT)}: the register does not use the shared ListGrid style, so '
         'its alignment, header band and equal widths are whatever the page happens to have']
 for dictionary in sorted(ROOT.glob('Theme/Theme*/step1.e.Components/step1.e.10.Analytics.xaml')):

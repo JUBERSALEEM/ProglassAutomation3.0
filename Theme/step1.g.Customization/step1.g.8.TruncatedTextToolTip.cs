@@ -110,12 +110,15 @@ public static class TruncatedTextToolTip
     {
         if (block.TryFindResource(BubbleStyleKey) is not Style style) return block.Text;
 
+        // No StaysOpen here. WPF refuses a ToolTip element whose StaysOpen is
+        // False — "By default, ToolTip property does not support ToolTip element
+        // with StaysOpen set to false" — and throws NotSupportedException from
+        // the tooltip service, on the dispatcher, the moment the pointer rests on
+        // a clipped cell. The service opens and closes the bubble itself.
         return new ToolTip
         {
             Style = style,
             Content = block.Text,
-            PlacementTarget = block,
-            StaysOpen = false,
         };
     }
 

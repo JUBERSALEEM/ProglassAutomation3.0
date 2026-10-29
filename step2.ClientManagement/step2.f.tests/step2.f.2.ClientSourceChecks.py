@@ -211,7 +211,7 @@ def require_theme_contract():
                       f"{view.name}: {control} must bind the active implicit theme style")
         if "<DataGrid " in text:
             check('Style="{DynamicResource {x:Type DataGrid}}"' in text
-                  or 'Style="{DynamicResource ListGrid}"' in text,
+                  or 'Style="{StaticResource ListGrid}"' in text,
                   f"{view.name}: DataGrid must bind the active theme's register style")
 
         # Every DynamicResource key must exist in the shared contract, except
@@ -493,13 +493,17 @@ def require_register_alignment():
         if header:
             check('BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"' in header,
                   f"{name}: the header must derive from the theme's header style")
-            check('HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in header,
-                  f"{name}: the header presenter must take its alignment from the header style, "
-                  "or the label and the column rule collapse to the width of the text")
-            check('Property="HorizontalContentAlignment" Value="Center"' in header,
-                  f"{name}: the header label must be centred (owner, round 50)")
-            check('Property="FontWeight" Value="{DynamicResource FontWeightHeading}"' in header,
-                  f"{name}: the header label must be bold (owner, round 50)")
+            # The label is drawn by the template, so a setter is not proof: the
+            # TextBlock that renders the heading is the proof.
+            check('Text="{TemplateBinding Content}"' in header,
+                  f"{name}: the header band leaves its label to the generated TextBlock, so the "
+                  "heading weight and the centring depend on what the header inherits")
+            check('TextAlignment="Center"' in header
+                  and 'HorizontalAlignment="Stretch"' in header,
+                  f"{name}: the header label must be centred across the whole column, or the "
+                  "band's right rule collapses to the width of the text")
+            check('FontWeight="{DynamicResource FontWeightHeading}"' in header,
+                  f"{name}: the rendered header label must be heading-bold (owner, round 50)")
             check('Property="BorderThickness" Value="0"' in header,
                   f"{name}: the package's header frame must be switched off, or its control weight "
                   "(2px, 4px) boxes the header band")
@@ -518,7 +522,7 @@ def require_register_alignment():
                   f"{name}: a trimmed value must keep its full text one hover away (owner, round 50)")
 
     view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
-    check('Style="{DynamicResource ListGrid}"' in view,
+    check('Style="{StaticResource ListGrid}"' in view,
           "the register does not use the shared register style, so it has no ruled header band, "
           "no centred body and no equal-width columns")
     for style in ("ListText", "ListMonoText", "ListStrongText"):
@@ -609,8 +613,11 @@ def require_command_bar():
 
     # Every column has a header, including the row-menu column, which used to
     # open a headerless gap at the right edge of the band.
-    check('Text="Actions"' in view,
+    check('Header="Actions"' in view,
           "the row-menu column needs a header; an empty one reads as a broken band")
+    check("DataGridTemplateColumn.Header" not in view,
+          "a column carries a hand-written header template; Header=\"…\" is the pattern, and the "
+          "band renders it bold and centred itself")
     check(view.count('Header="') + view.count('Text="')
           >= 9, "the register lost a column header")
 

@@ -247,7 +247,7 @@
                      ADV does this on the row itself (SheetStoreView.xaml:439) with
                      ClickToCommandBehavior → SelectSheetCommand, so the row style
                      carries the handler here rather than the grid. -->
-                <DataGrid Style="{DynamicResource ListGrid}"
+                <DataGrid Style="{StaticResource ListGrid}"
                           ItemsSource="{Binding Rows}"
                           SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
                           CanUserReorderColumns="False" CanUserSortColumns="False"
@@ -323,7 +323,7 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <DataGrid Grid.Row="0" Style="{DynamicResource ListGrid}"
+                        <DataGrid Grid.Row="0" Style="{StaticResource ListGrid}"
                                   ItemsSource="{Binding LinkedInquiries}"
                                   SelectedItem="{Binding SelectedLinked, Mode=TwoWay}"
                                   CanUserReorderColumns="False" CanUserSortColumns="False"
@@ -351,7 +351,7 @@
                                    Style="{DynamicResource Caption}" TextWrapping="Wrap"
                                    Margin="{DynamicResource UiGapGroup}" />
 
-                        <DataGrid Grid.Row="3" Style="{DynamicResource ListGrid}"
+                        <DataGrid Grid.Row="3" Style="{StaticResource ListGrid}"
                                   ItemsSource="{Binding CandidateInquiries}"
                                   SelectedItem="{Binding SelectedCandidate, Mode=TwoWay}"
                                   CanUserReorderColumns="False" CanUserSortColumns="False"

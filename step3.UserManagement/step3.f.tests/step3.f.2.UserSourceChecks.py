@@ -406,7 +406,7 @@ def require_theme_contract():
                       f"{view.name}: {control} must bind the active implicit theme style")
         if "<DataGrid " in text:
             check('Style="{DynamicResource {x:Type DataGrid}}"' in text
-                  or 'Style="{DynamicResource ListGrid}"' in text,
+                  or 'Style="{StaticResource ListGrid}"' in text,
                   f"{view.name}: DataGrid must bind the active theme's register style")
 
         local = set(re.findall(r'x:Key="([A-Za-z0-9]+)"', text))

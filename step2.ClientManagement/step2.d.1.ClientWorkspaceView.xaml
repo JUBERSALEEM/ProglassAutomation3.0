@@ -351,7 +351,7 @@
                     </Style>
                 </Grid.Style>
                 <ContentControl Style="{DynamicResource Card}">
-                    <DataGrid Style="{DynamicResource ListGrid}"
+                    <DataGrid Style="{StaticResource ListGrid}"
                               ItemsSource="{Binding Rows}"
                               SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
                               CanUserReorderColumns="False"
@@ -372,10 +372,7 @@
                                                 ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="TRN" Binding="{Binding Trn}"
                                                 ElementStyle="{StaticResource ListMonoText}" />
-                            <DataGridTemplateColumn CanUserSort="False">
-                                <DataGridTemplateColumn.Header>
-                                    <TextBlock Text="Status" />
-                                </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn Header="Status" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}"
@@ -395,10 +392,7 @@
                                  noise. The menu is a themed ContextMenu, and the
                                  footer keeps working for whatever row is selected,
                                  so a row can be acted on either way. -->
-                            <DataGridTemplateColumn CanUserSort="False">
-                                <DataGridTemplateColumn.Header>
-                                    <TextBlock Text="Actions" />
-                                </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn Header="Actions" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Style="{StaticResource ClientRowMenuButton}"

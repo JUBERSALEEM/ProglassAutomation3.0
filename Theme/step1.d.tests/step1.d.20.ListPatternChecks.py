@@ -94,10 +94,16 @@ for package in theme_definitions:
           f"{package}: the column header is not bold")
     check('Property="HorizontalContentAlignment" Value="Center"' in header,
           f"{package}: the column header is not centred")
-    check('HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in header,
-          "…" if False else
-          f"{package}: the header presenter ignores the header's own alignment, so a centred "
-          "header style would still render at the left edge")
+    # The label is drawn by the template, so presence of a FontWeight setter is
+    # no longer the proof. The proof is the TextBlock that actually renders it.
+    check('Text="{TemplateBinding Content}"' in header,
+          f"{package}: the header band leaves its label to the generated TextBlock, so the "
+          "heading weight and centring depend on what the header happens to inherit")
+    check('TextAlignment="Center"' in header and 'HorizontalAlignment="Stretch"' in header,
+          f"{package}: the header label is not centred across the whole column, so the band's "
+          "right rule hugs the text instead of sitting on the column edge")
+    check('FontWeight="{DynamicResource FontWeightHeading}"' in header,
+          f"{package}: the rendered header label is not heading-bold")
     check('Background="{DynamicResource BorderStrong}"' in header,
           f"{package}: the header band draws no rule — the owner asked for the heading to sit "
           "in a grid line")
@@ -124,9 +130,9 @@ for package in theme_definitions:
           "column is sized by guesswork and one of them always ends up clipped")
     check('Property="MinColumnWidth" Value="{DynamicResource ControlMinWidth}"' in grid,
           f"{package}: without a floor a column can be dragged down to nothing")
-    check('Property="CellStyle" Value="{DynamicResource ListCell}"' in grid,
+    check('Property="CellStyle" Value="{StaticResource ListCell}"' in grid,
           f"{package}: the register does not carry the shared cell style")
-    check('Property="ColumnHeaderStyle" Value="{DynamicResource ListColumnHeader}"' in grid,
+    check('Property="ColumnHeaderStyle" Value="{StaticResource ListColumnHeader}"' in grid,
           f"{package}: the register does not carry the shared header style")
     check('VerticalGridLinesBrush=' not in grid and 'HorizontalGridLinesBrush=' not in grid,
           f"{package}: a rule-brush override is set on the register; the header carries the rules")
@@ -238,7 +244,11 @@ for path in views:
                       f'{name}: column "{heading}" has no pattern element style, so its value is '
                       "not centred, not trimmed and shows no tooltip")
             else:
-                check(column.find(WPF + f"{kind}.Header") is not None,
+                check(template is None,
+                      f'{name}: column "{heading}" carries a hand-written header template. '
+                      'The band draws Header="…" itself; a nested element is printed as its '
+                      "type name and can never carry the heading weight")
+                check(heading.strip() != "",
                       f'{name}: a template column has no header; an empty one reads as a broken band')
 
 check(registers >= 5,
@@ -266,6 +276,17 @@ behaviour = ROOT / "Theme/step1.g.Customization/step1.g.8.TruncatedTextToolTip.c
 check(behaviour.is_file(), "the truncation tooltip behaviour is gone")
 if behaviour.is_file():
     source = read(behaviour)
+    # The bubble is set on the ToolTip property, so WPF's tooltip service opens
+    # and closes it. A ToolTip element in that position with StaysOpen="False"
+    # makes the service throw NotSupportedException on the dispatcher, i.e. the
+    # first time the pointer rests on a clipped cell — a fatal log entry for a
+    # cosmetic feature. Nothing in this file may set it.
+    import re as _re
+    code = _re.sub(r"//[^\n]*", "", _re.sub(r"/\*.*?\*/", "", source, flags=_re.S))
+    check("StaysOpen" not in code,
+          "the truncation tooltip sets StaysOpen. WPF refuses a ToolTip element assigned to the "
+          "ToolTip property when StaysOpen is false and throws on the dispatcher as soon as the "
+          "pointer hovers a clipped cell")
     for part in ("EnabledProperty", "MouseEnter", "SizeChanged", "IsClipped", "FormattedText",
                  "block.ToolTip = Build(block)"):
         check(part in source, f"the truncation tooltip no longer {part!r} — it cannot measure the "

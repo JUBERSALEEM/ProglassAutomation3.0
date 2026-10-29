@@ -63,7 +63,7 @@ for name, xaml in (("Inquiry register", list_xaml), ("Website inbox", inbox_xaml
     # package like the implicit style is, so it follows a theme switch too, and
     # it is what carries the shared list pattern (round 50).
     assert ('Style="{DynamicResource {x:Type DataGrid}}"' in xaml
-            or 'Style="{DynamicResource ListGrid}"' in xaml), name
+            or 'Style="{StaticResource ListGrid}"' in xaml), name
 
 # All nine active themes must provide the card/badge roles consumed above.
 themes = sorted(path for path in (ROOT / "Theme").glob("Theme*") if path.is_dir())
@@ -135,7 +135,7 @@ assert 'Header=""' not in inbox_xaml
 # Round 50 replaced the inbox's own centred header template and cell styles with
 # the shared register pattern, so the guarantee is now asserted where it lives:
 # the page must use the pattern, and the pattern must centre and trim.
-assert 'Style="{DynamicResource ListGrid}"' in inbox_xaml
+assert 'Style="{StaticResource ListGrid}"' in inbox_xaml
 assert 'HorizontalAlignment="Center"' in inbox_xaml
 pattern = (ROOT / "Theme/ThemeBento/step1.e.Components/step1.e.10.Analytics.xaml").read_text(encoding="utf-8")
 assert 'TextAlignment" Value="Center"' in pattern
@@ -234,7 +234,7 @@ assert closed.index('StateChanged -= OnInboxStateChanged') < closed.index('Cance
 # Round 50 moved all of that from this view into the shared register pattern, so
 # the assertions moved with it: the page must use the pattern, and the pattern
 # must carry every property the page used to carry for itself.
-assert 'Style="{DynamicResource ListGrid}"' in list_xaml, "the register style is not wired"
+assert 'Style="{StaticResource ListGrid}"' in list_xaml, "the register style is not wired"
 assert 'CellStyle=' not in list_xaml, "the page overrides the shared cell style again"
 assert 'ColumnHeaderStyle=' not in list_xaml, "the page overrides the shared header style again"
 assert 'VerticalGridLinesBrush' not in list_xaml, "row rules stay with the pattern, not a brush override"

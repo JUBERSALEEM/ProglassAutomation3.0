@@ -244,7 +244,7 @@
                                VerticalAlignment="Center" />
                 </DockPanel>
                 <Grid Grid.Row="1" Margin="{DynamicResource MarginItem}">
-                    <DataGrid Style="{DynamicResource ListGrid}"
+                    <DataGrid Style="{StaticResource ListGrid}"
                               ItemsSource="{Binding Items}"
                               SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                               CanUserReorderColumns="False"
@@ -261,10 +261,7 @@
                                                 ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Prepared by" Binding="{Binding Estimator}"
                                                 ElementStyle="{StaticResource ListText}" />
-                            <DataGridTemplateColumn CanUserSort="False">
-                                <DataGridTemplateColumn.Header>
-                                    <TextBlock Text="Files" />
-                                </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn Header="Files" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Content="{Binding DocumentsText}"
@@ -277,10 +274,7 @@
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Received" Binding="{Binding ReceivedText}"
                                                 ElementStyle="{StaticResource ListText}" />
-                            <DataGridTemplateColumn CanUserSort="False">
-                                <DataGridTemplateColumn.Header>
-                                    <TextBlock Text="State" />
-                                </DataGridTemplateColumn.Header>
+                            <DataGridTemplateColumn Header="State" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StateTag}"

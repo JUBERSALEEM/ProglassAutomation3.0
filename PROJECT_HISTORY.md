@@ -9,6 +9,16 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 53: the header went left and light, and the bubble crashed the app
+- **The owner's screenshot:** every value correctly centred — and `NUMBER PROJECT CLIENT SITE STATUS INQUIRIES UPDATED` flush left, in plain weight. Then two FATAL log entries from hovering.
+- **Why the heading lost its centring and its weight:** the band centred a `ContentPresenter`, leaving the label's weight and alignment to whatever the header inherited. The style still carried `FontWeightHeading` and `HorizontalContentAlignment=Center`, so every source rule passed — a property setter is not a rendered glyph. The template now draws the label itself: `Text="{TemplateBinding Content}"`, `HorizontalAlignment="Stretch"`, `TextAlignment="Center"`, `FontWeight="{DynamicResource FontWeightHeading}"`. Centred under the band, heading-bold, in all nine packages.
+- **Why the app crashed on hover:** the round-52 bubble was assigned through the `ToolTip` property *and* given `StaysOpen="False"`. WPF's `PopupControlService.ShowToolTip` refuses that combination and throws `NotSupportedException` from a dispatcher timer — the instant the pointer rested on a clipped cell. `StaysOpen` is gone; the service owns the bubble's lifetime. The bubble itself still appears, themed and width-capped.
+- **Why the four references are now parse-time:** `Style`, `CellStyle`, `ColumnHeaderStyle` and the views' `ListGrid` are all `StaticResource`. A `DynamicResource` that has not resolved does not fail — it renders defaults, which is exactly the left-aligned, unbolded, untrimmed register that shipped twice.
+- **Columns carry a string header.** No nested `<DataGridTemplateColumn.Header>` anywhere: the band renders the string, so a nested element would print as its type name.
+- **Gates:** `step1.d.20` now checks the *rendered* label (its `Text`, its alignment, its weight), forbids `StaysOpen` on the behaviour, and requires `StaticResource` on the register's own style references; `step2.f.2` checks the same for the client register and its `Actions` header. **21 mutations tested across the three harnesses, 21 caught** (9 new this round).
+- **16/16 checkers PASS.** Still not compiled or rendered here — no `dotnet`, no Windows — but the crash had a cause readable in one line of C#, and the misalignment had a cause readable in one element of XAML.
+
+---
 ## 2026-10-29 — Round 52: the cells were not centred because the markup could not work
 - **The owner's screenshot:** header band bold, centred and ruled; no body grid lines; equal columns — and every value still hard against the left edge, with no hover bubble.
 - **Cause:** `DataGridColumn.ElementStyle` is a plain CLR property, not a DependencyProperty, so `{DynamicResource …}` on it is accepted and ignored. `Style` on the DataGrid *is* a DependencyProperty, which is exactly why the half that worked worked. Fixed to `StaticResource`; a theme switch still repaints because the style's setters are DynamicResource tokens.

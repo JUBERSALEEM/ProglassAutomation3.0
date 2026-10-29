@@ -142,9 +142,19 @@
     <ControlTemplate TargetType="DataGridColumnHeader">
      <Grid>
       <Border x:Name="Band" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
-       <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                         VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                         RecognizesAccessKey="True" SnapsToDevicePixels="True" />
+       <!-- The label is drawn here rather than left to the generated TextBlock,
+            so the heading is bold and centred every time. Inheriting FontWeight
+            from the header control looked right until a package or a missing
+            style changed what the header inherited, and then the heading came out
+            plain — which is what the owner saw on screen. -->
+       <TextBlock Text="{TemplateBinding Content}"
+                  HorizontalAlignment="Stretch"
+                  TextAlignment="Center"
+                  VerticalAlignment="Center"
+                  TextTrimming="CharacterEllipsis"
+                  FontWeight="{DynamicResource FontWeightHeading}"
+                  Foreground="{TemplateBinding Foreground}"
+                  SnapsToDevicePixels="True" />
       </Border>
       <Border HorizontalAlignment="Right" Width="{DynamicResource StrokeWidth}"
               Background="{DynamicResource BorderStrong}" SnapsToDevicePixels="True" />
@@ -200,8 +210,8 @@
   <Setter Property="MinColumnWidth" Value="{DynamicResource ControlMinWidth}" />
   <Setter Property="SelectionMode" Value="Single" />
   <Setter Property="SelectionUnit" Value="FullRow" />
-  <Setter Property="CellStyle" Value="{DynamicResource ListCell}" />
-  <Setter Property="ColumnHeaderStyle" Value="{DynamicResource ListColumnHeader}" />
+  <Setter Property="CellStyle" Value="{StaticResource ListCell}" />
+  <Setter Property="ColumnHeaderStyle" Value="{StaticResource ListColumnHeader}" />
   <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
  </Style>
 

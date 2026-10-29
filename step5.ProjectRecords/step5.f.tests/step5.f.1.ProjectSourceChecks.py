@@ -589,7 +589,7 @@ if toggle is not None:
 # its two variants) and every module names them, so the alignment cannot drift
 # between modules and a new list page gets it for free.
 view_src = read(VIEW)
-grid_count = view_src.count('Style="{DynamicResource ListGrid}"')
+grid_count = view_src.count('Style="{StaticResource ListGrid}"')
 check(grid_count == 3,
       f"step5.d.1: {grid_count} of the module's 3 grids use the shared register style; the rest "
       "fall back to WPF defaults and lose the header band, the centring and the equal widths")
