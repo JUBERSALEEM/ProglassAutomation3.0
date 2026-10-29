@@ -15,6 +15,9 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("step2.f.ClientTests")]
 [assembly: InternalsVisibleTo("step3.f.UserTests")]
 [assembly: InternalsVisibleTo("step4.f.CompanyTests")]
+// step5.f runs the real migration runner against a working copy; the connection
+// policy it shares with the application is internal on purpose (docs/00 rule K).
+[assembly: InternalsVisibleTo("step5.f.ProjectTests")]
 
 [assembly: ThemeInfo(
     ResourceDictionaryLocation.None,            //where theme specific resource dictionaries are located

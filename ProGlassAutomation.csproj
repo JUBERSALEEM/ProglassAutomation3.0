@@ -53,6 +53,11 @@
     <Compile Remove="step4.CompanyProfile/step4.f.tests/**/*.cs" />
     <Page Remove="step4.CompanyProfile/step4.f.tests/**/*.xaml" />
     <None Remove="step4.CompanyProfile/step4.f.tests/**/*.py" />
+    <!-- step5's verification executable (the G1 migration-preservation check)
+         is its own console project for the same reason. -->
+    <Compile Remove="step5.ProjectRecords/step5.f.tests/**/*.cs" />
+    <Page Remove="step5.ProjectRecords/step5.f.tests/**/*.xaml" />
+    <None Remove="step5.ProjectRecords/step5.f.tests/**/*.py" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.4" />

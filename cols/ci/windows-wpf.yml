@@ -66,6 +66,8 @@ jobs:
         run: python Theme/step1.d.tests/step1.d.6.verify_foundation.py
       - name: Verify the source validator rejects regressions
         run: python Theme/step1.d.tests/step1.d.4.CheckerRegression.py
+      - name: Guard the migration chain and the preservation harness
+        run: python Theme/step1.d.tests/step1.d.22.MigrationSafetyChecks.py
       - name: Restore actual product and test projects
         run: |
           # SDK 8 does not consume .slnx; use the real project paths without changing the TFM.

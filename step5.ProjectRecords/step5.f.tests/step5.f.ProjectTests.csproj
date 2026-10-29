@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    step5.f — Project Records verification executable.
+
+    Same convention as step2.f / step3.f / step4.f: a console executable that
+    references the application and returns a nonzero exit code on failure. No
+    test-framework package is introduced.
+
+    step5.f.2 is the G1 migration-preservation check. It is the only tool in the
+    repository that runs the REAL SchemaMigrationRunner against a REAL database
+    file, and it refuses to run against the production file.
+
+    Run on Windows/.NET 8:
+
+      dotnet run  "C:\path\to\WORKING\COPY\inquiries.db"   (separate the path with a
+    double dash on the command line; it cannot appear inside this comment)
+
+    Add the rewind switch when the copy is already at the chain tip, so the
+    upgrade actually has work to do (see step5.f.2's header).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>step5.f.ProjectTests</AssemblyName>
+    <RootNamespace>ProGlassAutomation.Step5Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../ProGlassAutomation.csproj" />
+  </ItemGroup>
+</Project>

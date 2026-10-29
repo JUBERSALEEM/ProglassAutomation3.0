@@ -9,6 +9,16 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 57: migration-preservation harness — and an honest NOT RUN
+- **Asked:** prove the chain, including 1017, preserves Inquiry data, without touching the production file.
+- **Delivered:** [`docs/18.Migration-Preservation-Report.md`](docs/18.Migration-Preservation-Report.md), `tools/Verify-Migration1017.ps1` (one command), and `step5.f` — a new verification project whose `step5.f.2` runs the application's **own** `SchemaMigrationRunner` against a working copy and prints a PASS/FAIL line per required check.
+- **Status: NOT RUN.** No .NET SDK and no Windows here, and the database lives on the owner's machine. The report says so at the top and marks checks 1–11 NOT RUN rather than implying them.
+- **Proved from source instead (18/18 checkers, 7 new mutations all caught):** the chain ends at 1017; `ProjectSchema.Ensure` contains no DROP/DELETE/UPDATE/INSERT/RENAME; the link columns are `INTEGER NULL` with no default, so nothing is back-filled; 1017 asserts `CustomerId`/`ProjectId` still exist; the runner backs up first, migrates in one transaction, quick-checks before commit and records the version last; and the tool refuses the production path.
+- **Safety by construction:** the script copies the file twice (archive + working), proves both by SHA-256 before anything runs, and refuses while the application is open. The working copy is the only file the runner sees; production is never opened.
+- **Bug found in my own harness before shipping:** the rewind self-check compared a hash over seven columns with a hash over five, so it would have failed every time. Caught by running the rewind/re-add SQL here on SQLite 3.40; fixed to compare the surviving column set before and after. `-Rewind` now also refuses a copy that is not at the chain tip, because rewinding an older copy would skip migrations.
+- **Also fixed:** the new test project was being globbed into the application build (a second entry point) and needed `InternalsVisibleTo` — both caught by the existing foundation gate, not by guessing.
+
+---
 ## 2026-10-29 — Round 56: Gate G1 reviewed — eleven findings, nine confirmed, one wrong, one stale
 - **Deliverable:** [`docs/17.Gate-G1-Foundation-Review.md`](docs/17.Gate-G1-Foundation-Review.md). Every finding in the submitted draft was re-checked against the code at `cbd0e5b` before being recorded; the report states what was measured and what was not run.
 - **Verdict: G1 NOT ACCEPTED** — four decisions are the owner's and three pieces of evidence can only come from a Windows machine.
