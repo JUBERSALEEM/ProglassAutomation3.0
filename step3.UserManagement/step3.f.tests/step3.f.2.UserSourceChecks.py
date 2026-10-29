@@ -374,6 +374,9 @@ def require_theme_contract():
 
     contract = read(ROOT / "Theme/step1.a.ThemeEngine/step1.a.1.ThemeContract.cs")
     declared = set(re.findall(r'\["([A-Za-z0-9]+)"\]\s*=\s*typeof', contract))
+    theme_keys = set()
+    for dictionary in (ROOT / "Theme").glob("Theme*/step1.e.Components/*.xaml"):
+        theme_keys |= set(re.findall(r'x:Key="([A-Za-z0-9]+)"', read(dictionary)))
 
     for view in views:
         ET.parse(view)  # must be well-formed
@@ -397,14 +400,21 @@ def require_theme_contract():
         check('BasedOn="{StaticResource Card}"' not in text,
               f"{view.name}: card styles must not be captured statically")
 
-        for control in ("TextBox", "CheckBox", "DataGrid", "ComboBox"):
+        for control in ("TextBox", "CheckBox", "ComboBox"):
             if f"<{control} " in text:
                 check(f'Style="{{DynamicResource {{x:Type {control}}}}}"' in text,
                       f"{view.name}: {control} must bind the active implicit theme style")
+        if "<DataGrid " in text:
+            check('Style="{DynamicResource {x:Type DataGrid}}"' in text
+                  or 'Style="{DynamicResource ListGrid}"' in text,
+                  f"{view.name}: DataGrid must bind the active theme's register style")
 
         local = set(re.findall(r'x:Key="([A-Za-z0-9]+)"', text))
+        # A DynamicResource names a token or a theme style; round 50 moved the
+        # register chrome into shared styles, so a style key is legal too and is
+        # checked against the theme dictionaries rather than assumed.
         for key in re.findall(r"\{DynamicResource ([A-Za-z0-9]+)\}", text):
-            check(key in declared or key in local,
+            check(key in declared or key in local or key in theme_keys,
                   f"{view.name}: unknown theme resource '{key}'")
 
         for match in re.finditer(r"<ContentControl[^>]*Style=\"\{DynamicResource "
@@ -806,7 +816,8 @@ def require_writes_are_tracked():
 def require_register_layout():
     view = read(MODULE / "step3.d.1.UserWorkspaceView.xaml")
     for column in ("Name", "Username", "Department", "Role", "Status", "Updated", "Actions"):
-        check(f'Text="{column}"' in view, f"the register is missing the '{column}' column")
+        check(f'Text="{column}"' in view or f'Header="{column}"' in view,
+              f"the register is missing the '{column}' column")
     check('ItemsSource="{Binding Rows}"' in view, "the register must bind the row collection")
     check('Binding SearchText' in view, "the register must offer a search box")
     check('ItemsSource="{Binding DepartmentFilters}"' in view,

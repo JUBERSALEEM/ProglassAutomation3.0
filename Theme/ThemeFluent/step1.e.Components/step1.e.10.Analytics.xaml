@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:analytics="clr-namespace:ProGlassAutomation.Analytics" xmlns:fluent="clr-namespace:ProGlassAutomation.ThemeFluent">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:analytics="clr-namespace:ProGlassAutomation.Analytics" xmlns:list="clr-namespace:ProGlassAutomation.Customization" xmlns:fluent="clr-namespace:ProGlassAutomation.ThemeFluent">
  <Style x:Key="ChartCard" TargetType="ContentControl">
   <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
   <Setter Property="Padding" Value="{DynamicResource PaddingCard}" />
@@ -97,5 +97,127 @@
   <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" /><Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
   <Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource StateSelected}" /><Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" /></Trigger>
    <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource FocusIndicator}" /></Trigger></Style.Triggers>
+ </Style>
+
+ <!-- ════════ The list-page pattern (docs/10.List-Page-Pattern.md) ════════
+      Every module register uses these keys and nothing of its own, so a new
+      page inherits the whole pattern instead of re-deriving it: a ruled header
+      band, centred and bold; a body with no grid lines, centred and evenly
+      spaced; equal column widths; and a tooltip that reveals a value the cell
+      had to trim. Every value is a DynamicResource token, so the pattern
+      repaints on a live theme switch and no page carries a colour.
+      Keys are defined in this file rather than a new one because each style
+      builds on the implicit DataGrid style above it, and a StaticResource may
+      only name a key defined in the same dictionary. -->
+ <Style x:Key="ListHeaderGripper" TargetType="Thumb">
+  <Setter Property="Width" Value="{DynamicResource SpacingMedium}" />
+  <Setter Property="Cursor" Value="SizeWE" />
+  <Setter Property="Template">
+   <Setter.Value>
+    <ControlTemplate TargetType="Thumb">
+     <Border x:Name="Grip" Background="{DynamicResource TransparentBrush}" />
+     <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+       <Setter TargetName="Grip" Property="Background" Value="{DynamicResource BorderStrong}" />
+      </Trigger>
+     </ControlTemplate.Triggers>
+    </ControlTemplate>
+   </Setter.Value>
+  </Setter>
+ </Style>
+
+ <!-- The header band: bold, centred, ruled on the right and along the bottom,
+      so the columns are divided where the labels are and nowhere else. -->
+ <Style x:Key="ListColumnHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+  <Setter Property="Background" Value="{DynamicResource SurfaceInformation}" />
+  <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+  <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+  <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+  <Setter Property="BorderThickness" Value="0" />
+  <Setter Property="HorizontalContentAlignment" Value="Center" />
+  <Setter Property="VerticalContentAlignment" Value="Center" />
+  <Setter Property="Template">
+   <Setter.Value>
+    <ControlTemplate TargetType="DataGridColumnHeader">
+     <Grid>
+      <Border x:Name="Band" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+       <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                         VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                         RecognizesAccessKey="True" SnapsToDevicePixels="True" />
+      </Border>
+      <Border HorizontalAlignment="Right" Width="{DynamicResource StrokeWidth}"
+              Background="{DynamicResource BorderStrong}" SnapsToDevicePixels="True" />
+      <Border VerticalAlignment="Bottom" Height="{DynamicResource StrokeWidth}"
+              Background="{DynamicResource BorderStrong}" SnapsToDevicePixels="True" />
+      <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left" Style="{StaticResource ListHeaderGripper}" />
+      <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right" Style="{StaticResource ListHeaderGripper}" />
+     </Grid>
+     <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+       <Setter TargetName="Band" Property="Background" Value="{DynamicResource StateHover}" />
+      </Trigger>
+     </ControlTemplate.Triggers>
+    </ControlTemplate>
+   </Setter.Value>
+  </Setter>
+ </Style>
+
+ <!-- The body cell draws no border at all: the register is read as rows, not as
+      a spreadsheet. The template binds every colour, so the theme still owns
+      background, selection and the focus ring. -->
+ <Style x:Key="ListCell" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+  <Setter Property="HorizontalContentAlignment" Value="Center" />
+  <Setter Property="VerticalContentAlignment" Value="Center" />
+  <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+  <Setter Property="Template">
+   <Setter.Value>
+    <ControlTemplate TargetType="DataGridCell">
+     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+             BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"
+             SnapsToDevicePixels="True">
+      <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        SnapsToDevicePixels="True" />
+     </Border>
+    </ControlTemplate>
+   </Setter.Value>
+  </Setter>
+ </Style>
+
+ <!-- The register itself. ColumnWidth="*" is what gives every column the same
+      width, so no module has to guess a pixel count that its own text might
+      outgrow. -->
+ <Style x:Key="ListGrid" TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+  <Setter Property="AutoGenerateColumns" Value="False" />
+  <Setter Property="IsReadOnly" Value="True" />
+  <Setter Property="CanUserAddRows" Value="False" />
+  <Setter Property="CanUserDeleteRows" Value="False" />
+  <Setter Property="CanUserResizeRows" Value="False" />
+  <Setter Property="HeadersVisibility" Value="Column" />
+  <Setter Property="GridLinesVisibility" Value="None" />
+  <Setter Property="ColumnWidth" Value="*" />
+  <Setter Property="MinColumnWidth" Value="{DynamicResource ControlMinWidth}" />
+  <Setter Property="SelectionMode" Value="Single" />
+  <Setter Property="SelectionUnit" Value="FullRow" />
+  <Setter Property="CellStyle" Value="{DynamicResource ListCell}" />
+  <Setter Property="ColumnHeaderStyle" Value="{DynamicResource ListColumnHeader}" />
+  <Setter Property="Margin" Value="{DynamicResource MarginItem}" />
+ </Style>
+
+ <!-- A register value: centred, trimmed when it does not fit, and one hover
+      away from its full text. -->
+ <Style x:Key="ListText" TargetType="TextBlock">
+  <Setter Property="TextAlignment" Value="Center" />
+  <Setter Property="HorizontalAlignment" Value="Stretch" />
+  <Setter Property="VerticalAlignment" Value="Center" />
+  <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+  <Setter Property="list:TruncatedTextToolTip.Enabled" Value="True" />
+ </Style>
+ <Style x:Key="ListMonoText" TargetType="TextBlock" BasedOn="{StaticResource ListText}">
+  <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
+ </Style>
+ <Style x:Key="ListStrongText" TargetType="TextBlock" BasedOn="{StaticResource ListText}">
+  <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
  </Style>
 </ResourceDictionary>

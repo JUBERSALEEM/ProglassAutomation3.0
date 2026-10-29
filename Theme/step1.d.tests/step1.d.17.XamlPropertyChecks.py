@@ -381,16 +381,27 @@ for path in files:
                 f'a {own_type} style is BasedOn {key!r}, which targets '
                 f'{sorted(concrete)[0]}; WPF refuses to derive across types')
 
-# The two registers must actually use the mechanism these tests describe: the
+# The registers must actually use the mechanism these tests describe: the
 # presenter is stretched, and the content alignment lives on the cell, which is a
 # ContentControl and really does declare it.
+#
+# Round 50 moved that mechanism out of the two views and into one shared style
+# per theme, so the assertion follows it: the page must USE the shared register
+# style, and every theme must define it with the alignment actually present and
+# bound the framework-element way. Testing it in the theme is stronger than
+# testing it in two views, because it now covers every module.
 for view in VIEWS[:2]:
     text = view.read_text()
-    problems += [] if 'Property="HorizontalContentAlignment"' in text else [
-        f'{view.relative_to(ROOT)}: content alignment must live on the cell/header '
+    problems += [] if 'Style="{DynamicResource ListGrid}"' in text else [
+        f'{view.relative_to(ROOT)}: the register does not use the shared ListGrid style, so '
+        'its alignment, header band and equal widths are whatever the page happens to have']
+for dictionary in sorted(ROOT.glob('Theme/Theme*/step1.e.Components/step1.e.10.Analytics.xaml')):
+    text = dictionary.read_text()
+    problems += [] if 'Property="HorizontalContentAlignment" Value="Center"' in text else [
+        f'{dictionary.relative_to(ROOT)}: content alignment must live on the cell/header '
         'style, which is a ContentControl']
     problems += [] if 'HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in text else [
-        f'{view.relative_to(ROOT)}: the presenter must take its alignment from the '
+        f'{dictionary.relative_to(ROOT)}: the presenter must take its alignment from the '
         'cell style through a TemplateBinding']
 
 # 2b ── Every DynamicResource key must exist in the theme dictionaries ──────

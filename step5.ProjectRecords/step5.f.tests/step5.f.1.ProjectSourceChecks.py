@@ -160,8 +160,15 @@ check("EditDescription" in commands,
       "step5.c.3.ProjectWorkspaceViewModel.Commands.cs: the editor never fills the description field")
 
 # 9 ── Every token the view asks for exists ────────────────────────────────
+# A DynamicResource may name a token (declared by the contract) or a style
+# (declared by the theme dictionaries). Both are resolved the same way at
+# runtime, and an undeclared name is silent: the property keeps its default, so
+# the page renders with no error and no styling. The register pattern added the
+# second kind, so the rule now checks both instead of dropping the check.
 contract = read(CONTRACT)
 declared = set(re.findall(r'"(\w+)"', contract))
+for dictionary in ROOT.glob('Theme/Theme*/step1.e.Components/*.xaml'):
+    declared |= set(re.findall(r'x:Key="(\w+)"', read(dictionary)))
 used = set(re.findall(r"\{DynamicResource\s+(\w+)\}", view_text))
 missing = sorted(name for name in used if name not in declared)
 check(not missing,
@@ -342,26 +349,21 @@ if selection is not None:
               f"step5.c: SelectedRow does not raise {gate}, so a binding on it never sees the click")
 
 # 16 ── The header row reads as a table, and says where each column ends ───
-# Owner, round 40: "why are there no grid lines in the top columns?" Every grid
-# in the module takes the header style, that style's template draws the theme's
-# own hairline, and the last column uses the variant that drops it.
+# Owner, round 40: "why are there no grid lines in the top columns?" Round 50
+# settled it as a page-level rule: the header band is ruled, and the body is not.
+# The rules are drawn by the shared header template from the theme's own
+# tokens, so every module draws the same hairline at the same weight.
 view_tree = ET.parse(VIEW).getroot()
 WPF = "{http://schemas.microsoft.com/winfx/2006/xaml/presentation}"
 grids = [element for element in view_tree.iter() if element.tag == WPF + "DataGrid"]
 check(len(grids) == 3, f"expected 3 grids in the module view, found {len(grids)}")
 for grid in grids:
-    header_style = grid.attrib.get("ColumnHeaderStyle", "")
-    check("ProjectColumnHeader" in header_style,
-          "step5.d.1.ProjectWorkspaceView.xaml: a grid does not use the register's column-header "
-          "style, so it has no rule between its columns")
-check('x:Key="ProjectHeaderTemplate"' in view_text
-      and '{DynamicResource BorderStrong}' in view_text
-      and '{DynamicResource StrokeWidth}' in view_text,
-      "step5.d.1.ProjectWorkspaceView.xaml: the header rule is missing or is not drawn from theme "
-      "tokens (BorderStrong at StrokeWidth)")
-check(view_text.count('HeaderStyle="{StaticResource ProjectColumnHeaderLast}"') == 3,
-      "step5.d.1.ProjectWorkspaceView.xaml: each grid's last column must drop the hairline, or the "
-      "table ends on a floating line")
+    check("ListGrid" in grid.attrib.get("Style", ""),
+          "step5.d.1.ProjectWorkspaceView.xaml: a grid does not use the shared register style, so "
+          "it has no ruled header band and no equal-width columns")
+    check(grid.attrib.get("ColumnHeaderStyle", "") == "",
+          "step5.d.1.ProjectWorkspaceView.xaml: a grid overrides the shared header style, which is "
+          "how the five modules drifted apart in the first place")
 
 # 17 ── The inquiry panel is ABSENT until a project row is clicked ───────
 # Owner, round 41: "why this is not hidden by default, it should open when this
@@ -581,46 +583,36 @@ if toggle is not None:
     check("? null : row" in body,
           "step5.c.1: clicking the open row does not clear the selection, so the panel cannot close")
 
-# 21 ── The register's cells line up with its own headers ───────────────
-# Owner, round 49: "few texts are not center aligned … in list pages". The
-# header said PROJECT in the middle of the column while the value sat against
-# the left edge — and the client, user and inquiry registers are all centred, so
-# this was the one table that read as misaligned.
+# 21 ── The register uses the shared list pattern, not a copy of it ──────
+# Round 49 asked for centring; round 50 asked for one pattern instead of five
+# per-module copies. The styles now live in the theme (ListGrid / ListText and
+# its two variants) and every module names them, so the alignment cannot drift
+# between modules and a new list page gets it for free.
 view_src = read(VIEW)
-for key in ("ProjectPlainCell", "ProjectMonoCell", "ProjectStrongCell"):
-    block = re.search(rf'<Style x:Key="{key}".*?</Style>', view_src, re.S)
-    check(block is not None, f"step5.d.1: the {key} style is gone")
-    if block is not None:
-        body = block.group(0)
-        if 'BasedOn="{StaticResource ProjectPlainCell}"' in body:
-            continue  # inherits the centring from the style it names
-        # The LAST TextAlignment setter is the one that wins, so test that one:
-        # an earlier Center with a later Left is still a left-aligned cell.
-        alignments = re.findall(r'Property="TextAlignment" Value="(\w+)"', body)
-        check(bool(alignments) and alignments[-1] == "Center",
-              f"step5.d.1: {key} resolves to "
-              f"{alignments[-1] if alignments else 'no TextAlignment'}, not Center, so its value sits "
-              "left under a centred header")
-cell = re.search(r'<Style x:Key="ProjectCell".*?</Style>', view_src, re.S)
-check(cell is not None, "step5.d.1: the ProjectCell style is gone")
-if cell is not None:
-    check('Property="HorizontalContentAlignment" Value="Center"' in cell.group(0),
-          "step5.d.1: ProjectCell is left-aligned, so the centred TextBlock is centred inside a "
-          "left-hand box and the column still reads as misaligned")
-
-# 22 ── A column is wide enough to show what it is given ────────────────
-# "yyyy-MM-dd HH:mm" is 16 mono characters (~125px at FontSizeBody 13) plus 16px
-# of cell padding; "INQ-2026-0001" is 13 characters (~101px) plus padding. Each
-# of those columns was narrower than its own content, so every row was clipped
-# to "2026-10-28 09:…" and "INQ-2026-0…" (owner's screenshots, rounds 46 and 49).
-for binding in ("UpdatedText", "InquiryNumber", "ReceivedText"):
-    column = re.search(rf'<DataGridTextColumn Width="(\w+)" Binding="{{Binding {binding}}}"', view_src)
+grid_count = view_src.count('Style="{DynamicResource ListGrid}"')
+check(grid_count == 3,
+      f"step5.d.1: {grid_count} of the module's 3 grids use the shared register style; the rest "
+      "fall back to WPF defaults and lose the header band, the centring and the equal widths")
+for binding, style in (("ProjectNumber", "ListMonoText"), ("ProjectName", "ListStrongText"),
+                       ("ClientText", "ListText"), ("StatusText", "ListText"),
+                       ("UpdatedText", "ListMonoText"), ("InquiryNumber", "ListMonoText"),
+                       ("CustomerName", "ListText"), ("ReceivedText", "ListMonoText")):
+    column = re.search(rf'<DataGridTextColumn[^>]*Binding="{{Binding {binding}}}"[^>]*', view_src)
     check(column is not None, f"step5.d.1: the {binding} column is gone")
     if column is not None:
-        width = column.group(1)
-        check(not width.isdigit() or int(width) >= 145,
-              f"step5.d.1: the {binding} column is a fixed {width}px, narrower than its own text — "
-              "the value is clipped to an ellipsis; use Auto or a width that fits")
+        check(f'ElementStyle="{{DynamicResource {style}}}"' in column.group(0),
+              f"step5.d.1: {binding} does not use {style}, so its cell is not centred, not trimmed "
+              "and shows no tooltip")
+
+# 22 ── No column carries a hand-typed width ────────────────────────────
+# The pattern gives every column an equal share (ColumnWidth="*"), so a value is
+# never clipped by a pixel count that guessed wrong — which is exactly what a
+# 130px timestamp column did (rounds 46 and 49). A width here would override the
+# share and bring the clipping back.
+widths = re.findall(r'<DataGridTextColumn[^>]*\bWidth="([^"]+)"', view_src)
+check(not widths,
+      f"step5.d.1: {sorted(set(widths))} — a column still sets its own width, which overrides the "
+      'shared equal-width rule; drop the attribute and let ListGrid size the column')
 
 if failures:
     print(f"step5.f.1: {len(failures)} failure(s).")

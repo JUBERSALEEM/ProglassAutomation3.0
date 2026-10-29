@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 51: one list pattern for every module, and the five copies deleted
+- **The pattern is now defined once per theme and named by the page.** Six keys — `ListGrid`, `ListColumnHeader`, `ListCell`, `ListText`, `ListMonoText`, `ListStrongText` — replace the five per-module copies of the same grid chrome. A list page writes the style on the grid, `Header="…"` per column and `ElementStyle` per text column: three attributes instead of forty lines.
+- **The heading band is bold, centred and ruled**; **the body has no grid lines, is centred and evenly spaced** — the owner's two rules, in every one of the nine themes rather than in one page.
+- **Every column takes an equal share**: `ColumnWidth="*"`, and every hand-typed width is gone. That is what the three clipped columns needed — a 130px timestamp cell could not hold `yyyy-MM-dd HH:mm`, a 100px cell could not hold `INQ-2026-0001`.
+- **A clipped value now opens a tooltip with the full text.** The new `TruncatedTextToolTip` behaviour measures the text against the width the cell gave it (its own typeface and DPI) and only shows a popup when the value really was cut off — on layout and on hover, cleared on leave.
+- **The gate discovers the pages** instead of listing them: `step1.d.20.ListPatternChecks.py` fails any register that drops the shared style, pins a width, hand-writes a header template, keeps a local cell style or leaves a text column without a pattern style, and it checks all nine packages define the six keys. **Seven mutations tested, seven caught.** An editable entry grid (the BOQ lines) is exempt and forbidden from using the read-only register style.
+- **1,700 lines of duplicated XAML deleted**: Inquiry list 709→504, inbox 356→330, Clients 663→454, Users 890→740 (its size exemption is gone), Projects 694→521.
+- **16/16 checkers PASS.** Eleven guards were re-pointed from the views to the pattern, because their subject moved — including `step1.d.17`'s alignment rule, which now covers every module instead of two.
+- **Not run:** the build, the rendering and the tooltip. No `dotnet`, no Windows here.
+
+---
 ## 2026-10-29 — Round 50: the polish pass, and a binding that had never worked
 - **Report:** [`docs/16.Issue-Report-2026-10-29.md`](docs/16.Issue-Report-2026-10-29.md) — alignment, headings, column widths, the module workflow, and the cross-check. Short, as asked.
 - **Alignment:** the project register centred its headers and left-aligned its cells; the other three registers are centred. Centred at both the cell style and the cell container, and the container matters — a centred label inside a left-hand box still reads left.

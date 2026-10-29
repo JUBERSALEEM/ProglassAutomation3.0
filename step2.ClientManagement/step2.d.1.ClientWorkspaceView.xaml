@@ -25,26 +25,6 @@
          no theme-specific branch and adds nothing to any theme package.
          ───────────────────────────────────────────────────────────────── -->
     <UserControl.Resources>
-        <!-- Register cells are centred to match the centred column headers
-             (owner feedback: left-aligned values under centred headers read as
-             misaligned). Trimming stays so a long company name cannot push a
-             column wider. -->
-        <Style x:Key="ClientNameCell" TargetType="TextBlock">
-            <!-- The register trims a long company name rather than pushing the
-                 other columns off the page; the tooltip keeps the full value one
-                 hover away. -->
-            <Setter Property="ToolTip" Value="{Binding ClientName}" />
-            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="TextAlignment" Value="Center" />
-        </Style>
-        <Style x:Key="ClientMonoCell" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="TextAlignment" Value="Center" />
-        </Style>
         <!-- The row action flips meaning with the client's state, so the mark
              flips with it: cross = deactivate, plus = re-activate. -->
         <Style x:Key="ClientToggleIcon" TargetType="studio:ShellMark">
@@ -54,11 +34,6 @@
                     <Setter Property="Kind" Value="Add" />
                 </DataTrigger>
             </Style.Triggers>
-        </Style>
-        <Style x:Key="ClientPlainCell" TargetType="TextBlock">
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="TextAlignment" Value="Center" />
         </Style>
         <!-- ── Filter chips ────────────────────────────────────────────
              All / Active / Inactive, each carrying its own count. Idle is the
@@ -142,129 +117,6 @@
             </Setter>
         </Style>
 
-        <!-- ── Register alignment and header rules ──────────────────────
-             Owner direction, twice: the rules belong in the header row only, the
-             data rows stay blank, and the header must not look boxed.
-
-             Header: this view draws one hairline at each column boundary and
-             switches the theme's own header frame off. The theme's frame is a
-             package-wide control weight (2px in Neumorphism, 4px in
-             Claymorphism) and at that weight a table header reads as a boxed
-             grid, which is what was rejected. The hairline width is the theme's
-             StrokeWidth and its colour BorderStrong, so the rule still follows
-             the theme; the zeros are structural, not metrics.
-
-             Rows: GridLinesVisibility="None" is explicit. The packages disagree
-             here (Neumorphism draws nothing, Bento draws horizontal rules) and
-             the register is meant to read as plain rows in every theme.
-
-             Cells: a DataGridTextColumn hands its cell a full-width slot, but a
-             template column (Status) hands it a content-sized one, so the
-             badge's own HorizontalAlignment is ignored. Alignment belongs on the
-             cell. Both derived styles keep the theme's cell chrome, header
-             template and resize grippers: no theme gives DataGridCell a
-             Template, and every setter either style owns resolves through
-             DynamicResource, so a live theme switch still repaints them. -->
-        <Style x:Key="ClientHeaderGripper" TargetType="Thumb">
-            <Setter Property="Width" Value="{DynamicResource SpacingMedium}" />
-            <Setter Property="Cursor" Value="SizeWE" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="Grip" Background="{DynamicResource TransparentBrush}" />
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Grip" Property="Background"
-                                        Value="{DynamicResource BorderStrong}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <!-- The cell geometry is owned here, not inherited, and the reason is
-             measured rather than stylistic: with the package's cell style the
-             register painted a 1px rule on all four sides of every cell, so the
-             data rows came out as a boxed grid (owner screenshots) even after
-             GridLinesVisibility was cleared. The template below keeps every
-             colour a TemplateBinding, so the theme still owns background,
-             foreground, selection and the focus ring, and it cannot draw a border
-             the theme has not asked for.
-
-             Alignment is explicit, and it names only properties that exist:
-
-               DataGridCell            is a ContentControl, so it declares
-                                       HorizontalContentAlignment /
-                                       VerticalContentAlignment — that is where
-                                       the value comes from;
-               ContentPresenter        is not a ContentControl and declares
-                                       neither. It carries the alignment the
-                                       framework element way (HorizontalAlignment
-                                       / VerticalAlignment), bound to the cell's
-                                       content alignment with TemplateBinding.
-
-             Writing HorizontalContentAlignment on the presenter is a compile
-             error (MC3072 / XLS0413), which is how this shipped as a broken
-             build once. step1.d.17 now refuses that property on any presenter,
-             and refuses any attribute on these templates that is not in its
-             reviewed set. -->
-        <Style x:Key="ClientCell" TargetType="DataGridCell"
-               BasedOn="{StaticResource {x:Type DataGridCell}}">
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="DataGridCell">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter
-                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                SnapsToDevicePixels="True" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="ClientColumnHeader" TargetType="DataGridColumnHeader"
-               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="DataGridColumnHeader">
-                        <Grid Background="{TemplateBinding Background}">
-                            <ContentPresenter
-                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                SnapsToDevicePixels="True" />
-                            <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left"
-                                   Style="{StaticResource ClientHeaderGripper}" />
-                            <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right"
-                                   Style="{StaticResource ClientHeaderGripper}" />
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="ClientHeaderLabel" TargetType="TextBlock">
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="TextAlignment" Value="Center" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
-        </Style>
-        <Style x:Key="ClientHeaderRule" TargetType="Border">
-            <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="Width" Value="{DynamicResource StrokeWidth}" />
-            <Setter Property="Background" Value="{DynamicResource BorderStrong}" />
-        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -499,83 +351,30 @@
                     </Style>
                 </Grid.Style>
                 <ContentControl Style="{DynamicResource Card}">
-                    <DataGrid Style="{DynamicResource {x:Type DataGrid}}"
+                    <DataGrid Style="{DynamicResource ListGrid}"
                               ItemsSource="{Binding Rows}"
                               SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              SelectionMode="Single"
-                              SelectionUnit="FullRow"
-                              CanUserAddRows="False"
-                              CanUserDeleteRows="False"
                               CanUserReorderColumns="False"
                               CanUserSortColumns="False"
-                              HeadersVisibility="Column"
-                              CellStyle="{StaticResource ClientCell}"
-                              GridLinesVisibility="None"
-                              ColumnHeaderStyle="{StaticResource ClientColumnHeader}"
-                              CanUserResizeColumns="True"
-                              CanUserResizeRows="False"
-                              MinColumnWidth="{DynamicResource ControlMinWidth}"
-                              Margin="{DynamicResource MarginItem}"
                               AutomationProperties.Name="Client directory"
                               MouseDoubleClick="OnRowDoubleClick"
                               KeyDown="OnGridKeyDown">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Width="2.6*" Binding="{Binding ClientName}" ElementStyle="{StaticResource ClientNameCell}">
-                                <DataGridTextColumn.Header>
-            <Grid>
-                <TextBlock Text="Client" Style="{StaticResource ClientHeaderLabel}" />
-                <Border Style="{StaticResource ClientHeaderRule}" />
-            </Grid>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Width="1.1*" Binding="{Binding AttentionName}" ElementStyle="{StaticResource ClientPlainCell}">
-                                <DataGridTextColumn.Header>
-            <Grid>
-                <TextBlock Text="Attention" Style="{StaticResource ClientHeaderLabel}" />
-                <Border Style="{StaticResource ClientHeaderRule}" />
-            </Grid>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Width="1.2*" Binding="{Binding RepresentativeText}" ElementStyle="{StaticResource ClientPlainCell}">
-                                <DataGridTextColumn.Header>
-            <Grid>
-                <TextBlock Text="Representative" Style="{StaticResource ClientHeaderLabel}" />
-                <Border Style="{StaticResource ClientHeaderRule}" />
-            </Grid>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Width="1.1*" Binding="{Binding Phone}" ElementStyle="{StaticResource ClientMonoCell}">
-                                <DataGridTextColumn.Header>
-            <Grid>
-                <TextBlock Text="Phone" Style="{StaticResource ClientHeaderLabel}" />
-                <Border Style="{StaticResource ClientHeaderRule}" />
-            </Grid>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Width="1.3*" Binding="{Binding Email}" ElementStyle="{StaticResource ClientPlainCell}">
-                                <DataGridTextColumn.Header>
-            <Grid>
-                <TextBlock Text="E-mail" Style="{StaticResource ClientHeaderLabel}" />
-                <Border Style="{StaticResource ClientHeaderRule}" />
-            </Grid>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Width="1*" Binding="{Binding Trn}" ElementStyle="{StaticResource ClientMonoCell}">
-                                <DataGridTextColumn.Header>
-            <Grid>
-                <TextBlock Text="TRN" Style="{StaticResource ClientHeaderLabel}" />
-                <Border Style="{StaticResource ClientHeaderRule}" />
-            </Grid>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTemplateColumn Width="0.8*" CanUserSort="False">
+                            <DataGridTextColumn Header="Client" Binding="{Binding ClientName}"
+                                                ElementStyle="{DynamicResource ListStrongText}" />
+                            <DataGridTextColumn Header="Attention" Binding="{Binding AttentionName}"
+                                                ElementStyle="{DynamicResource ListText}" />
+                            <DataGridTextColumn Header="Representative" Binding="{Binding RepresentativeText}"
+                                                ElementStyle="{DynamicResource ListText}" />
+                            <DataGridTextColumn Header="Phone" Binding="{Binding Phone}"
+                                                ElementStyle="{DynamicResource ListMonoText}" />
+                            <DataGridTextColumn Header="E-mail" Binding="{Binding Email}"
+                                                ElementStyle="{DynamicResource ListText}" />
+                            <DataGridTextColumn Header="TRN" Binding="{Binding Trn}"
+                                                ElementStyle="{DynamicResource ListMonoText}" />
+                            <DataGridTemplateColumn CanUserSort="False">
                                 <DataGridTemplateColumn.Header>
-            <Grid>
-                <TextBlock Text="Status" Style="{StaticResource ClientHeaderLabel}" />
-                <Border Style="{StaticResource ClientHeaderRule}" />
-            </Grid>
+                                    <TextBlock Text="Status" />
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -589,24 +388,16 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Width="1*" Binding="{Binding UpdatedText}" ElementStyle="{StaticResource ClientMonoCell}">
-                                <DataGridTextColumn.Header>
-            <Grid>
-                <TextBlock Text="Updated" Style="{StaticResource ClientHeaderLabel}" />
-                <Border Style="{StaticResource ClientHeaderRule}" />
-            </Grid>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}"
+                                                ElementStyle="{DynamicResource ListMonoText}" />
                             <!-- Row menu. One trigger per row instead of three
                                  icons: fifteen rows of pencil/cross/dots read as
                                  noise. The menu is a themed ContextMenu, and the
                                  footer keeps working for whatever row is selected,
                                  so a row can be acted on either way. -->
-                            <DataGridTemplateColumn Width="Auto" CanUserSort="False">
+                            <DataGridTemplateColumn CanUserSort="False">
                                 <DataGridTemplateColumn.Header>
-            <Grid>
-                <TextBlock Text="Actions" Style="{StaticResource ClientHeaderLabel}" />
-            </Grid>
+                                    <TextBlock Text="Actions" />
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

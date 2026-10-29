@@ -68,30 +68,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Cells and headers keep the theme's own chrome and add none of their
-             own: every setter resolves through DynamicResource, and the templates
-             name only properties those types actually declare. -->
-        <Style x:Key="ProjectCell" TargetType="DataGridCell"
-               BasedOn="{StaticResource {x:Type DataGridCell}}">
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="DataGridCell">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter
-                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                SnapsToDevicePixels="True" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+
         <!-- The editor's field idiom, the same one the client, user and company
              editors use: a caption-weight label above its field, and a muted hint
              under it. FontWeightHeading + FontSizeCaption come from the contract,
@@ -108,75 +85,7 @@
             <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
-        <!-- A header rule between the columns (owner, round 40: "why are there no
-             grid lines in the top columns?"). The width is the theme's own
-             StrokeWidth and the colour its BorderStrong, so every package draws
-             this line at the weight it draws its other rules — nothing is
-             hand-typed. The last column uses the same style with the rule
-             dropped, so the table does not end on a floating line. Data rows keep
-             no rules at all: the register reads as plain rows in every theme,
-             which is what step2 and step3 settled on. -->
-        <ControlTemplate x:Key="ProjectHeaderTemplate" TargetType="DataGridColumnHeader">
-            <Grid Background="{TemplateBinding Background}">
-                <ContentPresenter
-                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                    SnapsToDevicePixels="True" />
-                <Border Width="{DynamicResource StrokeWidth}" HorizontalAlignment="Right"
-                        Background="{DynamicResource BorderStrong}" />
-            </Grid>
-        </ControlTemplate>
-        <ControlTemplate x:Key="ProjectHeaderTemplateLast" TargetType="DataGridColumnHeader">
-            <Grid Background="{TemplateBinding Background}">
-                <ContentPresenter
-                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                    SnapsToDevicePixels="True" />
-            </Grid>
-        </ControlTemplate>
-        <Style x:Key="ProjectColumnHeader" TargetType="DataGridColumnHeader"
-               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="Template" Value="{StaticResource ProjectHeaderTemplate}" />
-        </Style>
-        <Style x:Key="ProjectColumnHeaderLast" TargetType="DataGridColumnHeader"
-               BasedOn="{StaticResource ProjectColumnHeader}">
-            <Setter Property="Template" Value="{StaticResource ProjectHeaderTemplateLast}" />
-        </Style>
-        <!-- Column headers are centred in their column, the same as the client
-             and user registers: a left-hugging label over a centred divider reads
-             as a stray word rather than a column heading (owner, round 41). -->
-        <Style x:Key="ProjectHeaderLabel" TargetType="TextBlock">
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="TextAlignment" Value="Center" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
-            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-        </Style>
-        <!-- A trimmed cell keeps its full value in a tooltip: identity belongs in
-             the tooltip and the accessible name, never in a side caption. -->
-        <!-- Centred, like its own header and like the client, user and inquiry
-             registers. The header said "PROJECT" in the middle of the column and
-             the value sat against the left edge, which reads as a misaligned
-             table rather than a deliberate one (owner, round 49). -->
-        <Style x:Key="ProjectPlainCell" TargetType="TextBlock">
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="TextAlignment" Value="Center" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="{DynamicResource PaddingCompact}" />
-        </Style>
-        <Style x:Key="ProjectMonoCell" TargetType="TextBlock" BasedOn="{StaticResource ProjectPlainCell}">
-            <Setter Property="FontFamily" Value="{DynamicResource FontFamilyMono}" />
-        </Style>
-        <Style x:Key="ProjectStrongCell" TargetType="TextBlock" BasedOn="{StaticResource ProjectPlainCell}">
-            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
-        </Style>
+
     </UserControl.Resources>
 
     <Grid Margin="{DynamicResource PaddingPage}">
@@ -338,73 +247,31 @@
                      ADV does this on the row itself (SheetStoreView.xaml:439) with
                      ClickToCommandBehavior → SelectSheetCommand, so the row style
                      carries the handler here rather than the grid. -->
-                <DataGrid ItemsSource="{Binding Rows}"
+                <DataGrid Style="{DynamicResource ListGrid}"
+                          ItemsSource="{Binding Rows}"
                           SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
-                          AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
-                          SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
                           CanUserReorderColumns="False" CanUserSortColumns="False"
-                          HeadersVisibility="Column" GridLinesVisibility="None"
-                          CellStyle="{StaticResource ProjectCell}"
-                          ColumnHeaderStyle="{StaticResource ProjectColumnHeader}"
-                          CanUserResizeColumns="True" CanUserResizeRows="False"
-                          MinColumnWidth="{DynamicResource ControlMinWidth}"
-                          Margin="{DynamicResource MarginItem}"
                           AutomationProperties.Name="Project register">
-                    <DataGrid.Style>
-                        <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}" />
-                    </DataGrid.Style>
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                             <EventSetter Event="PreviewMouseLeftButtonDown" Handler="OnRegisterRowClick" />
                         </Style>
                     </DataGrid.RowStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Width="110" Binding="{Binding ProjectNumber}"
-                                            ElementStyle="{StaticResource ProjectMonoCell}">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="NUMBER" Style="{StaticResource ProjectHeaderLabel}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Width="2.2*" Binding="{Binding ProjectName}"
-                                            ElementStyle="{StaticResource ProjectStrongCell}">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="PROJECT" Style="{StaticResource ProjectHeaderLabel}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Width="1.8*" Binding="{Binding ClientText}"
-                                            ElementStyle="{StaticResource ProjectPlainCell}">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="CLIENT" Style="{StaticResource ProjectHeaderLabel}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Width="1.2*" Binding="{Binding LocationText}"
-                                            ElementStyle="{StaticResource ProjectPlainCell}">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="SITE" Style="{StaticResource ProjectHeaderLabel}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Width="100" Binding="{Binding StatusText}" IsReadOnly="True"
-                                            ElementStyle="{StaticResource ProjectPlainCell}">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="STATUS" Style="{StaticResource ProjectHeaderLabel}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Width="110" Binding="{Binding LinkedInquiriesText}"
-                                            ElementStyle="{StaticResource ProjectPlainCell}">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="INQUIRIES" Style="{StaticResource ProjectHeaderLabel}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <!-- Auto, not 130: "yyyy-MM-dd HH:mm" is 16 mono characters
-                             (~125px) plus 16px of padding, so a fixed 130px column
-                             truncated every timestamp to "2026-10-28 09:…". -->
-                        <DataGridTextColumn Width="Auto" Binding="{Binding UpdatedText}"
-                                            HeaderStyle="{StaticResource ProjectColumnHeaderLast}"
-                                            ElementStyle="{StaticResource ProjectMonoCell}">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="UPDATED" Style="{StaticResource ProjectHeaderLabel}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="NUMBER" Binding="{Binding ProjectNumber}"
+                                            ElementStyle="{DynamicResource ListMonoText}" />
+                        <DataGridTextColumn Header="PROJECT" Binding="{Binding ProjectName}"
+                                            ElementStyle="{DynamicResource ListStrongText}" />
+                        <DataGridTextColumn Header="CLIENT" Binding="{Binding ClientText}"
+                                            ElementStyle="{DynamicResource ListText}" />
+                        <DataGridTextColumn Header="SITE" Binding="{Binding LocationText}"
+                                            ElementStyle="{DynamicResource ListText}" />
+                        <DataGridTextColumn Header="STATUS" Binding="{Binding StatusText}"
+                                            ElementStyle="{DynamicResource ListText}" />
+                        <DataGridTextColumn Header="INQUIRIES" Binding="{Binding LinkedInquiriesText}"
+                                            ElementStyle="{DynamicResource ListText}" />
+                        <DataGridTextColumn Header="UPDATED" Binding="{Binding UpdatedText}"
+                                            ElementStyle="{DynamicResource ListMonoText}" />
                     </DataGrid.Columns>
                 </DataGrid>
             </ContentControl>
@@ -456,40 +323,18 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <DataGrid Grid.Row="0" ItemsSource="{Binding LinkedInquiries}"
+                        <DataGrid Grid.Row="0" Style="{DynamicResource ListGrid}"
+                                  ItemsSource="{Binding LinkedInquiries}"
                                   SelectedItem="{Binding SelectedLinked, Mode=TwoWay}"
-                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
-                                  SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
                                   CanUserReorderColumns="False" CanUserSortColumns="False"
-                                  HeadersVisibility="Column" GridLinesVisibility="None"
-                                  CellStyle="{StaticResource ProjectCell}"
-                                  ColumnHeaderStyle="{StaticResource ProjectColumnHeader}"
-                                  MinColumnWidth="{DynamicResource ControlMinWidth}"
-                                  Margin="{DynamicResource MarginItem}"
                                   AutomationProperties.Name="Inquiries linked to this project">
-                            <DataGrid.Style>
-                                <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}" />
-                            </DataGrid.Style>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Width="Auto" Binding="{Binding InquiryNumber}"
-                                                    ElementStyle="{StaticResource ProjectMonoCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="NUMBER" Style="{StaticResource ProjectHeaderLabel}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Width="*" Binding="{Binding CustomerName}"
-                                                    ElementStyle="{StaticResource ProjectPlainCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="CUSTOMER" Style="{StaticResource ProjectHeaderLabel}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Width="Auto" Binding="{Binding ReceivedText}"
-                                                    HeaderStyle="{StaticResource ProjectColumnHeaderLast}"
-                                                    ElementStyle="{StaticResource ProjectMonoCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="RECEIVED" Style="{StaticResource ProjectHeaderLabel}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="NUMBER" Binding="{Binding InquiryNumber}"
+                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                <DataGridTextColumn Header="CUSTOMER" Binding="{Binding CustomerName}"
+                                                ElementStyle="{DynamicResource ListText}" />
+                                <DataGridTextColumn Header="RECEIVED" Binding="{Binding ReceivedText}"
+                                                ElementStyle="{DynamicResource ListMonoText}" />
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -506,34 +351,16 @@
                                    Style="{DynamicResource Caption}" TextWrapping="Wrap"
                                    Margin="{DynamicResource UiGapGroup}" />
 
-                        <DataGrid Grid.Row="3" ItemsSource="{Binding CandidateInquiries}"
+                        <DataGrid Grid.Row="3" Style="{DynamicResource ListGrid}"
+                                  ItemsSource="{Binding CandidateInquiries}"
                                   SelectedItem="{Binding SelectedCandidate, Mode=TwoWay}"
-                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
-                                  SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
                                   CanUserReorderColumns="False" CanUserSortColumns="False"
-                                  HeadersVisibility="Column" GridLinesVisibility="None"
-                                  CellStyle="{StaticResource ProjectCell}"
-                                  ColumnHeaderStyle="{StaticResource ProjectColumnHeader}"
-                                  MinColumnWidth="{DynamicResource ControlMinWidth}"
-                                  Margin="{DynamicResource MarginItem}"
                                   AutomationProperties.Name="Inquiries not linked to a project">
-                            <DataGrid.Style>
-                                <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}" />
-                            </DataGrid.Style>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Width="Auto" Binding="{Binding InquiryNumber}"
-                                                    ElementStyle="{StaticResource ProjectMonoCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="NUMBER" Style="{StaticResource ProjectHeaderLabel}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Width="*" Binding="{Binding CustomerName}"
-                                                    HeaderStyle="{StaticResource ProjectColumnHeaderLast}"
-                                                    ElementStyle="{StaticResource ProjectPlainCell}">
-                                    <DataGridTextColumn.Header>
-                                        <TextBlock Text="CUSTOMER" Style="{StaticResource ProjectHeaderLabel}" />
-                                    </DataGridTextColumn.Header>
-                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="NUMBER" Binding="{Binding InquiryNumber}"
+                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                <DataGridTextColumn Header="CUSTOMER" Binding="{Binding CustomerName}"
+                                                ElementStyle="{DynamicResource ListText}" />
                             </DataGrid.Columns>
                         </DataGrid>
 
