@@ -95,10 +95,27 @@ if ($usingProduction) {
     if ($running) {
         Fail "the application is running (PID $($running.Id -join ', ')). Close it and run this again — a copy taken mid-write could be inconsistent."
     }
-    Write-Ok 'the application is not running'
+    Write-Ok "no process named $ApplicationProcess is running"
 } else {
     Write-Ok 'the source is a file supplied with -SourceFile, so a running application cannot be writing to it'
 }
+# The process-name check above cannot be trusted: the executable may not be called
+# exactly $ApplicationProcess. So ask the file itself. A database nobody has open
+# can be opened exclusively; if that fails, something is holding it and a copy made
+# now could be inconsistent - or fail outright, which is what produced the empty
+# folders on 29-Oct.
+try {
+    $probe = [System.IO.File]::Open($source.FullName, [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+    $probe.Close()
+    $probe.Dispose()
+    Write-Ok 'the database is not held open by any program'
+} catch {
+    Fail ("the database is in use: $($_.Exception.Message)`n" +
+          "         Close the application (and anything else that may have it open) and run this again.`n" +
+          "         Nothing was copied and nothing was changed.")
+}
+
 foreach ($sidecar in @("$($source.FullName)-wal", "$($source.FullName)-shm")) {
     if (Test-Path -LiteralPath $sidecar) {
         Write-Warn "found $sidecar. A -wal file means the database was open recently; committed data may still be in it. If the integrity result is not clean, close the application cleanly, wait ten seconds and run again."
@@ -117,9 +134,27 @@ foreach ($folder in @($frozenFolder, $workingFolder, $logFolder)) {
 
 $frozenFile = Join-Path $frozenFolder 'inquiries.db'
 $workingFile = Join-Path $workingFolder 'inquiries.db'
-Copy-Item -LiteralPath $source.FullName -Destination $frozenFile
-Copy-Item -LiteralPath $source.FullName -Destination $workingFile
+
+# Start logging BEFORE the copy. An empty folder with no log tells an operator
+# nothing; the log now exists from the first write onward.
 try { Start-Transcript -Path (Join-Path $logFolder 'verify.log') | Out-Null } catch { Write-Warn 'could not start the transcript; the console output below is still the evidence' }
+
+# A failed copy used to end the script with an unhandled error and three empty
+# folders. Every failure below produces a message and a log instead.
+foreach ($pair in @(@($frozenFile, 'archive'), @($workingFile, 'working'))) {
+    try {
+        Copy-Item -LiteralPath $source.FullName -Destination $pair[0] -ErrorAction Stop
+    } catch {
+        try { Stop-Transcript | Out-Null } catch { }
+        Fail ("could not copy $($source.FullName) to the $($pair[1]) copy: $($_.Exception.Message)`n" +
+              "         Nothing was migrated. Is the file open in another program?`n" +
+              "         The partial folder is $runFolder and can be deleted.")
+    }
+    if (-not (Test-Path -LiteralPath $pair[0])) {
+        try { Stop-Transcript | Out-Null } catch { }
+        Fail "the $($pair[1]) copy was not created: $($pair[0])"
+    }
+}
 
 Write-Step '4. Prove the copies exist before anything touches them'
 $sourceHash = (Get-FileHash -LiteralPath $source.FullName -Algorithm SHA256).Hash

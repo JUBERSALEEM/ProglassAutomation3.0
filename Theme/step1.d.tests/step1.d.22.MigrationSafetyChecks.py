@@ -221,11 +221,23 @@ script = read(SCRIPT)
 check("[string] $SourceFile" in script,
       "the script can no longer take an existing file as its source, so a frozen copy cannot "
       "be re-used without copying the production database again")
-check("Copy-Item -LiteralPath $source.FullName -Destination $frozenFile" in script,
+check("Copy-Item -LiteralPath $source.FullName -Destination $pair[0]" in script,
       "the script copies something other than the resolved source into the archive folder")
 check("Copy-Item -LiteralPath $productionFile" not in script,
       "the script still copies the production path directly, ignoring -SourceFile")
 check("if ($hash -ne $sourceHash)" in script,
+      "the script no longer proves the copies match the source by SHA-256")
+
+# The copy step must not be able to die silently: it is the step that produced
+# empty run folders with no log on 29-Oct.
+check(script.index("Start-Transcript") < script.index("Copy-Item -LiteralPath"),
+      "the script starts its transcript AFTER the copy, so a failed copy leaves an empty "
+      "folder with no log to explain it")
+check("could not copy" in script,
+      "a failed copy is no longer reported, so it can end the script with an unhandled error")
+check("[System.IO.FileShare]::None" in script,
+      "the script no longer probes whether the database is held open; a process-name check "
+      "cannot see an executable with a different name"
       "the script no longer proves the copies match the source by SHA-256")
 
 if PROBLEMS:
