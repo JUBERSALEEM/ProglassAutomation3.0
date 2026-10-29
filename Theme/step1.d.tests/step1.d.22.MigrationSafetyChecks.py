@@ -221,12 +221,29 @@ script = read(SCRIPT)
 check("[string] $SourceFile" in script,
       "the script can no longer take an existing file as its source, so a frozen copy cannot "
       "be re-used without copying the production database again")
-check("Copy-Item -LiteralPath $source.FullName -Destination $pair[0]" in script,
+check("Copy-Item -LiteralPath $sourcePath -Destination $pair[0]" in script,
       "the script copies something other than the resolved source into the archive folder")
 check("Copy-Item -LiteralPath $productionFile" not in script,
       "the script still copies the production path directly, ignoring -SourceFile")
 check("if ($hash -ne $sourceHash)" in script,
       "the script no longer proves the copies match the source by SHA-256")
+
+# The path must be carried as a plain string. Resolving it through a FileInfo
+# object produced an empty path at run time, which the lock probe then reported
+# as "the database is in use" - a false stop with a wrong diagnosis.
+check("$source.FullName" not in script,
+      "the script resolves the source path through a FileInfo object again; that produced an "
+      "empty path once already and was reported as 'the database is in use'")
+check('Write-Ok "path         : $sourcePath"' in script,
+      "the script no longer prints the exact path string it will copy; without it a path "
+      "problem cannot be told from a database problem")
+
+# A courtesy probe must never be able to stop a run: the copy is the real test.
+probe_catch = script[script.index("could not take an exclusive lock"):
+                     script.index("foreach ($sidecar")]
+check("Write-Warn" in probe_catch and "Fail " not in probe_catch,
+      "the lock probe can stop the run again; it cannot distinguish 'in use' from its own "
+      "failure, so it must warn and let the copy decide")
 
 # The copy step must not be able to die silently: it is the step that produced
 # empty run folders with no log on 29-Oct.

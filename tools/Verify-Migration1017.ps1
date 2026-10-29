@@ -80,13 +80,15 @@ if ($usingProduction) {
     $sourcePath = [System.IO.Path]::GetFullPath($SourceFile)
     if (-not (Test-Path -LiteralPath $sourcePath)) { Fail "no database at $sourcePath" }
 }
-$source = Get-Item -LiteralPath $sourcePath
+$sourcePath = [System.IO.Path]::GetFullPath($sourcePath)
+$sourceItem = Get-Item -LiteralPath $sourcePath
 if ($usingProduction) {
-    Write-Ok "source: the production file $($source.FullName)"
+    Write-Ok "source: the production file"
 } else {
-    Write-Ok "source: $($source.FullName)  (supplied with -SourceFile)"
+    Write-Ok "source: supplied with -SourceFile"
 }
-Write-Ok  "size $($source.Length) bytes, last written $($source.LastWriteTime)"
+Write-Ok "path         : $sourcePath"
+Write-Ok "size         : $($sourceItem.Length) bytes, last written $($sourceItem.LastWriteTime)"
 Write-Host '   (this file will only be read; the migration never sees this path)'
 
 Write-Step '2. Make sure nothing is writing to it'
@@ -105,18 +107,19 @@ if ($usingProduction) {
 # now could be inconsistent - or fail outright, which is what produced the empty
 # folders on 29-Oct.
 try {
-    $probe = [System.IO.File]::Open($source.FullName, [System.IO.FileMode]::Open,
-        [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+    $probe = [System.IO.File]::Open($sourcePath, [System.IO.FileMode]::Open,
+        [System.IO.FileAccess]::Read, [System.IO.FileShare]::None)
     $probe.Close()
     $probe.Dispose()
     Write-Ok 'the database is not held open by any program'
 } catch {
-    Fail ("the database is in use: $($_.Exception.Message)`n" +
-          "         Close the application (and anything else that may have it open) and run this again.`n" +
-          "         Nothing was copied and nothing was changed.")
+    # A warning, never a stop: this probe is a courtesy. The copy below is the
+    # real test, and it reports the operating system's own reason if it fails.
+    Write-Warn ("could not take an exclusive lock on $sourcePath - $($_.Exception.Message)")
+    Write-Warn 'continuing: if something really is holding the file, the copy below will fail and say why'
 }
 
-foreach ($sidecar in @("$($source.FullName)-wal", "$($source.FullName)-shm")) {
+foreach ($sidecar in @("$($sourcePath)-wal", "$($sourcePath)-shm")) {
     if (Test-Path -LiteralPath $sidecar) {
         Write-Warn "found $sidecar. A -wal file means the database was open recently; committed data may still be in it. If the integrity result is not clean, close the application cleanly, wait ten seconds and run again."
     }
@@ -143,10 +146,10 @@ try { Start-Transcript -Path (Join-Path $logFolder 'verify.log') | Out-Null } ca
 # folders. Every failure below produces a message and a log instead.
 foreach ($pair in @(@($frozenFile, 'archive'), @($workingFile, 'working'))) {
     try {
-        Copy-Item -LiteralPath $source.FullName -Destination $pair[0] -ErrorAction Stop
+        Copy-Item -LiteralPath $sourcePath -Destination $pair[0] -ErrorAction Stop
     } catch {
         try { Stop-Transcript | Out-Null } catch { }
-        Fail ("could not copy $($source.FullName) to the $($pair[1]) copy: $($_.Exception.Message)`n" +
+        Fail ("could not copy $($sourcePath) to the $($pair[1]) copy: $($_.Exception.Message)`n" +
               "         Nothing was migrated. Is the file open in another program?`n" +
               "         The partial folder is $runFolder and can be deleted.")
     }
@@ -157,7 +160,7 @@ foreach ($pair in @(@($frozenFile, 'archive'), @($workingFile, 'working'))) {
 }
 
 Write-Step '4. Prove the copies exist before anything touches them'
-$sourceHash = (Get-FileHash -LiteralPath $source.FullName -Algorithm SHA256).Hash
+$sourceHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
 foreach ($copy in @($frozenFile, $workingFile)) {
     if (-not (Test-Path -LiteralPath $copy)) { Fail "copy missing: $copy" }
     $hash = (Get-FileHash -LiteralPath $copy -Algorithm SHA256).Hash
@@ -195,7 +198,7 @@ switch ($code) {
 }
 
 Write-Host "`nArtifacts kept for evidence:"
-Write-Host "   original (untouched) : $($source.FullName)"
+Write-Host "   original (untouched) : $($sourcePath)"
 Write-Host "   original SHA256      : $sourceHash"
 Write-Host "   archive copy         : $frozenFile"
 Write-Host "   migrated copy        : $workingFile"
