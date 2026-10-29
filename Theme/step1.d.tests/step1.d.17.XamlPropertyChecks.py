@@ -403,9 +403,11 @@ for dictionary in sorted(ROOT.glob('Theme/Theme*/step1.e.Components/step1.e.10.A
     problems += [] if 'Property="HorizontalContentAlignment" Value="Center"' in text else [
         f'{dictionary.relative_to(ROOT)}: content alignment must live on the cell/header '
         'style, which is a ContentControl']
-    problems += [] if 'HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in text else [
-        f'{dictionary.relative_to(ROOT)}: the presenter must take its alignment from the '
-        'cell style through a TemplateBinding']
+    problems += [] if '<ContentPresenter HorizontalAlignment="Stretch"' in text else [
+        f'{dictionary.relative_to(ROOT)}: the cell presenter must take the whole column. A '
+        'presenter bound to HorizontalContentAlignment shrinks to the text, so the stretched '
+        'TextBlock inside it can never be wider than its glyphs and a centred value renders at '
+        'the left edge']
 
 # 2b ── Every DynamicResource key must exist in the theme dictionaries ──────
 # A missing key is not a compile error and not a load error: WPF silently leaves

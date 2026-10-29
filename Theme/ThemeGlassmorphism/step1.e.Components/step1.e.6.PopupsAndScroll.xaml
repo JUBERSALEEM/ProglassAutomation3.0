@@ -3,12 +3,24 @@
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
   <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+  <Setter Property="MaxWidth" Value="{DynamicResource PopupMaxWidth}" />
+  <Setter Property="HasDropShadow" Value="True" />
+  <Setter Property="Placement" Value="Bottom" />
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip">
    <Border>
     <Border.Effect>
      <DropShadowEffect Color="{DynamicResource GlassShadowColor}" BlurRadius="24" ShadowDepth="8" Direction="270" Opacity="0.22" RenderingBias="Quality" />
     </Border.Effect>
-    <glass:GlassSurface Lifted="True" Background="{TemplateBinding Background}" Padding="{DynamicResource PaddingPlate}" CornerRadius="{DynamicResource ControlCornerRadius}"><ContentPresenter /></glass:GlassSurface>
+    <glass:GlassSurface Lifted="True" Background="{TemplateBinding Background}" Padding="{DynamicResource PaddingPlate}"
+                    MaxWidth="{TemplateBinding MaxWidth}" CornerRadius="{DynamicResource ControlCornerRadius}"><ContentPresenter>
+     <ContentPresenter.Resources>
+      <Style TargetType="TextBlock">
+       <Setter Property="TextWrapping" Value="Wrap" />
+       <Setter Property="TextTrimming" Value="None" />
+       <Setter Property="TextAlignment" Value="Left" />
+      </Style>
+     </ContentPresenter.Resources>
+    </ContentPresenter></glass:GlassSurface>
    </Border>
   </ControlTemplate></Setter.Value></Setter>
  </Style>

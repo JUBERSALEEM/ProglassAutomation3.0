@@ -558,7 +558,8 @@
                                                 Tag="{Binding DataContext,
                                                       RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 ToolTip="Row actions"
-                                                AutomationProperties.Name="User row actions">
+                                                AutomationProperties.Name="User row actions"
+                                                HorizontalAlignment="Center">
                                             <Button.ContextMenu>
                                                 <ContextMenu Style="{DynamicResource {x:Type ContextMenu}}"
                                                              DataContext="{Binding PlacementTarget.DataContext,

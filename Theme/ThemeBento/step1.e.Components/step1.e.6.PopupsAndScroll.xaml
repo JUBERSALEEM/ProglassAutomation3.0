@@ -1,10 +1,28 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <!-- The product's one tooltip, implicit. The register's full-value bubble is
+      this style — it needs no key and no behaviour, because the value style binds
+      its own text to ToolTip. Wrapped and width-bounded as the master app's
+      AppToolTipStyle is: a tooltip that runs off the screen edge is not a
+      tooltip. Never trimmed, or the full value would be cut a second time. -->
  <Style TargetType="ToolTip">
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   <Setter Property="Background" Value="{DynamicResource SurfaceElevated}" />
   <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+  <Setter Property="MaxWidth" Value="{DynamicResource PopupMaxWidth}" />
+  <Setter Property="HasDropShadow" Value="True" />
+  <Setter Property="Placement" Value="Bottom" />
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip">
-   <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderStrong}" BorderThickness="{DynamicResource BorderThicknessControl}" CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{DynamicResource PaddingPlate}"><ContentPresenter /></Border>
+   <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderStrong}" BorderThickness="{DynamicResource BorderThicknessControl}" CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{DynamicResource PaddingPlate}" MaxWidth="{TemplateBinding MaxWidth}">
+    <ContentPresenter>
+     <ContentPresenter.Resources>
+      <Style TargetType="TextBlock">
+       <Setter Property="TextWrapping" Value="Wrap" />
+       <Setter Property="TextTrimming" Value="None" />
+       <Setter Property="TextAlignment" Value="Left" />
+      </Style>
+     </ContentPresenter.Resources>
+    </ContentPresenter>
+   </Border>
   </ControlTemplate></Setter.Value></Setter>
  </Style>
  <Style TargetType="ContextMenu">

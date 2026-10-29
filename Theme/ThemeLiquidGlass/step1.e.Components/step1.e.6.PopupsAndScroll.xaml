@@ -3,8 +3,20 @@
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   <Setter Property="Background" Value="{DynamicResource SurfaceElevated}" />
   <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+  <Setter Property="MaxWidth" Value="{DynamicResource PopupMaxWidth}" />
+  <Setter Property="HasDropShadow" Value="True" />
+  <Setter Property="Placement" Value="Bottom" />
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip">
-   <liquid:LiquidGlassSurface Rank="Card" Lifted="True" Background="{DynamicResource TransparentBrush}" Padding="{DynamicResource PaddingPlate}" CornerRadius="{DynamicResource ControlCornerRadius}"><ContentPresenter /></liquid:LiquidGlassSurface>
+   <liquid:LiquidGlassSurface Rank="Card" Lifted="True" Background="{DynamicResource TransparentBrush}" Padding="{DynamicResource PaddingPlate}"
+                    MaxWidth="{TemplateBinding MaxWidth}" CornerRadius="{DynamicResource ControlCornerRadius}"><ContentPresenter>
+     <ContentPresenter.Resources>
+      <Style TargetType="TextBlock">
+       <Setter Property="TextWrapping" Value="Wrap" />
+       <Setter Property="TextTrimming" Value="None" />
+       <Setter Property="TextAlignment" Value="Left" />
+      </Style>
+     </ContentPresenter.Resources>
+    </ContentPresenter></liquid:LiquidGlassSurface>
   </ControlTemplate></Setter.Value></Setter>
  </Style>
  <Style TargetType="ContextMenu">

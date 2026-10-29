@@ -476,9 +476,10 @@ def require_register_alignment():
             check('Property="HorizontalContentAlignment" Value="Center"' in cell,
                   f"{name}: the cell must centre its content, for the columns whose value is a "
                   "template rather than a text block")
-            check('HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in cell,
-                  f"{name}: the presenter must take its alignment from the cell through a "
-                  "TemplateBinding; a hard-coded value ignores the cell style")
+            check('<ContentPresenter HorizontalAlignment="Stretch"' in cell,
+                  f"{name}: the cell's presenter must take the whole column. Bound to "
+                  "HorizontalContentAlignment it shrinks to the text, so the stretched TextBlock "
+                  "inside it cannot be wider than its glyphs and a centred value renders left")
             check('Property="VerticalContentAlignment" Value="Center"' in cell,
                   f"{name}: a cell's VerticalContentAlignment defaults to Top, so every value "
                   "would sit at the top of its row")
@@ -493,23 +494,21 @@ def require_register_alignment():
         if header:
             check('BasedOn="{StaticResource {x:Type DataGridColumnHeader}}"' in header,
                   f"{name}: the header must derive from the theme's header style")
-            # The label is drawn by the template, so a setter is not proof: the
-            # TextBlock that renders the heading is the proof.
-            check('Text="{TemplateBinding Content}"' in header,
-                  f"{name}: the header band leaves its label to the generated TextBlock, so the "
-                  "heading weight and the centring depend on what the header inherits")
-            check('TextAlignment="Center"' in header
-                  and 'HorizontalAlignment="Stretch"' in header,
-                  f"{name}: the header label must be centred across the whole column, or the "
-                  "band's right rule collapses to the width of the text")
-            check('FontWeight="{DynamicResource FontWeightHeading}"' in header,
-                  f"{name}: the rendered header label must be heading-bold (owner, round 50)")
-            check('Property="BorderThickness" Value="0"' in header,
-                  f"{name}: the package's header frame must be switched off, or its control weight "
-                  "(2px, 4px) boxes the header band")
-            check("PART_RightHeaderGripper" in header and "PART_LeftHeaderGripper" in header,
-                  f"{name}: a header template without the resize grippers silently disables "
-                  "column resizing")
+            # Bold, and the literal that makes it bold: FontWeightHeading is
+            # SemiBold in every package, which is the weight the owner called
+            # "not the heading type bold".
+            check('Property="FontWeight" Value="Bold"' in header,
+                  f"{name}: the header must be bold type, not the heading token (SemiBold)")
+            check('Property="HorizontalContentAlignment" Value="Center"' in header,
+                  f"{name}: the header label must be centred")
+            check('Property="Template"' not in header,
+                  f"{name}: the header carries a hand-written template. The framework's template "
+                  "is the one that honours HorizontalContentAlignment; a re-created presenter has "
+                  "rendered this heading flush left twice")
+            check('Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header
+                  and 'Property="BorderThickness" Value="0,0,1,1"' in header,
+                  f"{name}: the header band must draw one hairline rule on its trailing and "
+                  "bottom edges")
 
         value = style_block(text, "ListText")
         check(value is not None, f"{name}: the shared cell-text style is missing")
@@ -518,8 +517,10 @@ def require_register_alignment():
                   f"{name}: register values must be centred under their centred headers")
             check('Property="TextTrimming" Value="CharacterEllipsis"' in value,
                   f"{name}: a long value must trim instead of pushing its column wider")
-            check("TruncatedTextToolTip.Enabled" in value,
-                  f"{name}: a trimmed value must keep its full text one hover away (owner, round 50)")
+            check('Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"'
+                  in value,
+                  f"{name}: a trimmed value must keep its full text one hover away (owner, round "
+                  "50). The value binds its own text to ToolTip: no measuring, no dispatcher work")
 
     view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
     check('Style="{StaticResource ListGrid}"' in view,
@@ -683,14 +684,14 @@ def require_header_rules():
 
         header = style_block(text, "ListColumnHeader")
         if header:
-            # The rule that divides the columns lives in the header band, at the
-            # theme's own hairline weight and colour, never a literal.
-            check('Background="{DynamicResource BorderStrong}"' in header,
+            # The rule that divides the columns is the header's own border, one
+            # hairline on the trailing and bottom edges, in a visible theme colour
+            # — what the master app's header style does.
+            check('Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header,
                   f"{name}: the header rule must use a visible theme token")
-            check('Width="{DynamicResource StrokeWidth}"' in header,
-                  f"{name}: the rule width must follow the theme, not a literal")
-            check('HorizontalAlignment="Right"' in header,
-                  f"{name}: the rule belongs on the column boundary, so it sits at the right edge")
+            check('Property="BorderThickness" Value="0,0,1,1"' in header,
+                  f"{name}: the rule belongs on the column boundary and under the band, one "
+                  "hairline thick, not on a template element")
 
     view = read(MODULE / "step2.d.1.ClientWorkspaceView.xaml")
     datagrid = view[view.index("<DataGrid "):]

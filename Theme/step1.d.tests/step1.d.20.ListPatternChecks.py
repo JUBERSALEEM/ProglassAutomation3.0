@@ -49,7 +49,6 @@ REQUIRED = {
     "ListText": "TextBlock",
     "ListMonoText": "TextBlock",
     "ListStrongText": "TextBlock",
-    "ListBubble": "ToolTip",
 }
 
 packages = sorted(p for p in (ROOT / "Theme").glob("Theme*") if p.is_dir())
@@ -73,6 +72,12 @@ for package in packages:
               "does not target the control it is used on is silently ignored")
 
 
+def analytics_of(package):
+    """The package's analytics dictionary, the one that defines the register."""
+    path = ROOT / "Theme" / package / "step1.e.Components/step1.e.10.Analytics.xaml"
+    return read(path)
+
+
 def body(package, key):
     """The style's text, cut at its own closing tag."""
     entry = theme_definitions.get(package, {}).get(key)
@@ -90,30 +95,64 @@ for package in theme_definitions:
     header = body(package, "ListColumnHeader")
     if not header:
         continue
-    check('Property="FontWeight" Value="{DynamicResource FontWeightHeading}"' in header,
-          f"{package}: the column header is not bold")
+    # Precedence, learned the hard way: the heading is BOLD, and the literal is
+    # what makes it bold. FontWeightHeading resolves to SemiBold in every package,
+    # which is the weight the owner looked at and called "not the heading type
+    # bold". A token that reads as heading is not the same thing as bold type.
+    check('Property="FontWeight" Value="Bold"' in header,
+          f"{package}: the column header is not bold — a heading weight token "
+          "(FontWeightHeading = SemiBold) is not bold")
     check('Property="HorizontalContentAlignment" Value="Center"' in header,
           f"{package}: the column header is not centred")
-    # The label is drawn by the template, so presence of a FontWeight setter is
-    # no longer the proof. The proof is the TextBlock that actually renders it.
-    check('Text="{TemplateBinding Content}"' in header,
-          f"{package}: the header band leaves its label to the generated TextBlock, so the "
-          "heading weight and centring depend on what the header happens to inherit")
-    check('TextAlignment="Center"' in header and 'HorizontalAlignment="Stretch"' in header,
-          f"{package}: the header label is not centred across the whole column, so the band's "
-          "right rule hugs the text instead of sitting on the column edge")
-    check('FontWeight="{DynamicResource FontWeightHeading}"' in header,
-          f"{package}: the rendered header label is not heading-bold")
-    check('Background="{DynamicResource BorderStrong}"' in header,
+    # And the centring has to be the framework's own mechanism. A hand-written
+    # header template that re-creates the presenter is how the label rendered
+    # flush-left while this very setter was present. The master app's working
+    # header style carries no Template at all: the framework's template lays the
+    # label out with HorizontalContentAlignment.
+    check('Property="Template"' not in header,
+          f"{package}: the header style carries a hand-written template. The framework's "
+          "template is the one that honours HorizontalContentAlignment — a re-created "
+          "presenter has now rendered the heading flush left twice")
+    check('PART_LeftHeaderGripper' not in header,
+          f"{package}: a hand-written header template has come back, and with it the gripper "
+          "juggling that the framework template does for free")
+    # And neither may the package's own implicit header style. The register's
+    # style derives from it, so a template there is inherited by every register:
+    # this one had a presenter with no horizontal alignment at all, which is why
+    # the label stayed flush left no matter what the register asked for.
+    # The implicit header style is what every other grid in the product uses, so
+    # it carries the same ruling: bold type, not the SemiBold heading token.
+    implicit_header = re.search(r'<Style TargetType="DataGridColumnHeader">(.*?)</Style>',
+                                analytics_of(package), re.S)
+    check(implicit_header is not None,
+          f"{package}: the package has no implicit column-header style")
+    if implicit_header is not None:
+        check('Property="FontWeight" Value="Bold"' in implicit_header.group(1),
+              f"{package}: the package's own column headers are not bold — every grid outside the "
+              "register uses this style")
+    check('ControlTemplate TargetType="DataGridColumnHeader"' not in analytics_of(package),
+          f"{package}: the package's implicit column-header style carries a template of its own. "
+          "The register derives from it, so that template wins and the framework's — the one that "
+          "honours HorizontalContentAlignment — never runs")    # The rules are the header's own border, one hairline on the trailing and
+    # bottom edges — what the master app's header style does with its
+    # BorderThickness. Strong enough to read as a grid line, thin enough not to
+    # box the band.
+    check('Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header,
           f"{package}: the header band draws no rule — the owner asked for the heading to sit "
           "in a grid line")
-    check('Width="{DynamicResource StrokeWidth}"' in header,
-          f"{package}: the header rule's width is not the theme's own hairline")
-    check("PART_LeftHeaderGripper" in header and "PART_RightHeaderGripper" in header,
-          f"{package}: without the resize grippers the columns cannot be resized by hand")
-    check('Property="BorderThickness" Value="0"' in header,
-          f"{package}: the package's own header frame is still on, and its control weight "
-          "(2px, 4px in some packages) boxes the band")
+    check('Property="BorderThickness" Value="0,0,1,1"' in header,
+          f"{package}: the header's rules are not a single hairline on the trailing and bottom "
+          "edges; either the package's own 2px/4px frame boxes the band or there is no rule")
+    # The rules are the header's own border, one hairline on the trailing and
+    # bottom edges — what the master app's header style does with its
+    # BorderThickness. Strong enough to read as a grid line, thin enough not to
+    # box the band.
+    check('Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header,
+          f"{package}: the header band draws no rule — the owner asked for the heading to sit "
+          "in a grid line")
+    check('Property="BorderThickness" Value="0,0,1,1"' in header,
+          f"{package}: the header's rules are not a single hairline on the trailing and bottom "
+          "edges; either the package's own 2px/4px frame boxes the band or there is no rule")
 
 
 # ── 3. The body: no grid lines, centred, evenly sized ─────────────────────
@@ -146,14 +185,27 @@ for package in theme_definitions:
     check('Property="BorderBrush" Value="{DynamicResource TransparentBrush}"' in cell,
           f"{package}: the cell paints a border of its own, which boxes every data row")
 
+    # The presenter is STRETCH, not the cell's HorizontalContentAlignment. A
+    # centred presenter shrinks to the text, so the stretched TextBlock inside it
+    # can never be wider than its own glyphs and TextAlignment=Center has nothing
+    # to centre — the value renders at the left edge, with no error anywhere.
+    check('<ContentPresenter HorizontalAlignment="Stretch"' in cell,
+          f"{package}: the cell's presenter does not take the whole column, so a centred value "
+          "has nothing to centre inside and renders at the left edge")
+    check('HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' not in cell,
+          f"{package}: the cell's presenter is aligned by the cell again — that is the "
+          "shrink-to-text box that made every centred value render left")
+
     value = body(package, "ListText")
     check('Property="TextAlignment" Value="Center"' in value,
           f"{package}: register values are not centred under their centred headers")
     check('Property="TextTrimming" Value="CharacterEllipsis"' in value,
           f"{package}: a long value does not trim, so it either clips mid-letter or pushes the "
           "column wider")
-    check("TruncatedTextToolTip.Enabled" in value,
-          f"{package}: a trimmed value shows no tooltip, so the rest of it is unreachable")
+    check('Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"' in value,
+          f"{package}: a trimmed value shows no tooltip, so the rest of it is unreachable. The "
+          "value binds its own text to ToolTip — the master app's pattern, and the only one that "
+          "opens immediately with no measuring and no dispatcher work")
     for derived in ("ListMonoText", "ListStrongText"):
         check(f'BasedOn="{{StaticResource ListText}}"' in body(package, derived),
               f"{package}: {derived} does not derive from ListText, so it drifts from the pattern")
@@ -250,6 +302,19 @@ for path in views:
                       "type name and can never carry the heading weight")
                 check(heading.strip() != "",
                       f'{name}: a template column has no header; an empty one reads as a broken band')
+                # The cell's presenter is full width now, so a chip or a button in
+                # a template column must place itself: without this the badge
+                # stretches across the column instead of sitting centred in it.
+                cell_template = column.find(WPF + f"{kind}.CellTemplate")
+                root = None
+                if cell_template is not None:
+                    data = cell_template.find(WPF + "DataTemplate")
+                    if data is not None and len(data):
+                        root = data[0]
+                check(root is not None and root.attrib.get("HorizontalAlignment") == "Center",
+                      f'{name}: column "{heading}" puts a template in a full-width cell without '
+                      'HorizontalAlignment="Center" on its root, so the chip or button stretches '
+                      "across the column instead of sitting centred under its heading")
 
 check(registers >= 5,
       f"expected at least five registers across the modules, found {registers}")
@@ -272,49 +337,59 @@ for path in views:
         check("List" in column.group(2),
               f"{name}: a column's element style is {column.group(2)}, not one of the pattern's")
 
-behaviour = ROOT / "Theme/step1.g.Customization/step1.g.8.TruncatedTextToolTip.cs"
-check(behaviour.is_file(), "the truncation tooltip behaviour is gone")
-if behaviour.is_file():
-    source = read(behaviour)
-    # The bubble is set on the ToolTip property, so WPF's tooltip service opens
-    # and closes it. A ToolTip element in that position with StaysOpen="False"
-    # makes the service throw NotSupportedException on the dispatcher, i.e. the
-    # first time the pointer rests on a clipped cell — a fatal log entry for a
-    # cosmetic feature. Nothing in this file may set it.
-    import re as _re
-    code = _re.sub(r"//[^\n]*", "", _re.sub(r"/\*.*?\*/", "", source, flags=_re.S))
-    check("StaysOpen" not in code,
-          "the truncation tooltip sets StaysOpen. WPF refuses a ToolTip element assigned to the "
-          "ToolTip property when StaysOpen is false and throws on the dispatcher as soon as the "
-          "pointer hovers a clipped cell")
-    for part in ("EnabledProperty", "MouseEnter", "SizeChanged", "IsClipped", "FormattedText",
-                 "block.ToolTip = Build(block)"):
-        check(part in source, f"the truncation tooltip no longer {part!r} — it cannot measure the "
-                              "text it would have to reveal")
-    check("block.ActualWidth" in source,
-          "the behaviour no longer compares the text against the width it was given")
-    check("BubbleStyleKey" in source and "TryFindResource(BubbleStyleKey)" in source,
-          "the tooltip is no longer built from the theme's bubble style, so it is drawn by the "
-          "system and ignores the theme")
-    check("Style = style" in source,
-          "the bubble is created without its theme style")
+# ── 6. The hover bubble is a binding, and the pattern needs no code ────────
+# Round 52 shipped a behaviour: it measured every cell on layout and again on
+# mouse-enter, built a ToolTip object per hover, and — because it assigned that
+# object to the ToolTip property while also claiming StaysOpen — could throw
+# NotSupportedException from WPF's tooltip service on the dispatcher. The owner's
+# words for it were "slow and ugly"; the log said FATAL.
+#
+# The master app (ProGlassAutomationADV) does the whole job in markup:
+#   TextTrimming="CharacterEllipsis" ToolTip="{Binding …}"
+# with ONE implicit ToolTip style for the whole product (AppToolTipStyle:
+# wrapped, MaxWidth-capped, theme surface, theme foreground). Nothing measures,
+# nothing intercepts the mouse, and the bubble is open before the pointer settles.
+check(not (ROOT / "Theme/step1.g.Customization/step1.g.8.TruncatedTextToolTip.cs").exists(),
+      "the truncation tooltip behaviour is back. It measured every cell on layout and on "
+      "mouse-enter and built a ToolTip object per hover, which is what made the pointer slow; "
+      "the value style binds its own text to ToolTip instead")
 
-for package in theme_definitions:
-    bubble = body(package, "ListBubble")
-    if not bubble:
-        check(False, f"{package}: the value bubble style is missing, so a clipped cell falls back "
-                     "to a system tooltip")
+behaviour_words = re.compile(r"TruncatedTextToolTip|StaysOpen\s*=\s*\"?[Ff]alse")
+for path in list((ROOT / "Theme").rglob("*.cs")) + list((ROOT / "Theme").rglob("*.xaml")):
+    if "obj" in path.parts or "bin" in path.parts:
         continue
-    check('Property="MaxWidth" Value="{DynamicResource PopupMaxWidth}"' in bubble,
-          f"{package}: the bubble has no width cap, so a long value becomes a strip")
-    check('TargetType="ToolTip"' in bubble and "ToolTip" in bubble,
-          f"{package}: the bubble does not target ToolTip")
-    check('Property="TextWrapping" Value="Wrap"' in bubble,
-          f"{package}: the bubble does not wrap, so the full value is clipped a second time")
-    check('Property="TextTrimming" Value="None"' in bubble,
-          f"{package}: the bubble inherits the cell's trimming and would clip the value it exists "
-          "to reveal")
+    hit = behaviour_words.search(path.read_text(encoding="utf-8"))
+    check(hit is None,
+          f"{path.relative_to(ROOT)}: {hit.group(0) if hit else ''} — nothing may measure a cell "
+          "for a tooltip, and no ToolTip element may claim StaysOpen=false. WPF's tooltip service "
+          "owns the lifetime of a tooltip assigned to the ToolTip property and throws when it "
+          "does not")
 
+# The one tooltip style: implicit, in the package's popup dictionary, wrapped and
+# width-capped. Every package already had it — round 52 added a second, keyed
+# copy for the register, which is how a product ends up with two tooltips.
+for package in packages:
+    popup = package / "step1.e.Components/step1.e.6.PopupsAndScroll.xaml"
+    check(popup.is_file(), f"{package.name}: the package's popup dictionary is missing")
+    if not popup.is_file():
+        continue
+    text = read(popup)
+    match = re.search(r"<Style TargetType=\"ToolTip\">(.*?)</Style>", text, re.S)
+    check(match is not None, f"{package.name}: the product's implicit ToolTip style is gone")
+    if match is None:
+        continue
+    tooltip = match.group(1)
+    check('Property="MaxWidth" Value="{DynamicResource PopupMaxWidth}"' in tooltip,
+          f"{package.name}: the tooltip has no width cap, so a long value becomes a strip that "
+          "runs off the edge")
+    check('Property="TextWrapping" Value="Wrap"' in tooltip,
+          f"{package.name}: the tooltip does not wrap, so the full value is clipped a second time")
+    check('Property="TextTrimming" Value="None"' in tooltip,
+          f"{package.name}: the tooltip inherits the cell's trimming and would cut the very text "
+          "it exists to reveal")
+    check(text.count('<Style TargetType="ToolTip">') == 1,
+          f"{package.name}: the package defines more than one implicit tooltip style; "
+          "the loader rejects the duplicate and the product ends up with two looks")
 
 if PROBLEMS:
     print(f"list pattern checks: {len(PROBLEMS)} failure(s).")

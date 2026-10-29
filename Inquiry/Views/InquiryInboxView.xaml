@@ -268,7 +268,8 @@
                                                 Style="{DynamicResource SubtleButton}"
                                                 Padding="4,1" Margin="0"
                                                 Click="OnFilesClick"
-                                                AutomationProperties.Name="Show delivery folder and file names" />
+                                                AutomationProperties.Name="Show delivery folder and file names"
+                                                HorizontalAlignment="Center"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

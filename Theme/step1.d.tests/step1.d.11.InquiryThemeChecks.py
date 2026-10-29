@@ -251,7 +251,8 @@ readability = pattern[pattern.index('x:Key="ListText"'):]
 readability = readability[:readability.index("</Style>")]
 assert 'Value="CharacterEllipsis"' in readability, "long values must trim instead of running into the next column"
 assert 'Value="Center"' in readability, "values must be centred"
-assert 'TruncatedTextToolTip.Enabled' in readability, "a trimmed value must keep its full text on hover"
+assert 'Value="{Binding Text, RelativeSource={RelativeSource Self}}"' in readability, \
+    "a trimmed value must keep its full text on hover — the value binds its own text to ToolTip"
 
 text_columns = re.findall(r"<DataGridTextColumn\b[\s\S]*?/>", list_xaml)
 assert len(text_columns) == 11, f"expected eleven text columns, found {len(text_columns)}"
@@ -287,19 +288,23 @@ assert 'Property="GridLinesVisibility" Value="None"' in grid_style, \
 assert 'Property="ColumnWidth" Value="*"' in grid_style, "the shared register must divide its width equally"
 
 header_rule = pattern_style("ListColumnHeader")
-assert 'Background="{DynamicResource BorderStrong}"' in header_rule, \
-    "the header rule must use a visible theme token"
-assert 'Width="{DynamicResource StrokeWidth}"' in header_rule, "the rule width must follow the theme, not a literal"
-assert 'HorizontalAlignment="Right"' in header_rule, "the rule belongs on the column boundary"
-assert 'PART_RightHeaderGripper' in header_rule and 'PART_LeftHeaderGripper' in header_rule, \
-    "a header template without the resize grippers silently disables column resizing"
-assert 'Property="BorderThickness" Value="0"' in header_rule, \
-    "the package's header frame must be switched off, or its control weight boxes the band"
+assert 'Property="FontWeight" Value="Bold"' in header_rule, \
+    "the heading must be bold type; the heading token resolves to SemiBold"
+assert 'Property="HorizontalContentAlignment" Value="Center"' in header_rule, \
+    "the heading must be centred"
+assert 'Property="Template"' not in header_rule, \
+    ("the header must use the framework template, which lays the label out with "
+     "HorizontalContentAlignment; a re-created presenter has rendered the heading flush left twice")
+assert 'Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header_rule and \
+    'Property="BorderThickness" Value="0,0,1,1"' in header_rule, \
+    "the band must draw one hairline rule on its trailing and bottom edges"
 
 cell_style = pattern_style("ListCell")
 assert 'BasedOn="{StaticResource {x:Type DataGridCell}}"' in cell_style, "the cell style must derive from the package"
-assert 'HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"' in cell_style, \
-    "the cell presenter must take its alignment from the cell through a TemplateBinding"
+assert '<ContentPresenter HorizontalAlignment="Stretch"' in cell_style, \
+    ("the cell presenter must take the whole column; a centred presenter shrinks to the text, so "
+     "the stretched TextBlock inside it cannot be wider than its glyphs and TextAlignment=Center "
+     "renders at the left edge")
 assert 'Property="VerticalContentAlignment" Value="Center"' in cell_style, \
     "a cell's VerticalContentAlignment defaults to Top, which lifts every value to the top of the row"
 assert 'HorizontalContentAlignment="' not in cell_style.split("<ControlTemplate")[1], \

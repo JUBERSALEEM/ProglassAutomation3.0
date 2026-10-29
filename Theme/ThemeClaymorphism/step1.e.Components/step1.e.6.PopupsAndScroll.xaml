@@ -3,8 +3,20 @@
   <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
   <Setter Property="Background" Value="{DynamicResource SurfaceElevated}" />
   <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+  <Setter Property="MaxWidth" Value="{DynamicResource PopupMaxWidth}" />
+  <Setter Property="HasDropShadow" Value="True" />
+  <Setter Property="Placement" Value="Bottom" />
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip">
-   <clay:ClaySurface Rank="Control" Background="{TemplateBinding Background}" Padding="{DynamicResource PaddingPlate}" CornerRadius="{DynamicResource ControlCornerRadius}"><ContentPresenter /></clay:ClaySurface>
+   <clay:ClaySurface Rank="Control" Background="{TemplateBinding Background}" Padding="{DynamicResource PaddingPlate}"
+                    MaxWidth="{TemplateBinding MaxWidth}" CornerRadius="{DynamicResource ControlCornerRadius}"><ContentPresenter>
+     <ContentPresenter.Resources>
+      <Style TargetType="TextBlock">
+       <Setter Property="TextWrapping" Value="Wrap" />
+       <Setter Property="TextTrimming" Value="None" />
+       <Setter Property="TextAlignment" Value="Left" />
+      </Style>
+     </ContentPresenter.Resources>
+    </ContentPresenter></clay:ClaySurface>
   </ControlTemplate></Setter.Value></Setter>
  </Style>
  <Style TargetType="ContextMenu">
