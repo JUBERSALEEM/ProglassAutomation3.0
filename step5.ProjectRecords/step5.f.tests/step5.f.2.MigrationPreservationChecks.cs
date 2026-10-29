@@ -27,11 +27,17 @@
 // RUN (Windows, .NET 8)
 //   dotnet run -- "D:\G1\working-copy\inquiries.db"
 //   dotnet run -- "D:\G1\working-copy\inquiries.db" --rewind-1017
+//   dotnet run -- --describe "D:\G1\frozen\inquiries.db"      (read-only report)
+//
+// `--describe` never opens the file you name: it copies it to the temp folder,
+// reads the copy, and deletes the copy. It exists so an existing backup can be
+// identified (which version is it?) without touching it.
 //
 // Exit code 0 = every check passed; 1 = a check failed; 2 = refused or unusable
 // input; 3 = NOT RUN because the copy was already current.
 // ═══════════════════════════════════════════════════════════════════════
 
+using Microsoft.Data.Sqlite;
 using ProGlassAutomation.Services.Database;
 using ProGlassAutomation.Services.Database.SchemaMigrations;
 using ProGlassAutomation.Services.Projects;
@@ -58,10 +64,17 @@ internal static class MigrationPreservationChecks
         if (args.Length == 0)
         {
             Console.WriteLine("Usage: dotnet run -- \"<path to a WORKING COPY of inquiries.db>\" [--rewind-1017]");
+            Console.WriteLine("       dotnet run -- --describe \"<path to ANY database copy>\"");
             return 2;
         }
 
-        string dbPath = Path.GetFullPath(args[0]);
+        bool describe = string.Equals(args[0], "--describe", StringComparison.OrdinalIgnoreCase);
+        if (describe && args.Length < 2)
+        {
+            Console.WriteLine("Usage: dotnet run -- --describe \"<path to a database copy>\"");
+            return 2;
+        }
+        string dbPath = Path.GetFullPath(describe ? args[1] : args[0]);
         bool rewind = args.Any(a => string.Equals(a, "--rewind-1017", StringComparison.OrdinalIgnoreCase));
 
         // Safety: the production file is never opened. Checked first, before
@@ -81,6 +94,14 @@ internal static class MigrationPreservationChecks
             Console.WriteLine("FAIL: no database at " + dbPath + " — nothing was read or changed.");
             return 2;
         }
+
+        if (describe)
+            return Describe(dbPath);
+
+        // Belt and braces: if any code path inside the application falls back to
+        // its data folder instead of the path we pass, make that folder this one.
+        // It can never be %APPDATA%\ProGlassAutomation.
+        AppDataRoot.TestFolderOverride = Path.GetDirectoryName(dbPath)!;
 
         Console.WriteLine("Working copy : " + dbPath);
         Console.WriteLine("Size         : " + new FileInfo(dbPath).Length.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
@@ -119,6 +140,10 @@ internal static class MigrationPreservationChecks
                                   "will apply normally.");
                 return 2;
             }
+            int before1017 = AppSchemaMigrations.Inquiries
+                .Where(m => m.Version < ProjectSchema.MigrationVersion)
+                .Max(m => m.Version);
+            Snapshot atTip = before;
             if (!DatabaseSnapshot.Rewind1017(dbPath, before, out string problem))
             {
                 Console.WriteLine("FAIL: rewind refused — " + problem);
@@ -128,6 +153,17 @@ internal static class MigrationPreservationChecks
             Console.WriteLine("Rewound: 1017's objects removed from the copy; user_version is now " +
                               DatabaseSnapshot.Version(dbPath));
             before = DatabaseSnapshot.Take(dbPath, reference: before);
+
+            // A rewind that removes too little would carry 1017's own objects into
+            // the "before" side and make the whole comparison meaningless, so the
+            // shape is compared object by object against what 1017 added.
+            CheckRewindShape(atTip, before, before1017);
+
+            pending = AppSchemaMigrations.Inquiries
+                .Where(m => m.Version > before.Version).OrderBy(m => m.Version).ToList();
+            Check("exactly migration 1017 is now pending (nothing was skipped)",
+                pending.Count == 1 && pending[0].Version == ProjectSchema.MigrationVersion,
+                "pending: " + (pending.Count == 0 ? "none" : string.Join(", ", pending.Select(m => m.Version))));
         }
 
         // The runner makes its own backup under <copy folder>\MigrationBackups;
@@ -190,6 +226,9 @@ internal static class MigrationPreservationChecks
             }.Where(c => !after.InquiryColumns.Contains(c))));
         Check("the Projects table exists",
             after.Tables.Contains(ProjectSchema.TableName), "");
+        Check("the migration created no project record of its own",
+            after.ProjectCount == 0,
+            after.ProjectCount + " project row(s) exist; the migration must create none");
 
         foreach (string legacy in DatabaseSnapshot.LegacyColumns)
         {
@@ -210,6 +249,30 @@ internal static class MigrationPreservationChecks
 
         string integrity = DatabaseSnapshot.QuickCheck(dbPath);
         Check("SQLite integrity check (PRAGMA quick_check) is clean", integrity == "ok", integrity);
+        string fullIntegrity = DatabaseSnapshot.IntegrityCheck(dbPath);
+        Check("SQLite integrity check (PRAGMA integrity_check) is clean", fullIntegrity == "ok", fullIntegrity);
+        string foreignKeys = DatabaseSnapshot.ForeignKeyCheck(dbPath);
+        Check("no foreign-key violations (PRAGMA foreign_key_check)", foreignKeys == "ok", foreignKeys);
+        Check("the number of foreign keys on Inquiries did not change",
+            after.ForeignKeyCount == before.ForeignKeyCount,
+            $"before {before.ForeignKeyCount}, after {after.ForeignKeyCount}");
+
+        // Every object 1017 promises, named, after the run — not "a table exists
+        // somewhere" but the exact objects the migration is supposed to create.
+        string[] required =
+        {
+            "IX_Projects_Number", "IX_Projects_ClientId", "IX_Projects_Status_Name",
+            ProjectSchema.InquiryClientIndex, ProjectSchema.InquiryProjectIndex
+        };
+        var missingIndexes = required.Where(i => !after.Indexes.Contains(i, StringComparer.OrdinalIgnoreCase)).ToList();
+        Check("every index migration 1017 creates exists", missingIndexes.Count == 0,
+            "missing " + string.Join(", ", missingIndexes));
+        Check("the schema version and the actual schema agree",
+            after.Version == chainTip &&
+            after.Tables.Contains(ProjectSchema.TableName) &&
+            after.InquiryColumns.Contains(ProjectSchema.InquiryClientColumn) &&
+            after.InquiryColumns.Contains(ProjectSchema.InquiryProjectColumn),
+            $"version {after.Version}, Projects {(after.Tables.Contains(ProjectSchema.TableName) ? "present" : "absent")}");
 
         var newBackups = (Directory.Exists(backupDir)
                 ? Directory.GetFiles(backupDir, "*.db").ToHashSet(StringComparer.OrdinalIgnoreCase)
@@ -218,6 +281,39 @@ internal static class MigrationPreservationChecks
         Check("the runner created its own pre-migration backup", newBackups.Count > 0, "nothing appeared in " + backupDir);
         foreach (string backup in newBackups) Notes.Add("runner backup: " + backup);
         if (failureSummary.Length > 0) Notes.Add("runner messages: " + failureSummary);
+
+        // ── The guarantees, exercised rather than quoted ─────────────────
+        // A deliberately failing migration must: make a backup first, change
+        // nothing, leave user_version where it was, and report failure. This is
+        // the runner's own transaction path, on the same disposable copy.
+        var withProbe = AppSchemaMigrations.Inquiries.ToList();
+        withProbe.Add(new SchemaMigration(
+            chainTip + 1,
+            "G1 transaction-guard probe (deliberately fails)",
+            (SqliteConnection _) => throw new InvalidOperationException("deliberate failure: G1 transaction guard")));
+        Snapshot beforeProbe = DatabaseSnapshot.Take(dbPath, reference: after);
+        var backupsBeforeProbe = Directory.Exists(backupDir)
+            ? Directory.GetFiles(backupDir, "*.db").ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        SqliteConnection.ClearAllPools();
+        bool probeRan = SchemaMigrationRunner.Upgrade(dbPath, withProbe, "G1 transaction guard");
+        string probeSummary = SchemaMigrationRunner.FailureSummary;
+        Snapshot afterProbe = DatabaseSnapshot.Take(dbPath, reference: after);
+        var probeBackups = (Directory.Exists(backupDir)
+                ? Directory.GetFiles(backupDir, "*.db").ToHashSet(StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(StringComparer.OrdinalIgnoreCase))
+            .Except(backupsBeforeProbe).ToList();
+
+        Check("a deliberately failing migration is reported as failed", !probeRan, "the runner reported success");
+        Check("a failed migration leaves user_version unchanged", afterProbe.Version == after.Version,
+            $"before {after.Version}, after {afterProbe.Version}");
+        Check("a failed migration leaves every inquiry value unchanged",
+            afterProbe.Fingerprint == beforeProbe.Fingerprint && afterProbe.InquiryCount == beforeProbe.InquiryCount,
+            $"{beforeProbe.InquiryCount} row(s) before, {afterProbe.InquiryCount} after");
+        Check("a failed migration still made a backup before it started", probeBackups.Count > 0,
+            "nothing appeared in " + backupDir);
+        foreach (string backup in probeBackups) Notes.Add("transaction-guard backup: " + backup);
+        if (probeSummary.Length > 0) Notes.Add("transaction-guard message: " + probeSummary);
 
         Console.WriteLine();
         string report = WriteReport(dbPath, before, after, upgraded, rewind, chainTip, null);
@@ -228,6 +324,98 @@ internal static class MigrationPreservationChecks
         if (Failures.Count == 0)
             Console.WriteLine("PASS: the migration preserved every inquiry record, every value and every legacy column.");
         return Failures.Count == 0 ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Read-only description of ANY database copy. The file named is copied to the
+    /// temp folder and the copy is read, so the original is never opened — not even
+    /// to create a -wal sidecar. It answers one question: which version is this?
+    /// </summary>
+    private static int Describe(string source)
+    {
+        string temp = Path.Combine(Path.GetTempPath(),
+            "g1-describe-" + Guid.NewGuid().ToString("N")[..8] + ".db");
+        try
+        {
+            File.Copy(source, temp, overwrite: false);
+            Snapshot snapshot = DatabaseSnapshot.Take(temp);
+            Console.WriteLine("Source (copied, never opened) : " + source);
+            Console.WriteLine("user_version                  : " + snapshot.Version);
+            Console.WriteLine("Inquiries                     : " + snapshot.InquiryCount + " row(s)");
+            Console.WriteLine("inquiry columns               : " + string.Join(", ", snapshot.InquiryColumns));
+            Console.WriteLine("Projects table                : " +
+                (snapshot.Tables.Contains(ProjectSchema.TableName) ? "present" : "absent") + "   (created by 1017)");
+            Console.WriteLine("ClientId / ProjectRecordId    : " +
+                (snapshot.InquiryColumns.Contains(ProjectSchema.InquiryClientColumn) ? "present" : "absent") +
+                "   (created by 1017)");
+            Console.WriteLine("linked inquiries              : " + snapshot.LinkedInquiryCount);
+            Console.WriteLine("indexes                       : " + string.Join(", ", snapshot.Indexes));
+            Console.WriteLine("integrity                     : " + DatabaseSnapshot.IntegrityCheck(temp));
+            Console.WriteLine();
+            Console.WriteLine(snapshot.Version >= ProjectSchema.MigrationVersion
+                ? "Verdict: this copy is already at 1017. It cannot test the upgrade without a rewind."
+                : "Verdict: this copy is BEFORE 1017 — a genuine legacy input for the test.");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("FAIL: could not describe " + source +
+                              " (" + ex.GetType().Name + ": " + ex.Message + ")");
+            return 2;
+        }
+        finally
+        {
+            foreach (string file in new[] { temp, temp + "-wal", temp + "-shm" })
+                try { if (File.Exists(file)) File.Delete(file); } catch { /* temp only */ }
+        }
+    }
+
+    /// <summary>
+    /// The rewind is only safe if it removed exactly what migration 1017 created
+    /// and nothing else. This compares the at-1017 shape with the rewound shape
+    /// object by object, so a leftover table, index or column fails here instead
+    /// of silently becoming part of the "before" side of the test.
+    /// </summary>
+    private static void CheckRewindShape(Snapshot atTip, Snapshot rewound, int expectedVersion)
+    {
+        var expectedTables = atTip.Tables
+            .Where(t => !string.Equals(t, ProjectSchema.TableName, StringComparison.OrdinalIgnoreCase))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var expectedIndexes = atTip.Indexes
+            .Where(i => !i.StartsWith("IX_Projects_", StringComparison.OrdinalIgnoreCase))
+            .Where(i => !string.Equals(i, ProjectSchema.InquiryClientIndex, StringComparison.OrdinalIgnoreCase))
+            .Where(i => !string.Equals(i, ProjectSchema.InquiryProjectIndex, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(i => i, StringComparer.Ordinal)
+            .ToList();
+        var expectedColumns = atTip.InquiryColumns.Where(c => !IsLinkColumn(c)).ToList();
+
+        Check("rewind set user_version to the step before 1017 (" + expectedVersion + ")",
+            rewound.Version == expectedVersion, "actual " + rewound.Version);
+        Check("rewind removed the Projects table and no other table",
+            !rewound.Tables.Contains(ProjectSchema.TableName) &&
+            expectedTables.SetEquals(rewound.Tables),
+            Difference(expectedTables, rewound.Tables));
+        Check("rewind removed 1017's indexes and no other index",
+            expectedIndexes.SequenceEqual(rewound.Indexes, StringComparer.Ordinal),
+            Difference(expectedIndexes, rewound.Indexes));
+        Check("rewind removed exactly the two link columns",
+            expectedColumns.SequenceEqual(rewound.InquiryColumns, StringComparer.OrdinalIgnoreCase),
+            Difference(expectedColumns, rewound.InquiryColumns));
+    }
+
+    private static bool IsLinkColumn(string column) =>
+        string.Equals(column, ProjectSchema.InquiryClientColumn, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(column, ProjectSchema.InquiryProjectColumn, StringComparison.OrdinalIgnoreCase);
+
+    private static string Difference(IEnumerable<string> expected, IEnumerable<string> actual)
+    {
+        var wanted = expected.ToList();
+        var found = actual.ToList();
+        var missing = wanted.Except(found, StringComparer.OrdinalIgnoreCase).ToList();
+        var extra = found.Except(wanted, StringComparer.OrdinalIgnoreCase).ToList();
+        if (missing.Count == 0 && extra.Count == 0) return "";
+        return (missing.Count > 0 ? "missing " + string.Join(", ", missing) : "") +
+               (extra.Count > 0 ? (missing.Count > 0 ? "; " : "") + "unexpected " + string.Join(", ", extra) : "");
     }
 
     private static void Check(string name, bool ok, string detail)
@@ -261,7 +449,12 @@ internal static class MigrationPreservationChecks
         text.AppendLine("| Inquiries before → after | " + before.InquiryCount + " → " + after.InquiryCount + " |");
         text.AppendLine("| Data fingerprint before → after | `" + before.Fingerprint + "` → `" +
                         after.Fingerprint + "` |");
+        text.AppendLine("| Migration 1017 executed | " +
+                        (rewind && upgraded && after.Version == chainTip
+                            ? "yes — rewound to " + before.Version + ", then 1017 applied"
+                            : "no — this run did not apply 1017") + " |");
         text.AppendLine("| Runner reported success | " + (upgraded ? "yes" : "no") + " |");
+        text.AppendLine("| Project rows in the database after the run | " + after.ProjectCount + " |");
         text.AppendLine("| Rewind used | " + (rewind ? "yes — 1017's objects removed from the copy first" : "no") + " |");
         text.AppendLine();
         text.AppendLine("## Checks");

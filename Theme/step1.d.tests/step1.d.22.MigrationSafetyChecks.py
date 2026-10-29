@@ -22,6 +22,15 @@ Rules:
 5. The runner backs up before it migrates, applies the pending set in ONE
    transaction, runs quick_check before committing, and sets the version last.
 6. The verification tool refuses the production path.
+7. The rewind removes exactly what 1017 created — every column and index it adds,
+   and the table — and the harness proves that object by object after the rewind,
+   so a rewind that removed too little cannot become the "before" side.
+8. The harness exercises the backup and transaction guarantees with a deliberately
+   failing migration: it must be refused, change no data, leave the version alone,
+   and still have made a backup.
+9. The one-command script can take its copy from an existing file (-SourceFile) and
+   verifies the copies against that file, so a frozen copy can be re-used without
+   ever being opened for writing.
 """
 
 import re
@@ -33,6 +42,8 @@ MIGRATIONS = ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrati
 RUNNER = ROOT / "Inquiry/Services/Database/SchemaMigrations/SchemaMigrationRunner.cs"
 PROJECT_SCHEMA = ROOT / "step5.ProjectRecords/step5.b.1.ProjectSchema.cs"
 CHECKER = ROOT / "step5.ProjectRecords/step5.f.tests/step5.f.2.MigrationPreservationChecks.cs"
+SNAPSHOT = ROOT / "step5.ProjectRecords/step5.f.tests/step5.f.3.DatabaseSnapshot.cs"
+SCRIPT = ROOT / "tools/Verify-Migration1017.ps1"
 
 PROBLEMS = []
 
@@ -147,6 +158,76 @@ if CHECKER.is_file():
     check("AppSchemaMigrations.Inquiries" in tool,
           "the verification tool no longer uses the real registered migration chain")
 
+# ── 7. The rewind reverses exactly what 1017 creates ──────────────────────
+rewind_src = without_comments(read(SNAPSHOT))
+column_constants = {
+    "InquiryClientColumn": "ClientId",
+    "InquiryProjectColumn": "ProjectRecordId",
+}
+added_columns = re.findall(r"AddColumnIfMissing\(connection, InquiriesTable, (\w+),", ensure)
+check(added_columns, "1017 no longer adds its link columns; the rewind rules need updating")
+# The rewind's actual drop list, not the whole file: the column constants also
+# appear in its link-count query, so "the name is somewhere in the file" would be
+# satisfied by a query that merely reads the column.
+drop_list = re.search(r"foreach \(string column in new\[\] \{(.*?)\}\)", rewind_src, re.S)
+check(drop_list is not None, "the rewind no longer iterates over a column drop list")
+check("DROP COLUMN" in rewind_src,
+      "the rewind no longer drops columns, so it cannot reverse 1017")
+for constant in added_columns:
+    column = column_constants.get(constant)
+    check(column is not None, f"unknown column constant {constant} in 1017")
+    if column and drop_list:
+        check(f"ProjectSchema.{constant}" in drop_list.group(1) or f'"{column}"' in drop_list.group(1),
+              f"the rewind does not drop {column}, which 1017 adds — a rewound copy would keep "
+              "part of 1017 and the before/after comparison would be meaningless")
+check('DROP TABLE IF EXISTS \"{ProjectSchema.TableName}\"' in rewind_src or
+      "DROP TABLE IF EXISTS" in rewind_src,
+      "the rewind no longer drops the Projects table, so it cannot reverse 1017")
+for constant in ("InquiryClientIndex", "InquiryProjectIndex"):
+    check(f"ProjectSchema.{constant}" in rewind_src,
+          f"the rewind does not drop {constant}; DROP COLUMN fails on an indexed column, so the "
+          "rewind would abort instead of running")
+
+# The static list above is only a plan. What makes it trustworthy is that the
+# harness compares the rewound schema with the 1017 schema object by object.
+tool = without_comments(read(CHECKER))
+check(tool.count("CheckRewindShape(") >= 2,   # the method and its call site
+      "the harness no longer verifies the rewound schema; a rewind that removes the wrong "
+      "objects would silently become the 'before' side of the comparison")
+check("expectedTables.SetEquals(rewound.Tables)" in tool,
+      "the harness no longer compares the table set after the rewind")
+check("expectedIndexes.SequenceEqual(rewound.Indexes" in tool,
+      "the harness no longer compares the index set after the rewind")
+check("expectedColumns.SequenceEqual(rewound.InquiryColumns" in tool,
+      "the harness no longer compares the Inquiries column set after the rewind")
+check('"exactly migration 1017 is now pending (nothing was skipped)"' in tool,
+      "the harness no longer proves that only 1017 was pending after the rewind — a rewind that "
+      "skipped earlier migrations would test the wrong upgrade")
+
+# ── 8. Backup and transaction guarantees are exercised, not quoted ────────
+check("chainTip + 1" in tool and "deliberately fails" in tool,
+      "the harness no longer runs a deliberately failing migration, so the backup and "
+      "transaction guarantees are asserted from source rather than demonstrated")
+for claim in (
+    "a deliberately failing migration is reported as failed",
+    "a failed migration leaves user_version unchanged",
+    "a failed migration leaves every inquiry value unchanged",
+    "a failed migration still made a backup before it started",
+):
+    check(claim in tool, f"the harness no longer checks that {claim}")
+
+# ── 9. The script can copy from an existing file, verified by hash ────────
+script = read(SCRIPT)
+check("[string] $SourceFile" in script,
+      "the script can no longer take an existing file as its source, so a frozen copy cannot "
+      "be re-used without copying the production database again")
+check("Copy-Item -LiteralPath $source.FullName -Destination $frozenFile" in script,
+      "the script copies something other than the resolved source into the archive folder")
+check("Copy-Item -LiteralPath $productionFile" not in script,
+      "the script still copies the production path directly, ignoring -SourceFile")
+check("if ($hash -ne $sourceHash)" in script,
+      "the script no longer proves the copies match the source by SHA-256")
+
 if PROBLEMS:
     print(f"migration safety checks: {len(PROBLEMS)} failure(s).")
     for problem in PROBLEMS:
@@ -157,5 +238,8 @@ print(f"PASS: one chain, tip 1017 across 17 versions (10 literal + 7 declared co
       f"1017 only creates "
       f"objects, adds two nullable link columns with no default, and asserts the legacy "
       f"placeholders still exist; the runner backs up, migrates in one transaction, "
-      f"quick-checks and only then records the version; and the verification tool refuses "
+      f"quick-checks and only then records the version; the rewind reverses exactly those "
+      f"objects and the harness compares the rewound schema with the 1017 schema before "
+      f"migrating; a deliberately failing migration is refused, changes nothing and still "
+      f"leaves a backup; and the verification tool refuses "
       f"the production path.")

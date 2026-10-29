@@ -21,6 +21,10 @@
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File tools\Verify-Migration1017.ps1 -Destination D:\G1
 
+  # from an existing frozen copy instead of %APPDATA% (the frozen copy is only read)
+  powershell -ExecutionPolicy Bypass -File tools\Verify-Migration1017.ps1 -Destination D:\G1 `
+      -SourceFile D:\G1\G1-migration-20261029_172103\frozen\inquiries.db -Rewind
+
 .NOTES
   Requires the .NET 8 SDK on the machine that runs it, and a checkout of the
   branch that contains it (arena/81baffde-proglassautomation3-0). A clone of
@@ -37,7 +41,14 @@ param(
     # one step (on the copy only) and the real migration 1017 runs for real.
     [switch] $Rewind,
 
-    [string] $ApplicationProcess = 'ProGlassAutomation'
+    [string] $ApplicationProcess = 'ProGlassAutomation',
+
+    # Optional: take the test copy from an existing database file instead of from
+    # %APPDATA% — for example a frozen copy made by an earlier run, or one of the
+    # runner's own MigrationBackups\inquiries_pre_v1017_*.db files (a genuine
+    # pre-1017 database). The file you name is only ever READ; everything the test
+    # touches is created under -Destination.
+    [string] $SourceFile
 )
 
 $ErrorActionPreference = 'Stop'
@@ -56,28 +67,43 @@ try {
     if ($LASTEXITCODE -eq 0 -and $gitBranch) { Write-Ok "branch $gitBranch at commit $gitCommit" }
 } catch { Write-Warn 'git is not available here; the branch name is not recorded in this log' }
 
-Write-Step '1. Locate the production database (read only)'
+Write-Step '1. Locate the database to copy (read only)'
 $productionFolder = Join-Path $env:APPDATA 'ProGlassAutomation'
 $productionFile = Join-Path $productionFolder 'inquiries.db'
-if (-not (Test-Path -LiteralPath $productionFile)) {
-    Fail "no database at $productionFile — start the application once, or check the account you are signed in to."
+$usingProduction = [string]::IsNullOrWhiteSpace($SourceFile)
+if ($usingProduction) {
+    if (-not (Test-Path -LiteralPath $productionFile)) {
+        Fail "no database at $productionFile — start the application once, or check the account you are signed in to."
+    }
+    $sourcePath = $productionFile
+} else {
+    $sourcePath = [System.IO.Path]::GetFullPath($SourceFile)
+    if (-not (Test-Path -LiteralPath $sourcePath)) { Fail "no database at $sourcePath" }
 }
-$source = Get-Item -LiteralPath $productionFile
-Write-Ok  "production file: $($source.FullName)"
+$source = Get-Item -LiteralPath $sourcePath
+if ($usingProduction) {
+    Write-Ok "source: the production file $($source.FullName)"
+} else {
+    Write-Ok "source: $($source.FullName)  (supplied with -SourceFile)"
+}
 Write-Ok  "size $($source.Length) bytes, last written $($source.LastWriteTime)"
 Write-Host '   (this file will only be read; the migration never sees this path)'
 
 Write-Step '2. Make sure nothing is writing to it'
-$running = Get-Process -Name $ApplicationProcess -ErrorAction SilentlyContinue
-if ($running) {
-    Fail "the application is running (PID $($running.Id -join ', ')). Close it and run this again — a copy taken mid-write could be inconsistent."
+if ($usingProduction) {
+    $running = Get-Process -Name $ApplicationProcess -ErrorAction SilentlyContinue
+    if ($running) {
+        Fail "the application is running (PID $($running.Id -join ', ')). Close it and run this again — a copy taken mid-write could be inconsistent."
+    }
+    Write-Ok 'the application is not running'
+} else {
+    Write-Ok 'the source is a file supplied with -SourceFile, so a running application cannot be writing to it'
 }
-foreach ($sidecar in @("$productionFile-wal", "$productionFile-shm")) {
+foreach ($sidecar in @("$($source.FullName)-wal", "$($source.FullName)-shm")) {
     if (Test-Path -LiteralPath $sidecar) {
-        Write-Warn "found $sidecar. A -wal file means the database was open recently; closing the application cleanly checkpoints it. If this check later reports a bad integrity result, close the app, wait ten seconds and run again."
+        Write-Warn "found $sidecar. A -wal file means the database was open recently; committed data may still be in it. If the integrity result is not clean, close the application cleanly, wait ten seconds and run again."
     }
 }
-Write-Ok 'the application is not running'
 
 Write-Step '3. Create the archive copy and the working copy'
 $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
@@ -91,16 +117,16 @@ foreach ($folder in @($frozenFolder, $workingFolder, $logFolder)) {
 
 $frozenFile = Join-Path $frozenFolder 'inquiries.db'
 $workingFile = Join-Path $workingFolder 'inquiries.db'
-Copy-Item -LiteralPath $productionFile -Destination $frozenFile
-Copy-Item -LiteralPath $productionFile -Destination $workingFile
+Copy-Item -LiteralPath $source.FullName -Destination $frozenFile
+Copy-Item -LiteralPath $source.FullName -Destination $workingFile
 try { Start-Transcript -Path (Join-Path $logFolder 'verify.log') | Out-Null } catch { Write-Warn 'could not start the transcript; the console output below is still the evidence' }
 
 Write-Step '4. Prove the copies exist before anything touches them'
+$sourceHash = (Get-FileHash -LiteralPath $source.FullName -Algorithm SHA256).Hash
 foreach ($copy in @($frozenFile, $workingFile)) {
     if (-not (Test-Path -LiteralPath $copy)) { Fail "copy missing: $copy" }
     $hash = (Get-FileHash -LiteralPath $copy -Algorithm SHA256).Hash
-    $original = (Get-FileHash -LiteralPath $productionFile -Algorithm SHA256).Hash
-    if ($hash -ne $original) { Fail "copy differs from the original: $copy" }
+    if ($hash -ne $sourceHash) { Fail "copy differs from the original: $copy" }
     Write-Ok  "$copy"
     Write-Host "        SHA256 $hash"
 }
@@ -135,6 +161,7 @@ switch ($code) {
 
 Write-Host "`nArtifacts kept for evidence:"
 Write-Host "   original (untouched) : $($source.FullName)"
+Write-Host "   original SHA256      : $sourceHash"
 Write-Host "   archive copy         : $frozenFile"
 Write-Host "   migrated copy        : $workingFile"
 Write-Host "   runner's own backup  : $workingFolder\MigrationBackups\"

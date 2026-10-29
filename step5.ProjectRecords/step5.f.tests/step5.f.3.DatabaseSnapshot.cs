@@ -38,6 +38,8 @@ internal sealed class Snapshot
     public HashSet<string> Tables = new(StringComparer.OrdinalIgnoreCase);
     public List<string> Indexes = new();
     public string Fingerprint = "";
+    public int ForeignKeyCount;
+    public long ProjectCount;
     public Dictionary<string, string> LegacyValues = new(StringComparer.OrdinalIgnoreCase);
 }
 
@@ -62,6 +64,10 @@ internal static class DatabaseSnapshot
         snapshot.Indexes = Names(connection, "index").OrderBy(x => x, StringComparer.Ordinal).ToList();
         snapshot.InquiryColumns = Columns(connection, "Inquiries");
         snapshot.InquiryCount = Scalar(connection, "SELECT COUNT(*) FROM \"Inquiries\";");
+        snapshot.ForeignKeyCount = ForeignKeyCount(connection, "Inquiries");
+        snapshot.ProjectCount = snapshot.Tables.Contains(ProjectSchema.TableName)
+            ? Scalar(connection, $"SELECT COUNT(*) FROM \"{ProjectSchema.TableName}\";")
+            : 0;
 
         bool hasLink = snapshot.InquiryColumns.Contains(ProjectSchema.InquiryClientColumn) &&
                        snapshot.InquiryColumns.Contains(ProjectSchema.InquiryProjectColumn);
@@ -201,6 +207,45 @@ internal static class DatabaseSnapshot
         using var command = connection.CreateCommand();
         command.CommandText = "PRAGMA user_version;";
         return Convert.ToInt32(command.ExecuteScalar() ?? 0, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Full (not quick) integrity check — the one the G1 report asks for.</summary>
+    public static string IntegrityCheck(string dbPath)
+    {
+        using var connection = Open(dbPath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA integrity_check;";
+        return Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture) ?? "(no result)";
+    }
+
+    /// <summary>"ok" when no row in any table breaks a foreign key, else the violations.</summary>
+    public static string ForeignKeyCheck(string dbPath)
+    {
+        using var connection = Open(dbPath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA foreign_key_check;";
+        using var reader = command.ExecuteReader();
+        var problems = new List<string>();
+        while (reader.Read())
+        {
+            string table = Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture) ?? "?";
+            string row = reader.FieldCount > 1
+                ? Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture) ?? "?"
+                : "?";
+            problems.Add(table + " row " + row);
+            if (problems.Count >= 5) break;
+        }
+        return problems.Count == 0 ? "ok" : string.Join(", ", problems);
+    }
+
+    private static int ForeignKeyCount(SqliteConnection connection, string table)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA foreign_key_list(\"{table}\");";
+        using var reader = command.ExecuteReader();
+        int count = 0;
+        while (reader.Read()) count++;
+        return count;
     }
 
     public static string QuickCheck(string dbPath)
