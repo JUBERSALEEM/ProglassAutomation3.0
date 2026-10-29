@@ -186,7 +186,11 @@ internal static class DatabaseSnapshot
         }
         catch (Exception ex)
         {
-            problem = ex.GetType().Name + ": " + ex.Message;
+            // The DDL above is not wrapped in a transaction, so a failure here can
+            // leave the copy part-rewound. That is why the caller aborts: the copy
+            // must be thrown away, never migrated and never reported on.
+            problem = ex.GetType().Name + ": " + ex.Message +
+                      " — the copy was possibly left part-rewound; discard it and start again";
             return false;
         }
     }
