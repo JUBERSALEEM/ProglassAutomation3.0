@@ -502,9 +502,21 @@ def require_register_alignment():
             check('Property="HorizontalContentAlignment" Value="Center"' in header,
                   f"{name}: the header label must be centred")
             check('Property="Template"' not in header,
-                  f"{name}: the header carries a hand-written template. The framework's template "
-                  "is the one that honours HorizontalContentAlignment; a re-created presenter has "
-                  "rendered this heading flush left twice")
+                  f"{name}: the register's header style carries its own template instead of "
+                  "inheriting the package's band")
+            band_match = re.search(r'<Style TargetType="DataGridColumnHeader">(.*?)</Style>',
+                                   text, re.S)
+            band = band_match.group(1) if band_match else None
+            check(band is not None, f"{name}: the package's implicit header style is missing")
+            if band:
+                check('<ContentPresenter HorizontalAlignment="Stretch"' in band,
+                      f"{name}: the band's presenter must be full width, or the label has no box "
+                      "to be centred inside")
+                check('<Setter Property="TextAlignment" Value="Center" />' in band,
+                      f"{name}: the band's own TextBlock style must centre the label; a "
+                      "HorizontalContentAlignment setter alone has rendered flush left on screen")
+                check('<Setter Property="FontWeight" Value="Bold" />' in band,
+                      f"{name}: the band's own TextBlock style must be bold")
             check('Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header
                   and 'Property="BorderThickness" Value="0,0,1,1"' in header,
                   f"{name}: the header band must draw one hairline rule on its trailing and "

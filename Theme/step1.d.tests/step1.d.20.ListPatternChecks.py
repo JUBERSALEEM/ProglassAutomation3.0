@@ -113,9 +113,9 @@ for package in theme_definitions:
           f"{package}: the header style carries a hand-written template. The framework's "
           "template is the one that honours HorizontalContentAlignment — a re-created "
           "presenter has now rendered the heading flush left twice")
-    check('PART_LeftHeaderGripper' not in header,
-          f"{package}: a hand-written header template has come back, and with it the gripper "
-          "juggling that the framework template does for free")
+    check('Property="Template"' not in header,
+          f"{package}: the register's header style carries a template of its own instead of "
+          "inheriting the package's band — one copy, the one the whole product uses")
     # And neither may the package's own implicit header style. The register's
     # style derives from it, so a template there is inherited by every register:
     # this one had a presenter with no horizontal alignment at all, which is why
@@ -130,10 +130,24 @@ for package in theme_definitions:
         check('Property="FontWeight" Value="Bold"' in implicit_header.group(1),
               f"{package}: the package's own column headers are not bold — every grid outside the "
               "register uses this style")
-    check('ControlTemplate TargetType="DataGridColumnHeader"' not in analytics_of(package),
-          f"{package}: the package's implicit column-header style carries a template of its own. "
-          "The register derives from it, so that template wins and the framework's — the one that "
-          "honours HorizontalContentAlignment — never runs")    # The rules are the header's own border, one hairline on the trailing and
+    # And the band's template must centre and bold the label with a TextBlock, the
+    # way the cells do. `HorizontalContentAlignment` on the style is NOT enough in
+    # this app: a build whose header style said "centre" rendered flush left while
+    # the cells — centred by a TextBlock inside a stretched presenter — were right.
+    band = re.search(r'<Style TargetType="DataGridColumnHeader">(.*?)</Style>',
+                     analytics_of(package), re.S)
+    band = band.group(1) if band else ""
+    check('ControlTemplate TargetType="DataGridColumnHeader"' in band,
+          f"{package}: the package's header style has no template, so nothing centres its label")
+    check('<ContentPresenter HorizontalAlignment="Stretch"' in band,
+          f"{package}: the band's presenter is not full width, so the label has no box to be "
+          "centred inside")
+    check('<Setter Property="TextAlignment" Value="Center" />' in band,
+          f"{package}: the band's own TextBlock style does not centre the label — this is the rule "
+          "that has failed three times in review and twice on screen")
+    check('<Setter Property="FontWeight" Value="Bold" />' in band,
+          f"{package}: the band's own TextBlock style is not bold, so the heading renders at the "
+          "inherited weight whatever the style says")    # The rules are the header's own border, one hairline on the trailing and
     # bottom edges — what the master app's header style does with its
     # BorderThickness. Strong enough to read as a grid line, thin enough not to
     # box the band.

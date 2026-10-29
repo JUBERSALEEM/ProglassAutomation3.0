@@ -293,8 +293,18 @@ assert 'Property="FontWeight" Value="Bold"' in header_rule, \
 assert 'Property="HorizontalContentAlignment" Value="Center"' in header_rule, \
     "the heading must be centred"
 assert 'Property="Template"' not in header_rule, \
-    ("the header must use the framework template, which lays the label out with "
-     "HorizontalContentAlignment; a re-created presenter has rendered the heading flush left twice")
+    "the register's header style inherits the package's band instead of carrying its own copy"
+
+import re as _re
+_match = _re.search(r'<Style TargetType="DataGridColumnHeader">(.*?)</Style>', pattern, _re.S)
+assert _match is not None, "the package's implicit column-header style is missing"
+band_style = _match.group(1)
+assert '<ContentPresenter HorizontalAlignment="Stretch"' in band_style, \
+    "the band's presenter must be full width, or the label has no box to be centred inside"
+assert '<Setter Property="TextAlignment" Value="Center" />' in band_style, \
+    "the band must centre its label with a TextBlock style; HorizontalContentAlignment alone does not"
+assert '<Setter Property="FontWeight" Value="Bold" />' in band_style, \
+    "the band must make its label bold with a TextBlock style"
 assert 'Property="BorderBrush" Value="{DynamicResource BorderStrong}"' in header_rule and \
     'Property="BorderThickness" Value="0,0,1,1"' in header_rule, \
     "the band must draw one hairline rule on its trailing and bottom edges"

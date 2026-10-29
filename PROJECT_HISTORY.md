@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 55: the band centres its label the way the cells do
+- **The owner's screenshot:** Projects — every value centred, and `NUMBER PROJECT CLIENT SITE STATUS INQUIRIES UPDATED` flush left and light. "column heading header still not in centre and not bold dont you even know what is column? number project client site etc section"
+- **The lesson, taken from the same screenshot:** the cells were centred and the headers were not, in the *same* grid, from the *same* build. The cells centre by a `TextBlock` (`ListText`, `TextAlignment=Center`) inside a stretched presenter. The headers were centring by a `HorizontalContentAlignment` setter, which on this control does nothing that reaches the rendered text. That is the whole difference — and it is why five rounds of setter fixes had no effect.
+- **The fix:** the package's implicit `DataGridColumnHeader` style now carries **one** template: a full-width `ContentPresenter` whose `ContentPresenter.Resources` hold a `TextBlock` style with `TextAlignment=Center`, `FontWeight=Bold`, `TextTrimming=CharacterEllipsis`. Whatever the header renders as text is covered, and no inheritance has to be correct. The register's `ListColumnHeader` inherits it, keeps the ruled band (`BorderStrong`, `0,0,1,1`) and carries no template of its own.
+- **Everything else from round 54 stands:** the tooltip stays a binding, the one implicit `ToolTip` style stays wrapped and capped, the cell presenter stays `Stretch`, and the deleted measuring behaviour stays deleted.
+- **Gates:** `step1.d.20`, `step1.d.11` and `step2.f.2` now assert the band's **template content** — a `Stretch` presenter, a centred `TextBlock` style, bold in that same style — instead of a setter that has been present through every failure. **16 mutations, 16 caught**, including each element of the template being removed.
+- **16/16 checkers PASS.** Not compiled or rendered here; the mechanism is the one already proven on the owner's screen one row below the heading.
+
+---
 ## 2026-10-29 — Round 54: the master app's mechanism, read from its source
 - **Instruction:** "do one thing wpf cloned repo have mouse on. read it from that. that has professional mouse on full text visible pattern. current you implemented is slow and ugly. also still column headers text are not in centre and not the bold."
 - **The reference** (`ProGlassAutomationADV`, cloned here): the whole hover behaviour is markup — `TextTrimming="CharacterEllipsis" ToolTip="{Binding …}"` on the cell text — plus **one** implicit `ToolTip` style for the product (`Themes/Styles/DialogStyles.xaml: AppToolTipStyle`): themed surface, hairline border, `MaxWidth` 360, wrapped text, theme foreground, drop shadow. Its grid header style (`Themes/Styles/DataGridStyles.xaml: ErpDataGridColumnHeaderStyle`) has **no template at all**: `FontWeight="Bold"`, `HorizontalContentAlignment="Center"`, `BorderThickness="0,0,1,1"`, and the framework's header template does the rest.
