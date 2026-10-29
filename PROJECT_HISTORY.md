@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 50: the polish pass, and a binding that had never worked
+- **Report:** [`docs/16.Issue-Report-2026-10-29.md`](docs/16.Issue-Report-2026-10-29.md) — alignment, headings, column widths, the module workflow, and the cross-check. Short, as asked.
+- **Alignment:** the project register centred its headers and left-aligned its cells; the other three registers are centred. Centred at both the cell style and the cell container, and the container matters — a centred label inside a left-hand box still reads left.
+- **Headings:** seven headings in Company, the Inquiry list and the Inquiry inbox were written as section size plus heading weight by hand. They are not a heading *type*: a theme that restyles `SectionHeading` never reaches them. Converted to the style. The five Users field labels got a `UserFieldLabel` style, matching step2's `ClientFieldLabel`.
+- **Columns:** the 130 px timestamp column could not hold `2026-10-28 09:…`; the 100 px inquiry columns could not hold `INQ-2026-0001`; the 90 px received column was at its limit. All `Auto` now — a bigger fixed number would clip again when the font scale changes.
+- **The bug found on the way:** `SelectedErrorText` was **`private`** and bound in the inbox. WPF does not fail the build for that — it logs a failed binding — so the reason a website delivery failed had never appeared. And `step1.d.15` asserted the property *was* private, so the gate would have rejected any fix. Inverted.
+- **Cross-check:** all five modules reachable and wired (tab, rail row, command, flag, range guard, repository); data in one `inquiries.db`; links `Projects.ClientId`→Clients, `Inquiries.ProjectId`/`ProjectRecordId`→Projects, `Clients.RepresentativeUserId`→Users. One defect found, the one above.
+- **Gap still open:** step5 has no C# behaviour checks — the other four modules do. Project linking is the one cross-module path with no executable coverage.
+- **Verification:** 15/15 checkers PASS; three new rules mutation-tested. **Not run:** the build and the application — no `dotnet`, no Windows in this environment.
+
+---
 ## 2026-10-28 — Round 48: hard reset to d492fb4, and the Sheet Store pattern read properly
 - **Branch reset to `d492fb4`** as instructed, and the remote force-updated to match. Every shell change from rounds 41–47 is gone: `MainWindow.xaml` back to 895 lines, `ShellNavEntry` untouched, `CloseMenu` removed, the rail-shaped gate rules removed.
 - **Only `step5.ProjectRecords/*` carried forward**, as one commit on top of `d492fb4` — the project fixes already asked for, plus the toggle.

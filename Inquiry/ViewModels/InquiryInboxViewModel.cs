@@ -357,8 +357,8 @@ namespace ProGlassAutomation.ViewModels.Inquiry
 
         public bool HasItems => Items.Count > 0;
         public string SelectedIngestActionLabel => SelectedItem?.IngestActionLabel ?? "Select a delivery";
-
-        private string SelectedErrorText => SelectedItem?.Ledger.State == InquiryInboxStates.DeliveredElsewhere
+        /// <summary>Why the selected delivery failed. Public because the view binds it.</summary>
+        public string SelectedErrorText => SelectedItem?.Ledger.State == InquiryInboxStates.DeliveredElsewhere
             ? ""
             : SelectedItem?.Error ?? "";
 

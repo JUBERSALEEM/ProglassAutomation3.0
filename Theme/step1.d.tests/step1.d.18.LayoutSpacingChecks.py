@@ -280,6 +280,32 @@ FIELD_GRANDFATHERED = {
 }
 
 
+# ── Headings must be the heading STYLE, not its settings by hand ──────────
+# Owner, round 49: "few text didnt have heading type". A literal section-size,
+# heading-weight TextBlock is a heading that no theme can reach: Swiss gives
+# SectionHeading its Foreground, Bento and Fluent give it their own margin, and
+# all three keep it in step if the scale changes. Hand-copied setters drift.
+# Bound text is exempt — a count or a status value is a figure, not a heading —
+# and the Theme Studio is out of scope (round 32: do not restyle it).
+def require_heading_styles():
+    for path in targets():
+        if "ThemeStudio" in str(path):  # a directory name, not a whole path part
+            continue
+        text = path.read_text(encoding="utf-8")
+        for block in re.finditer(r"<TextBlock\b[^>]*?/?>", text, re.S):
+            markup = re.sub(r"\s+", " ", block.group(0))
+            if "FontSizeSection" not in markup or "FontWeightHeading" not in markup:
+                continue
+            if 'SectionHeading"' in markup:
+                continue
+            literal = re.search(r'Text="((?![{])[^"]*)"', markup)
+            if literal is None:
+                continue
+            relative = path.relative_to(ROOT)
+            check(False,
+                  f'{relative}: "{literal.group(1)}" is a heading written by hand — give it '
+                  'Style="{DynamicResource SectionHeading}" so it follows the theme')
+
 def require_field_gutters():
     counts = {}
     for path in targets():
@@ -335,6 +361,7 @@ def main():
     require_tokens()
     counts = require_spacing()
     require_field_gutters()
+    require_heading_styles()
 
     if FAILURES:
         print(f"layout spacing checks: {len(FAILURES)} failure(s).")

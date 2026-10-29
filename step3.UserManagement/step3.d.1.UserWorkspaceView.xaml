@@ -212,6 +212,16 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- The field label, as step2 (ClientFieldLabel), step4 and step5 already
+             define it. These five labels carried the same three setters inline, so
+             they looked right but were not a heading TYPE: a theme that restyles
+             SectionHeading (Swiss sets its Foreground) reaches none of them. -->
+        <Style x:Key="UserFieldLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="{DynamicResource UiGapField}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+        </Style>
         <Style x:Key="UserHeaderLabel" TargetType="TextBlock">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -768,11 +778,7 @@
 
                             <!-- The account is read, not typed: it is the account this
                                  Windows session is already signed in with. -->
-                            <TextBlock Text="Windows account (this workstation)"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       FontSize="{DynamicResource FontSizeCaption}"
-                                       FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource UiGapField}" />
+                            <TextBlock Text="Windows account (this workstation)" Style="{StaticResource UserFieldLabel}" />
                             <TextBlock Text="{Binding BootstrapOperatorUsername}"
                                        FontFamily="{DynamicResource FontFamilyMono}"
                                        Foreground="{DynamicResource TextPrimary}"
@@ -780,11 +786,7 @@
                                        Margin="{DynamicResource UiGapGroup}"
                                        AutomationProperties.Name="Workstation account" />
 
-                            <TextBlock Text="Full name *"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       FontSize="{DynamicResource FontSizeCaption}"
-                                       FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource UiGapField}"
+                            <TextBlock Text="Full name *" Style="{StaticResource UserFieldLabel}"
                                        Visibility="{Binding ShowBootstrapIdentityFields, Converter={StaticResource UserVisibility}}" />
                             <TextBox Style="{DynamicResource {x:Type TextBox}}"
                                      Text="{Binding BootstrapFullName, UpdateSourceTrigger=PropertyChanged}"
@@ -794,11 +796,7 @@
                                      AutomationProperties.Name="First administrator full name"
                                      Visibility="{Binding ShowBootstrapIdentityFields, Converter={StaticResource UserVisibility}}" />
 
-                            <TextBlock Text="Department"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       FontSize="{DynamicResource FontSizeCaption}"
-                                       FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource UiGapField}"
+                            <TextBlock Text="Department" Style="{StaticResource UserFieldLabel}"
                                        Visibility="{Binding ShowBootstrapIdentityFields, Converter={StaticResource UserVisibility}}" />
                             <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                       ItemsSource="{Binding Departments}"
@@ -816,11 +814,7 @@
 
                             <!-- Password, chosen here: without it the row would
                                  exist and nobody could ever sign in as it. -->
-                            <TextBlock Text="Password *"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       FontSize="{DynamicResource FontSizeCaption}"
-                                       FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource UiGapField}" />
+                            <TextBlock Text="Password *" Style="{StaticResource UserFieldLabel}" />
                             <PasswordBox x:Name="BootstrapPasswordBox"
                                          Style="{DynamicResource {x:Type PasswordBox}}"
                                          MinHeight="{DynamicResource UiActionMinHeight}"
@@ -829,11 +823,7 @@
                                          ToolTip="At least 8 characters, with a letter and a digit"
                                          AutomationProperties.Name="First administrator password" />
 
-                            <TextBlock Text="Confirm the password *"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       FontSize="{DynamicResource FontSizeCaption}"
-                                       FontWeight="{DynamicResource FontWeightHeading}"
-                                       Margin="{DynamicResource UiGapField}" />
+                            <TextBlock Text="Confirm the password *" Style="{StaticResource UserFieldLabel}" />
                             <PasswordBox x:Name="BootstrapPasswordConfirmBox"
                                          Style="{DynamicResource {x:Type PasswordBox}}"
                                          MinHeight="{DynamicResource UiActionMinHeight}"

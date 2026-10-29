@@ -131,9 +131,7 @@
                                    ToolTip="{Binding SavedPasswordHint}" />
                     </StackPanel>
                     <StackPanel>
-                        <TextBlock Text="Website connection"
-                                   FontSize="{DynamicResource FontSizeSection}"
-                                   FontWeight="{DynamicResource FontWeightHeading}" />
+                        <TextBlock Text="Website connection" Style="{DynamicResource SectionHeading}" />
                         <TextBlock Text="Sign in with an eligible Supabase Auth account. Delivery access requires the website-granted inbox capability."
                                    Style="{DynamicResource Caption}" />
                     </StackPanel>
@@ -260,9 +258,7 @@
                                 Margin="{DynamicResource MarginInline}"
                                 AutomationProperties.Name="Open the delivery folder" />
                     </StackPanel>
-                    <TextBlock Text="Website deliveries"
-                               FontSize="{DynamicResource FontSizeSection}"
-                               FontWeight="{DynamicResource FontWeightHeading}"
+                    <TextBlock Text="Website deliveries" Style="{DynamicResource SectionHeading}"
                                VerticalAlignment="Center" />
                 </DockPanel>
                 <Grid Grid.Row="1" Margin="{DynamicResource MarginItem}">
@@ -341,10 +337,12 @@
                                 </Style.Triggers>
                             </Style>
                         </StackPanel.Style>
-                        <TextBlock Text="No website deliveries yet"
-                                   FontSize="{DynamicResource FontSizeSection}"
-                                   FontWeight="{DynamicResource FontWeightHeading}"
-                                   Foreground="{DynamicResource TextPrimary}"
+                        <!-- The empty state is a heading, so it is the heading style — the same one
+                                 InquiryListView's empty state uses. Literal text carrying the
+                                 section size and weight by hand is what the owner meant by
+                                 "few text didnt have heading type" (round 49). -->
+                            <TextBlock Text="No website deliveries yet"
+                                   Style="{DynamicResource SectionHeading}"
                                    HorizontalAlignment="Center" />
                         <TextBlock Text="When the customer website receives an inquiry, it appears here automatically — or press Check now."
                                    Style="{DynamicResource Caption}"

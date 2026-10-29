@@ -74,7 +74,16 @@ assert 'outcome.Failed++' in service and 'if (!stillOffered && !payloadPlaced)' 
 assert 'RunAlreadyDeliveredConflict' in (ROOT / "Theme/step1.d.tests/step1.d.16.InquiryInboxDeliveryOrderingChecks.cs").read_text(encoding="utf-8")
 assert 'RunStorageFailureThenPlanDisappearance' in (ROOT / "Theme/step1.d.tests/step1.d.16.InquiryInboxDeliveryOrderingChecks.cs").read_text(encoding="utf-8")
 
-assert 'private string SelectedErrorText => SelectedItem?.Ledger.State == InquiryInboxStates.DeliveredElsewhere' in view_model
+# This used to assert the property was PRIVATE — which pinned the defect: WPF
+# cannot bind a private member, so InquiryInboxView's {Binding SelectedErrorText}
+# failed silently and the reason a delivery did not ingest was never shown. The
+# rule now demands the property is bindable (public) and that the view still asks
+# for it, so the two cannot drift apart again.
+assert 'public string SelectedErrorText => SelectedItem?.Ledger.State == InquiryInboxStates.DeliveredElsewhere' in view_model, (
+    'SelectedErrorText must be public: a private property cannot be bound, so the delivery error would '
+    'never appear in the inbox')
+assert '{Binding SelectedErrorText}' in (ROOT / "Inquiry/Views/InquiryInboxView.xaml").read_text(encoding="utf-8"), (
+    'the inbox no longer displays SelectedErrorText, so the operator cannot see why a delivery failed')
 assert 'InquiryInboxStates.DeliveredElsewhere => "Information"' in view_model
 
 assert 'No submissions are waiting. The website hands a submission to this PC only after a ProGlass operator accepts it; everything accepted and not yet delivered appears here.' in service

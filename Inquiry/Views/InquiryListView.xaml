@@ -660,9 +660,7 @@
                             </Style>
                         </StackPanel.Style>
                         <TextBlock Text="No inquiries match the current filters"
-                                   FontSize="{DynamicResource FontSizeSection}"
-                                   FontWeight="{DynamicResource FontWeightHeading}"
-                                   Foreground="{DynamicResource TextPrimary}"
+                                   Style="{DynamicResource SectionHeading}"
                                    HorizontalAlignment="Center" />
                         <TextBlock Text="Adjust the filters or create a new inquiry from the command bar above."
                                    Style="{DynamicResource Caption}"

@@ -581,6 +581,47 @@ if toggle is not None:
     check("? null : row" in body,
           "step5.c.1: clicking the open row does not clear the selection, so the panel cannot close")
 
+# 21 ── The register's cells line up with its own headers ───────────────
+# Owner, round 49: "few texts are not center aligned … in list pages". The
+# header said PROJECT in the middle of the column while the value sat against
+# the left edge — and the client, user and inquiry registers are all centred, so
+# this was the one table that read as misaligned.
+view_src = read(VIEW)
+for key in ("ProjectPlainCell", "ProjectMonoCell", "ProjectStrongCell"):
+    block = re.search(rf'<Style x:Key="{key}".*?</Style>', view_src, re.S)
+    check(block is not None, f"step5.d.1: the {key} style is gone")
+    if block is not None:
+        body = block.group(0)
+        if 'BasedOn="{StaticResource ProjectPlainCell}"' in body:
+            continue  # inherits the centring from the style it names
+        # The LAST TextAlignment setter is the one that wins, so test that one:
+        # an earlier Center with a later Left is still a left-aligned cell.
+        alignments = re.findall(r'Property="TextAlignment" Value="(\w+)"', body)
+        check(bool(alignments) and alignments[-1] == "Center",
+              f"step5.d.1: {key} resolves to "
+              f"{alignments[-1] if alignments else 'no TextAlignment'}, not Center, so its value sits "
+              "left under a centred header")
+cell = re.search(r'<Style x:Key="ProjectCell".*?</Style>', view_src, re.S)
+check(cell is not None, "step5.d.1: the ProjectCell style is gone")
+if cell is not None:
+    check('Property="HorizontalContentAlignment" Value="Center"' in cell.group(0),
+          "step5.d.1: ProjectCell is left-aligned, so the centred TextBlock is centred inside a "
+          "left-hand box and the column still reads as misaligned")
+
+# 22 ── A column is wide enough to show what it is given ────────────────
+# "yyyy-MM-dd HH:mm" is 16 mono characters (~125px at FontSizeBody 13) plus 16px
+# of cell padding; "INQ-2026-0001" is 13 characters (~101px) plus padding. Each
+# of those columns was narrower than its own content, so every row was clipped
+# to "2026-10-28 09:…" and "INQ-2026-0…" (owner's screenshots, rounds 46 and 49).
+for binding in ("UpdatedText", "InquiryNumber", "ReceivedText"):
+    column = re.search(rf'<DataGridTextColumn Width="(\w+)" Binding="{{Binding {binding}}}"', view_src)
+    check(column is not None, f"step5.d.1: the {binding} column is gone")
+    if column is not None:
+        width = column.group(1)
+        check(not width.isdigit() or int(width) >= 145,
+              f"step5.d.1: the {binding} column is a fixed {width}px, narrower than its own text — "
+              "the value is clipped to an ellipsis; use Auto or a width that fits")
+
 if failures:
     print(f"step5.f.1: {len(failures)} failure(s).")
     for failure in failures:

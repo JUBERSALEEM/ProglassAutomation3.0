@@ -76,10 +76,7 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                <TextBlock Text="Company"
-                           FontSize="{DynamicResource FontSizeSection}"
-                           FontWeight="{DynamicResource FontWeightHeading}"
-                           Foreground="{DynamicResource TextPrimary}"
+                <TextBlock Text="Company" Style="{DynamicResource SectionHeading}"
                            AutomationProperties.Name="Company profile" />
                 <TextBlock Text="Settings · Company profile, contact details and logo"
                            Style="{StaticResource CompanyHint}"

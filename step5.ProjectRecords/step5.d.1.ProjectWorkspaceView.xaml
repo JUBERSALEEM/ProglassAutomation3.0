@@ -73,7 +73,7 @@
              name only properties those types actually declare. -->
         <Style x:Key="ProjectCell" TargetType="DataGridCell"
                BasedOn="{StaticResource {x:Type DataGridCell}}">
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
             <Setter Property="Template">
@@ -160,8 +160,13 @@
         </Style>
         <!-- A trimmed cell keeps its full value in a tooltip: identity belongs in
              the tooltip and the accessible name, never in a side caption. -->
+        <!-- Centred, like its own header and like the client, user and inquiry
+             registers. The header said "PROJECT" in the middle of the column and
+             the value sat against the left edge, which reads as a misaligned
+             table rather than a deliberate one (owner, round 49). -->
         <Style x:Key="ProjectPlainCell" TargetType="TextBlock">
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="TextAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="{DynamicResource PaddingCompact}" />
@@ -390,7 +395,10 @@
                                 <TextBlock Text="INQUIRIES" Style="{StaticResource ProjectHeaderLabel}" />
                             </DataGridTextColumn.Header>
                         </DataGridTextColumn>
-                        <DataGridTextColumn Width="130" Binding="{Binding UpdatedText}"
+                        <!-- Auto, not 130: "yyyy-MM-dd HH:mm" is 16 mono characters
+                             (~125px) plus 16px of padding, so a fixed 130px column
+                             truncated every timestamp to "2026-10-28 09:…". -->
+                        <DataGridTextColumn Width="Auto" Binding="{Binding UpdatedText}"
                                             HeaderStyle="{StaticResource ProjectColumnHeaderLast}"
                                             ElementStyle="{StaticResource ProjectMonoCell}">
                             <DataGridTextColumn.Header>
@@ -463,7 +471,7 @@
                                 <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}" />
                             </DataGrid.Style>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Width="100" Binding="{Binding InquiryNumber}"
+                                <DataGridTextColumn Width="Auto" Binding="{Binding InquiryNumber}"
                                                     ElementStyle="{StaticResource ProjectMonoCell}">
                                     <DataGridTextColumn.Header>
                                         <TextBlock Text="NUMBER" Style="{StaticResource ProjectHeaderLabel}" />
@@ -475,7 +483,7 @@
                                         <TextBlock Text="CUSTOMER" Style="{StaticResource ProjectHeaderLabel}" />
                                     </DataGridTextColumn.Header>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Width="90" Binding="{Binding ReceivedText}"
+                                <DataGridTextColumn Width="Auto" Binding="{Binding ReceivedText}"
                                                     HeaderStyle="{StaticResource ProjectColumnHeaderLast}"
                                                     ElementStyle="{StaticResource ProjectMonoCell}">
                                     <DataGridTextColumn.Header>
@@ -513,7 +521,7 @@
                                 <Style TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}" />
                             </DataGrid.Style>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Width="100" Binding="{Binding InquiryNumber}"
+                                <DataGridTextColumn Width="Auto" Binding="{Binding InquiryNumber}"
                                                     ElementStyle="{StaticResource ProjectMonoCell}">
                                     <DataGridTextColumn.Header>
                                         <TextBlock Text="NUMBER" Style="{StaticResource ProjectHeaderLabel}" />
