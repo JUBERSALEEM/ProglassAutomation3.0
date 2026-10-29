@@ -405,15 +405,15 @@
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Inquiry" Binding="{Binding InquiryNumber}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}"
-                                                ElementStyle="{DynamicResource ListStrongText}" />
+                                                ElementStyle="{StaticResource ListStrongText}" />
                             <DataGridTextColumn Header="Project" Binding="{Binding Project}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Salesman" Binding="{Binding Salesman}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Prepared by" Binding="{Binding PreparedBy}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTemplateColumn CanUserSort="False">
                                 <DataGridTemplateColumn.Header>
                                     <TextBlock Text="Status" />
@@ -429,17 +429,17 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Value (AED)" Binding="{Binding ValueText}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <DataGridTextColumn Header="Received" Binding="{Binding ReceivedDateText}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <DataGridTextColumn Header="PI" Binding="{Binding ProformaCellText}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="JO" Binding="{Binding JobOrderCellText}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Files" Binding="{Binding AttachmentChipText}"
-                                                ElementStyle="{DynamicResource ListText}" CanUserSort="False" />
+                                                ElementStyle="{StaticResource ListText}" CanUserSort="False" />
                         </DataGrid.Columns>
                     </DataGrid>
                     <!-- Empty state -->

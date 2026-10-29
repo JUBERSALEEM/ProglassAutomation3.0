@@ -259,19 +259,19 @@
                     </DataGrid.RowStyle>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="NUMBER" Binding="{Binding ProjectNumber}"
-                                            ElementStyle="{DynamicResource ListMonoText}" />
+                                            ElementStyle="{StaticResource ListMonoText}" />
                         <DataGridTextColumn Header="PROJECT" Binding="{Binding ProjectName}"
-                                            ElementStyle="{DynamicResource ListStrongText}" />
+                                            ElementStyle="{StaticResource ListStrongText}" />
                         <DataGridTextColumn Header="CLIENT" Binding="{Binding ClientText}"
-                                            ElementStyle="{DynamicResource ListText}" />
+                                            ElementStyle="{StaticResource ListText}" />
                         <DataGridTextColumn Header="SITE" Binding="{Binding LocationText}"
-                                            ElementStyle="{DynamicResource ListText}" />
+                                            ElementStyle="{StaticResource ListText}" />
                         <DataGridTextColumn Header="STATUS" Binding="{Binding StatusText}"
-                                            ElementStyle="{DynamicResource ListText}" />
+                                            ElementStyle="{StaticResource ListText}" />
                         <DataGridTextColumn Header="INQUIRIES" Binding="{Binding LinkedInquiriesText}"
-                                            ElementStyle="{DynamicResource ListText}" />
+                                            ElementStyle="{StaticResource ListText}" />
                         <DataGridTextColumn Header="UPDATED" Binding="{Binding UpdatedText}"
-                                            ElementStyle="{DynamicResource ListMonoText}" />
+                                            ElementStyle="{StaticResource ListMonoText}" />
                     </DataGrid.Columns>
                 </DataGrid>
             </ContentControl>
@@ -330,11 +330,11 @@
                                   AutomationProperties.Name="Inquiries linked to this project">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="NUMBER" Binding="{Binding InquiryNumber}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                                 <DataGridTextColumn Header="CUSTOMER" Binding="{Binding CustomerName}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                                 <DataGridTextColumn Header="RECEIVED" Binding="{Binding ReceivedText}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -358,9 +358,9 @@
                                   AutomationProperties.Name="Inquiries not linked to a project">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="NUMBER" Binding="{Binding InquiryNumber}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                                 <DataGridTextColumn Header="CUSTOMER" Binding="{Binding CustomerName}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             </DataGrid.Columns>
                         </DataGrid>
 

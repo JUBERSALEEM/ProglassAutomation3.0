@@ -100,6 +100,10 @@ public static class ThemeContract
         ["ScrollBarSize"] = typeof(double),
         ["DisabledOpacity"] = typeof(double),
         ["PopupMaxHeight"] = typeof(double),
+        // The value bubble a register shows when a cell had to trim its text.
+        // Wide enough for a company name or a project title, narrow enough to
+        // stay a bubble rather than a sheet.
+        ["PopupMaxWidth"] = typeof(double),
         ["ReferenceListMaxHeight"] = typeof(double),
         ["StudioSidebarWidth"] = typeof(double),
         ["WindowInitialWidth"] = typeof(double),

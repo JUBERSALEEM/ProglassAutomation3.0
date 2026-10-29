@@ -49,6 +49,7 @@ REQUIRED = {
     "ListText": "TextBlock",
     "ListMonoText": "TextBlock",
     "ListStrongText": "TextBlock",
+    "ListBubble": "ToolTip",
 }
 
 packages = sorted(p for p in (ROOT / "Theme").glob("Theme*") if p.is_dir())
@@ -243,19 +244,55 @@ for path in views:
 check(registers >= 5,
       f"expected at least five registers across the modules, found {registers}")
 
-# ── 5. The tooltip is real ────────────────────────────────────────────────
+# ── 5. The tooltip is real, and it is a themed bubble ─────────────────────
 # A setter that names a behaviour nobody wrote is not an error in XAML: it is a
-# tooltip that never appears.
+# tooltip that never appears. Round 52 also found the reverse trap — an
+# `ElementStyle="{DynamicResource …}"` is not an error either, and does nothing,
+# because ElementStyle is a plain CLR property and DynamicResource can only drive
+# a DependencyProperty. That is why the cells stayed left-aligned on screen while
+# every source check passed. Both traps are now rules.
+for path in views:
+    name = path.relative_to(ROOT)
+    text = read(path)
+    check('ElementStyle="{DynamicResource' not in text,
+          f"{name}: ElementStyle is a plain CLR property on DataGridColumn, so a "
+          "DynamicResource there is silently ignored — the column keeps the default text "
+          "style and nothing about the pattern reaches the cell. Use StaticResource.")
+    for column in re.finditer(r"<DataGridTextColumn\b[^>]*ElementStyle=\"(\{StaticResource (\w+)\})\"", text):
+        check("List" in column.group(2),
+              f"{name}: a column's element style is {column.group(2)}, not one of the pattern's")
+
 behaviour = ROOT / "Theme/step1.g.Customization/step1.g.8.TruncatedTextToolTip.cs"
 check(behaviour.is_file(), "the truncation tooltip behaviour is gone")
 if behaviour.is_file():
     source = read(behaviour)
-    for part in ("EnabledProperty", "MouseEnter", "SizeChanged", "block.ToolTip = block.Text",
-                 "IsClipped", "FormattedText"):
+    for part in ("EnabledProperty", "MouseEnter", "SizeChanged", "IsClipped", "FormattedText",
+                 "block.ToolTip = Build(block)"):
         check(part in source, f"the truncation tooltip no longer {part!r} — it cannot measure the "
                               "text it would have to reveal")
     check("block.ActualWidth" in source,
           "the behaviour no longer compares the text against the width it was given")
+    check("BubbleStyleKey" in source and "TryFindResource(BubbleStyleKey)" in source,
+          "the tooltip is no longer built from the theme's bubble style, so it is drawn by the "
+          "system and ignores the theme")
+    check("Style = style" in source,
+          "the bubble is created without its theme style")
+
+for package in theme_definitions:
+    bubble = body(package, "ListBubble")
+    if not bubble:
+        check(False, f"{package}: the value bubble style is missing, so a clipped cell falls back "
+                     "to a system tooltip")
+        continue
+    check('Property="MaxWidth" Value="{DynamicResource PopupMaxWidth}"' in bubble,
+          f"{package}: the bubble has no width cap, so a long value becomes a strip")
+    check('TargetType="ToolTip"' in bubble and "ToolTip" in bubble,
+          f"{package}: the bubble does not target ToolTip")
+    check('Property="TextWrapping" Value="Wrap"' in bubble,
+          f"{package}: the bubble does not wrap, so the full value is clipped a second time")
+    check('Property="TextTrimming" Value="None"' in bubble,
+          f"{package}: the bubble inherits the cell's trimming and would clip the value it exists "
+          "to reveal")
 
 
 if PROBLEMS:

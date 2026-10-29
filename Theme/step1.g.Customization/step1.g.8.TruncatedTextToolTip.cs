@@ -7,22 +7,30 @@ using System.Windows.Media;
 namespace ProGlassAutomation.Customization;
 
 /// <summary>
-/// Shows the whole value in a tooltip when a cell could not show it.
+/// Shows the whole value in a themed bubble when a register cell could not.
 ///
-/// A register cell trims a long value with an ellipsis so one wide name cannot
-/// push every other column off the page. Trimming is a silent loss: the operator
-/// sees "Al Mansoori Contracting &amp; Fit…" and has no way to read the rest.
-/// WPF will not tell us whether a TextBlock trimmed its text, so this compares
-/// the measured width of the text against the width the block was given.
+/// A cell trims a long value with an ellipsis so one wide name cannot push every
+/// other column off the page. Trimming is a silent loss: the operator sees
+/// "Al Mansoori Contracting &amp; Fit…" and has no way to read the rest. WPF will
+/// not say whether a TextBlock trimmed, so this compares the measured width of
+/// the text against the width the block was given.
 ///
-/// The tooltip is evaluated twice, so it is already correct before the pointer
-/// arrives: once when the block settles its size (the usual case — a register
-/// lays out long before anyone hovers it) and again on mouse-enter, which covers
-/// a value that changed without changing the block's width. It is cleared on
-/// mouse-leave, so nothing lingers over a row that has scrolled.
+/// The bubble is the theme's own <c>ListBubble</c> style, not a bare string: a
+/// string tooltip is drawn by the system and ignores the theme, which on a dark
+/// package puts a pale grey box over a dark register. If a package ever stops
+/// providing the style, this falls back to the string rather than showing
+/// nothing.
+///
+/// It is evaluated twice, so the bubble is ready before the pointer arrives:
+/// when the block settles its size (the usual case — a register lays out long
+/// before anyone hovers it), and again on mouse-enter, which covers a value that
+/// changed without changing the block's width.
 /// </summary>
 public static class TruncatedTextToolTip
 {
+    /// <summary>The style every register bubble uses; defined by each theme package.</summary>
+    private const string BubbleStyleKey = "ListBubble";
+
     /// <summary>How long the full value stays on screen; the default is too short to read.</summary>
     private const int ShowDurationMilliseconds = 20000;
 
@@ -77,7 +85,12 @@ public static class TruncatedTextToolTip
         if (sender is TextBlock block) Evaluate(block);
     }
 
-    /// <summary>Keeps the tooltip present only while the value is actually clipped.</summary>
+    private static void OnMouseLeave(object sender, MouseEventArgs args)
+    {
+        if (sender is TextBlock block) block.ClearValue(FrameworkElement.ToolTipProperty);
+    }
+
+    /// <summary>Keeps the bubble present only while the value is actually clipped.</summary>
     private static void Evaluate(TextBlock block)
     {
         var available = block.ActualWidth - Padding(block);
@@ -87,14 +100,23 @@ public static class TruncatedTextToolTip
             return;
         }
 
-        block.ToolTip = block.Text;
+        block.ToolTip = Build(block);
         ToolTipService.SetShowDuration(block, ShowDurationMilliseconds);
         ToolTipService.SetBetweenShowDelay(block, 0);
     }
 
-    private static void OnMouseLeave(object sender, MouseEventArgs args)
+    /// <summary>The themed bubble, or the plain string if a package has no style.</summary>
+    private static object Build(TextBlock block)
     {
-        if (sender is TextBlock block) block.ClearValue(FrameworkElement.ToolTipProperty);
+        if (block.TryFindResource(BubbleStyleKey) is not Style style) return block.Text;
+
+        return new ToolTip
+        {
+            Style = style,
+            Content = block.Text,
+            PlacementTarget = block,
+            StaysOpen = false,
+        };
     }
 
     private static double Padding(TextBlock block) =>
@@ -120,8 +142,8 @@ public static class TruncatedTextToolTip
             Brushes.Black,
             VisualTreeHelper.GetDpi(block).PixelsPerDip);
 
-        // Wrapped text is not clipped by width, it is clipped by height, and the
-        // register never wraps, so unwrapped measurement is the right comparison.
+        // The register never wraps, so the unwrapped width is the comparison that
+        // matters: a value that fits on one line is not clipped.
         return formatted.WidthIncludingTrailingWhitespace;
     }
 }

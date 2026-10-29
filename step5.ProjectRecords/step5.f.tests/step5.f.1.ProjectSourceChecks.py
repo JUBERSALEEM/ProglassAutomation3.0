@@ -600,9 +600,13 @@ for binding, style in (("ProjectNumber", "ListMonoText"), ("ProjectName", "ListS
     column = re.search(rf'<DataGridTextColumn[^>]*Binding="{{Binding {binding}}}"[^>]*', view_src)
     check(column is not None, f"step5.d.1: the {binding} column is gone")
     if column is not None:
-        check(f'ElementStyle="{{DynamicResource {style}}}"' in column.group(0),
-              f"step5.d.1: {binding} does not use {style}, so its cell is not centred, not trimmed "
-              "and shows no tooltip")
+        # StaticResource, not DynamicResource: ElementStyle is a plain CLR property
+        # on DataGridColumn, so a DynamicResource there is silently ignored and the
+        # column keeps the default left-aligned, untrimmed TextBlock. That is
+        # exactly what the owner saw on screen in round 52.
+        check(f'ElementStyle="{{StaticResource {style}}}"' in column.group(0),
+              f"step5.d.1: {binding} does not use {style} through a StaticResource, so its cell is "
+              "not centred, not trimmed and shows no tooltip")
 
 # 22 ── No column carries a hand-typed width ────────────────────────────
 # The pattern gives every column an equal share (ColumnWidth="*"), so a value is

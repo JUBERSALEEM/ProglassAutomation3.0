@@ -361,17 +361,17 @@
                               KeyDown="OnGridKeyDown">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Client" Binding="{Binding ClientName}"
-                                                ElementStyle="{DynamicResource ListStrongText}" />
+                                                ElementStyle="{StaticResource ListStrongText}" />
                             <DataGridTextColumn Header="Attention" Binding="{Binding AttentionName}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Representative" Binding="{Binding RepresentativeText}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Phone" Binding="{Binding Phone}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <DataGridTextColumn Header="E-mail" Binding="{Binding Email}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="TRN" Binding="{Binding Trn}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <DataGridTemplateColumn CanUserSort="False">
                                 <DataGridTemplateColumn.Header>
                                     <TextBlock Text="Status" />
@@ -389,7 +389,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <!-- Row menu. One trigger per row instead of three
                                  icons: fifteen rows of pencil/cross/dots read as
                                  noise. The menu is a themed ContextMenu, and the

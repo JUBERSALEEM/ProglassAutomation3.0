@@ -9,6 +9,14 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 52: the cells were not centred because the markup could not work
+- **The owner's screenshot:** header band bold, centred and ruled; no body grid lines; equal columns — and every value still hard against the left edge, with no hover bubble.
+- **Cause:** `DataGridColumn.ElementStyle` is a plain CLR property, not a DependencyProperty, so `{DynamicResource …}` on it is accepted and ignored. `Style` on the DataGrid *is* a DependencyProperty, which is exactly why the half that worked worked. Fixed to `StaticResource`; a theme switch still repaints because the style's setters are DynamicResource tokens.
+- **The bubble:** a clipped value now opens `ListBubble` — a themed `ToolTip` (elevated surface, hairline border, control radius, wrapped text capped at the new `PopupMaxWidth` token). A bare string tooltip is system-drawn and ignores the theme, so the behaviour builds the styled bubble and falls back to the string only if a package loses the style.
+- **Gate:** `step1.d.20` now requires `StaticResource` on `ElementStyle`, forbids `DynamicResource` there, and checks the bubble in all nine packages. **12 mutations tested, 12 caught**, including the exact round-51 defect.
+- **16/16 checkers PASS.** Still not run: the build and the rendering — but this defect was visible in the XAML, and the rule that catches it reads the markup form, not the intent.
+
+---
 ## 2026-10-29 — Round 51: one list pattern for every module, and the five copies deleted
 - **The pattern is now defined once per theme and named by the page.** Six keys — `ListGrid`, `ListColumnHeader`, `ListCell`, `ListText`, `ListMonoText`, `ListStrongText` — replace the five per-module copies of the same grid chrome. A list page writes the style on the grid, `Header="…"` per column and `ElementStyle` per text column: three attributes instead of forty lines.
 - **The heading band is bold, centred and ruled**; **the body has no grid lines, is centred and evenly spaced** — the owner's two rules, in every one of the nine themes rather than in one page.

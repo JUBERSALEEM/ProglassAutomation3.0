@@ -254,13 +254,13 @@
                               MouseDoubleClick="OnRowDoubleClick">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Reference" Binding="{Binding Reference}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <DataGridTextColumn Header="Company" Binding="{Binding Company}"
-                                                ElementStyle="{DynamicResource ListStrongText}" />
+                                                ElementStyle="{StaticResource ListStrongText}" />
                             <DataGridTextColumn Header="Project" Binding="{Binding Project}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Prepared by" Binding="{Binding Estimator}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTemplateColumn CanUserSort="False">
                                 <DataGridTemplateColumn.Header>
                                     <TextBlock Text="Files" />
@@ -276,7 +276,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Received" Binding="{Binding ReceivedText}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTemplateColumn CanUserSort="False">
                                 <DataGridTemplateColumn.Header>
                                     <TextBlock Text="State" />
@@ -296,7 +296,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Local inquiry" Binding="{Binding LocalNumber}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                         </DataGrid.Columns>
                     </DataGrid>
                     <!-- Empty state -->

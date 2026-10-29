@@ -522,9 +522,12 @@ def require_register_alignment():
           "the register does not use the shared register style, so it has no ruled header band, "
           "no centred body and no equal-width columns")
     for style in ("ListText", "ListMonoText", "ListStrongText"):
-        check(f'ElementStyle="{{DynamicResource {style}}}"' in view,
-              f"the register has no column using {style}, so part of the table is not following "
-              "the pattern")
+        # StaticResource: ElementStyle is a plain CLR property on DataGridColumn, so
+        # a DynamicResource there is silently ignored — the column keeps the default
+        # left-aligned, untrimmed TextBlock, which is exactly what the owner saw.
+        check(f'ElementStyle="{{StaticResource {style}}}"' in view,
+              f"the register has no column using {style} through a StaticResource, so part of the "
+              "table is not following the pattern")
 
 
 def require_command_bar():

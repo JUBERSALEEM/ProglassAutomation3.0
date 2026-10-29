@@ -63,6 +63,7 @@
   <sys:Double x:Key="ScrollBarSize">14</sys:Double>
   <sys:Double x:Key="DisabledOpacity">0.55</sys:Double>
   <sys:Double x:Key="PopupMaxHeight">280</sys:Double>
+  <sys:Double x:Key="PopupMaxWidth">420</sys:Double>
   <sys:Double x:Key="StudioSidebarWidth">300</sys:Double>
   <sys:Double x:Key="ReferenceListMaxHeight">320</sys:Double>
   <sys:Double x:Key="WindowInitialWidth">1280</sys:Double>

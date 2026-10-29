@@ -525,13 +525,13 @@
                               KeyDown="OnGridKeyDown">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Binding="{Binding FullName}"
-                                                ElementStyle="{DynamicResource ListStrongText}" />
+                                                ElementStyle="{StaticResource ListStrongText}" />
                             <DataGridTextColumn Header="Username" Binding="{Binding Username}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <DataGridTextColumn Header="Department" Binding="{Binding DepartmentText}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTextColumn Header="Role" Binding="{Binding RoleText}"
-                                                ElementStyle="{DynamicResource ListText}" />
+                                                ElementStyle="{StaticResource ListText}" />
                             <DataGridTemplateColumn CanUserSort="False">
                                 <DataGridTemplateColumn.Header>
                                     <TextBlock Text="Status" />
@@ -549,7 +549,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}"
-                                                ElementStyle="{DynamicResource ListMonoText}" />
+                                                ElementStyle="{StaticResource ListMonoText}" />
                             <!-- One trigger per row instead of three icons: twenty
                                  rows of pencil/cross/dots read as noise. -->
                             <DataGridTemplateColumn CanUserSort="False">

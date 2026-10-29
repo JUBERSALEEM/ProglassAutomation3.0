@@ -205,6 +205,52 @@
 
  <!-- A register value: centred, trimmed when it does not fit, and one hover
       away from its full text. -->
+
+ <!-- The value bubble: what a register shows when a cell had to trim its text.
+      It is a ToolTip, so it is opened by the tooltip service and needs no code
+      to place or dismiss, but it is styled here rather than left to Windows:
+      default tooltips are system-drawn and ignore the theme entirely, which on a
+      dark package puts a light grey box over a dark register.
+
+      Width is capped by PopupMaxWidth and the text wraps, so a long client name
+      becomes two readable lines instead of a strip as wide as the screen. -->
+ <Style x:Key="ListBubble" TargetType="ToolTip">
+  <Setter Property="Background" Value="{DynamicResource SurfaceElevated}" />
+  <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+  <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+  <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+  <Setter Property="MaxWidth" Value="{DynamicResource PopupMaxWidth}" />
+  <Setter Property="HasDropShadow" Value="True" />
+  <Setter Property="Placement" Value="Bottom" />
+  <Setter Property="HorizontalOffset" Value="0" />
+  <Setter Property="VerticalOffset" Value="0" />
+  <Setter Property="Template">
+   <Setter.Value>
+    <ControlTemplate TargetType="ToolTip">
+     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource ControlCornerRadius}"
+             Padding="{TemplateBinding Padding}" MaxWidth="{TemplateBinding MaxWidth}" SnapsToDevicePixels="True">
+      <ContentPresenter>
+       <ContentPresenter.Resources>
+        <!-- The bubble's own text: body size, normal weight, wrapped. The cell's
+             centred-and-trimmed style must not leak into the popup, or the full
+             value would itself be trimmed at the bubble's edge. -->
+        <Style TargetType="TextBlock">
+         <Setter Property="TextWrapping" Value="Wrap" />
+         <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+         <Setter Property="FontWeight" Value="{DynamicResource FontWeightBody}" />
+         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+         <Setter Property="TextTrimming" Value="None" />
+         <Setter Property="TextAlignment" Value="Left" />
+        </Style>
+       </ContentPresenter.Resources>
+      </ContentPresenter>
+     </Border>
+    </ControlTemplate>
+   </Setter.Value>
+  </Setter>
+ </Style>
  <Style x:Key="ListText" TargetType="TextBlock">
   <Setter Property="TextAlignment" Value="Center" />
   <Setter Property="HorizontalAlignment" Value="Stretch" />
