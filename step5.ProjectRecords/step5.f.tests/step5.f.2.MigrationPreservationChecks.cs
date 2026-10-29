@@ -28,6 +28,7 @@
 //   dotnet run -- "D:\G1\working-copy\inquiries.db"
 //   dotnet run -- "D:\G1\working-copy\inquiries.db" --rewind-1017
 //   dotnet run -- --describe "D:\G1\frozen\inquiries.db"      (read-only report)
+//   dotnet run -- --behaviour        (the module's behaviour checks, step5.f.4)
 //
 // `--describe` never opens the file you name: it copies it to the temp folder,
 // reads the copy, and deletes the copy. It exists so an existing backup can be
@@ -59,6 +60,12 @@ internal static class MigrationPreservationChecks
 
     public static int Main(string[] args)
     {
+        // One executable, two jobs: the behaviour checks (G1-08) live in
+        // step5.f.4 and are reached by a switch, so the module keeps a single
+        // project and a single entry point like every other module's.
+        if (args.Length > 0 && string.Equals(args[0], "--behaviour", StringComparison.OrdinalIgnoreCase))
+            return ProjectBehaviourChecks.Run();
+
         Console.WriteLine("G1 — migration preservation check");
         Console.WriteLine("=================================");
         if (args.Length == 0)

@@ -618,6 +618,84 @@ check(not widths,
       f"step5.d.1: {sorted(set(widths))} — a column still sets its own width, which overrides the "
       'shared equal-width rule; drop the attribute and let ListGrid size the column')
 
+# 23 ── The behaviour checks exist, and they cover what docs/12 requires ──
+# G1-08: step5 was the only foundation module with no behaviour tests, and it is
+# the module that writes into another module's table. These rules keep the
+# coverage from quietly disappearing — a deleted check is a lost test, not a
+# passing one.
+TESTS = MODULE / "step5.f.tests"
+BEHAVIOUR = sorted(TESTS.glob("step5.f.*.ProjectBehaviourChecks*.cs"))
+behaviour_text = ""
+for path in BEHAVIOUR:
+    if not path.is_file():
+        failures.append(f"step5.f.1: {path.name} is missing; the behaviour checks (G1-08) are gone")
+    else:
+        behaviour_text += read(path)
+
+check(len(BEHAVIOUR) >= 3,
+      f"step5.f.1: only {len(BEHAVIOUR)} behaviour-check file(s) found; the suite was split into "
+      "three so none of them breaks the 400-line rule, and a file that loses its name stops being "
+      "compiled into the suite")
+
+if behaviour_text:
+    # Whole statements, not symbol names: a check that only greps for
+    # `ReadRow(` is satisfied by the helper's own definition, so deleting the
+    # comparison would be "passing". Each anchor below is the assertion itself.
+    for required, why in (
+        ('Equal("PRJ-0004", ProjectRules.NextNumber(new[] { "PRJ-0001", "PRJ-0003" })',
+         "the 'a gap is never filled' assertion is gone, so numbering is only claimed, not tested"),
+        ('Equal("PRJ-10000", ProjectRules.NextNumber(new[] { "PRJ-9999" })',
+         "the past-the-padding assertion is gone"),
+        ('True(!ProjectRules.IsValidNumber("PRJ-001")',
+         "the number-shape refusal is no longer asserted"),
+        ('Equal(chainTip, QueryLong("PRAGMA user_version;")',
+         "the chain tip is no longer compared with the stored user_version on an isolated database"),
+        # ...and it must be derived, not written as a literal: step1.d.6 enforces
+        # that rule application-wide because a pinned number fails on the day the
+        # next migration lands.
+        ('AppSchemaMigrations.Inquiries', "the tip is no longer derived from the migration chain"),
+        ('reloaded != null', "the restart/reload assertion is gone"),
+        ('duplicate.Message.Contains("number"', "the duplicate-number refusal is no longer checked"),
+        ('Dictionary<string, string> before = ReadRow(first);',
+         "the whole-row baseline was removed; 'one column changed' would then be a claim"),
+        ('Equal("41", after["CustomerId"]', "the legacy CustomerId placeholder is no longer compared"),
+        ('Equal("42", after["ProjectId"]', "the legacy ProjectId placeholder is no longer compared"),
+        ('True(!twice.Succeeded', "attaching the same inquiry twice is no longer asserted to fail"),
+        ('Equal("<null>", ReadRow(first)[ProjectSchema.InquiryProjectColumn]',
+         "the detach assertion is gone, so 'detach clears the link' is not tested"),
+        ('True(!repository.DetachInquiryAsync(first)', "the double-detach refusal is no longer asserted"),
+        (r'Execute("UPDATE \"Clients\" SET \"IsActive\" = 0 WHERE \"Id\" = ',
+         "client deactivation is no longer performed, so the reference check proves nothing"),
+        (r'QueryLong("SELECT \"ClientId\" FROM \"Projects\" WHERE \"Id\" = ',
+         "the project's client reference is no longer read back after deactivation"),
+        ('repositorySource.Contains("DELETE FROM"', "the no-DELETE rule is no longer asserted"),
+    ):
+        check(required in behaviour_text,
+              f"step5.f behaviour checks: {why} ({required} not found)")
+
+    # The row comparison must exclude exactly the link column and nothing else.
+    check('!string.Equals(key, ProjectSchema.InquiryProjectColumn' in behaviour_text,
+          "step5.f behaviour checks: the whole-row comparison no longer excludes the link column, "
+          "so it would fail on the one change it expects")
+
+    # A check that exists but is never invoked is not a test — it is a method.
+    # The duplicate-number case proved it: deleting one Run(...) line left every
+    # assertion in place and the suite still "passed".
+    declared = set(re.findall(r"private static void (Check\w+)\(\)", behaviour_text))
+    invoked = set(re.findall(r"Run\(\"[^\"]*\", (Check\w+)\)", behaviour_text))
+    check(declared, "step5.f behaviour checks: no Check* method is declared any more")
+    for missing in sorted(declared - invoked):
+        check(False,
+              f"step5.f behaviour checks: {missing} is declared but never invoked from Run(), so it "
+              "never executes and reports nothing")
+
+# The single entry point must reach them, or they never run.
+HARNESS = TESTS / "step5.f.2.MigrationPreservationChecks.cs"
+harness_text = read(HARNESS)
+check('"--behaviour"' in harness_text and "ProjectBehaviourChecks.Run()" in harness_text,
+      "step5.f.2: the --behaviour switch no longer dispatches to the behaviour checks, so the "
+      "module's tests cannot be executed at all")
+
 if failures:
     print(f"step5.f.1: {len(failures)} failure(s).")
     for failure in failures:
