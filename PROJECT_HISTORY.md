@@ -9,6 +9,15 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 57b: "the script does not exist" was a branch, not a file
+- **Reported:** `tools\Verify-Migration1017.ps1` not found.
+- **Investigated instead of guessing:** the file has been tracked since `46451ce` and is present on the remote (`git ls-tree`, GitHub contents API: 6225 bytes). It exists on **one** of the repository's three remote branches.
+- **Cause:** the repository's default branch is `ThemeStudio-9` — so a plain `git clone` checks out a tree that has no `tools\` and no `step5.f` at all. Reproduced with a fresh clone: `default branch: ThemeStudio-9`, `ls tools` → no such directory.
+- **Fix in the procedure:** docs/18 §3a now states which branch contains the procedure and gives a `git worktree add` recipe that produces a second checkout **without switching, stashing or disturbing** the branch the owner works in; the command uses `$PWD` so a relative path cannot be resolved against the wrong folder.
+- **Fix in the script:** it now prints the repository folder, branch and commit as step 0 (so the log records what was actually run), and if the verification project is missing it says the checkout is on the wrong branch instead of "project not found".
+- **Not claimed:** the migration is still **NOT RUN**; nothing in this round changed that.
+
+---
 ## 2026-10-29 — Round 57: migration-preservation harness — and an honest NOT RUN
 - **Asked:** prove the chain, including 1017, preserves Inquiry data, without touching the production file.
 - **Delivered:** [`docs/18.Migration-Preservation-Report.md`](docs/18.Migration-Preservation-Report.md), `tools/Verify-Migration1017.ps1` (one command), and `step5.f` — a new verification project whose `step5.f.2` runs the application's **own** `SchemaMigrationRunner` against a working copy and prints a PASS/FAIL line per required check.

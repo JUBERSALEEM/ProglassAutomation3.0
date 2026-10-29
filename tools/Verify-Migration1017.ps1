@@ -22,7 +22,10 @@
   powershell -ExecutionPolicy Bypass -File tools\Verify-Migration1017.ps1 -Destination D:\G1
 
 .NOTES
-  Requires the .NET 8 SDK on the machine that runs it.
+  Requires the .NET 8 SDK on the machine that runs it, and a checkout of the
+  branch that contains it (arena/81baffde-proglassautomation3-0). A clone of
+  this repository's default branch does NOT contain tools\ or step5.f — see
+  docs/18, "Which checkout to run it from".
 #>
 
 [CmdletBinding()]
@@ -43,6 +46,15 @@ function Write-Step { param([string] $Text) Write-Host "`n== $Text" -ForegroundC
 function Write-Ok   { param([string] $Text) Write-Host "   OK   $Text" -ForegroundColor Green }
 function Write-Warn { param([string] $Text) Write-Host "   WARN $Text" -ForegroundColor Yellow }
 function Fail       { param([string] $Text) Write-Host "`nSTOPPED: $Text" -ForegroundColor Red; exit 2 }
+
+Write-Step '0. Which checkout is this?'
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+Write-Ok  "repository folder: $repoRoot"
+try {
+    $gitBranch = & git -C $repoRoot rev-parse --abbrev-ref HEAD 2>$null
+    $gitCommit = & git -C $repoRoot rev-parse --short HEAD 2>$null
+    if ($LASTEXITCODE -eq 0 -and $gitBranch) { Write-Ok "branch $gitBranch at commit $gitCommit" }
+} catch { Write-Warn 'git is not available here; the branch name is not recorded in this log' }
 
 Write-Step '1. Locate the production database (read only)'
 $productionFolder = Join-Path $env:APPDATA 'ProGlassAutomation'
@@ -100,7 +112,12 @@ Write-Ok 'archive and working copy are byte-identical to the production file'
 Write-Step '5. Run the application''s migration runner against the WORKING copy only'
 $project = Join-Path $PSScriptRoot '..\step5.ProjectRecords\step5.f.tests\step5.f.ProjectTests.csproj'
 $project = [System.IO.Path]::GetFullPath($project)
-if (-not (Test-Path -LiteralPath $project)) { Fail "verification project not found: $project" }
+if (-not (Test-Path -LiteralPath $project)) {
+    Fail ("the verification program is not in this checkout: $project`n" +
+          "         It lives on branch arena/81baffde-proglassautomation3-0. A clone of the`n" +
+          "         default branch does not contain it. docs/18 section 3 shows how to get a`n" +
+          "         second checkout without touching the one you are working in.")
+}
 
 $arguments = @('run', '--project', $project, '--configuration', 'Release', '--', $workingFile)
 if ($Rewind) { $arguments += '--rewind-1017' }
