@@ -9,6 +9,17 @@
 > [`docs/11.Business-Module-Roadmap.md`](docs/11.Business-Module-Roadmap.md).
 
 ---
+## 2026-10-29 — Round 58: the rewind audited against 1017 itself; still NOT RUN
+- **Context:** the 17:21 run reported `NOT RUN` because the copy was already at `user_version = 1017`. The runner had nothing to do, and a no-op is not evidence.
+- **Rewind audited, not assumed.** 1017 creates eight objects: the `Projects` table, three of its indexes, `Inquiries.ClientId`, `Inquiries.ProjectRecordId` and their two indexes. `Rewind1017` drops the four indexes, the table (which takes `IX_Projects_Number` with it), both columns, then sets `user_version` to 1016 — and refuses outright if any project row or linked inquiry exists.
+- **The rewind's claim is now enforced, not documented.** `step1.d.22` parses 1017's own source for the columns and indexes it creates and fails if the rewind does not drop them; the harness compares the rewound schema with the at-1017 schema object by object (tables, indexes, column list, version); and a rewind may leave exactly one migration pending. 9 mutations, 9 caught.
+- **The guarantees are exercised.** After the real migration the harness appends a migration at 1018 that deliberately throws. It must be reported as failed, leave every value and `user_version` untouched, and still have produced a backup. That turns "the runner is transactional" from a reading into a demonstration.
+- **New checks:** `PRAGMA integrity_check` as well as `quick_check`; `foreign_key_check`; unchanged FK count on `Inquiries`; every index 1017 creates, by name; zero project rows created; version and actual schema agree.
+- **New inputs:** `-SourceFile` lets the script rebuild a test from an existing frozen copy (production is still never opened), and `--describe` identifies any database copy without opening it — it copies to `%TEMP%`, reads the copy, deletes it.
+- **Status: NOT RUN.** The migration still has not executed against a real pre-1017 copy. `docs/18` says so in its second line and lists, per check, which claim rests on the code and which still needs the run.
+- **Not claimed:** nothing about this database's data; one inquiry row would not support a broad legacy claim even once it passes.
+
+---
 ## 2026-10-29 — Round 57b: "the script does not exist" was a branch, not a file
 - **Reported:** `tools\Verify-Migration1017.ps1` not found.
 - **Investigated instead of guessing:** the file has been tracked since `46451ce` and is present on the remote (`git ls-tree`, GitHub contents API: 6225 bytes). It exists on **one** of the repository's three remote branches.
