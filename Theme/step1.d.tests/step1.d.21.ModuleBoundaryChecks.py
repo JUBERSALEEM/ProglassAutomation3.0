@@ -13,7 +13,8 @@ being written down somewhere:
    edit to this file.
 
 2. **`Inquiries` is written only by the Inquiry module and by the one approved
-   link file.** That was the narrowest part of the review and it is worth a rule of
+   link file.** `step6` links a quotation by CALLING the Inquiry module's own
+   method, so it writes nothing here; the scan below proves it. That was the narrowest part of the review and it is worth a rule of
    its own: a second writer would silently undo the guarantee that linking a
    project touches exactly one column.
 
@@ -60,7 +61,8 @@ PERMITTED_USER_ACCESS = {
 
 user_access = {}
 for path in sources("step2.ClientManagement", "step3.UserManagement",
-                    "step4.CompanyProfile", "step5.ProjectRecords"):
+                    "step4.CompanyProfile", "step5.ProjectRecords",
+                    "step6.ProformaInvoice"):
     relative = path.relative_to(ROOT).as_posix()
     text = read(path)
     # A DbContext of another module, or raw SQL into its table.
@@ -104,8 +106,8 @@ def inquiry_writes(text):
     """Every statement in the file that writes the inquiry table."""
     return INQUIRY_WRITE.findall(text)
 for path in sources("step2.ClientManagement", "step3.UserManagement",
-                    "step4.CompanyProfile", "step5.ProjectRecords", "step1.ThemeStudio",
-                    "Inquiry"):
+                    "step4.CompanyProfile", "step5.ProjectRecords",
+                    "step6.ProformaInvoice", "step1.ThemeStudio", "Inquiry"):
     relative = path.relative_to(ROOT).as_posix()
     if relative.startswith("Inquiry/"):
         continue                      # the owner of the inquiry table

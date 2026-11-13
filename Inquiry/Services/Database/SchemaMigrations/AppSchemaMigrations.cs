@@ -19,6 +19,7 @@
 using Microsoft.Data.Sqlite;
 using ProGlassAutomation.Services.Clients;
 using ProGlassAutomation.Services.Company;
+using ProGlassAutomation.Services.Proforma;
 using ProGlassAutomation.Services.Projects;
 using ProGlassAutomation.Services.Users;
 using System;
@@ -234,7 +235,18 @@ namespace ProGlassAutomation.Services.Database.SchemaMigrations
             new(ProjectSchema.MigrationVersion,
                 "Projects: project records and the inquiry link (step5)",
                 connection => ProjectSchema.Ensure(connection),
-                connection => ProjectSchema.AssertShape(connection))
+                connection => ProjectSchema.AssertShape(connection)),
+            // ── step6 Proforma Invoice (owner-authorized 2026-11-13) ─────
+            // Two new tables on this same chain and nothing else: the invoice
+            // register and its attachment rows. No existing table, column,
+            // index or row is touched, and no seed row is created, so an
+            // installation that never quotes is unchanged. The unique index on
+            // ProformaNumber is what makes "one PI-2026-001" a database fact
+            // rather than a convention.
+            new(ProformaInvoiceSchema.MigrationVersion,
+                "ProformaInvoices: proforma invoice register and attachments (step6)",
+                connection => ProformaInvoiceSchema.Ensure(connection),
+                connection => ProformaInvoiceSchema.AssertShape(connection))
         };
 
         /// <summary>

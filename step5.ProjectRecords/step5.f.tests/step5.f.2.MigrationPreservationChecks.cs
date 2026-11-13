@@ -168,9 +168,20 @@ internal static class MigrationPreservationChecks
 
             pending = AppSchemaMigrations.Inquiries
                 .Where(m => m.Version > before.Version).OrderBy(m => m.Version).ToList();
-            Check("exactly migration 1017 is now pending (nothing was skipped)",
-                pending.Count == 1 && pending[0].Version == ProjectSchema.MigrationVersion,
-                "pending: " + (pending.Count == 0 ? "none" : string.Join(", ", pending.Select(m => m.Version))));
+            // 1017 must be the FIRST thing the runner applies after the rewind. Later
+            // migrations registered after 1017 (currently 1018, the proforma tables)
+            // legitimately remain pending behind it; what must not happen is a gap
+            // below 1017, which would mean the rewind skipped part of the chain.
+            var expectedAfterRewind = AppSchemaMigrations.Inquiries
+                .Where(m => m.Version >= ProjectSchema.MigrationVersion)
+                .OrderBy(m => m.Version)
+                .Select(m => m.Version)
+                .ToList();
+            Check("migration 1017 is the first migration pending after the rewind " +
+                  "(nothing below it was skipped)",
+                pending.Select(m => m.Version).SequenceEqual(expectedAfterRewind),
+                "pending: " + (pending.Count == 0 ? "none" : string.Join(", ", pending.Select(m => m.Version))) +
+                "; expected: " + string.Join(", ", expectedAfterRewind));
         }
 
         // The runner makes its own backup under <copy folder>\MigrationBackups;

@@ -12,9 +12,11 @@ that the code contains no statement capable of destroying it. Both are recorded 
 
 Rules:
 
-1. One chain, versions unique and increasing, tip is 1017.
+1. One chain, versions unique and increasing, tip is 1018.
 2. Migration 1017 (ProjectSchema.Ensure) only creates: no DROP, no DELETE, no
    UPDATE, no INSERT. It adds columns, creates a table and creates indexes.
+   Migration 1018 (ProformaInvoiceSchema.Ensure) creates two tables and their
+   indexes and does not alter, drop, rename or seed anything at all.
 3. The two link columns are nullable with no default, so every existing row keeps
    NULL and nothing is back-filled.
 4. 1017 verifies the legacy placeholders still exist (CustomerId, ProjectId),
@@ -41,6 +43,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MIGRATIONS = ROOT / "Inquiry/Services/Database/SchemaMigrations/AppSchemaMigrations.cs"
 RUNNER = ROOT / "Inquiry/Services/Database/SchemaMigrations/SchemaMigrationRunner.cs"
 PROJECT_SCHEMA = ROOT / "step5.ProjectRecords/step5.b.1.ProjectSchema.cs"
+PROFORMA_SCHEMA = ROOT / "step6.ProformaInvoice/step6.b.1.ProformaInvoiceSchema.cs"
 CHECKER = ROOT / "step5.ProjectRecords/step5.f.tests/step5.f.2.MigrationPreservationChecks.cs"
 SNAPSHOT = ROOT / "step5.ProjectRecords/step5.f.tests/step5.f.3.DatabaseSnapshot.cs"
 SCRIPT = ROOT / "tools/Verify-Migration1017.ps1"
@@ -162,6 +165,7 @@ for path in sorted(ROOT.glob("step*/*.cs")) + sorted(ROOT.glob("step*/**/*.cs"))
     if found:
         declared[path.name] = int(found.group(1))
 check(1017 in declared.values(), f"step5's migration 1017 is not declared (found {sorted(declared.values())})")
+check(1018 in declared.values(), f"step6's migration 1018 is not declared (found {sorted(declared.values())})")
 # Every version a module declares must appear in the registry, or the module's
 # table is created by nobody and the failure surfaces at first use, not at build.
 chain_text = chain
@@ -175,9 +179,9 @@ for where, version in sorted(declared.items(), key=lambda item: item[1]):
               f"{where} declares migration {version} but the registry does not apply it")
 
 tip = max(versions + list(declared.values()))
-check(tip == 1017,
-      f"the chain tip is {tip}, not 1017; the G1 report describes 1017 and must be updated "
-      "with the chain")
+check(tip == 1018,
+      f"the chain tip is {tip}, not 1018; docs/17 and the module record describe the chain and "
+      "must be updated with it")
 total_steps = len(versions) + len(declared) - (1 if 1017 in declared.values() else 0)
 
 # ── 2. Migration 1017 is additive ─────────────────────────────────────────
@@ -204,6 +208,30 @@ for legacy in ("CustomerId", "ProjectId"):
           f"1017 no longer asserts that the legacy placeholder {legacy} still exists. That "
           "assertion is what stops the migration running on a database whose placeholders were "
           "dropped, and it is the evidence that they are untouched")
+
+# ── 4b. Migration 1018 (proforma invoices) is additive and creates its tables ──
+check(PROFORMA_SCHEMA.is_file(),
+      "step6's schema file is missing, so migration 1018 is not implemented")
+if PROFORMA_SCHEMA.is_file():
+    proforma = without_comments(read(PROFORMA_SCHEMA))
+    proforma_ensure = proforma[:proforma.index("AssertShape")]
+    # ON DELETE CASCADE is part of the attachment table's own foreign key, not a
+    # statement that deletes anything; remove it before scanning for writes.
+    scan = proforma_ensure.replace("ON DELETE CASCADE", "")
+    for forbidden in ("DROP", "DELETE", "UPDATE ", "INSERT INTO", "RENAME", "AddColumnIfMissing"):
+        check(forbidden not in scan,
+              f"ProformaInvoiceSchema.Ensure contains {forbidden.strip()} — 1018 must only create "
+              "its two tables and their indexes. No existing table, column or row may be touched")
+    check(proforma_ensure.count("CREATE TABLE IF NOT EXISTS") == 2,
+          "1018 no longer creates exactly two tables idempotently (invoice + attachments)")
+    check(len(re.findall(r"CREATE (?:UNIQUE )?INDEX IF NOT EXISTS", proforma_ensure)) >= 8,
+          "1018 no longer creates its indexes idempotently")
+    check("CREATE UNIQUE INDEX IF NOT EXISTS" in proforma_ensure and "ProformaNumber" in proforma_ensure,
+          "1018 no longer makes the invoice number unique — two documents could share PI-2026-001")
+    check("new(ProformaInvoiceSchema.MigrationVersion" in chain,
+          "step6 declares migration 1018 but the registry never applies it")
+    check("ProformaInvoiceStatus.All" in read(PROFORMA_SCHEMA) or "StatusValuesSql" in read(PROFORMA_SCHEMA),
+          "1018 no longer constrains the stored status to the module's vocabulary")
 
 # ── 5. The runner's guards, in order ──────────────────────────────────────
 runner = without_comments(read(RUNNER))
@@ -282,9 +310,10 @@ check("expectedIndexes.SequenceEqual(rewound.Indexes" in tool,
       "the harness no longer compares the index set after the rewind")
 check("expectedColumns.SequenceEqual(rewound.InquiryColumns" in tool,
       "the harness no longer compares the Inquiries column set after the rewind")
-check('"exactly migration 1017 is now pending (nothing was skipped)"' in tool,
-      "the harness no longer proves that only 1017 was pending after the rewind — a rewind that "
-      "skipped earlier migrations would test the wrong upgrade")
+check('"migration 1017 is the first migration pending after the rewind "' in tool
+      and "nothing below it was skipped" in tool,
+      "the harness no longer proves that 1017 comes first after the rewind — a rewind that skipped "
+      "earlier migrations would test the wrong upgrade")
 
 # ── 8. Backup and transaction guarantees are exercised, not quoted ────────
 check("chainTip + 1" in tool and "deliberately fails" in tool,
@@ -368,10 +397,11 @@ if PROBLEMS:
         print("  FAIL: " + problem)
     sys.exit(1)
 
-print(f"PASS: one chain, tip 1017 across 17 versions (10 literal + 7 declared constants); "
+print(f"PASS: one chain, tip 1018 across 18 versions (10 literal + 8 declared constants); "
       f"1017 only creates "
       f"objects, adds two nullable link columns with no default, and asserts the legacy "
-      f"placeholders still exist; the runner backs up, migrates in one transaction, "
+      f"placeholders still exist; 1018 only creates the two proforma-invoice tables and "
+      f"their indexes, with a unique document number; the runner backs up, migrates in one transaction, "
       f"quick-checks and only then records the version; the rewind reverses exactly those "
       f"objects and the harness compares the rewound schema with the 1017 schema before "
       f"migrating; a deliberately failing migration is refused, changes nothing and still "

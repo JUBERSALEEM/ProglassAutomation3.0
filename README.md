@@ -316,10 +316,10 @@ each module's scope in
 | --- | --- | --- |
 | — | `step1` Theme Studio · `step2` Client Management | completed for their approved scope (Windows runtime/visual verification outstanding) |
 | 1 | `step3` User Management | implemented 2026-10-27 for its approved scope (Windows runtime/visual verification outstanding) |
-| 2 | `step4` Company Profile | allocated; needs approval |
-| 3 | `step5` Project Records & Inquiry Integration | allocated; needs approval |
+| 2 | `step4` Company Profile | implemented and delivered 2026-10-28 (Windows runtime/visual verification outstanding) |
+| 3 | `step5` Project Records & Inquiry Integration | implemented and delivered 2026-10-28 (Windows runtime/visual verification outstanding) |
 | — | **`G1` Foundation Review** | gate — no document module starts until the owner accepts it |
-| 4 | `step6` Proforma Invoice (PI) | allocated; blocked by `G1` |
+| 4 | `step6` Proforma Invoice (PI) | backend authorized and implemented 2026-11-13; migration 1018; no view yet; `G1` still open |
 | 5 | `step7` Job Order (JO) | allocated; blocked by `G1` |
 | 6 | `step8` Delivery Note (DN) | allocated; blocked by `G1` |
 | 7 | `step9` Tax Invoice (TI) | allocated; blocked by `G1` |

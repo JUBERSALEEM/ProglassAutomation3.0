@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    step6.f — Proforma Invoice verification executable.
+
+    Same convention as step2.f / step3.f / step4.f / step5.f: a console
+    executable that references the application and returns a nonzero exit code
+    on failure. No test-framework package is introduced.
+
+    It is excluded from the application build by a Compile Remove in
+    ProGlassAutomation.csproj, so the WPF application keeps exactly one entry
+    point.
+
+    Run on Windows/.NET 8:
+
+      cd step6.ProformaInvoice/step6.f.tests
+      dotnet run
+
+    The suite works on a disposable database inside this project's folder; it
+    refuses to run against the production file.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>step6.f.ProformaTests</AssemblyName>
+    <RootNamespace>ProGlassAutomation.Step6Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../ProGlassAutomation.csproj" />
+  </ItemGroup>
+</Project>
