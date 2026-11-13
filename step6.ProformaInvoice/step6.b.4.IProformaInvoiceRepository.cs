@@ -73,6 +73,21 @@ namespace ProGlassAutomation.Services.Proforma
         /// <summary>Past its validity date while still awaiting an answer.</summary>
         public bool IsOverdue => Status is ProformaInvoiceStatus.Sent or ProformaInvoiceStatus.Draft
             && ValidUntil != default && ValidUntil.Date < DateTime.Today;
+
+        /// <summary>Status chip tag for the register's badge (theme contract values).</summary>
+        public string StatusTag => Status switch
+        {
+            ProformaInvoiceStatus.Approved => "Success",
+            ProformaInvoiceStatus.Sent => "Information",
+            ProformaInvoiceStatus.Rejected => "Warning",
+            ProformaInvoiceStatus.Expired => "Warning",
+            ProformaInvoiceStatus.Cancelled => "Error",
+            _ => ""
+        };
+
+        /// <summary>The money the customer sees, formatted for the register.</summary>
+        public string GrandTotalText =>
+            GrandTotal.ToString("N2", System.Globalization.CultureInfo.CurrentCulture);
     }
 
     /// <summary>Outcome of a save, with the document as persisted.</summary>

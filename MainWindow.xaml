@@ -5,7 +5,7 @@
         xmlns:inq="clr-namespace:ProGlassAutomation.Inquiry"
         xmlns:cli="clr-namespace:ProGlassAutomation.Clients"
         xmlns:usr="clr-namespace:ProGlassAutomation.Users"
-        xmlns:cmp="clr-namespace:ProGlassAutomation.Company" xmlns:prj="clr-namespace:ProGlassAutomation.Projects"
+        xmlns:cmp="clr-namespace:ProGlassAutomation.Company" xmlns:prj="clr-namespace:ProGlassAutomation.Projects" xmlns:pi="clr-namespace:ProGlassAutomation.Proforma"
         Title="ProGlass Automation" Height="1000" Width="1700"
         MinHeight="{DynamicResource WindowMinHeight}" MinWidth="{DynamicResource WindowMinWidth}"
         WindowStartupLocation="CenterScreen"
@@ -414,11 +414,9 @@
                             </StackPanel>
                         </Button>
                         <studio:ShellNavEntry Command="{Binding ShowProjects}" IsSelected="{Binding IsProjects}" Mark="Engineering" Label="Projects" AutomationProperties.Name="Projects page" />
+                        <studio:ShellNavEntry Command="{Binding ShowProforma}" IsSelected="{Binding IsProforma}" Mark="Work" Label="Proforma" AutomationProperties.Name="Proforma invoice page" />
                         <TextBlock Text="Settings" Style="{StaticResource ShellSectionLabel}" FontWeight="{DynamicResource FontWeightHeading}" />
-                        <!-- step4 — Company Profile. Appended as workspace index 10,
-                             so every earlier index keeps its meaning. It sits under
-                             Settings because it describes THIS installation, not a
-                             list of business records. -->
+                        <!-- step4 — Company Profile (index 10); it describes this installation, not records. -->
                         <Button Command="{Binding ShowCompany}" AutomationProperties.Name="Company profile page">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
@@ -858,9 +856,10 @@
                 <TabItem Header="_Pages Studio"><studio:PagesStudioView /></TabItem>
                 <TabItem Header="_Clients"><cli:ClientWorkspaceView /></TabItem>
                 <TabItem Header="_Users"><usr:UserWorkspaceView /></TabItem>
-                <!-- step4 (10) Company · step5 (11) Projects -->
+                <!-- step4 (10) Company · step5 (11) Projects · step6 (12) Proforma -->
                 <TabItem Header="_Company"><cmp:CompanyProfileView /></TabItem>
                 <TabItem Header="_Projects"><prj:ProjectWorkspaceView /></TabItem>
+                <TabItem Header="_Proforma"><pi:ProformaWorkspaceView /></TabItem>
             </TabControl>
         </Grid>
         </Grid>

@@ -1,0 +1,124 @@
+<UserControl x:Class="ProGlassAutomation.Proforma.ProformaHeaderStage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         Stage 1 of 7 — who issues, to whom, for what.
+
+         The parties are composed from their owning modules, never copied into
+         this document, so the cards here are a live read: press REFRESH HEADER
+         and the names, addresses and tax numbers follow the source records.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="step6.d.0.ProformaStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="{DynamicResource PaddingCard}">
+
+            <TextBlock Text="WHO ISSUES · TO WHOM · FOR WHAT"
+                       Style="{DynamicResource SectionHeading}"
+                       Margin="{DynamicResource MarginItem}" />
+            <TextBlock Text="The issuer, the client and the project are read from the modules that own them; this invoice stores only the reference and the snapshot it was raised against."
+                       Style="{DynamicResource Caption}"
+                       TextWrapping="Wrap"
+                       Margin="{DynamicResource MarginItem}" />
+
+            <Grid Margin="{DynamicResource MarginItem}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ContentControl Grid.Column="0" Style="{DynamicResource Card}" Margin="{DynamicResource MarginInline}">
+                    <StackPanel Margin="{DynamicResource PaddingCard}">
+                        <TextBlock Text="ISSUED BY" Style="{DynamicResource ProformaFieldLabel}" />
+                        <TextBlock Text="{Binding CompanyNameText}" Style="{DynamicResource ProformaValue}" />
+                        <TextBlock Text="{Binding CompanyAddressText}" Style="{DynamicResource ProformaFieldHint}" />
+                        <TextBlock Text="{Binding CompanyTrnText}" Style="{DynamicResource ProformaFieldHint}" />
+                    </StackPanel>
+                </ContentControl>
+
+                <ContentControl Grid.Column="1" Style="{DynamicResource Card}" Margin="{DynamicResource MarginInline}">
+                    <StackPanel Margin="{DynamicResource PaddingCard}">
+                        <TextBlock Text="BILLED TO" Style="{DynamicResource ProformaFieldLabel}" />
+                        <TextBlock Text="{Binding ClientNameText}" Style="{DynamicResource ProformaValue}" />
+                        <TextBlock Text="{Binding ClientAttentionText}" Style="{DynamicResource ProformaFieldHint}" />
+                        <TextBlock Text="{Binding ClientAddressText}" Style="{DynamicResource ProformaFieldHint}" />
+                        <TextBlock Text="{Binding ClientTrnText}" Style="{DynamicResource ProformaFieldHint}" />
+                    </StackPanel>
+                </ContentControl>
+
+                <ContentControl Grid.Column="2" Style="{DynamicResource Card}" Margin="{DynamicResource MarginInline}">
+                    <StackPanel Margin="{DynamicResource PaddingCard}">
+                        <TextBlock Text="PROJECT &amp; PREPARATION" Style="{DynamicResource ProformaFieldLabel}" />
+                        <TextBlock Text="{Binding ProjectText}" Style="{DynamicResource ProformaValue}" />
+                        <TextBlock Text="{Binding InquiryText}" Style="{DynamicResource ProformaFieldHint}" />
+                        <TextBlock Text="{Binding PreparedByText}" Style="{DynamicResource ProformaFieldHint}" />
+                        <TextBlock Text="{Binding PartiesRefreshedText}" Style="{DynamicResource ProformaFieldHint}" />
+                    </StackPanel>
+                </ContentControl>
+            </Grid>
+
+            <Grid Margin="{DynamicResource MarginItem}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="{DynamicResource UiGapControl}">
+                    <TextBlock Text="ISSUE DATE" Style="{DynamicResource ProformaFieldLabel}" />
+                    <TextBox Style="{DynamicResource {x:Type TextBox}}" MinWidth="160"
+                             Text="{Binding IssueDateText, UpdateSourceTrigger=LostFocus}"
+                             AutomationProperties.Name="Issue date" />
+                    <TextBlock Text="dd MMM yyyy" Style="{DynamicResource ProformaFieldHint}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="{DynamicResource UiGapControl}">
+                    <TextBlock Text="VALID UNTIL" Style="{DynamicResource ProformaFieldLabel}" />
+                    <TextBox Style="{DynamicResource {x:Type TextBox}}" MinWidth="160"
+                             Text="{Binding ValidUntilDateText, UpdateSourceTrigger=LostFocus}"
+                             AutomationProperties.Name="Validity date" />
+                    <TextBlock Text="Between 1 and 365 days by policy." Style="{DynamicResource ProformaFieldHint}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Margin="{DynamicResource UiGapControl}">
+                    <TextBlock Text="ONE-OFF CUSTOMER" Style="{DynamicResource ProformaFieldLabel}" />
+                    <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                             Text="{Binding WalkInName, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="One-off customer name" />
+                    <TextBlock Text="Type a name only when the client has no record; a named client record always wins."
+                               Style="{DynamicResource ProformaFieldHint}" />
+                </StackPanel>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" Margin="{DynamicResource MarginItem}">
+                <Button Style="{DynamicResource SubtleButton}" Content="REFRESH HEADER"
+                        Command="{Binding RefreshPartiesCommand}"
+                        Margin="{DynamicResource UiGapControl}"
+                        AutomationProperties.Name="Re-read the issuer, client and project" />
+                <Button Style="{DynamicResource SubtleButton}" Content="IMPORT INQUIRY SCOPE"
+                        Command="{Binding ImportScopeCommand}" IsEnabled="{Binding CanEditBody}"
+                        Margin="{DynamicResource UiGapControl}"
+                        AutomationProperties.Name="Import the pricing scope from the linked inquiry" />
+                <TextBlock Text="{Binding ImportMessage}" Style="{DynamicResource Caption}"
+                           VerticalAlignment="Center"
+                           Margin="{DynamicResource MarginInline}"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding StageHeadline}" Style="{DynamicResource Caption}"
+                       TextWrapping="Wrap"
+                       Margin="{DynamicResource MarginItem}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

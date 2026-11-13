@@ -216,7 +216,12 @@ Costed from whole sheets, not from sell area, because that is what the shop buys
 | `step6.b.10.InvoicePartyReader.cs` | stage 1 from the owning modules |
 | `step6.b.11.InquiryBoqConverter.cs` | inquiry BOQ → spec grid |
 | `step6.b.12.ProformaInvoiceAttachmentStore.cs` | attachment add/remove, temp→move→row |
-| `step6.c.1.ProformaInvoiceWorkspace.cs` | the stage engine the view will call |
+| `step6.c.1.ProformaInvoiceWorkspace.cs` | the stage engine the page drives |
+| `step6.c.Presentation/step6.c.2…c.7` | `ProformaWorkspaceViewModel` in six parts: register (§2), editor and header (§3), stages 2–6 (§4), commands (§5), the one recalculation seam (§6), lifecycle actions (§7) |
+| `step6.d.Views/step6.d.0.ProformaStyles.xaml` | the page's field idiom — labels, values, totals; tokens only |
+| `step6.d.Views/step6.d.1.ProformaWorkspaceView.xaml` | the page: scope plate, status chips, search, register, editor slot |
+| `step6.d.Views/step6.d.2.ProformaEditorView.xaml` | the editor: heading, lifecycle commands, stage rail, stage host |
+| `step6.d.Views/step6.d.3…d.9` | one view per stage — header, pricing, spec grid, charges, summary, documents, profit |
 | `step6.f.tests/step6.f.1…` | portable source gate |
 | `step6.f.tests/step6.f.2…` | behaviour checks (needs a .NET SDK) |
 
@@ -230,7 +235,8 @@ Costed from whole sheets, not from sell area, because that is what the shop buys
 | Behaviour (exact totals, transitions, numbering, round-trip, attachments) | written in `step6.f.2`; **not executed** — no .NET SDK here |
 | Application builds | **not verified** — no .NET SDK or WPF runtime here |
 | Migration runs on a real copy of production | **not verified**; run `step5.f.2` on a copy first (see `step6.e.2`) |
-| Renders correctly on Windows in nine themes | **not verified**; no view exists yet in this delivery |
+| Views follow the theme contract (tokens only, implicit styles bound explicitly, shared `ListGrid`) | `step1.d.3`, `.17`, `.18`, `.20`, `.11` — executed here, pass; the step6 views are our own XAML, no reference markup copied |
+| Views render correctly on Windows in nine themes | **not verified** — the XAML is written and compiles by inspection only; no WPF runtime here to render it |
 
 Anyone reading a later report should treat the last three rows as open until a
 person runs them on Windows and records the outcome in

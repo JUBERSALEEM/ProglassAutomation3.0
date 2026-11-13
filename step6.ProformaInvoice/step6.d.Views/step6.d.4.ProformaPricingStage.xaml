@@ -1,0 +1,204 @@
+<UserControl x:Class="ProGlassAutomation.Proforma.ProformaPricingStage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         Stage 2 of 7 — how each build is priced.
+
+         A section is a glass build plus the panes inside it. The engine turns
+         those panes into a rate; the panel prints that rate and the formula it
+         came from, so the operator can check the arithmetic instead of trusting
+         a number. A section only becomes a specification when it is complete.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="step6.d.0.ProformaStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="{DynamicResource PaddingCard}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="{DynamicResource MarginItem}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="2 · PRICING SECTIONS"
+                       Style="{DynamicResource SectionHeading}"
+                       VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <ComboBox Style="{DynamicResource {x:Type ComboBox}}" Width="180"
+                          ItemsSource="{Binding Builds}" SelectedItem="{Binding NewBuild}"
+                          VerticalAlignment="Center"
+                          Margin="{DynamicResource UiGapControlEnd}"
+                          AutomationProperties.Name="Glass build for the new section" />
+                <Button Style="{DynamicResource SubtleButton}" Content="ADD SECTION"
+                        Command="{Binding AddSectionCommand}"
+                        Margin="{DynamicResource UiGapControlEnd}"
+                        AutomationProperties.Name="Add a pricing section" />
+                <Button Style="{DynamicResource SubtleButton}" Content="REMOVE SECTION"
+                        Command="{Binding RemoveSectionCommand}"
+                        Margin="{DynamicResource UiGapControlEnd}"
+                        AutomationProperties.Name="Remove the selected pricing section" />
+                <Button Style="{DynamicResource SubtleButton}" Content="RECALCULATE"
+                        Command="{Binding RecalculateCommand}"
+                        Margin="{DynamicResource UiGapControlEnd}"
+                        AutomationProperties.Name="Recompute the invoice" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="3*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- The sections, in the shared list idiom -->
+            <ContentControl Grid.Column="0" Style="{DynamicResource Card}" Margin="{DynamicResource MarginInline}">
+                <DataGrid Style="{StaticResource ListGrid}"
+                          ItemsSource="{Binding Sections}"
+                          SelectedItem="{Binding SelectedSection, Mode=TwoWay}"
+                          CanUserReorderColumns="False" CanUserSortColumns="False"
+                          AutomationProperties.Name="Pricing sections">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding SectionNumber}"
+                                            ElementStyle="{StaticResource ListMonoText}" />
+                        <DataGridTextColumn Header="BUILD" Binding="{Binding GlassType}"
+                                            ElementStyle="{StaticResource ListStrongText}" />
+                        <DataGridTextColumn Header="SPECIFICATION" Binding="{Binding SpecName}"
+                                            ElementStyle="{StaticResource ListText}" />
+                        <DataGridTextColumn Header="YIELD" Binding="{Binding YieldFactor, StringFormat=N2}"
+                                            ElementStyle="{StaticResource ListMonoText}" />
+                        <DataGridTextColumn Header="MARGIN %" Binding="{Binding MarginPercent, StringFormat=N1}"
+                                            ElementStyle="{StaticResource ListMonoText}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ContentControl>
+
+            <!-- The section's own numbers -->
+            <ContentControl Grid.Column="1" Style="{DynamicResource Card}" Margin="{DynamicResource MarginInline}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="{DynamicResource PaddingCard}">
+                        <TextBlock Text="{Binding SectionFormulaText}" Style="{DynamicResource ProformaValue}" />
+
+                        <TextBlock Text="SPECIFICATION NAME" Style="{DynamicResource ProformaFieldLabel}" />
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 Text="{Binding SelectedSection.SpecName, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Specification name" />
+
+                        <Grid Margin="{DynamicResource MarginItem}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="YIELD FACTOR" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.YieldFactor, StringFormat=N2}"
+                                         AutomationProperties.Name="Yield factor" />
+                                <TextBlock Text="Outside 0.10 to 1.00 the engine prices at 1.00 and warns."
+                                           Style="{DynamicResource ProformaFieldHint}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="MARGIN %" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.MarginPercent, StringFormat=N1}"
+                                         AutomationProperties.Name="Margin percent" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="TARGET UPLIFT %" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.TargetUpliftPercent, StringFormat=N1}"
+                                         AutomationProperties.Name="Target uplift percent" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="SPACER" Style="{DynamicResource SectionHeading}"
+                                   Margin="{DynamicResource MarginItem}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="WIDTH (MM)" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.SpacerWidth}"
+                                         AutomationProperties.Name="Spacer width" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="MATERIAL" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.SpacerMaterial}"
+                                         AutomationProperties.Name="Spacer material" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="BUY AED/M²" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.SpacerPricePerSqm, StringFormat=N2}"
+                                         AutomationProperties.Name="Spacer buy price" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="INTERLAYER" Style="{DynamicResource SectionHeading}"
+                                   Margin="{DynamicResource MarginItem}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="THICKNESS" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.InterlayerThickness}"
+                                         AutomationProperties.Name="Interlayer thickness" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="COLOUR" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.InterlayerColour}"
+                                         AutomationProperties.Name="Interlayer colour" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="BUY AED/M²" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.InterlayerBuyPerSqm, StringFormat=N2}"
+                                         AutomationProperties.Name="Interlayer buy price" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" Margin="{DynamicResource UiGapControl}">
+                                <TextBlock Text="SELL AED/M²" Style="{DynamicResource ProformaFieldLabel}" />
+                                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                         Text="{Binding SelectedSection.InterlayerSellPerSqm, StringFormat=N2}"
+                                         AutomationProperties.Name="Interlayer sell price" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Margin="{DynamicResource MarginItem}">
+                            <Button Style="{DynamicResource PrimaryButton}" Content="MAKE SPECIFICATION"
+                                    Command="{Binding AddGroupCommand}"
+                                    Margin="{DynamicResource UiGapControl}"
+                                    AutomationProperties.Name="Turn this section into a specification" />
+                            <TextBlock Text="A complete section becomes a specification on the next stage."
+                                       Style="{DynamicResource Caption}"
+                                       VerticalAlignment="Center"
+                                       Margin="{DynamicResource MarginInline}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </ContentControl>
+        </Grid>
+    </Grid>
+</UserControl>

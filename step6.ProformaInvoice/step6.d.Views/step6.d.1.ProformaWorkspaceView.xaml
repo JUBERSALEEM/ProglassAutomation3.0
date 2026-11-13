@@ -1,0 +1,272 @@
+<UserControl x:Class="ProGlassAutomation.Proforma.ProformaWorkspaceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:studio="clr-namespace:ProGlassAutomation.ThemeStudio"
+             xmlns:pf="clr-namespace:ProGlassAutomation.Proforma"
+             Focusable="True"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         step6 — Proforma Invoice register.
+
+         The page is the product's list pattern, unchanged: one plate that
+         states the scope it would show, status chips carrying their own
+         counts, a search box and the commands. The editor is a sibling view
+         (step6.d.2) shown in the same slot, so this page never owns the
+         document.
+
+         Theme rules obeyed here, the same ones every module page obeys:
+           • every colour, brush, metric, radius and font comes from the shared
+             contract through DynamicResource — there is no literal colour and
+             no literal margin in this file;
+           • the register binds the shared ListGrid style and nothing else, so
+             its band, its ruled header and its equal-width columns are the
+             ones the theme owns;
+           • register ↔ editor visibility is driven by Style DataTriggers, so no
+             converter is needed for the switch.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <!-- Status chip. A chip is a Button so it can be chosen; it takes its
+             shapes from the contract, never from a number typed here. -->
+        <Style x:Key="ProformaChip" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+            <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+            <Setter Property="MinWidth" Value="{DynamicResource ControlMinWidth}" />
+            <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+            <Setter Property="Margin" Value="{DynamicResource UiGapControl}" />
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+            <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ChipCornerRadius}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StatePressed}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="{DynamicResource PaddingPage}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ── Scope, filters, search and commands on one line ───────── -->
+        <ContentControl Grid.Row="0" Style="{DynamicResource Plate}">
+            <Grid Margin="{DynamicResource PaddingCompact}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding RegisterSummary}" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center"
+                               Margin="{DynamicResource MarginInline}"
+                               TextTrimming="CharacterEllipsis"
+                               AutomationProperties.Name="Invoice register scope" />
+                    <ItemsControl ItemsSource="{Binding StatusChips}" Focusable="False"
+                                  VerticalAlignment="Center"
+                                  AutomationProperties.Name="Invoice status filters">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource ProformaChip}"
+                                        Command="{Binding DataContext.SelectStatusChipCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Content="{Binding LabelWithCount}"
+                                        AutomationProperties.Name="{Binding Label}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <studio:ShellMark Kind="Search" Width="{DynamicResource ChoiceMarkSize}"
+                                      Height="{DynamicResource ChoiceMarkSize}"
+                                      Margin="{DynamicResource MarginInline}"
+                                      VerticalAlignment="Center" />
+                    <Grid Width="240" VerticalAlignment="Center" Margin="{DynamicResource UiGapControl}">
+                        <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                 VerticalAlignment="Center"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Search invoices" />
+                        <TextBlock Text="Search number, client, project or inquiry…"
+                                   Foreground="{DynamicResource TextSecondary}"
+                                   VerticalAlignment="Center"
+                                   Margin="{DynamicResource PaddingControl}"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasSearch}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                    <Button Style="{DynamicResource SubtleButton}" Content="REFRESH"
+                            Command="{Binding RefreshCommand}"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Reload the invoice register" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="OPEN"
+                            Command="{Binding OpenSelectedCommand}"
+                            IsEnabled="{Binding CanOpenSelected}"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Open the selected invoice" />
+                    <Button Style="{DynamicResource PrimaryButton}" Content="NEW INVOICE"
+                            Command="{Binding NewCommand}"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Start a new proforma invoice" />
+                </StackPanel>
+            </Grid>
+        </ContentControl>
+
+        <!-- ── Failure surface ───────────────────────────────────────── -->
+        <Border Grid.Row="1" Background="{DynamicResource StatusErrorSurface}"
+                BorderBrush="{DynamicResource StatusError}"
+                BorderThickness="{DynamicResource BorderThicknessControl}"
+                CornerRadius="{DynamicResource ControlCornerRadius}"
+                Margin="{DynamicResource MarginItem}"
+                Padding="{DynamicResource PaddingControl}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasError}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StatusError}"
+                       TextWrapping="Wrap" AutomationProperties.Name="Invoice error" />
+        </Border>
+
+        <!-- ── Result surface ────────────────────────────────────────── -->
+        <Border Grid.Row="2" Background="{DynamicResource StatusInformationSurface}"
+                BorderBrush="{DynamicResource BorderSubtle}"
+                BorderThickness="{DynamicResource BorderThicknessControl}"
+                CornerRadius="{DynamicResource ControlCornerRadius}"
+                Margin="{DynamicResource MarginItem}"
+                Padding="{DynamicResource PaddingControl}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasStatus}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextPrimary}"
+                       TextWrapping="Wrap" AutomationProperties.Name="Invoice status" />
+        </Border>
+
+        <!-- ── The register ──────────────────────────────────────────── -->
+        <Grid Grid.Row="3">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <ContentControl Style="{DynamicResource Card}">
+                <DataGrid Style="{StaticResource ListGrid}"
+                          ItemsSource="{Binding Rows}"
+                          SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                          CanUserReorderColumns="False" CanUserSortColumns="False"
+                          AutomationProperties.Name="Proforma invoice register">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="NUMBER" Binding="{Binding NumberText}"
+                                            ElementStyle="{StaticResource ListMonoText}" />
+                        <DataGridTextColumn Header="CLIENT" Binding="{Binding ClientName}"
+                                            ElementStyle="{StaticResource ListStrongText}" />
+                        <DataGridTextColumn Header="PROJECT" Binding="{Binding ProjectName}"
+                                            ElementStyle="{StaticResource ListText}" />
+                        <DataGridTextColumn Header="ISSUED" Binding="{Binding IssueText}"
+                                            ElementStyle="{StaticResource ListMonoText}" />
+                        <DataGridTextColumn Header="VALID TO" Binding="{Binding ValidUntilText}"
+                                            ElementStyle="{StaticResource ListMonoText}" />
+                        <DataGridTemplateColumn Header="STATUS">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Style="{DynamicResource StatusBadge}" Tag="{Binding StatusTag}"
+                                            HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding Status}"
+                                                   Style="{DynamicResource StatusText}"
+                                                   Tag="{Binding StatusTag}" />
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="TOTAL" Binding="{Binding GrandTotalText}"
+                                            ElementStyle="{StaticResource ListMonoText}" />
+                        <DataGridTextColumn Header="PREPARED BY" Binding="{Binding PreparedByName}"
+                                            ElementStyle="{StaticResource ListText}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ContentControl>
+        </Grid>
+
+        <!-- ── The editor, in the same slot ──────────────────────────── -->
+        <Grid Grid.Row="3">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <pf:ProformaEditorView />
+        </Grid>
+    </Grid>
+</UserControl>

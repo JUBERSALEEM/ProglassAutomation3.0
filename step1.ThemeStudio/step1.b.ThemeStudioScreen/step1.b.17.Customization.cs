@@ -313,7 +313,7 @@ public sealed partial class ThemeStudioViewModel
         get => selectedWorkspace;
         set
         {
-            if (value is >= 0 and <= 11)
+            if (value is >= 0 and <= 12)
             {
                 selectedWorkspace = value;
                 Changed(nameof(SelectedWorkspace));
@@ -329,6 +329,7 @@ public sealed partial class ThemeStudioViewModel
                 Changed(nameof(IsUsers));
                 Changed(nameof(IsCompany));
                 Changed(nameof(IsProjects));
+                Changed(nameof(IsProforma));
                 Changed(nameof(WorkspaceTitle));
                 Changed(nameof(WorkspaceSubtitle));
                 Changed(nameof(WorkspaceIcon));
@@ -343,14 +344,12 @@ public sealed partial class ThemeStudioViewModel
     public bool IsAbout { get => selectedWorkspace == 5; set { if (value) SelectedWorkspace = 5; } }
     public bool IsIcons { get => selectedWorkspace == 6; set { if (value) SelectedWorkspace = 6; } }
     public bool IsPages { get => selectedWorkspace == 7; set { if (value) SelectedWorkspace = 7; } }
-    /// <summary>step2 Client Management workspace (index 8; appended so the
-    /// existing workspace indexes 0–7 keep their meaning).</summary>
+    /// <summary>step2 Client Management workspace (index 8; appended so 0–7 keep their meaning).</summary>
     public bool IsClients { get => selectedWorkspace == 8; set { if (value) SelectedWorkspace = 8; } }
     /// <summary>step3 User Management workspace (index 9; appended for the same
     /// reason — every earlier index keeps its meaning).</summary>
     public bool IsUsers { get => selectedWorkspace == 9; set { if (value) SelectedWorkspace = 9; } }
-    /// <summary>step4 Company Profile workspace (index 10; appended for the same
-    /// reason — every earlier index keeps its meaning).</summary>
+    /// <summary>step4 Company Profile workspace (index 10; appended for the same reason).</summary>
     public bool IsCompany { get => selectedWorkspace == 10; set { if (value) SelectedWorkspace = 10; } }
     public bool IsProjects { get => selectedWorkspace == 11; set { if (value) SelectedWorkspace = 11; } }
     public IconKind WorkspaceIcon => selectedWorkspace switch
@@ -376,6 +375,9 @@ public sealed partial class ThemeStudioViewModel
         // mark is unused in the rail and reads as "the work itself", which is
         // what a project record is.
         11 => IconKind.Engineering,
+        // step6 prices a job before the glass is cut; the invoice is the work
+        // sold, so it carries the briefcase beside the companies it names.
+        12 => IconKind.Work,
         _ => IconKind.Home
     };
     public string WorkspaceTitle => selectedWorkspace switch
@@ -392,6 +394,7 @@ public sealed partial class ThemeStudioViewModel
         9 => "Users",
         10 => "Company",
         11 => "Projects",
+        12 => "Proforma Invoices",
         _ => "Home"
     };
     public string WorkspaceSubtitle => selectedWorkspace switch
@@ -408,6 +411,7 @@ public sealed partial class ThemeStudioViewModel
         9 => "Administration · Users, departments and roles",
         10 => "Settings · Company profile, contact details and logo",
         11 => "Business · Project records and the inquiries that belong to them",
+        12 => "Business · Proforma invoices, pricing and profit",
         _ => "Home"
     };
     public bool IsMenuOpen { get => isMenuOpen; set { isMenuOpen = value; Changed(nameof(IsMenuOpen)); } }
@@ -504,6 +508,7 @@ public sealed partial class ThemeStudioViewModel
         ShowUsers = new DelegateCommand(() => SelectedWorkspace = 9);
         ShowCompany = new DelegateCommand(() => SelectedWorkspace = 10);
         ShowProjects = new DelegateCommand(() => SelectedWorkspace = 11);
+        ShowProforma = new DelegateCommand(() => SelectedWorkspace = 12);
         SelectColorPlate = new DelegateCommand<string>(name => { if (!string.IsNullOrWhiteSpace(name)) SelectedColorPlate = name; });
         ApplyPreview = new DelegateCommand(() => { try { themes.Apply(SelectedTheme, themes.ActiveAppearance, LiveConfigure()); ThemeError=""; Feedback="Preview applied — unsaved changes present."; } catch(Exception ex){ ThemeError=ex.Message; } Changed(nameof(ThemeError)); }, () => CanCustomize || CanCustomizeGeometry);
         SaveCustomization = new DelegateCommand(() =>

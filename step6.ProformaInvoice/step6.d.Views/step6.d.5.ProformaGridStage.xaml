@@ -1,0 +1,144 @@
+<UserControl x:Class="ProGlassAutomation.Proforma.ProformaGridStage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         Stage 3 of 7 — the measured glass.
+
+         One group is one specification: a name, a build and its colours, and the
+         measured panels under it. Areas are rounded by the engine, never by the
+         page, so what is printed here is what is priced.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="step6.d.0.ProformaStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="{DynamicResource PaddingCard}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="2*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="{DynamicResource MarginItem}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="3 · SPECIFICATIONS AND MEASUREMENTS"
+                       Style="{DynamicResource SectionHeading}"
+                       VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="{Binding GridAreaText}" Style="{DynamicResource ProformaTotalValue}"
+                           VerticalAlignment="Center"
+                           Margin="{DynamicResource MarginInline}" />
+                <Button Style="{DynamicResource SubtleButton}" Content="REMOVE GROUP"
+                        Command="{Binding RemoveGroupCommand}"
+                        Margin="{DynamicResource UiGapControlEnd}"
+                        AutomationProperties.Name="Remove the selected specification" />
+                <Button Style="{DynamicResource SubtleButton}" Content="RECALCULATE"
+                        Command="{Binding RecalculateCommand}"
+                        Margin="{DynamicResource UiGapControlEnd}"
+                        AutomationProperties.Name="Recompute the invoice" />
+            </StackPanel>
+        </Grid>
+
+        <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
+            <DataGrid Style="{StaticResource ListGrid}"
+                      ItemsSource="{Binding GridGroups}"
+                      SelectedItem="{Binding SelectedGroup, Mode=TwoWay}"
+                      CanUserReorderColumns="False" CanUserSortColumns="False"
+                      AutomationProperties.Name="Specifications">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding GroupNumber}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="SPECIFICATION" Binding="{Binding GroupName}"
+                                        ElementStyle="{StaticResource ListStrongText}" />
+                    <DataGridTextColumn Header="BUILD" Binding="{Binding GlassType}"
+                                        ElementStyle="{StaticResource ListText}" />
+                    <DataGridTextColumn Header="OUTER" Binding="{Binding OuterGlassColor}"
+                                        ElementStyle="{StaticResource ListText}" />
+                    <DataGridTextColumn Header="INNER" Binding="{Binding InnerGlassColor}"
+                                        ElementStyle="{StaticResource ListText}" />
+                    <DataGridTextColumn Header="RATE AED/M²" Binding="{Binding EffectiveRatePerSqm, StringFormat=N2}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="AREA M²" Binding="{Binding TotalSqm, StringFormat=N2}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="VALUE AED" Binding="{Binding TotalValue, StringFormat=N2}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </ContentControl>
+
+        <Grid Grid.Row="2" Margin="{DynamicResource MarginItem}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="{DynamicResource UiGapControl}">
+                <TextBlock Text="SPECIFICATION NAME" Style="{DynamicResource ProformaFieldLabel}" />
+                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                         Text="{Binding SelectedGroup.GroupName, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Specification name" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Margin="{DynamicResource UiGapControl}">
+                <TextBlock Text="OUTER / INNER COLOUR" Style="{DynamicResource ProformaFieldLabel}" />
+                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                         Text="{Binding SelectedGroup.OuterGlassColor, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Outer glass colour" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                <Button Style="{DynamicResource SubtleButton}" Content="ADD ROW"
+                        Command="{Binding AddRowCommand}"
+                        Margin="{DynamicResource UiGapControl}"
+                        AutomationProperties.Name="Add a measured row" />
+                <Button Style="{DynamicResource SubtleButton}" Content="REMOVE ROW"
+                        Command="{Binding RemoveRowCommand}"
+                        Margin="{DynamicResource UiGapControl}"
+                        AutomationProperties.Name="Remove the selected row" />
+            </StackPanel>
+        </Grid>
+
+        <ContentControl Grid.Row="3" Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
+            <DataGrid Style="{StaticResource ListGrid}"
+                      ItemsSource="{Binding GroupRows}"
+                      SelectedItem="{Binding SelectedSpecRow, Mode=TwoWay}"
+                      CanUserReorderColumns="False" CanUserSortColumns="False"
+                      AutomationProperties.Name="Measured panels">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding SerialNumber}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="REF" Binding="{Binding GlassRef}"
+                                        ElementStyle="{StaticResource ListStrongText}" />
+                    <DataGridTextColumn Header="W1" Binding="{Binding W1}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="H1" Binding="{Binding H1}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="W2" Binding="{Binding W2}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="H2" Binding="{Binding H2}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="QTY" Binding="{Binding Qty}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="PANEL M²" Binding="{Binding PanelSqm, StringFormat=N4}"
+                                        IsReadOnly="True"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="TOTAL M²" Binding="{Binding TotalSqm, StringFormat=N4}"
+                                        IsReadOnly="True"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTextColumn Header="RATE OVERRIDE" Binding="{Binding RateOverridePerSqm, StringFormat=N2}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </ContentControl>
+    </Grid>
+</UserControl>

@@ -1,0 +1,268 @@
+<UserControl x:Class="ProGlassAutomation.Proforma.ProformaEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:stage="clr-namespace:ProGlassAutomation.Proforma"
+             Focusable="False"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display">
+    <!-- ─────────────────────────────────────────────────────────────────
+         step6.d.2 — the proforma invoice editor.
+
+         One rail, seven stages, one Save. The rail states each stage's own
+         readiness (the engine's evaluation, not a second opinion), so the
+         operator can see what is missing before pressing save rather than after.
+
+         The stage panels are separate views (step6.d.3 … step6.d.9). They
+         inherit this page's DataContext, so each panel binds the same view
+         model and there is no second copy of the document anywhere.
+         ───────────────────────────────────────────────────────────────── -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="step6.d.0.ProformaStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Stage chip: the rail's own control. Selected state is the accent,
+                 and the marker beside the name is the engine's verdict. -->
+            <Style x:Key="ProformaStageChip" TargetType="Button">
+                <Setter Property="FocusVisualStyle" Value="{DynamicResource KeyboardFocus}" />
+                <Setter Property="MinHeight" Value="{DynamicResource ControlMinHeight}" />
+                <Setter Property="Padding" Value="{DynamicResource PaddingCompact}" />
+                <Setter Property="Margin" Value="{DynamicResource UiGapControl}" />
+                <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}" />
+                <Setter Property="BorderThickness" Value="{DynamicResource BorderThicknessControl}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+                <Setter Property="FontWeight" Value="{DynamicResource FontWeightHeading}" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <StackPanel Orientation="Horizontal">
+                                <Border x:Name="Frame"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="{DynamicResource ChipCornerRadius}"
+                                        Padding="{TemplateBinding Padding}"
+                                        SnapsToDevicePixels="True">
+                                    <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True" />
+                                </Border>
+                                <TextBlock Text="{Binding Marker}" Style="{DynamicResource Caption}"
+                                           VerticalAlignment="Center"
+                                           Margin="{DynamicResource MarginInline}" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Frame" Property="Background" Value="{DynamicResource StateHover}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ── Heading, state and lifecycle ──────────────────────────── -->
+        <ContentControl Grid.Row="0" Style="{DynamicResource Plate}">
+            <Grid Margin="{DynamicResource PaddingCompact}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding EditorHeading}" Style="{DynamicResource SectionHeading}"
+                               VerticalAlignment="Center"
+                               Margin="{DynamicResource MarginInline}"
+                               AutomationProperties.Name="Invoice number" />
+                    <Border Style="{DynamicResource StatusBadge}" Tag="{Binding EditorStatusTag}"
+                            VerticalAlignment="Center"
+                            Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="{Binding EditorStatusText}"
+                                   Style="{DynamicResource StatusText}"
+                                   Tag="{Binding EditorStatusTag}" />
+                    </Border>
+                    <TextBlock Text="Only a draft can be edited; a revision is a new numbered document."
+                               Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal"
+                            HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Style="{DynamicResource SubtleButton}" Content="DUPLICATE"
+                            Command="{Binding DuplicateCommand}"
+                            Margin="{DynamicResource UiGapControlEnd}"
+                            AutomationProperties.Name="Copy this invoice into a new draft" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="SEND"
+                            Command="{Binding SendCommand}" IsEnabled="{Binding CanSend}"
+                            Margin="{DynamicResource UiGapControlEnd}"
+                            AutomationProperties.Name="Mark the invoice as sent" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="APPROVE"
+                            Command="{Binding ApproveCommand}" IsEnabled="{Binding CanApprove}"
+                            Margin="{DynamicResource UiGapControlEnd}"
+                            AutomationProperties.Name="Mark the invoice as approved" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="REJECT"
+                            Command="{Binding RejectCommand}" IsEnabled="{Binding CanReject}"
+                            Margin="{DynamicResource UiGapControlEnd}"
+                            AutomationProperties.Name="Mark the invoice as rejected" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="CANCEL DOCUMENT"
+                            Command="{Binding CancelDocumentCommand}" IsEnabled="{Binding CanCancelDocument}"
+                            Margin="{DynamicResource UiGapControlEnd}"
+                            AutomationProperties.Name="Cancel this invoice without deleting it" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="BACK TO REGISTER"
+                            Command="{Binding CloseEditorCommand}"
+                            Margin="{DynamicResource UiGapControlEnd}"
+                            AutomationProperties.Name="Close the editor" />
+                    <Button Style="{DynamicResource PrimaryButton}" Content="SAVE INVOICE"
+                            Command="{Binding SaveCommand}" IsEnabled="{Binding CanEditBody}"
+                            Margin="{DynamicResource UiGapControlEnd}"
+                            AutomationProperties.Name="Save the invoice" />
+                </StackPanel>
+            </Grid>
+        </ContentControl>
+
+        <!-- ── The seven stages ──────────────────────────────────────── -->
+        <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
+            <ItemsControl ItemsSource="{Binding Stages}" Focusable="False"
+                          Margin="{DynamicResource PaddingControl}"
+                          AutomationProperties.Name="Invoice stages">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource ProformaStageChip}"
+                                Command="{Binding DataContext.SelectStageCommand,
+                                                  RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}"
+                                Content="{Binding Caption}"
+                                AutomationProperties.Name="{Binding Label}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ContentControl>
+
+        <!-- ── The stage the operator is on ──────────────────────────── -->
+        <ContentControl Grid.Row="2" Style="{DynamicResource Card}">
+            <Grid>
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="Header">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <stage:ProformaHeaderStage />
+                </Grid>
+
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="Pricing">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <stage:ProformaPricingStage />
+                </Grid>
+
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="SpecGrid">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <stage:ProformaGridStage />
+                </Grid>
+
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="OtherCharges">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <stage:ProformaChargesStage />
+                </Grid>
+
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="Summary">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <stage:ProformaSummaryStage />
+                </Grid>
+
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="Attachments">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <stage:ProformaDocumentsStage />
+                </Grid>
+
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="ProfitLoss">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <stage:ProformaProfitStage />
+                </Grid>
+            </Grid>
+        </ContentControl>
+    </Grid>
+</UserControl>

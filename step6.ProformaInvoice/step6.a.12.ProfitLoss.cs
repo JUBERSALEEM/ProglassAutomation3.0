@@ -92,6 +92,26 @@ namespace ProGlassAutomation.Models.Proforma
         public decimal? ExtraProfitMarginPercent { get; set; }
         public TargetStatus Status { get; set; }
         public List<string> Warnings { get; set; } = new();
+
+        /// <summary>Display wording for the KPI chip (the view prints this).</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string StatusText => Status switch
+        {
+            TargetStatus.AboveTarget => "Above target",
+            TargetStatus.AtTarget => "At target",
+            TargetStatus.BelowTarget => "Below target",
+            _ => "Not calculable"
+        };
+
+        /// <summary>Status chip tag for the theme's badge.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string StatusTag => Status switch
+        {
+            TargetStatus.AboveTarget => "Warning",
+            TargetStatus.AtTarget => "Success",
+            TargetStatus.BelowTarget => "Information",
+            _ => ""
+        };
     }
 
     /// <summary>The stage-7 result: rows, totals, targets and the basis note.</summary>
