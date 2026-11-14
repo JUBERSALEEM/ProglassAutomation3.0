@@ -89,6 +89,8 @@ namespace ProGlassAutomation.Step6Tests
             uInsertSheet.Recalculate(new[] { uInsert });
             Check("U-Insert catalogue row bills the per-spec amount",
                 uInsertSheet.Predefined.Single(row => row.TemplateKey == "U_INSERT").Amount == 100m);
+            Check("customer exports use the blended effective U-Insert rate",
+                uInsertSheet.Predefined.Single(row => row.TemplateKey == "U_INSERT").EffectiveRate == 25m);
 
             var fallbackUInsert = uInsert.Clone();
             fallbackUInsert.UInsertPricePerSqm = 0m;
