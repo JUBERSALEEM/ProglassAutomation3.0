@@ -82,15 +82,52 @@ namespace ProGlassAutomation.Models.Proforma
                     Reason = "The specification names sandblasting."
                 });
 
-            if (spec.Contains("MITRE") || spec.Contains("MITRING"))
+            if (spec.Contains("SHUTTER BONDING"))
+                suggestions.Add(new ChargeSuggestion
+                {
+                    TemplateKey = "SHUTTER_BONDING",
+                    Reason = "The specification names shutter bonding."
+                });
+
+            if (spec.Contains("FANHOLE") || spec.Contains("FAN HOLE"))
+                suggestions.Add(new ChargeSuggestion
+                {
+                    TemplateKey = "FAN_HOLES",
+                    Reason = "The specification names fan holes."
+                });
+
+            if (spec.Contains("CUTOUT") || spec.Contains("CUT OUT"))
+                suggestions.Add(new ChargeSuggestion
+                {
+                    TemplateKey = "CUTOUT",
+                    Reason = "The specification names cutouts."
+                });
+
+            if (spec.Contains("HOLES"))
+                suggestions.Add(new ChargeSuggestion
+                {
+                    TemplateKey = "HOLES",
+                    Reason = "The specification names drilled holes."
+                });
+
+            if (spec.Contains("MITRE") || spec.Contains("MITRING")
+                || spec.Contains("BEVELED") || spec.Contains("BEVELLED"))
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "MITRING",
-                    Reason = "The specification names a mitred edge."
+                    Reason = "The specification names mitring or beveling."
+                });
+
+            if (spec.Contains("SANDBLAST") || spec.Contains("FROSTED"))
+                suggestions.Add(new ChargeSuggestion
+                {
+                    TemplateKey = "SANDBLASTING",
+                    Reason = "The specification names sandblasting or frosting."
                 });
 
             // ── Polish follows the glass count, not a word ───────────────
             bool sameGlass = SamePaneColours(group);
+            bool polishNamed = spec.Contains("POLISH");
             if (lamLike || sameGlass)
                 suggestions.Add(new ChargeSuggestion
                 {
@@ -99,7 +136,7 @@ namespace ProGlassAutomation.Models.Proforma
                         ? "Both panes are the same glass, so both edges are polished."
                         : "The laminated unit polishes both panes."
                 });
-            else if (!string.IsNullOrWhiteSpace(group.OuterGlassColor))
+            else if (polishNamed || !string.IsNullOrWhiteSpace(group.OuterGlassColor))
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "POLISH",
