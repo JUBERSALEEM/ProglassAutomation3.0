@@ -160,6 +160,10 @@ namespace ProGlassAutomation.Step6Tests
             uInsertSheet.Recalculate(new[] { uInsertA, uInsertB });
             Check("U-Insert uses pane-one cavity area and Step 4 per-spec rates before Step 6 fallback",
                 uInsertRow.IsActive && uInsertRow.Quantity == 4m && uInsertRow.Amount == 44m);
+            uInsertRow.Metric = ChargeMetric.TotalLm;
+            uInsertSheet.Recalculate(new[] { uInsertA, uInsertB });
+            Check("U-Insert cannot be switched away from its cavity-area metric",
+                uInsertRow.Quantity == 4m && uInsertRow.Amount == 44m);
             Check("pricing section U-Insert seed survives clone and group creation",
                 new PricingSection { UInsertPricePerSqm = 13m }.Clone().UInsertPricePerSqm == 13m
                 && UInsertSeedCopiesToGroup());

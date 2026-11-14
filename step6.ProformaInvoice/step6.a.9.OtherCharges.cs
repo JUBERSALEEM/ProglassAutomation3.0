@@ -77,10 +77,11 @@ namespace ProGlassAutomation.Models.Proforma
         /// <summary>Quantity from the grid, or the typed quantity for a fixed row.</summary>
         public decimal ResolveQuantity(SpecGridTotals totals)
         {
-            decimal measured = Metric switch
+            decimal measured = string.Equals(TemplateKey, "U_INSERT", StringComparison.OrdinalIgnoreCase)
+                ? totals.UInsertSqm
+                : Metric switch
             {
-                ChargeMetric.TotalSqm => string.Equals(TemplateKey, "U_INSERT", StringComparison.OrdinalIgnoreCase)
-                    ? totals.UInsertSqm : totals.TotalSqm,
+                ChargeMetric.TotalSqm => totals.TotalSqm,
                 ChargeMetric.TotalLm => totals.TotalLm,
                 ChargeMetric.PolishLm => totals.PolishLm,
                 ChargeMetric.MatchedPolishLm => totals.MatchedPolishLm,

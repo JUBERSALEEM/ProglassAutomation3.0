@@ -493,7 +493,8 @@ check("UInsertPricePerSqm" in read(MODELS)
       and "UInsertSqm" in read(SPEC_GRID)
       and "UInsertAmount" in read(SPEC_GRID)
       and "UInsertPricePerSqm" in read(MODULE / "step6.d.Views/step6.d.4.ProformaPricingStage.xaml")
-      and "UInsertAmount(Rate)" in read(CHARGES_MODEL),
+      and "UInsertAmount(Rate)" in read(CHARGES_MODEL)
+      and 'string.Equals(TemplateKey, "U_INSERT"' in read(CHARGES_MODEL),
       "legacy Step 4 per-spec U-Insert pricing is not wired through pricing, grid and charges")
 charge_source = read(CHARGE_AUTOMATION)
 for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
