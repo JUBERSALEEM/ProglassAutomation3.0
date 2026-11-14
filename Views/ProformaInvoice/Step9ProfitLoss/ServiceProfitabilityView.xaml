@@ -1,0 +1,383 @@
+<!--
+    Service Profitability View - Separate Tab for Detailed Service Analysis
+    Shows breakdown of profit by service type:
+    - Glass margin (buying vs selling)
+    - Spacer/ASP service (DGU only)
+    - Cutting service (SGU only)
+    - Tempering service (SGU only)
+    - PVB interlayer service (LAM only)
+    - U-insert service
+    Each service shows:
+    - Charge (what customer pays)
+    - Cost (actual cost)
+    - Profit (charge - cost)
+    - Margin % (profit / charge × 100)
+-->
+<UserControl Style="{StaticResource ErpPageRootStyle}" x:Class="ProGlassAutomation.Views.ProformaInvoice.Step9ProfitLoss.ServiceProfitabilityView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1000"
+             FontFamily="{DynamicResource AppFontFamily}"
+             Background="{DynamicResource Ov.Canvas}">
+
+        <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        <!-- Migrated HeaderStyle to global Typography.Title -->
+            </ResourceDictionary>
+    </UserControl.Resources>
+
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="SERVICE PROFITABILITY ANALYSIS"/>
+                <TextBlock Text="Simple order: service totals first, then detailed service rows, then recommendation/status. Use this after the Overview decision."
+                          />
+            </StackPanel>
+            <!-- Export toolbar (multi-generation report output) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
+                <Button Content="CSV" Command="{Binding ExportCsvCommand}" Style="{StaticResource ServiceExportButton}" ToolTip="Export this analysis as CSV."/>
+                <Button Content="EXCEL" Command="{Binding ExportExcelCommand}" Style="{StaticResource ServiceExportButton}" ToolTip="Export this analysis as Excel."/>
+                <Button Content="PDF" Command="{Binding ExportPdfCommand}" Style="{StaticResource ServiceExportButton}" ToolTip="Export this analysis as PDF."/>
+                <Button Content="{DynamicResource Sharing.Share}" Command="{Binding ShareCommand}" Style="{StaticResource ServiceExportButton}" ToolTip="Share this analysis via the Sharing Center."/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main result first
+             2026-09-14: cards OVERLAPPED — three 200px SurfacePrimary
+             cards with zero gutters (12px radii flush + Soft shadows
+             bleeding onto neighbours). 12px gutters now; first card's
+             value takes KpiValueStyle like the other two. -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,16">
+            <TextBlock Text="MAIN RESULT — SERVICE TOTALS" FontWeight="{DynamicResource Weight.Bold}" Margin="0,0,0,8"/>
+            <StackPanel Orientation="Horizontal">
+            <!-- Total Service Charge -->
+            <Border Style="{StaticResource SurfacePrimaryStyle}" Width="200" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="TOTAL SERVICE CHARGE"
+                               Style="{StaticResource PiKpiCaptionStyle}"/>
+                    <TextBlock Text="{Binding TotalServiceChargeDisplay}"
+                               Style="{StaticResource KpiValueStyle}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Total Service Profit -->
+            <Border Style="{StaticResource SurfacePrimaryStyle}" Width="200" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="TOTAL SERVICE PROFIT"/>
+                    <TextBlock Text="{Binding TotalServiceProfitDisplay}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource KpiValueStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TotalServiceProfit, Converter={StaticResource DecimalComparisonConverter}, ConverterParameter=0}" Value="LessThan">
+                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Overall Service Margin -->
+            <Border Style="{StaticResource SurfacePrimaryStyle}" Width="200" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="OVERALL SERVICE MARGIN"/>
+                    <TextBlock Text="{Binding OverallServiceMarginDisplay}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource KpiValueStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding OverallServiceMarginPercent, Converter={StaticResource DecimalComparisonConverter}, ConverterParameter=0}" Value="LessThan">
+                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Refresh Button -->
+            <Button Content="REFRESH"
+                    Command="{Binding RefreshCommand}"
+                    Width="120"
+                    Height="40"
+                    Margin="16,0,0,0"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource PrimaryPillButton}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Extra details after the main result -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SurfacePrimaryBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="{DynamicResource Border.HairlineThickness}"
+                CornerRadius="{DynamicResource Radius.Small}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Table Header -->
+                <Border Grid.Row="0"
+                        Background="{DynamicResource AccentBrush}"
+                        CornerRadius="{DynamicResource Radius.Top.Medium}"
+                        Padding="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.5*"/>
+                            <ColumnDefinition Width="1.5*"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="SPEC"
+                                   FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="1" Text="SERVICE"
+                                   FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="2" Text="DESCRIPTION"
+                                   FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="3" Text="AREA" HorizontalAlignment="Right"
+                                   FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="4" Text="CHARGE" HorizontalAlignment="Right"
+                                   FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="5" Text="COST" HorizontalAlignment="Right"
+                                   FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="6" Text="PROFIT" HorizontalAlignment="Right"
+                                   FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="7" Text="MARGIN %" HorizontalAlignment="Right"
+                                   FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Table Rows -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding ServiceBreakdown}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- 2026-09-14: rows had NO padding and no
+                                     min-height, so row heights were ragged
+                                     (cramped vs the 8px header) and column
+                                     text sat at different vertical
+                                     positions. Now: 10,8 cell padding,
+                                     36px min row height, everything
+                                     vertically centered, one TableCell
+                                     font contract across all columns. -->
+                                <Border Padding="10,8" MinHeight="36"
+                                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="{DynamicResource Border.BottomHairlineThickness}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.5*"/>
+                                            <ColumnDefinition Width="1.5*"/>
+                                            <ColumnDefinition Width="2*"/>
+                                            <ColumnDefinition Width="1*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="1*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Spec Name -->
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding SpecName}"
+                                                   Style="{StaticResource TableCellStyle}"
+                                                   VerticalAlignment="Center"
+                                                   FontWeight="{DynamicResource Weight.SemiBold}"
+                                                   Foreground="{DynamicResource AccentBrush}"/>
+
+                                        <!-- Service Name -->
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding ServiceName}"
+                                                   Style="{StaticResource TableCellStyle}"
+                                                   VerticalAlignment="Center"
+                                                   FontWeight="{DynamicResource Weight.SemiBold}"/>
+
+                                        <!-- Description -->
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding Description}"
+                                                   Style="{StaticResource TableCellStyle}"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"/>
+
+                                        <!-- Area -->
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding AreaDisplay}"
+                                                   Style="{StaticResource TableCellStyle}"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right"/>
+
+                                        <!-- Charge -->
+                                        <TextBlock Grid.Column="4"
+                                                   Text="{Binding ChargeDisplay}"
+                                                   Style="{StaticResource TableCellStyle}"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right"/>
+
+                                        <!-- Cost -->
+                                        <TextBlock Grid.Column="5"
+                                                   Text="{Binding CostDisplay}"
+                                                   Style="{StaticResource TableCellStyle}"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right"/>
+
+                                        <!-- Profit -->
+                                        <TextBlock Grid.Column="6"
+                                                   Text="{Binding ProfitDisplay}"
+                                                   HorizontalAlignment="Right"
+                                                   FontWeight="{DynamicResource Weight.SemiBold}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TableCellStyle}">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- Margin % -->
+                                        <TextBlock Grid.Column="7"
+                                                   Text="{Binding MarginDisplay}"
+                                                   HorizontalAlignment="Right"
+                                                   FontWeight="{DynamicResource Weight.Bold}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TableCellStyle}">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Empty State -->
+                <Border Grid.Row="1"
+                        Visibility="{Binding ServiceBreakdown.Count, Converter={StaticResource CountToVisibilityConverter}}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="32">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="No services found"
+                                   FontSize="{DynamicResource FontSize.H3}"
+                                   FontWeight="{DynamicResource Weight.SemiBold}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Add specifications in Step 5 and press REFRESH to analyze service profitability."
+                                   FontSize="{DynamicResource FontSize.BodySmall}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Totals footer — the same column definitions as the table,
+                     so the sums land exactly under their columns. -->
+                <Border Grid.Row="2"
+                        Background="{DynamicResource SurfacePrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="{DynamicResource Border.TopHairlineThickness}"
+                        Padding="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.5*"/>
+                            <ColumnDefinition Width="1.5*"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text=""
+                                  />
+                        <TextBlock Grid.Column="1" Text="TOTAL"
+                                   FontWeight="{DynamicResource Weight.Bold}"/>
+                        <TextBlock Grid.Column="2" Text="{Binding TotalServiceCountDisplay}"
+                                  />
+                        <TextBlock Grid.Column="3" Text="{Binding TotalServiceAreaDisplay}"
+                                   HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="4" Text="{Binding TotalServiceChargeDisplay}"
+                                   HorizontalAlignment="Right" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="5" Text="{Binding TotalServiceCostDisplay}"
+                                   HorizontalAlignment="Right" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="6" Text="{Binding TotalServiceProfitDisplay}"
+                                   HorizontalAlignment="Right" FontWeight="{DynamicResource Weight.SemiBold}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource TableCellStyle}">
+                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TotalServiceProfit, Converter={StaticResource DecimalComparisonConverter}, ConverterParameter=0}" Value="LessThan">
+                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Grid.Column="7" Text="{Binding OverallServiceMarginDisplay}"
+                                   Style="{StaticResource Typography.Body}" HorizontalAlignment="Right" FontWeight="{DynamicResource Weight.Bold}"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3" Margin="0,8,0,0">
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontSize="{DynamicResource FontSize.Caption}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </Border>
+
+        <!-- Loading Overlay -->
+        <Border Grid.RowSpan="4"
+                Background="{DynamicResource SurfaceOverlayBrush}"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Analyzing..."
+                           FontSize="{DynamicResource FontSize.H3}"
+                           FontWeight="{DynamicResource Weight.SemiBold}"
+                           Foreground="{DynamicResource OnAccentForegroundBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8"/>
+                <ProgressBar IsIndeterminate="True" Width="200" Height="4"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
