@@ -105,6 +105,25 @@ namespace ProGlassAutomation.Step6Tests
                 mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH").Quantity == mixedLam.TotalLm
                 && mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").Quantity == group.MatchedPolishLm);
 
+            var legacyPolishSheet = new OtherChargesSheet();
+            legacyPolishSheet.Predefined.Add(new PredefinedChargeRow
+            {
+                TemplateKey = "POLISH", Metric = ChargeMetric.TotalLm,
+                MetricMultiplier = 1m, IsActive = false, HasManualActiveOverride = true
+            });
+            legacyPolishSheet.Predefined.Add(new PredefinedChargeRow
+            {
+                TemplateKey = "POLISH_MATCHED_LAM", Metric = ChargeMetric.TotalLm,
+                MetricMultiplier = 2m, IsActive = false, HasManualActiveOverride = true
+            });
+            legacyPolishSheet.EnsureCatalogueRows();
+            Check("saved legacy polish defaults migrate to geometry metrics",
+                legacyPolishSheet.Predefined.Single(row => row.TemplateKey == "POLISH").Metric == ChargeMetric.PolishLm
+                && legacyPolishSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").Metric == ChargeMetric.MatchedPolishLm
+                && legacyPolishSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").MetricMultiplier == 1m);
+            Check("polish metric migration preserves manual active state",
+                legacyPolishSheet.Predefined.All(row => !row.IsActive && row.HasManualActiveOverride));
+
             var wastage = new OtherChargesSheet();
             wastage.RebuildWastages(new[] { group });
             WastageChargeRow clear = wastage.Wastages.Single(row => row.ColorName == "Clear");
