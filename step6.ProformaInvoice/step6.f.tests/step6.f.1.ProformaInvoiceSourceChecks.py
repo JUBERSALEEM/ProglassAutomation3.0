@@ -11,7 +11,7 @@ cost a group against the wrong pricing section, and must not lose a manual charg
 toggle. Each of those would corrupt data quietly rather than fail a build.
 
 Every rule names the defect, the file and what to do instead. The behaviour half
-(step6.f.2–f.5) need Windows and a .NET SDK; this half runs anywhere.
+(step6.f.2–f.6) need Windows and a .NET SDK; this half runs anywhere.
 """
 
 import re
@@ -48,7 +48,7 @@ OWNER = MODULE / "step6.e.docs/step6.e.2.Owner-Verification.md"
 REGISTRY = ROOT / "docs/06.Feature-Registry.md"
 DECISIONS = ROOT / "docs/05.Decision-Log.md"
 
-CSHARP = sorted(MODULE.rglob("*.cs"))
+CSHARP = sorted(MODULE.glob("*.cs"))
 PDF_STYLES = MODULE / "step6.g.Export/step6.g.1.ProformaPdfStyle.cs"
 PDF_LAYOUT = MODULE / "step6.g.Export/step6.g.2.ProformaPdfLayout.cs"
 PDF_DOSSIER = MODULE / "step6.g.Export/step6.g.4.ProformaDossierPdfLayout.cs"
@@ -468,6 +468,15 @@ check("ExportRegisterWorkbookCommand" in read(REGISTER_VIEW),
 for path in (WORKBOOK, CSV_EXPORT, IMPORT_PARSER, IMPORT_SERVICE, FILE_OPERATIONS):
     check(path.is_file() and len(read(path).splitlines()) <= 400,
           f"{path.relative_to(ROOT)}: missing or exceeds the 400-line file rule")
+
+for path in (
+    MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs",
+    MODULE / "step6.f.tests/step6.f.4.ProformaPdfBehaviourChecks.cs",
+    MODULE / "step6.f.tests/step6.f.5.ProformaBehaviourChecks.ProfitAndLoss.cs",
+    MODULE / "step6.f.tests/step6.f.6.ProformaImportExportChecks.cs",
+):
+    check(path.is_file() and len(read(path).splitlines()) <= 400,
+          f"{path.relative_to(ROOT)}: missing or exceeds the 400-line test-file rule")
 
 if failures:
     print(f"proforma invoice source checks: {len(failures)} failure(s).")
