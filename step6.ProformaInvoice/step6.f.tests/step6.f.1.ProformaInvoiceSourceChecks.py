@@ -55,6 +55,13 @@ PDF_DOSSIER = MODULE / "step6.g.Export/step6.g.4.ProformaDossierPdfLayout.cs"
 PDF_EXPORTER = MODULE / "step6.g.Export/step6.g.3.ProformaPdfExporter.cs"
 PDF_VIEWMODEL = MODULE / "step6.c.Presentation/step6.c.9.ProformaWorkspaceViewModel.PdfExport.cs"
 PDF_VIEW = MODULE / "step6.d.Views/step6.d.7.ProformaSummaryStage.xaml"
+REGISTER_VIEW = MODULE / "step6.d.Views/step6.d.1.ProformaWorkspaceView.xaml"
+GRID_VIEW = MODULE / "step6.d.Views/step6.d.5.ProformaGridStage.xaml"
+WORKBOOK = MODULE / "step6.g.Export/step6.g.5.ProformaWorkbookExporter.cs"
+CSV_EXPORT = MODULE / "step6.g.Export/step6.g.6.ProformaCsvExporter.cs"
+IMPORT_PARSER = MODULE / "step6.h.Import/step6.h.1.ProformaGridImportParser.cs"
+IMPORT_SERVICE = MODULE / "step6.h.Import/step6.h.2.ProformaGridImportService.cs"
+FILE_OPERATIONS = MODULE / "step6.c.Presentation/step6.c.10.ProformaWorkspaceViewModel.FileOperations.cs"
 PROJECT = ROOT / "ProGlassAutomation.csproj"
 failures = []
 
@@ -419,6 +426,46 @@ check("ExportPdfCommand" in read(PDF_VIEW)
       and "PdfStyles" in read(PDF_VIEW),
       "step6.d.7 summary view: the five-style export controls are not wired")
 for path in (PDF_STYLES, PDF_LAYOUT, PDF_DOSSIER, PDF_EXPORTER, PDF_VIEWMODEL):
+    check(path.is_file() and len(read(path).splitlines()) <= 400,
+          f"{path.relative_to(ROOT)}: missing or exceeds the 400-line file rule")
+
+# 18 ── Workbook, CSV and cut-list import parity ────────────────────────────
+check('PackageReference Include="ClosedXML" Version="0.105.0"' in project_source,
+      "ProGlassAutomation.csproj: ClosedXML is missing for XLSX import/export")
+check("CsvHelper" not in project_source,
+      "ProGlassAutomation.csproj: CSV should use the dependency-free V3 writer")
+workbook_source = read(WORKBOOK)
+for token in ("CreateInvoiceWorkbook", "CreateRegisterWorkbook", "Internal P&L",
+              "P&L Targets", "WriteProfitLossTargets", "WriteSpecifications", "WriteCharges"):
+    check(token in workbook_source,
+          f"step6.g.5.ProformaWorkbookExporter.cs: {token} is missing")
+check("includeProfitLoss = false" in workbook_source,
+      "step6.g.5.ProformaWorkbookExporter.cs: internal P&L must be opt-in")
+csv_source = read(CSV_EXPORT)
+check("13-column" in csv_source and "TOTAL SQM" in csv_source
+      and "GRAND TOTAL (VAT INC)" in csv_source,
+      "step6.g.6.ProformaCsvExporter.cs: the 13-column cut-list contract is incomplete")
+parser_source = read(IMPORT_PARSER)
+for token in ("ParseDelimitedText", "ParseTable", "ParseJsonArray", "DetectHeader", "TryDimensions"):
+    check(token in parser_source,
+          f"step6.h.1.ProformaGridImportParser.cs: {token} is missing")
+service_source = read(IMPORT_SERVICE)
+check("FileShare.ReadWrite" in service_source and ".xlsx" in service_source
+      and ".csv" in service_source and ".json" in service_source,
+      "step6.h.2.ProformaGridImportService.cs: XLSX/CSV/text/JSON import support is incomplete")
+file_ops_source = read(FILE_OPERATIONS)
+for token in ("ImportCutListCommand", "ExportWorkbookCommand", "ExportCsvCommand",
+              "ExportRegisterWorkbookCommand", "ImportFileAsync", "ExportInvoiceAsync"):
+    check(token in file_ops_source,
+          f"step6.c.10 file operations: {token} is missing")
+check("ImportCutListCommand" in read(GRID_VIEW),
+      "step6.d.5 grid stage: cut-list import control is not wired")
+check("ExportWorkbookCommand" in read(PDF_VIEW)
+      and "ExportCsvCommand" in read(PDF_VIEW),
+      "step6.d.7 summary stage: Excel/CSV export controls are not wired")
+check("ExportRegisterWorkbookCommand" in read(REGISTER_VIEW),
+      "step6.d.1 register: filtered register export control is not wired")
+for path in (WORKBOOK, CSV_EXPORT, IMPORT_PARSER, IMPORT_SERVICE, FILE_OPERATIONS):
     check(path.is_file() and len(read(path).splitlines()) <= 400,
           f"{path.relative_to(ROOT)}: missing or exceeds the 400-line file rule")
 
