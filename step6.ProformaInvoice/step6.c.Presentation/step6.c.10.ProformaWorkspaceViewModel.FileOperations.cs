@@ -152,7 +152,8 @@ namespace ProGlassAutomation.ViewModels.Proforma
                     ? "Workbook exported with an INTERNAL P&L sheet. Do not send it to the customer."
                     : "Invoice workbook exported without internal cost and margin.");
                 ClearError();
-                OpenExport(dialog.FileName);
+                if (!OpenExport(dialog.FileName))
+                    SetStatus("Workbook saved, but the default viewer could not be opened.");
             }
             catch (Exception error)
             {
@@ -184,7 +185,8 @@ namespace ProGlassAutomation.ViewModels.Proforma
                 await ProformaCsvExporter.ExportAsync(Draft, dialog.FileName);
                 SetStatus("Cut-list CSV exported.");
                 ClearError();
-                OpenExport(dialog.FileName);
+                if (!OpenExport(dialog.FileName))
+                    SetStatus("CSV saved, but the default viewer could not be opened.");
             }
             catch (Exception error)
             {
@@ -216,7 +218,8 @@ namespace ProGlassAutomation.ViewModels.Proforma
                 await ProformaWorkbookExporter.ExportRegisterAsync(Rows.ToList(), dialog.FileName);
                 SetStatus("Exported " + Rows.Count + " invoice(s) from the current register filter.");
                 ClearError();
-                OpenExport(dialog.FileName);
+                if (!OpenExport(dialog.FileName))
+                    SetStatus("Register workbook saved, but the default viewer could not be opened.");
             }
             catch (Exception error)
             {
@@ -224,15 +227,16 @@ namespace ProGlassAutomation.ViewModels.Proforma
             }
         }
 
-        private static void OpenExport(string path)
+        private static bool OpenExport(string path)
         {
             try
             {
                 Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+                return true;
             }
             catch
             {
-                // The file is already saved. The caller's status message remains accurate.
+                return false;
             }
         }
     }
