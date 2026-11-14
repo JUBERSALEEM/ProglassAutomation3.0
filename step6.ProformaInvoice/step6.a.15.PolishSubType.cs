@@ -47,6 +47,9 @@ namespace ProGlassAutomation.Models.Proforma
             string name = (group.SpecName ?? "").Trim();
             if (group.PolishSubType == PolishSubType.Auto) return name;
             string polish = GetInfo(group.PolishSubType).DisplayLabel;
+            if (group.PolishSubType == PolishSubType.Custom
+                && !string.IsNullOrWhiteSpace(group.CustomPolishDescription))
+                polish += " — " + group.CustomPolishDescription.Trim();
             return name.Length == 0 ? "Polish: " + polish : name + " · Polish: " + polish;
         }
 
