@@ -32,9 +32,13 @@
          one technical error log (docs/14) and every module writes to it. Its
          tests are a console project of their own, like every other module's. -->
     <Compile Include="App.xaml.cs;MainWindow.xaml.cs;AssemblyInfo.cs" />
+    <Compile Include="Models/ProformaInvoice/**/*.cs;ViewModels/ProformaInvoice/**/*.cs;Services/ProformaInvoice/**/*.cs;Views/ProformaInvoice/**/*.cs" />
     <Compile Include="Diagnostics/**/*.cs" />
     <Compile Include="Theme/step1.a.ThemeEngine/**/*.cs;Theme/ThemeBento/**/*.cs;Theme/ThemeClaymorphism/**/*.cs;Theme/ThemeFluent/**/*.cs;Theme/ThemeNeumorphism/**/*.cs;Theme/ThemeLiquidGlass/**/*.cs;Theme/ThemeGlassmorphism/**/*.cs;Theme/ThemeSpatial/**/*.cs;Theme/ThemeSwiss/**/*.cs;Theme/ThemeHolographic/**/*.cs;Theme/step1.f.Analytics/**/*.cs;Theme/step1.g.Customization/**/*.cs;step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.cs;Inquiry/**/*.cs;step2.ClientManagement/**/*.cs;step3.UserManagement/**/*.cs;step4.CompanyProfile/**/*.cs;step5.ProjectRecords/**/*.cs;step6.ProformaInvoice/**/*.cs" />
     <Page Include="MainWindow.xaml;Theme/ThemeBento/**/*.xaml;Theme/ThemeClaymorphism/**/*.xaml;Theme/ThemeFluent/**/*.xaml;Theme/ThemeNeumorphism/**/*.xaml;Theme/ThemeLiquidGlass/**/*.xaml;Theme/ThemeGlassmorphism/**/*.xaml;Theme/ThemeSpatial/**/*.xaml;Theme/ThemeSwiss/**/*.xaml;Theme/ThemeHolographic/**/*.xaml;step1.ThemeStudio/step1.b.ThemeStudioScreen/**/*.xaml;Inquiry/**/*.xaml;step2.ClientManagement/**/*.xaml;step3.UserManagement/**/*.xaml;step4.CompanyProfile/**/*.xaml;step5.ProjectRecords/**/*.xaml;step6.ProformaInvoice/**/*.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Views/ProformaInvoice/**/*.xaml" />
   </ItemGroup>
   <!-- The step2, step3 and step4 verification executables are their own projects
        (like step1.d): keep their sources out of the application build so the
@@ -72,5 +76,6 @@
     <PackageReference Include="QuestPDF" Version="2025.12.4" />
     <!-- ClosedXML supplies the approved XLSX import/export paths; CSV stays dependency-free. -->
     <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
   </ItemGroup>
 </Project>
