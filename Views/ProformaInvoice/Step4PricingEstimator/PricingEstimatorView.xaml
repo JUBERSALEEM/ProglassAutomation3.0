@@ -1,0 +1,396 @@
+<UserControl x:Class="ProGlassAutomation.Views.ProformaInvoice.Step4PricingEstimator.PricingEstimatorView"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sgu="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step4PricingEstimator.SguParameters"
+             xmlns:dgu="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step4PricingEstimator.DguParameters"
+             xmlns:lam="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step4PricingEstimator.LamParameters"
+             xmlns:dgulam="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step4PricingEstimator.DguLamParameters"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             Background="{DynamicResource Ov.Canvas}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <DockPanel>
+
+        <Border DockPanel.Dock="Bottom"
+                Background="Transparent"
+                BorderBrush="{DynamicResource BorderDefaultBrush}"
+                BorderThickness="{DynamicResource Border.TopHairlineThickness}"
+                Padding="18,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CurrentCalculationSectionLabel}"
+                               FontSize="{DynamicResource FontSize.Body}"
+                               FontWeight="{DynamicResource Weight.Bold}"
+                               Foreground="{DynamicResource AccentBrush}"
+                               Margin="0,0,0,4"/>
+                    <TextBlock FontFamily="{DynamicResource FontFamily.Code}" FontSize="{DynamicResource FontSize.Title}" FontWeight="{DynamicResource Weight.SemiBold}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="{Binding SguVM.GeneratedSpecName}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="DGU">
+                                        <Setter Property="Text" Value="{Binding DguVM.GeneratedSpecName}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="LAM">
+                                        <Setter Property="Text" Value="{Binding LamVM.GeneratedSpecName}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="DGU+LAM">
+                                        <Setter Property="Text" Value="{Binding DguLamVM.GeneratedSpecName}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ItemsControl ItemsSource="{Binding SpecGroups}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.ToggleSpecGroupCommand,
+                                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent" BorderThickness="{DynamicResource Border.NoneThickness}" Padding="0"
+                                            Margin="0,0,8,4" Cursor="Hand" Style="{StaticResource SecondaryButtonStyle}">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="ChipBorder"
+                                                        CornerRadius="{DynamicResource CardCornerRadius}"
+                                                        Padding="12,6" BorderThickness="{DynamicResource Border.HairlineThickness}">
+                                                    <TextBlock x:Name="NameText" Text="{Binding Name}"
+                                                               FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter TargetName="ChipBorder" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                                        <Setter TargetName="ChipBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                        <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource OnAccentForegroundBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="False">
+                                                        <Setter TargetName="ChipBorder" Property="Background" Value="Transparent"/>
+                                                        <Setter TargetName="ChipBorder" Property="BorderBrush" Value="{DynamicResource BorderDefaultBrush}"/>
+                                                        <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+                                                    </DataTrigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="16,0,0,0">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.Sections}"
+                                       FontSize="{DynamicResource FontSize.Body}"
+                                       FontWeight="{DynamicResource Weight.Bold}"
+                                       Foreground="{DynamicResource SecondaryForegroundBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <Border Background="{DynamicResource TintBlueBrush}"
+                                    BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                    BorderThickness="{DynamicResource Border.HairlineThickness}"
+                                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                                    Padding="10,4"
+                                    Margin="0,0,8,0">
+                                <TextBlock Text="{Binding CalculationSectionCount}"
+                                           FontSize="{DynamicResource FontSize.Body}"
+                                           FontWeight="{DynamicResource Weight.Bold}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            </Border>
+                            <Button Command="{Binding AddCalculationSectionCommand}"
+                                    Style="{StaticResource PiGhostChipButton}"
+                                    Height="28"
+                                    Margin="0,0,6,0"
+                                    Content="{DynamicResource ProformaInvoice.ADD}"/>
+                            <Button Command="{Binding RemoveCalculationSectionCommand}"
+                                    Style="{StaticResource PiGhostChipButton}"
+                                    Height="28"
+                                    Content="{DynamicResource ProformaInvoice.Remove}"/>
+                        </StackPanel>
+                    </Grid>
+                    <!-- 2026-09-10: proper warning banner (repo TintAmber
+                         pattern) instead of the thin footer hint line, plus
+                         the "Open Sheet Store — Add Sheet" action. Shows
+                         whenever the selected colour/thickness/size is not
+                         stocked (SheetStoreHint from the panel VMs). -->
+                    <Border Background="{DynamicResource TintAmberBrush}" BorderBrush="{DynamicResource WarningBrush}" BorderThickness="{DynamicResource Border.HairlineThickness}" CornerRadius="{DynamicResource ControlCornerRadius}" Padding="12,8" Margin="0,6,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource SurfacePrimaryStyle}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding SelectedGlassType.Code}" Value="SGU"/>
+                                            <Condition Binding="{Binding SguVM.HasSheetStoreHint}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding SelectedGlassType.Code}" Value="DGU"/>
+                                            <Condition Binding="{Binding DguVM.HasSheetStoreHint}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding SelectedGlassType.Code}" Value="LAM"/>
+                                            <Condition Binding="{Binding LamVM.HasSheetStoreHint}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding SelectedGlassType.Code}" Value="DGU+LAM"/>
+                                            <Condition Binding="{Binding DguLamVM.HasSheetStoreHint}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE7BA;"
+                                       FontFamily="{DynamicResource FontFamily.Icon}"
+                                       FontSize="{DynamicResource FontSize.H3}"
+                                       Foreground="{DynamicResource WarningBrush}"
+                                       VerticalAlignment="Top" Margin="0,1,10,0"/>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{DynamicResource ProformaInvoice.NotInSheetStore}"
+                                           FontSize="{DynamicResource FontSize.BodySmall}"
+                                           FontWeight="{DynamicResource Weight.Bold}"
+                                           Foreground="{DynamicResource WarningBrush}"/>
+                                <TextBlock FontSize="{DynamicResource FontSize.Body}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           TextWrapping="Wrap" Margin="0,2,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding SguVM.SheetStoreHint}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="DGU">
+                                                    <Setter Property="Text" Value="{Binding DguVM.SheetStoreHint}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="LAM">
+                                                    <Setter Property="Text" Value="{Binding LamVM.SheetStoreHint}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="DGU+LAM">
+                                                    <Setter Property="Text" Value="{Binding DguLamVM.SheetStoreHint}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                            <Button Grid.Column="2"
+                                    Command="{Binding OpenSheetStoreCommand}"
+                                    Style="{StaticResource PiGhostChipButton}"
+                                    Height="30" Margin="12,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Content="{DynamicResource ProformaInvoice.OpenSheetStoreAddSheet}"/>
+                        </Grid>
+                    </Border>
+<TextBlock Text="{Binding ApplyStatusMessage}" FontSize="{DynamicResource FontSize.Body}"
+                               Foreground="{DynamicResource AccentBrush}" TextWrapping="Wrap" Margin="0,4,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasApplyStatus}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding YieldFactorWarning}" FontSize="{DynamicResource FontSize.Body}"
+                               Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasYieldFactorWarning}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="24,0">
+                    <TextBlock Text="{DynamicResource ProformaInvoice.EstimatedRATE}"
+                               FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               VerticalAlignment="Bottom" Margin="0,0,10,6"/>
+                    <TextBlock Text="AED"
+                               FontSize="{DynamicResource FontSize.H3}" FontWeight="{DynamicResource Weight.Bold}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               VerticalAlignment="Bottom" Margin="0,0,6,4"/>
+                    <Viewbox MaxHeight="36" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding EstimatedRatePerSqm, Converter={StaticResource CurrencyConverter}}"
+                                   FontSize="{DynamicResource FontSize.Display}" FontWeight="{DynamicResource Weight.Bold}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    </Viewbox>
+                    <TextBlock Text="{DynamicResource ProformaInvoice.Sqm}"
+                               FontSize="{DynamicResource FontSize.Title}"
+                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               VerticalAlignment="Bottom" Margin="4,0,0,6"/>
+                </StackPanel>
+
+                <Button Grid.Column="2"
+                        Command="{Binding ApplyRateCommand}"
+                        Style="{StaticResource PrimaryPillButton}"
+                        Height="42" MinWidth="160" VerticalAlignment="Center"
+                        Content="{DynamicResource ProformaInvoice.ApplyRATE}"/>
+            </Grid>
+        </Border>
+
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <ItemsControl ItemsSource="{Binding GlassTypes}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Command="{Binding DataContext.SelectGlassTypeCommand,
+                                                  RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Background="Transparent" BorderThickness="{DynamicResource Border.NoneThickness}" Padding="0"
+                                Margin="0,0,8,0" Cursor="Hand" FocusVisualStyle="{x:Null}"
+                                ToolTip="{Binding Description}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Card"
+                                            Background="{DynamicResource SurfacePrimaryBrush}"
+                                            BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                            BorderThickness="{DynamicResource Border.HairlineThickness}"
+                                            CornerRadius="{DynamicResource CardCornerRadius}"
+                                            Padding="12,8"
+                                            Height="40" Style="{StaticResource SurfacePrimaryStyle}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock x:Name="CodeText" Text="{Binding Code}"
+                                                       FontSize="{DynamicResource FontSize.Title}" FontWeight="{DynamicResource Weight.Bold}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                            <TextBlock x:Name="TitleText" Text="{Binding Title}"
+                                                       FontSize="{DynamicResource FontSize.Body}"
+                                                       Foreground="{DynamicResource SecondaryForegroundBrush}"
+                                                       Margin="8,0,0,0"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter TargetName="Card" Property="BorderThickness" Value="2"/>
+                                            <Setter TargetName="Card" Property="Background" Value="{DynamicResource TintBlueBrush}"/>
+                                            <Setter TargetName="CodeText" Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                        </DataTrigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <Grid>
+            <ContentControl Content="{Binding SguVM}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="SGU">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+                <ContentControl.ContentTemplate>
+                    <DataTemplate><sgu:SguParametersView/></DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+            <ContentControl Content="{Binding DguVM}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="DGU">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+                <ContentControl.ContentTemplate>
+                    <DataTemplate><dgu:DguParametersView/></DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+            <ContentControl Content="{Binding LamVM}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="LAM">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+                <ContentControl.ContentTemplate>
+                    <DataTemplate><lam:LamParametersView/></DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+            <ContentControl Content="{Binding DguLamVM}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SelectedGlassType.Code}" Value="DGU+LAM">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+                <ContentControl.ContentTemplate>
+                    <DataTemplate><dgulam:DguLamParametersView/></DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+        </Grid>
+    </DockPanel>
+</UserControl>
