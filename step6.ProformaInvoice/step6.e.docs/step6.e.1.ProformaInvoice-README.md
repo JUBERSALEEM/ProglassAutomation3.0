@@ -229,7 +229,25 @@ organisation's eligibility and any commercial licensing requirement before
 distribution. PDF generation and visual parity still require Windows build and
 runtime verification; a source commit is not proof of a rendered PDF.
 
-## 11. Files
+## 11. File import and spreadsheet/CSV export
+
+The Grid stage imports cut-list data into the selected specification group:
+
+- **XLSX:** reads the first worksheet's used range using ClosedXML, including a workbook currently open in Excel.
+- **CSV and TXT:** header-aware comma, semicolon and tab parsing; decimal-comma values are supported in semicolon-delimited files.
+- **Scanner JSON:** accepts the structured row array used by scanner integrations.
+- **Row rules:** supports REF, W1, H1, optional W2/H2, quantity, dimension-pair shorthand, specification and glass type. Invalid dimensions/quantities are skipped and reported. Imports append to the selected group; mixed specification names or glass types are rejected instead of silently mispricing rows.
+
+PDF/image OCR is **not included** in this V3 batch: the V3 application has no Gemini file-AI service or AI settings contract. The import service reports this clearly instead of pretending to scan the file. Adding an AI provider requires a separate owner decision and credential/settings design.
+
+The Summary stage exports:
+- **Excel workbook:** Summary, Specifications, Other Charges and Terms sheets. The internal P&L and target-analysis sheets are omitted by default and appear only when explicitly enabled.
+- **CSV cut list:** the 13-column legacy-compatible cut-list contract, with per-panel area and total area kept at three decimals.
+- **Register Excel:** exports the currently filtered invoice register.
+
+ClosedXML 0.105.0 is the only added spreadsheet dependency. CSV is written by the .NET runtime; CsvHelper is not added. The optional internal P&L workbook sheet is marked red and must not be sent to customers.
+
+## 12. Files
 
 | File | Role |
 | --- | --- |
@@ -270,10 +288,16 @@ runtime verification; a source commit is not proof of a rendered PDF.
 | `step6.g.Export/step6.g.2.ProformaPdfLayout.cs` | QuestPDF invoice rendering, pagination, tables and signatures |
 | `step6.g.Export/step6.g.3.ProformaPdfExporter.cs` | detached-snapshot invoice and dossier PDF export |
 | `step6.g.Export/step6.g.4.ProformaDossierPdfLayout.cs` | full dossier; P&L opt-in, internal warning on every page |
+| `step6.g.Export/step6.g.5.ProformaWorkbookExporter.cs` | invoice/dossier workbook and filtered register workbook |
+| `step6.g.Export/step6.g.6.ProformaCsvExporter.cs` | 13-column cut-list CSV |
+| `step6.h.Import/step6.h.1.ProformaGridImportParser.cs` | header-aware CSV/TSV/TXT and scanner JSON parser |
+| `step6.h.Import/step6.h.2.ProformaGridImportService.cs` | XLSX/CSV/TXT/JSON file reader; shared-read file access |
+| `step6.c.Presentation/step6.c.10…FileOperations.cs` | selected-group import, workbook/CSV/register export commands |
+| `step6.f.tests/step6.f.6…` | import, workbook and CSV regression checks |
 | `step6.c.Presentation/step6.c.9…PdfExport.cs` | style selection, save dialog and export command |
 | `step6.f.tests/step6.f.2…f.5` | behaviour, storage, five-style PDF render and P&L checks (needs .NET 8) |
 
-## 12. Verification status — honest
+## 13. Verification status — honest
 
 | Claim | Evidence |
 | --- | --- |
@@ -285,7 +309,8 @@ runtime verification; a source commit is not proof of a rendered PDF.
 | Migration runs on a real copy of production | **not verified**; run `step5.f.2` on a copy first (see `step6.e.2`) |
 | Views follow the theme contract (tokens only, implicit styles bound explicitly, shared `ListGrid`) | `step1.d.3`, `.17`, `.18`, `.20`, `.11` — executed here, pass; the step6 views are our own XAML, no reference markup copied |
 | Views render correctly on Windows in nine themes | **not verified** — the XAML is written and compiles by inspection only; no WPF runtime here to render it |
-| Five-style QuestPDF export | source and wiring committed; **not built or rendered** here — verify on Windows, including logo, long tables, page breaks and all five styles |
+| Five-style QuestPDF invoice and dossier export | source and render checks committed; **not built or rendered** here — verify on Windows, including logo, long tables, page breaks, P&L opt-in and all five styles |
+| XLSX/CSV/TXT/JSON cut-list import and XLSX/CSV export | parser, service, workbook and UI wiring committed; **not executed** here — verify on Windows with representative files and Excel-open workbook locks |
 
 Anyone reading a later report should treat the last three rows as open until a
 person runs them on Windows and records the outcome in
