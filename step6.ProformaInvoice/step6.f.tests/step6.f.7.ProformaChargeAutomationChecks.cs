@@ -19,7 +19,8 @@ namespace ProGlassAutomation.Step6Tests
                 IsComplete = true, SpecName = "DGU + U-Insert", RatePerSqm = 100m,
                 CostCard = new SpecCostCard()
             });
-            return group.UInsertPricePerSqm == 13m;
+            return group.UInsertPricePerSqm == 13m
+                && group.Clone().UInsertPricePerSqm == 13m;
         }
 
         private static void ChargeAutomation()

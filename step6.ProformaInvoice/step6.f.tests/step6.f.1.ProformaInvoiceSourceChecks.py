@@ -489,6 +489,7 @@ check("all five customer PDF styles are registered" in pdf_tests
       and "renders an internal dossier PDF" in pdf_tests,
       "step6.f.4: all five styles must render both customer invoice and dossier PDFs")
 check("UInsertPricePerSqm" in read(MODELS)
+      and "[JsonIgnore]\n        public bool RequiresUInsert" in read(SPEC_GRID)
       and "UInsertPricePerSqm" in read(SPEC_GRID)
       and "UInsertSqm" in read(SPEC_GRID)
       and "UInsertAmount" in read(SPEC_GRID)

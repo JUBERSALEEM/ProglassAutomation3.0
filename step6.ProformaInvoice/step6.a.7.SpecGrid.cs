@@ -157,8 +157,7 @@ namespace ProGlassAutomation.Models.Proforma
             }
         }
 
-        /// <summary>Every row priced at the group rate unless it carries an override.</summary>
-        [JsonIgnore]
+        /// <summary>True when this specification explicitly requests U-Insert.</summary>
         [JsonIgnore]
         public bool RequiresUInsert =>
             SpecName.Contains("U-INSERT", StringComparison.OrdinalIgnoreCase)
