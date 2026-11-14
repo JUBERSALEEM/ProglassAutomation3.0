@@ -50,6 +50,9 @@ namespace ProGlassAutomation.Step6Tests
             Section("Profit and loss");
             ProfitAndLoss();
 
+            Section("PDF styles and rendering");
+            PdfExport();
+
             Section("Stored body");
             StoredBody();
 
