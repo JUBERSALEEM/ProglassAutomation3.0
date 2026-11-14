@@ -29,8 +29,10 @@ namespace ProGlassAutomation.Models.Proforma
         TotalPieces = 2,
         /// <summary>A quantity the operator types (trips, cutouts on a drawing).</summary>
         FixedQuantity = 3,
+        /// <summary>Regular polish length, excluding matched double-glass groups.</summary>
+        PolishLm = 4,
         /// <summary>Polish length across matched double-glass panels.</summary>
-        MatchedPolishLm = 4
+        MatchedPolishLm = 5
     }
 
     /// <summary>Billing unit a charge is written in.</summary>
