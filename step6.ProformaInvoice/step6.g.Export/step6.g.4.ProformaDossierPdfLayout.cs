@@ -13,6 +13,8 @@ namespace ProGlassAutomation.Services.Proforma
     /// </summary>
     public static class ProformaDossierPdfLayout
     {
+        static ProformaDossierPdfLayout() => QuestPDF.Settings.License = LicenseType.Community;
+
         public static byte[] Render(
             ProformaInvoiceDraft draft,
             ProformaPdfStyle style,
