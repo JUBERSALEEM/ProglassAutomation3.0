@@ -121,7 +121,13 @@
                          LostFocus="OnCustomPolishQuantityChanged"
                          ToolTip="Used only when Polish edge type is Custom (Manual)."
                          AutomationProperties.Name="Custom polish length in linear metres" />
-                <TextBlock Text="Auto reads the spec; Custom uses the manual LM above."
+                <TextBlock Text="CUSTOM POLISH INSTRUCTION" Style="{DynamicResource ProformaFieldLabel}" />
+                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                         Text="{Binding SelectedGroup.CustomPolishDescription, UpdateSourceTrigger=PropertyChanged}"
+                         LostFocus="OnCustomPolishQuantityChanged"
+                         ToolTip="Printed on the specification line when Custom polish is selected."
+                         AutomationProperties.Name="Custom polish instruction" />
+                <TextBlock Text="Auto reads the spec; Custom uses the manual LM and instruction above."
                            Style="{DynamicResource ProformaFieldHint}" />
                 <TextBox Style="{DynamicResource {x:Type TextBox}}"
                          Width="220"
