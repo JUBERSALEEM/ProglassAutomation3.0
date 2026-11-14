@@ -230,6 +230,38 @@
                 </Grid>
             </ContentControl>
 
+            <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
+                <Grid Margin="{DynamicResource PaddingCard}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="WORKBOOK AND CUT-LIST DATA" Style="{DynamicResource ProformaFieldLabel}" />
+                        <TextBlock Text="Excel includes summary, specifications, charges and terms. Internal P&amp;L is off by default."
+                                   Style="{DynamicResource ProformaFieldHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1" Content="Include internal P&amp;L"
+                              Style="{DynamicResource {x:Type CheckBox}}"
+                              IsChecked="{Binding IncludeProfitLossInWorkbook, Mode=TwoWay}"
+                              VerticalAlignment="Center"
+                              Margin="{DynamicResource UiGapControlEnd}"
+                              AutomationProperties.Name="Include internal profit and loss in Excel workbook" />
+                    <Button Grid.Column="2" Style="{DynamicResource SubtleButton}"
+                            Content="EXPORT EXCEL" Command="{Binding ExportWorkbookCommand}"
+                            VerticalAlignment="Center"
+                            Margin="{DynamicResource UiGapControlEnd}"
+                            AutomationProperties.Name="Export the proforma invoice workbook" />
+                    <Button Grid.Column="3" Style="{DynamicResource SubtleButton}"
+                            Content="EXPORT CSV" Command="{Binding ExportCsvCommand}"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Export the proforma cut list as CSV" />
+                </Grid>
+            </ContentControl>
+
             <StackPanel Orientation="Horizontal" Margin="{DynamicResource MarginItem}">
                 <Button Style="{DynamicResource SubtleButton}" Content="RECALCULATE"
                         Command="{Binding RecalculateCommand}"
