@@ -210,8 +210,11 @@ These are five treatments of one invoice structure, not five divergent
 document architectures. Every style prints the same company identity, invoice
 reference and dates, client/project details, specification groups and measured
 rows, active other charges, financial waterfall, notes, terms and approval
-signatures. The internal profit-and-loss worksheet remains inside the
-application; it is not disclosed on the customer quote.
+signatures. A separate full-dossier PDF uses the same QuestPDF engine and
+selected style, adding the KPI band and the detailed working information.
+The dossier excludes internal P&L by default. It can be explicitly opted in
+for internal circulation only; that version carries a red warning banner on
+every page. The customer invoice PDF never includes P&L.
 
 QuestPDF is the only PDF renderer. V3 did not previously reference it; the
 approved integration adds QuestPDF 2024.12.2 to the existing application
@@ -265,7 +268,8 @@ runtime verification; a source commit is not proof of a rendered PDF.
 | `step6.f.tests/step6.f.1…` | portable source gate |
 | `step6.g.Export/step6.g.1.ProformaPdfStyle.cs` | five named print styles, one shared document composition |
 | `step6.g.Export/step6.g.2.ProformaPdfLayout.cs` | QuestPDF invoice rendering, pagination, tables and signatures |
-| `step6.g.Export/step6.g.3.ProformaPdfExporter.cs` | detached-snapshot export to a PDF file |
+| `step6.g.Export/step6.g.3.ProformaPdfExporter.cs` | detached-snapshot invoice and dossier PDF export |
+| `step6.g.Export/step6.g.4.ProformaDossierPdfLayout.cs` | full dossier; P&L opt-in, internal warning on every page |
 | `step6.c.Presentation/step6.c.9…PdfExport.cs` | style selection, save dialog and export command |
 | `step6.f.tests/step6.f.2…f.5` | behaviour, storage, five-style PDF render and P&L checks (needs .NET 8) |
 
