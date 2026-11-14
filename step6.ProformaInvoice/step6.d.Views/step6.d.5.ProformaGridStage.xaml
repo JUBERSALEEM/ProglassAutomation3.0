@@ -117,6 +117,12 @@
                           AutomationProperties.Name="Polish edge subtype" />
                 <TextBlock Text="Auto reads the spec; Custom uses a manual quantity."
                            Style="{DynamicResource ProformaFieldHint}" />
+                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                         Width="150"
+                         Text="{Binding SelectedGroup.CustomPolishQuantity, UpdateSourceTrigger=PropertyChanged, StringFormat=N3}"
+                         TextChanged="OnCustomPolishQuantityChanged"
+                         ToolTip="Manual polish linear metres; used only when Custom is selected."
+                         AutomationProperties.Name="Custom polish quantity in linear metres" />
             </StackPanel>
             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom">
                 <Button Style="{DynamicResource SubtleButton}" Content="ADD ROW"

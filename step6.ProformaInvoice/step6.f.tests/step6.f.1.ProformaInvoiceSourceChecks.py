@@ -508,6 +508,10 @@ check("PolishSubTypeInfo.All" in polish_view
       and "SelectedGroup.PolishSubType" in polish_view
       and "OnPolishSubTypeChanged" in polish_code,
       "step6.d.5: per-group polish subtype selector is not wired")
+check("SelectedGroup.CustomPolishQuantity" in polish_view
+      and "OnCustomPolishQuantityChanged" in polish_code
+      and "CustomPolishQuantity = CustomPolishQuantity" in read(SPEC_GRID),
+      "step6.d.5: custom polish quantity must be editable, recalculated and cloned")
 check("PolishSubtypeChecks();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")
       and POLISH_TESTS.is_file(),
       "step6.f.8 polish subtype regression checks are not wired")

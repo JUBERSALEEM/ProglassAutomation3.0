@@ -15,4 +15,10 @@ public partial class ProformaGridStage : UserControl
 
         Dispatcher.BeginInvoke(new Action(viewModel.Reapply));
     }
+
+    private void OnCustomPolishQuantityChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!IsLoaded || DataContext is not ProformaWorkspaceViewModel viewModel) return;
+        Dispatcher.BeginInvoke(new Action(viewModel.Reapply));
+    }
 }
