@@ -66,6 +66,7 @@ FILE_OPERATIONS = MODULE / "step6.c.Presentation/step6.c.10.ProformaWorkspaceVie
 CHARGE_AUTOMATION = MODULE / "step6.a.10.OtherChargeAutomation.cs"
 CHARGES_MODEL = MODULE / "step6.a.9.OtherCharges.cs"
 CHARGES_VIEW = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml"
+CHARGES_CODE = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml.cs"
 CHARGE_TESTS = MODULE / "step6.f.tests/step6.f.7.ProformaChargeAutomationChecks.cs"
 PROJECT = ROOT / "ProGlassAutomation.csproj"
 failures = []
@@ -490,6 +491,9 @@ wastage_view = read(CHARGES_VIEW)
 check("ToolTip=\"{Binding SuggestionReason}\"" in wastage_view
       and "Binding=\"{Binding SheetQuantity" in wastage_view,
       "step6.d.6: wastage guidance and sheet-cost quantity are not visible")
+check("CellEditEnding=\"OnWastageCellEditEnding\"" in wastage_view
+      and "Dispatcher.BeginInvoke" in read(CHARGES_CODE),
+      "step6.d.6: editing wastage sheet cost/rate must refresh P&L")
 for path in (WORKBOOK, CSV_EXPORT, IMPORT_PARSER, IMPORT_SERVICE, FILE_OPERATIONS):
     check(path.is_file() and len(read(path).splitlines()) <= 400,
           f"{path.relative_to(ROOT)}: missing or exceeds the 400-line file rule")
