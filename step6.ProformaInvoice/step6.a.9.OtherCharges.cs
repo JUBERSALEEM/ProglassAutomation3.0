@@ -102,6 +102,8 @@ namespace ProGlassAutomation.Models.Proforma
         public bool IsActive { get; set; }
         public string ColorName { get; set; } = "";
         public decimal Rate { get; set; }
+        public bool IsOptionalSuggestion { get; set; }
+        public string SuggestionReason { get; set; } = "";
 
         /// <summary>Billable area of that colour at the last recalculation.</summary>
         public decimal AreaSqm { get; set; }
@@ -257,6 +259,10 @@ namespace ProGlassAutomation.Models.Proforma
                     IsActive = existing?.IsActive ?? false,
                     ColorName = colour,
                     Rate = existing?.Rate ?? 0m,
+                    IsOptionalSuggestion = string.Equals(colour, "Clear", StringComparison.OrdinalIgnoreCase),
+                    SuggestionReason = string.Equals(colour, "Clear", StringComparison.OrdinalIgnoreCase)
+                        ? "Clear glass — optional because offcuts may be reusable."
+                        : "Coloured or coated glass — offcuts are less likely to be reusable.",
                     IsManuallyAdded = false,
                     UseOptimizationFormula = existing?.UseOptimizationFormula ?? false,
                     FormulaPricePerSqm = existing?.FormulaPricePerSqm ?? 0m,
@@ -311,6 +317,8 @@ namespace ProGlassAutomation.Models.Proforma
                 IsActive = row.IsActive,
                 ColorName = row.ColorName,
                 Rate = row.Rate,
+                IsOptionalSuggestion = row.IsOptionalSuggestion,
+                SuggestionReason = row.SuggestionReason,
                 AreaSqm = row.AreaSqm,
                 Amount = row.Amount,
                 IsManuallyAdded = row.IsManuallyAdded,
