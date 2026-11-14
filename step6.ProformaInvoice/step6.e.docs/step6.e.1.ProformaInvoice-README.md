@@ -291,13 +291,14 @@ ClosedXML 0.105.0 is the only added spreadsheet dependency. CSV is written by th
 | `step6.d.Views/step6.d.2.ProformaEditorView.xaml` | the editor: heading, lifecycle commands, stage rail, stage host |
 | `step6.d.Views/step6.d.3…d.9` | one view per stage — header, pricing, spec grid, charges, summary, documents, profit |
 | `step6.f.tests/step6.f.1…` | portable source gate |
+| `step6.f.tests/step6.f.2…f.7` | domain, storage, PDF, P&L, import/export and charge-automation regression checks |
 | `step6.g.Export/step6.g.1.ProformaPdfStyle.cs` | five named print styles, one shared document composition |
 | `step6.g.Export/step6.g.2.ProformaPdfLayout.cs` | QuestPDF invoice rendering, pagination, tables and signatures |
 | `step6.g.Export/step6.g.3.ProformaPdfExporter.cs` | detached-snapshot invoice and dossier PDF export |
 | `step6.g.Export/step6.g.4.ProformaDossierPdfLayout.cs` | full dossier; P&L opt-in, internal warning on every page |
-| `step6.g.Export/step6.g.7.ProformaPdfLetterheadRenderer.cs` | profile-owned logo placement and company identity |
 | `step6.g.Export/step6.g.5.ProformaWorkbookExporter.cs` | invoice/dossier workbook and filtered register workbook |
 | `step6.g.Export/step6.g.6.ProformaCsvExporter.cs` | 13-column cut-list CSV |
+| `step6.g.Export/step6.g.7.ProformaPdfLetterheadRenderer.cs` | profile-owned logo placement and company identity |
 | `step6.h.Import/step6.h.1.ProformaGridImportParser.cs` | header-aware CSV/TSV/TXT and scanner JSON parser |
 | `step6.h.Import/step6.h.2.ProformaGridImportService.cs` | XLSX/CSV/TXT/JSON file reader; shared-read file access |
 | `step6.c.Presentation/step6.c.10…FileOperations.cs` | selected-group import, workbook/CSV/register export commands |
