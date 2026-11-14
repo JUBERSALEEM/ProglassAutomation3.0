@@ -534,7 +534,9 @@ check("DisplayGroupTitle" in read(PDF_LAYOUT)
       "PDF/XLSX/CSV exports must disclose a manually selected polish subtype")
 check("SelectedGroup.CustomPolishQuantity" in polish_view
       and "OnCustomPolishQuantityChanged" in polish_code
-      and "CustomPolishQuantity = CustomPolishQuantity" in read(SPEC_GRID),
+      and "CustomPolishQuantity = CustomPolishQuantity" in read(SPEC_GRID)
+      and "CustomPolishDescription = CustomPolishDescription" in read(SPEC_GRID)
+      and "SelectedGroup.CustomPolishDescription" in polish_view,
       "step6.d.5: custom polish quantity must be editable, recalculated and cloned")
 check("PolishSubtypeChecks();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")
       and POLISH_TESTS.is_file(),
