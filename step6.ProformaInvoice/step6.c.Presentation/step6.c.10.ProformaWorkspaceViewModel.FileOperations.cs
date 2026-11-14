@@ -21,17 +21,21 @@ namespace ProGlassAutomation.ViewModels.Proforma
             set => SetField(ref _includeProfitLossInWorkbook, value);
         }
 
-        public ICommand ImportCutListCommand { get; } =
-            new DelegateCommand(() => _ = ImportCutListAsync());
+        private ICommand? _importCutListCommand;
+        public ICommand ImportCutListCommand =>
+            _importCutListCommand ??= new DelegateCommand(() => _ = ImportCutListAsync());
 
-        public ICommand ExportWorkbookCommand { get; } =
-            new DelegateCommand(() => _ = ExportWorkbookAsync());
+        private ICommand? _exportWorkbookCommand;
+        public ICommand ExportWorkbookCommand =>
+            _exportWorkbookCommand ??= new DelegateCommand(() => _ = ExportWorkbookAsync());
 
-        public ICommand ExportCsvCommand { get; } =
-            new DelegateCommand(() => _ = ExportCsvAsync());
+        private ICommand? _exportCsvCommand;
+        public ICommand ExportCsvCommand =>
+            _exportCsvCommand ??= new DelegateCommand(() => _ = ExportCsvAsync());
 
-        public ICommand ExportRegisterWorkbookCommand { get; } =
-            new DelegateCommand(() => _ = ExportRegisterWorkbookAsync());
+        private ICommand? _exportRegisterWorkbookCommand;
+        public ICommand ExportRegisterWorkbookCommand =>
+            _exportRegisterWorkbookCommand ??= new DelegateCommand(() => _ = ExportRegisterWorkbookAsync());
 
         private async Task ImportCutListAsync()
         {
