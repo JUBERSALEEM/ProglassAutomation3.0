@@ -184,7 +184,12 @@ namespace ProGlassAutomation.Services.Proforma
         {
             PricingSection? section = Draft.PricingSections
                 .FirstOrDefault(item => item.SectionNumber == sectionNumber);
-            return PricingEstimator.Calculate(section);
+            return section == null
+                ? new PricingResult
+                {
+                    Warnings = new List<string> { "Pricing section " + sectionNumber + " was not found." }
+                }
+                : PricingEstimator.Calculate(section);
         }
 
         /// <summary>Adds a grid group from a priced section. Returns its warnings.</summary>

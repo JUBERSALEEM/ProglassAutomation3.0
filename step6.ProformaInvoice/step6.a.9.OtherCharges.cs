@@ -271,7 +271,7 @@ namespace ProGlassAutomation.Models.Proforma
             var rebuilt = new List<WastageChargeRow>();
             foreach (string colour in colours)
             {
-                WastageChargeRow existing = Wastages.FirstOrDefault(row =>
+                WastageChargeRow? existing = Wastages.FirstOrDefault(row =>
                     !row.IsManuallyAdded &&
                     string.Equals(row.ColorName.Trim(), colour, StringComparison.OrdinalIgnoreCase));
 

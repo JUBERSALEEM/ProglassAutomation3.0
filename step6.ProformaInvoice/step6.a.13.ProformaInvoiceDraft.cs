@@ -158,8 +158,14 @@ namespace ProGlassAutomation.Models.Proforma
             EnsureStructure();
             PricingSection? section = PricingSections.FirstOrDefault(
                 item => item.SectionNumber == sectionNumber) ?? SelectedSection;
+            if (section == null)
+                return new PricingResult
+                {
+                    Warnings = new List<string> { "No pricing section is available to create this specification." }
+                };
+
             PricingResult result = PricingEstimator.Calculate(section);
-            if (section == null || !result.IsComplete) return result;
+            if (!result.IsComplete) return result;
 
             int groupNumber = Groups.Count == 0
                 ? 1
