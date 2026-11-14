@@ -73,6 +73,12 @@ namespace ProGlassAutomation.Step6Tests
                 SerialNumber = 1, W1 = 1000, H1 = 2000, Qty = 2
             });
             SpecGridTotals uInsertTotals = SpecGridTotals.From(new[] { uInsert });
+            PricingSection pricingSection = PricingEstimator.NewSection(GlassBuilds.Dgu, 4);
+            pricingSection.UInsertPricePerSqm = 25m;
+            var pricingSnapshot = new SpecGroup();
+            pricingSnapshot.ApplyPricing(pricingSection, PricingEstimator.Calculate(pricingSection));
+            Check("Step 4 U-Insert rate is copied into the specification snapshot",
+                pricingSnapshot.UInsertPricePerSqm == 25m);
             Check("Step 4 per-spec U-Insert rate is retained on the grid group",
                 uInsert.UInsertPricePerSqm == 25m);
             Check("per-spec U-Insert amount overrides the invoice fallback rate",
