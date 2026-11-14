@@ -199,6 +199,12 @@ namespace ProGlassAutomation.Models.Proforma
             get
             {
                 string name = GroupName.Trim().Length > 0 ? GroupName.Trim() : SpecName.Trim();
+                if (PolishSubType == PolishSubType.Custom)
+                {
+                    string details = CustomPolishDescription.Trim();
+                    string instruction = details.Length == 0 ? "Custom polish" : "Custom polish: " + details;
+                    name += " · " + instruction + " (" + CustomPolishQuantity.ToString("0.###") + " lm)";
+                }
                 return name.Length == 0 ? "(unnamed specification)" : name;
             }
         }

@@ -536,6 +536,7 @@ check("SelectedGroup.CustomPolishQuantity" in polish_view
       and "OnCustomPolishQuantityChanged" in polish_code
       and "CustomPolishQuantity = CustomPolishQuantity" in read(SPEC_GRID)
       and "CustomPolishDescription = CustomPolishDescription" in read(SPEC_GRID)
+      and '"Custom polish: "' in read(SPEC_GRID)
       and "SelectedGroup.CustomPolishDescription" in polish_view,
       "step6.d.5: custom polish quantity must be editable, recalculated and cloned")
 check("PolishSubtypeChecks();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")

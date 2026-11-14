@@ -34,6 +34,8 @@ namespace ProGlassAutomation.Step6Tests
             Check("custom quantity and description survive a group clone",
                 group.Clone().CustomPolishQuantity == 7.25m
                 && group.Clone().CustomPolishDescription == group.CustomPolishDescription);
+            Check("custom polish instruction is included in the specification display/export label",
+                group.DisplayText.Contains("Polish one height edge", StringComparison.OrdinalIgnoreCase));
             group.CustomPolishQuantity = -2m;
             Check("custom polish quantity cannot be negative", group.CustomPolishQuantity == 0m);
             group.CustomPolishQuantity = 7.25m;
