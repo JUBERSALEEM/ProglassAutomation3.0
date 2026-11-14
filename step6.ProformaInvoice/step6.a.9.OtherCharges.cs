@@ -81,6 +81,7 @@ namespace ProGlassAutomation.Models.Proforma
             {
                 ChargeMetric.TotalSqm => totals.TotalSqm,
                 ChargeMetric.TotalLm => totals.TotalLm,
+                ChargeMetric.MatchedPolishLm => totals.MatchedPolishLm,
                 ChargeMetric.TotalPieces => totals.TotalPieces,
                 ChargeMetric.FixedQuantity => FixedQuantity,
                 _ => 0m
