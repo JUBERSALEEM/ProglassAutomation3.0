@@ -43,6 +43,9 @@ namespace ProGlassAutomation.Services.Proforma
                 {
                     column.Spacing(style.SectionGap);
                     column.Item().Element(c => ProformaPdfLetterheadRenderer.Render(c, invoice, style));
+                    if (style.RepeatTitleInBody)
+                        column.Item().Text("PROFORMA DOSSIER · " + invoice.ProformaNumber)
+                            .Bold().FontSize(9).FontColor(style.Accent);
                     column.Item().Element(c => KpiBand(c, invoice, style));
                     column.Item().Element(c => ProformaPdfLayout.Parties(c, invoice, style));
                     column.Item().Element(c => ProformaPdfLayout.Specifications(c, invoice, style));
