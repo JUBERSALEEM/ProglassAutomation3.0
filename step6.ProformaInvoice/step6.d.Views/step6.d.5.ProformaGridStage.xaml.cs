@@ -1,13 +1,18 @@
-// ═══════════════════════════════════════════════════════════════════════
-// MODULE: step6 — a stage panel is pure binding, so it has no code.
-// It inherits the editor's view model and hands nothing back.
-// ═══════════════════════════════════════════════════════════════════════
-
+using System;
 using System.Windows.Controls;
+using ProGlassAutomation.ViewModels.Proforma;
 
 namespace ProGlassAutomation.Proforma;
 
 public partial class ProformaGridStage : UserControl
 {
     public ProformaGridStage() => InitializeComponent();
+
+    private void OnPolishSubTypeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || e.AddedItems.Count == 0
+            || DataContext is not ProformaWorkspaceViewModel viewModel) return;
+
+        Dispatcher.BeginInvoke(new Action(viewModel.Reapply));
+    }
 }
