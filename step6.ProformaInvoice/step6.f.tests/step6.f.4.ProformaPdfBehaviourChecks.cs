@@ -25,14 +25,27 @@ namespace ProGlassAutomation.Step6Tests
             foreach (ProformaPdfStyle style in ProformaPdfStyles.All)
             {
                 byte[] bytes = ProformaPdfLayout.Render(draft, style);
-                Check(style.Name + " renders a PDF document",
-                    bytes.Length > 5
-                    && bytes[0] == (byte)'%'
-                    && bytes[1] == (byte)'P'
-                    && bytes[2] == (byte)'D'
-                    && bytes[3] == (byte)'F'
-                    && bytes[4] == (byte)'-');
+                Check(style.Name + " renders a customer invoice PDF",
+                    IsPdf(bytes));
+
+                byte[] dossier = ProformaDossierPdfLayout.Render(
+                    draft, style, includeProfitLoss: true);
+                Check(style.Name + " renders an internal dossier PDF",
+                    IsPdf(dossier));
             }
+
+            byte[] safeDossier = ProformaDossierPdfLayout.Render(
+                draft, ProformaPdfStyles.Default);
+            Check("the dossier renders without internal P&L by default",
+                IsPdf(safeDossier));
         }
+        private static bool IsPdf(byte[] bytes) =>
+            bytes.Length > 5
+            && bytes[0] == (byte)'%'
+            && bytes[1] == (byte)'P'
+            && bytes[2] == (byte)'D'
+            && bytes[3] == (byte)'F'
+            && bytes[4] == (byte)'-';
+
     }
 }
