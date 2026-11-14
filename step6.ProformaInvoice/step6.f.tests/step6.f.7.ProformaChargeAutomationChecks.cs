@@ -55,6 +55,14 @@ namespace ProGlassAutomation.Step6Tests
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             Check("SQM overlap uses the area-based catalogue row",
                 sqmKeys.Contains("OVERLAP_SQM") && !sqmKeys.Contains("OVERLAP"));
+
+            var wastage = new OtherChargesSheet();
+            wastage.RebuildWastages(new[] { group });
+            WastageChargeRow clear = wastage.Wastages.Single(row => row.ColorName == "Clear");
+            Check("clear-glass wastage explains its optional status",
+                clear.IsOptionalSuggestion && clear.SuggestionReason.Contains("optional", StringComparison.OrdinalIgnoreCase));
+            Check("wastage sheet-cost quantity is editable and defaults to one",
+                clear.SheetQuantity == 1 && wastage.Clone().Wastages.Single().SheetQuantity == 1);
         }
     }
 }
