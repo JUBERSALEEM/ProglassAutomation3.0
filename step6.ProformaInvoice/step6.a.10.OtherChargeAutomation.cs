@@ -135,15 +135,13 @@ namespace ProGlassAutomation.Models.Proforma
             // ── Polish follows the glass count, not a word ───────────────
             bool sameGlass = SamePaneColours(group);
             bool polishNamed = spec.Contains("POLISH");
-            if (lamLike || sameGlass)
+            if (doubleGlass && sameGlass)
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "POLISH_MATCHED_LAM",
-                    Reason = sameGlass
-                        ? "Both panes are the same glass, so both edges are polished."
-                        : "The laminated unit polishes both panes."
+                    Reason = "Both panes are the same glass, so both edges are polished."
                 });
-            else if (polishNamed || !string.IsNullOrWhiteSpace(group.OuterGlassColor))
+            else if (lamLike || polishNamed || !string.IsNullOrWhiteSpace(group.OuterGlassColor))
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "POLISH",
