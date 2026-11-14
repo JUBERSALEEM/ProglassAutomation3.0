@@ -287,7 +287,7 @@
                     <TextBlock Text="{Binding ShellClock}" Style="{DynamicResource Caption}"
                                VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" ToolTip="Local time" />
                     <Button Content="&#x263E;" Command="{Binding ToggleAppearance}"
-                            Style="{StaticResource ShellIconButton}" Margin="{DynamicResource UiGapControl}"
+                            Style="{StaticResource ShellIconButton}" Margin="{DynamicResource UiGapControlEnd}"
                             VerticalAlignment="Center" ToolTip="Switch light and dark"
                             AutomationProperties.Name="Switch light and dark" />
                 </StackPanel>
