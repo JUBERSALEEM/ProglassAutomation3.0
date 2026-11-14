@@ -71,8 +71,11 @@ namespace ProGlassAutomation.ViewModels.Proforma
                 }
                 catch (Exception openError)
                 {
-                    SetStatus("Dossier saved, but the viewer could not be opened: "
-                        + openError.GetBaseException().Message);
+                    SetStatus(IncludeProfitLossInDossier
+                        ? "INTERNAL dossier saved with cost and margin. Do not send to the customer. Viewer could not open it: "
+                            + openError.GetBaseException().Message
+                        : "Dossier saved, but the viewer could not be opened: "
+                            + openError.GetBaseException().Message);
                 }
             }
             catch (Exception error)
