@@ -44,6 +44,11 @@
                         Command="{Binding RemoveGroupCommand}"
                         Margin="{DynamicResource UiGapControlEnd}"
                         AutomationProperties.Name="Remove the selected specification" />
+                <Button Style="{DynamicResource SubtleButton}" Content="IMPORT CUT LIST"
+                        Command="{Binding ImportCutListCommand}"
+                        IsEnabled="{Binding HasGroup}"
+                        Margin="{DynamicResource UiGapControlEnd}"
+                        AutomationProperties.Name="Append rows from an Excel, CSV, text or JSON cut list to the selected specification" />
                 <Button Style="{DynamicResource SubtleButton}" Content="RECALCULATE"
                         Command="{Binding RecalculateCommand}"
                         Margin="{DynamicResource UiGapControlEnd}"
