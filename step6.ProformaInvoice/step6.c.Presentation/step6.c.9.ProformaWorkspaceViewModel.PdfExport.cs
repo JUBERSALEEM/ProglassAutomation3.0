@@ -27,11 +27,13 @@ namespace ProGlassAutomation.ViewModels.Proforma
             set => SetField(ref _includeProfitLossInDossier, value);
         }
 
-        public ICommand ExportPdfCommand { get; } =
-            new DelegateCommand(() => _ = ExportPdfAsync());
+        private ICommand? _exportPdfCommand;
+        public ICommand ExportPdfCommand =>
+            _exportPdfCommand ??= new DelegateCommand(() => _ = ExportPdfAsync());
 
-        public ICommand ExportDossierPdfCommand { get; } =
-            new DelegateCommand(() => _ = ExportDossierPdfAsync());
+        private ICommand? _exportDossierPdfCommand;
+        public ICommand ExportDossierPdfCommand =>
+            _exportDossierPdfCommand ??= new DelegateCommand(() => _ = ExportDossierPdfAsync());
 
         private async Task ExportDossierPdfAsync()
         {
