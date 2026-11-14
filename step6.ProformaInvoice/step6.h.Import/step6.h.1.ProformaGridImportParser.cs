@@ -48,7 +48,7 @@ namespace ProGlassAutomation.Services.Proforma
                 string trimmed = line.Trim();
                 if (trimmed.Length == 0) continue;
                 char delimiter = trimmed.Contains('\t') ? '\t'
-                    : trimmed.Contains(',') ? ',' : trimmed.Contains(';') ? ';' : '\0';
+                    : trimmed.Contains(';') ? ';' : trimmed.Contains(',') ? ',' : '\0';
                 string[] cells = delimiter == '\0'
                     ? SplitLooseText(trimmed)
                     : SplitDelimitedLine(trimmed, delimiter);
