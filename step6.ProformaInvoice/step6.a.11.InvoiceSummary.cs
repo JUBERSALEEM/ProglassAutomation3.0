@@ -40,16 +40,26 @@ namespace ProGlassAutomation.Models.Proforma
         public bool IsVatApplicable { get; set; } = true;
         public decimal VatPercent { get; set; } = DefaultVatPercent;
 
-        /// <summary>Stage 3's value, carried so the waterfall can be recomputed alone.</summary>
+        /// <summary>Derived from the specification grid; never persisted as a second source of truth.</summary>
+        [JsonIgnore]
         public decimal GlassSubtotal { get; set; }
 
-        /// <summary>Stage 4's value, carried for the same reason.</summary>
+        /// <summary>Derived from the charge worksheet; never persisted as a second source of truth.</summary>
+        [JsonIgnore]
         public decimal OtherChargesSubtotal { get; set; }
 
+        // All waterfall outputs are recalculated from the saved inputs and
+        // the current specification/charge rows when the document is loaded.
+        // Persisting them would allow stale totals to disagree with the grid.
+        [JsonIgnore]
         public decimal NetSubtotal { get; set; }
+        [JsonIgnore]
         public decimal DiscountAmount { get; set; }
+        [JsonIgnore]
         public decimal SubtotalBeforeVat { get; set; }
+        [JsonIgnore]
         public decimal VatAmount { get; set; }
+        [JsonIgnore]
         public decimal GrandTotal { get; set; }
 
         /// <summary>Recomputes every derived figure from the two subtotals.</summary>
