@@ -217,7 +217,7 @@ for internal circulation only; that version carries a red warning banner on
 every page. The customer invoice PDF never includes P&L.
 
 QuestPDF is the only PDF renderer. V3 did not previously reference it; the
-approved integration adds QuestPDF 2024.12.2 to the existing application
+approved integration adds QuestPDF 2025.12.4 to the existing application
 project. The export service renders a detached invoice snapshot off the UI
 thread, writes the selected PDF path, and reports viewer-launch failures
 separately from file-generation failures. Company logos are resolved through
