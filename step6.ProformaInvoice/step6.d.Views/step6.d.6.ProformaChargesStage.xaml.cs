@@ -8,6 +8,7 @@
 // Keeping that here means the pricing engine keeps one rule, not two.
 // ═══════════════════════════════════════════════════════════════════════
 
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using ProGlassAutomation.Models.Proforma;
@@ -19,6 +20,16 @@ namespace ProGlassAutomation.Proforma;
 public partial class ProformaChargesStage : UserControl
 {
     public ProformaChargesStage() => InitializeComponent();
+
+    private void OnWastageCellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (e.EditAction != DataGridEditAction.Commit
+            || DataContext is not ProformaWorkspaceViewModel viewModel) return;
+
+        // The binding commits after CellEditEnding. Queue recalculation so the
+        // new sheet quantity/rate is included in the P&L immediately.
+        Dispatcher.BeginInvoke(new Action(viewModel.Reapply));
+    }
 
     private void OnChargeToggled(object sender, RoutedEventArgs e)
     {
