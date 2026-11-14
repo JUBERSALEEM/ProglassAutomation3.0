@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using ProGlassAutomation.Models.Proforma;
-using ProGlassAutomation.Services.Company;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -34,7 +32,7 @@ namespace ProGlassAutomation.Services.Proforma
                 page.Content().Column(column =>
                 {
                     column.Spacing(style.SectionGap);
-                    column.Item().Element(c => Letterhead(c, invoice, style));
+                    column.Item().Element(c => ProformaPdfLetterheadRenderer.Render(c, invoice, style));
                     column.Item().Element(c => Parties(c, invoice, style));
                     column.Item().Element(c => Specifications(c, invoice, style));
                     if (HasCharges(invoice))
@@ -60,43 +58,6 @@ namespace ProGlassAutomation.Services.Proforma
                         text.TotalPages();
                     });
             })).GeneratePdf();
-        }
-
-        internal static void Letterhead(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
-        {
-            var company = invoice.Parties.Company;
-            container.Column(column =>
-            {
-                column.Item().Row(row =>
-                {
-                    string? logoPath = CompanyLogoStore.ResolvePath(company.LogoFileName);
-                    if (logoPath != null)
-                        row.ConstantItem(54).Height(48).Image(File.ReadAllBytes(logoPath)).FitArea();
-
-                    row.RelativeItem().Column(identity =>
-                    {
-                        identity.Item().Text(EmptyFallback(company.CompanyName, "Company"))
-                            .FontSize(style.TitleSize).Bold().FontColor(style.Accent);
-                        AddLine(identity, company.Address, style);
-                        AddLine(identity, company.Telephone, style);
-                        AddLine(identity, company.Email, style);
-                        AddLine(identity, company.Website, style);
-                        AddLine(identity, company.Trn.Length == 0 ? "" : "TRN " + company.Trn, style);
-                    });
-
-                    row.ConstantItem(160).AlignRight().Column(reference =>
-                    {
-                        reference.Item().Text("PROFORMA INVOICE").Bold()
-                            .FontSize(style.TableFontSize + 1).FontColor(style.Accent);
-                        reference.Item().Text(EmptyFallback(invoice.ProformaNumber, "UNNUMBERED DRAFT"))
-                            .FontSize(style.TitleSize).Bold().FontColor(style.Text);
-                        reference.Item().Text("Issue: " + Date(invoice.IssueDate)).FontSize(8).FontColor(style.Muted);
-                        reference.Item().Text("Valid until: " + Date(invoice.ValidUntil)).FontSize(8).FontColor(style.Muted);
-                    });
-                });
-
-                column.Item().PaddingTop(5).Height(2).Background(style.Highlight);
-            });
         }
 
         internal static void Parties(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
