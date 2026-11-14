@@ -51,8 +51,9 @@ namespace ProGlassAutomation.Models.Proforma
         /// </summary>
         public static string Normalize(string? value)
         {
-            string text = (value ?? "").Trim();
-            if (text.Equals(DguLam, StringComparison.OrdinalIgnoreCase)) return DguLam;
+            string text = (value ?? "").Trim().Replace(" ", "").Replace("-", "").Replace("_", "");
+            if (text.Equals(DguLam, StringComparison.OrdinalIgnoreCase)
+                || text.Equals("DGULAM", StringComparison.OrdinalIgnoreCase)) return DguLam;
             if (text.Equals(Sgu, StringComparison.OrdinalIgnoreCase)) return Sgu;
             if (text.Equals(Dgu, StringComparison.OrdinalIgnoreCase)) return Dgu;
             if (text.Equals(Lam, StringComparison.OrdinalIgnoreCase)) return Lam;
