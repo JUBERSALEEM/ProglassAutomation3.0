@@ -126,7 +126,12 @@ namespace ProGlassAutomation.Models.Proforma
         /// the wastage CHARGE is switched off: the switch bills the allowance,
         /// it does not decide how much glass the job consumes.
         /// </summary>
-        public int SheetQuantity { get; set; } = 1;
+        private int _sheetQuantity = 1;
+        public int SheetQuantity
+        {
+            get => _sheetQuantity;
+            set => _sheetQuantity = Math.Max(0, value);
+        }
 
         /// <summary>The rate actually used, from the formula when it is enabled.</summary>
         public decimal EffectiveRate
