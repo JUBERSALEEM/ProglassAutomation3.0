@@ -393,11 +393,15 @@ check("new ProformaInvoiceRepository()" in read(WORKSPACE),
 # 17 ── The five PDF styles share one QuestPDF invoice composition ────────────
 style_source = read(PDF_STYLES)
 style_ids = ("ClassicNavy", "ModernTeal", "EditorialInk", "IndustrialSteel", "MinimalIvory")
+layout_kinds = ("FormalBand", "SplitConsole", "Editorial", "Workshop", "QuietForm")
 check(style_source.count("new ProformaPdfStyle(") == 5,
       "step6.g.1.ProformaPdfStyle.cs: the PDF style catalogue must contain exactly five styles")
 for style_id in style_ids:
     check(style_id in style_source,
           f"step6.g.1.ProformaPdfStyle.cs: PDF style {style_id} is missing")
+for layout_kind in layout_kinds:
+    check("ProformaPdfLayoutKind." + layout_kind in style_source,
+          f"step6.g.1.ProformaPdfStyle.cs: legacy PDF layout kind {layout_kind} is missing")
 layout_source = read(PDF_LAYOUT)
 check(layout_source.count("Document.Create(") == 1,
       "step6.g.2.ProformaPdfLayout.cs: five styles must use one shared invoice composition")
