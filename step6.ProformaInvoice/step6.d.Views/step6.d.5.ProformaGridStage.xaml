@@ -115,7 +115,13 @@
                           MinWidth="190"
                           IsTextSearchEnabled="True"
                           AutomationProperties.Name="Polish edge subtype" />
-                <TextBlock Text="Auto reads the spec; Custom uses a manual quantity."
+                <TextBlock Text="CUSTOM POLISH LM" Style="{DynamicResource ProformaFieldLabel}" />
+                <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                         Text="{Binding SelectedGroup.CustomPolishQuantity, UpdateSourceTrigger=PropertyChanged}"
+                         LostFocus="OnCustomPolishQuantityChanged"
+                         ToolTip="Used only when Polish edge type is Custom (Manual)."
+                         AutomationProperties.Name="Custom polish length in linear metres" />
+                <TextBlock Text="Auto reads the spec; Custom uses the manual LM above."
                            Style="{DynamicResource ProformaFieldHint}" />
                 <TextBox Style="{DynamicResource {x:Type TextBox}}"
                          Width="150"
