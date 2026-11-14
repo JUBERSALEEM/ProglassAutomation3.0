@@ -212,11 +212,98 @@
     </Window.Resources>
     <Grid>
         <Grid x:Name="ShellBody">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Border Grid.Column="0" Style="{StaticResource ShellSidebar}">
+
+        <!-- ── Top bar (the previous version's anatomy): menu toggle, wordmark,
+             centred module heading, session, clock, light/dark switch. Every
+             colour and metric is a theme token, so all nine themes restyle it. -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2" Height="56"
+                Background="{DynamicResource SurfacePrimary}"
+                BorderBrush="{DynamicResource BorderSubtle}"
+                BorderThickness="0,0,0,1">
+            <Grid Margin="{DynamicResource PaddingCompact}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Content="&#x2630;"
+                        Command="{Binding ToggleMenu}"
+                        Style="{StaticResource ShellMenuToggleButton}"
+                        Margin="{DynamicResource UiGapControl}"
+                        VerticalAlignment="Center"
+                        ToolTip="Hide or show the menu"
+                        AutomationProperties.Name="Toggle menu" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="{DynamicResource ControlMinHeight}" Height="{DynamicResource ControlMinHeight}"
+                            CornerRadius="{DynamicResource ChipCornerRadius}"
+                            Background="{DynamicResource AccentPrimary}"
+                            Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center">
+                        <studio:ShellMark Kind="Marks" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}"
+                                          Foreground="{DynamicResource TextOnAccent}"
+                                          VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="ProGlass" Style="{DynamicResource SectionHeading}"
+                               Foreground="{DynamicResource TextPrimary}"
+                               VerticalAlignment="Center" />
+                    <Border Margin="{DynamicResource UiGapControl}" Padding="{DynamicResource PaddingCompact}"
+                            CornerRadius="{DynamicResource ChipCornerRadius}"
+                            Background="{DynamicResource SurfaceSecondary}"
+                            BorderBrush="{DynamicResource BorderSubtle}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="SUITE" Style="{DynamicResource Caption}" />
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                            HorizontalAlignment="Center" Margin="{DynamicResource MarginInline}">
+                    <studio:ShellMark Title="{Binding WorkspaceTitle}"
+                                      Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}"
+                                      Foreground="{DynamicResource AccentPrimary}"
+                                      Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding WorkspaceTitle}" Foreground="{DynamicResource TextPrimary}"
+                                   FontSize="{DynamicResource FontSizeSection}"
+                                   FontWeight="{DynamicResource FontWeightHeading}"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="520" />
+                        <TextBlock Text="{Binding WorkspaceSubtitle}" Style="{DynamicResource Caption}"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="520" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center"
+                            Margin="{DynamicResource UiGapControlEnd}">
+                    <StackPanel x:Name="SessionBanner" Orientation="Horizontal" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ShellClock}" Style="{DynamicResource Caption}"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}"
+                               ToolTip="Local time" />
+                    <Button Content="&#x263E;"
+                            Command="{Binding ToggleAppearance}"
+                            Style="{StaticResource ShellMenuToggleButton}"
+                            Margin="{DynamicResource UiGapControl}"
+                            VerticalAlignment="Center"
+                            ToolTip="Switch light and dark"
+                            AutomationProperties.Name="Switch light and dark" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ShellSidebar}">
             <ContentControl Style="{DynamicResource Card}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -731,95 +818,9 @@
                 </Style>
             </Grid.Style>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <ContentControl Grid.Row="0" Style="{StaticResource ShellModuleBanner}">
-                <!-- Title column is the flexible one. It used to be `Auto` with a
-                     `*` spacer beside it, so a long workspace title (or a narrow
-                     window with the sidebar open) grew column 0 instead of
-                     shrinking, and the plate on the right was pushed off the
-                     banner. Now the title takes what is left and trims. -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="0" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- The menu toggle lives IN the banner and takes layout
-                             space. It used to float over the whole shell with a
-                             ZIndex, which put it on top of the banner's plate
-                             whenever the sidebar was collapsed. A control that
-                             shares a row with its neighbours cannot overlap them. -->
-                        <Button Content="☰"
-                                Command="{Binding ToggleMenu}"
-                                Style="{StaticResource ShellMenuToggleButton}"
-                                Margin="{DynamicResource UiGapControl}"
-                                VerticalAlignment="Center"
-                                ToolTip="Open menu"
-                                AutomationProperties.Name="Toggle menu" />
-                        <studio:ShellMark Title="{Binding WorkspaceTitle}" Category="settings" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{Binding WorkspaceTitle}" Foreground="{DynamicResource TextPrimary}" FontSize="{DynamicResource FontSizeTitle}" FontWeight="{DynamicResource FontWeightHeading}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding WorkspaceSubtitle}" Style="{DynamicResource Caption}" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </StackPanel>
-                    <ContentControl Grid.Column="1" Style="{StaticResource ShellBannerCluster}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- ── Session (round 30) ────────────────────────
-                                 The shell says who is operating and offers the one
-                                 transition, on every page. It exists because the
-                                 sign-in gate used to be the only door: when it was
-                                 collapsed by a failure there was nothing anywhere
-                                 that could ask for a session again.
-
-                                 DataContext is assigned in the code-behind to a
-                                 ShellSessionViewModel — strings and a read of
-                                 AuthenticationContext, so this control cannot fail
-                                 the way the gate could. "Sign-in problem" appears
-                                 only when the gate could not be prepared, and its
-                                 tooltip and accessible name carry the reason. -->
-                            <StackPanel x:Name="SessionBanner" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding SessionLabel}"
-                                           Style="{DynamicResource Caption}"
-                                           Foreground="{DynamicResource TextPrimary}"
-                                           VerticalAlignment="Center"
-                                           ToolTip="{Binding SessionTooltip}"
-                                           AutomationProperties.Name="{Binding SessionTooltip}" />
-                                <TextBlock Text="Sign-in problem"
-                                           Margin="{DynamicResource MarginInline}"
-                                           VerticalAlignment="Center"
-                                           ToolTip="{Binding ProblemDetail}"
-                                           AutomationProperties.Name="{Binding ProblemDetail}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
-                                            <Setter Property="Foreground" Value="{DynamicResource StatusError}" />
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasProblem}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <Button Margin="{DynamicResource UiGapControl}" Style="{StaticResource ShellBannerButton}"
-                                        Command="{Binding ActionCommand}"
-                                        Content="{Binding ActionLabel}"
-                                        ToolTip="{Binding ActionTooltip}"
-                                        AutomationProperties.Name="{Binding ActionAccessibleName}" />
-                            </StackPanel>
-                            <Border Margin="{DynamicResource UiGapControl}" Style="{StaticResource ShellBannerRule}" />
-                            <TextBlock Text="{Binding ShellClock}" Style="{DynamicResource Caption}" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimary}" />
-                            <Border Margin="{DynamicResource UiGapControl}" Style="{StaticResource ShellBannerRule}" />
-                            <Button Margin="{DynamicResource UiGapControl}" Content="Home" Command="{Binding ShowBusiness}" Style="{StaticResource ShellBannerButton}" ToolTip="Home" AutomationProperties.Name="Go home" />
-                            <Border Margin="{DynamicResource UiGapControl}" Style="{StaticResource ShellBannerRule}" />
-                            <Button Margin="{DynamicResource UiGapControl}" Content="Dark" Command="{Binding ToggleAppearance}" Style="{StaticResource ShellBannerButton}" AutomationProperties.Name="Toggle appearance" />
-                        </StackPanel>
-                    </ContentControl>
-                </Grid>
-            </ContentControl>
-            <TabControl Grid.Row="1" x:Name="WorkspaceTabs"
+            <TabControl Grid.Row="0" x:Name="WorkspaceTabs"
                         SelectedIndex="{Binding SelectedWorkspace, Mode=TwoWay}"
                         AutomationProperties.Name="Design workspace pages"
                         BorderThickness="0">
