@@ -44,7 +44,7 @@ V3's application project originally referenced EF Core SQLite and LiveCharts onl
 
 ## 4. PDF output and five-style parity
 
-The five legacy print choices are represented as five style presets—Classic Navy (EXECUTIVE), Modern Teal (MODERN), Editorial Ink (EDITORIAL), Industrial Steel (INDUSTRIAL), and Minimal Ivory (MINIMAL)—over one common V3 invoice composition. The current V3 renderer includes the company logo, reference/date block, client/project details, measured specification rows, active charges, financial summary, notes, terms and signature blocks. Internal P&L remains internal. The renderer is newly authored against V3 models and QuestPDF; it does not copy the legacy renderer, shared PDF chrome, XAML, or a second application architecture.
+The five legacy print choices are represented as five style presets—Classic Navy (EXECUTIVE), Modern Teal (MODERN), Editorial Ink (EDITORIAL), Industrial Steel (INDUSTRIAL), and Minimal Ivory (MINIMAL)—over one common V3 invoice composition. The customer invoice renderer includes the company logo, reference/date block, client/project details, measured specification rows, active charges, financial summary, notes, terms and signature blocks. A separate dossier uses the same QuestPDF package and five style presets, adds a KPI band and full working detail, and excludes P&L by default. P&L can be explicitly included only in the internal dossier, which prints a red warning on every page. The renderers are newly authored against V3 models and QuestPDF; they do not copy the legacy renderer, shared PDF chrome, XAML, or a second application architecture.
 
 ## 5. Integration and quality gates
 
