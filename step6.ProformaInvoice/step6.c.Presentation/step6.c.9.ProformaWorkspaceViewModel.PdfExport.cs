@@ -11,6 +11,7 @@ namespace ProGlassAutomation.ViewModels.Proforma
     public sealed partial class ProformaWorkspaceViewModel
     {
         private ProformaPdfStyle _selectedPdfStyle = ProformaPdfStyles.Default;
+        private bool _includeProfitLossInDossier;
 
         public IReadOnlyList<ProformaPdfStyle> PdfStyles => ProformaPdfStyles.All;
 
@@ -20,8 +21,65 @@ namespace ProGlassAutomation.ViewModels.Proforma
             set => SetField(ref _selectedPdfStyle, value ?? ProformaPdfStyles.Default);
         }
 
+        public bool IncludeProfitLossInDossier
+        {
+            get => _includeProfitLossInDossier;
+            set => SetField(ref _includeProfitLossInDossier, value);
+        }
+
         public ICommand ExportPdfCommand { get; } =
             new DelegateCommand(() => _ = ExportPdfAsync());
+
+        public ICommand ExportDossierPdfCommand { get; } =
+            new DelegateCommand(() => _ = ExportDossierPdfAsync());
+
+        private async Task ExportDossierPdfAsync()
+        {
+            if (!Draft.IsPersisted)
+            {
+                Report("Save the invoice first. A dossier must have a permanent invoice number.");
+                return;
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                Title = "Export Proforma Invoice Dossier",
+                Filter = "PDF document (*.pdf)|*.pdf",
+                DefaultExt = ".pdf",
+                AddExtension = true,
+                FileName = ProformaPdfExporter.SuggestedDossierFileName(Draft),
+                OverwritePrompt = true
+            };
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                var exporter = new ProformaPdfExporter();
+                await exporter.ExportDossierAsync(
+                    Draft, SelectedPdfStyle, dialog.FileName, IncludeProfitLossInDossier);
+                SetStatus(IncludeProfitLossInDossier
+                    ? "INTERNAL dossier exported. It contains cost and margin; do not send to the customer."
+                    : "Dossier exported without internal cost and margin.");
+                ClearError();
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = dialog.FileName,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception openError)
+                {
+                    SetStatus("Dossier saved, but the viewer could not be opened: "
+                        + openError.GetBaseException().Message);
+                }
+            }
+            catch (Exception error)
+            {
+                Report("The dossier could not be exported: " + error.GetBaseException().Message);
+            }
+        }
 
         private async Task ExportPdfAsync()
         {
