@@ -1,0 +1,177 @@
+<UserControl x:Class="ProGlassAutomation.Views.ProformaInvoice.Step6OtherCharges.CustomCharges.CustomChargesSectionView"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:beh="clr-namespace:ProGlassAutomation.Behaviors"
+             mc:Ignorable="d"
+             d:DesignHeight="280" d:DesignWidth="1200"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        
+        
+            </ResourceDictionary>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <TextBlock Text="{DynamicResource ProformaInvoice.CustomCharges}" Style="{StaticResource PiBandTitleStyle}"/>
+
+        <Border Style="{StaticResource PiTableHeaderStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="64"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="180"/>
+                    <ColumnDefinition Width="36"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{DynamicResource ProformaInvoice.ON}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                <TextBlock Grid.Column="1" Text="{DynamicResource ProformaInvoice.ChargeNAME}" Style="{StaticResource LineItemsHeaderTextStyle}" HorizontalAlignment="Left"/>
+                <TextBlock Grid.Column="2" Text="QTY" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                <TextBlock Grid.Column="3" Text="{DynamicResource Common.Unit}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                <TextBlock Grid.Column="4" Text="{DynamicResource Common.Rate}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                <TextBlock Grid.Column="5" Text="{DynamicResource Common.Amount}" Style="{StaticResource LineItemsHeaderTextStyle}" HorizontalAlignment="Right"/>
+            </Grid>
+        </Border>
+
+        <ItemsControl ItemsSource="{Binding AddedCharges}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border BorderBrush="{DynamicResource BorderDefaultBrush}"
+                            BorderThickness="{DynamicResource Border.BottomHairlineThickness}"
+                            Padding="8,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="64"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="36"/>
+                            </Grid.ColumnDefinitions>
+                            <ToggleButton Grid.Column="0"
+                                          Style="{StaticResource PiToggleSwitch}"
+                                          IsChecked="{Binding IsActive}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          AutomationProperties.Name="Custom charge on"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ChargeName}"
+                                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Qty, StringFormat={}{0:0.###}}"
+                                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding Unit}"
+                                       FontSize="{DynamicResource FontSize.Body}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <TextBlock Grid.Column="4"
+                                       Text="{Binding Rate, Converter={StaticResource CurrencyConverter}, ConverterParameter=prefix}"
+                                       FontSize="{DynamicResource FontSize.Body}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            <TextBlock Grid.Column="5"
+                                       Text="{Binding FormulaDisplay}"
+                                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                                       TextAlignment="Right"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource SuccessBrush}"/>
+                            <Button Grid.Column="6"
+                                    Command="{Binding DataContext.RemoveChargeCommand,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    Style="{StaticResource PiIconButtonStyle}"
+                                    ToolTip="{DynamicResource ProformaInvoice.RemoveCharge}">
+                                <TextBlock Text="&#xE711;"
+                                           FontFamily="{DynamicResource FontFamily.Icon}"
+                                           FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                                           Foreground="{DynamicResource DangerBrush}"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="90"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="90"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="110"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="{DynamicResource ProformaInvoice.ChargeNAME}" Style="{StaticResource PiFieldLabelStyle}" Margin="0,0,0,3"/>
+                <TextBox Text="{Binding InputName, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource Input.TextBox}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="QTY" Style="{StaticResource PiFieldLabelStyle}" Margin="0,0,0,3"/>
+                <TextBox beh:TextBoxBehaviors.AcceptDecimals="True"
+                         Style="{StaticResource Input.TextBox}">
+                    <TextBox.Text>
+                        <Binding Path="InputQty" Mode="TwoWay"
+                                 UpdateSourceTrigger="LostFocus"
+                                 ConverterCulture="en-US"/>
+                    </TextBox.Text>
+                </TextBox>
+            </StackPanel>
+            <StackPanel Grid.Column="4">
+                <TextBlock Text="{DynamicResource Common.Unit}" Style="{StaticResource PiFieldLabelStyle}" Margin="0,0,0,3"/>
+                <ComboBox ItemsSource="{Binding UnitOptions}"
+                          SelectedItem="{Binding InputUnit}"
+                          Style="{StaticResource PiComboBoxStyle}"
+                          Height="28"/>
+            </StackPanel>
+            <StackPanel Grid.Column="6">
+                <TextBlock Text="{DynamicResource Common.Rate}" Style="{StaticResource PiFieldLabelStyle}" Margin="0,0,0,3"/>
+                <TextBox beh:TextBoxBehaviors.AcceptDecimals="True"
+                         Style="{StaticResource Input.TextBox}">
+                    <TextBox.Text>
+                        <Binding Path="InputRate" Mode="TwoWay"
+                                 UpdateSourceTrigger="LostFocus"
+                                 ConverterCulture="en-US"/>
+                    </TextBox.Text>
+                </TextBox>
+            </StackPanel>
+            <!-- Height and MinWidth are deliberately NOT overridden. The style
+                 is 40 tall with a 120 minimum and a template padding of 16,0;
+                 forcing it to 28x72 left ~40px for the label, which fits the
+                 English "Add" and clips almost every other language this app
+                 ships ("Добавить", "Hinzufügen", "إضافة"). PrintPreviewView uses
+                 this style unmodified — that is the reference. -->
+            <Button Grid.Column="8"
+                    Command="{Binding AddChargeCommand}"
+                    Style="{StaticResource PiFooterPrimaryButton}"
+                    VerticalAlignment="Bottom"
+                    Content="{DynamicResource Action.Add}"/>
+        </Grid>
+    </StackPanel>
+</UserControl>
