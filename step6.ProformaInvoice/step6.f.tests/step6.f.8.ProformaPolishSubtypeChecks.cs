@@ -30,7 +30,10 @@ namespace ProGlassAutomation.Step6Tests
             group.PolishSubType = PolishSubType.Custom;
             group.CustomPolishQuantity = 7.25m;
             Check("custom polish uses its manual quantity", group.PolishLm == 7.25m);
-            Check("custom quantity survives a group clone", group.Clone().CustomPolishQuantity == 7.25m);
+            group.CustomPolishDescription = "Polish one height edge as marked on drawing";
+            Check("custom quantity and description survive a group clone",
+                group.Clone().CustomPolishQuantity == 7.25m
+                && group.Clone().CustomPolishDescription == group.CustomPolishDescription);
             group.CustomPolishQuantity = -2m;
             Check("custom polish quantity cannot be negative", group.CustomPolishQuantity == 0m);
             group.CustomPolishQuantity = 7.25m;

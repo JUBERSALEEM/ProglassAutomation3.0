@@ -36,7 +36,7 @@ namespace ProGlassAutomation.Models.Proforma
             new PolishSubTypeMeta { Type = PolishSubType.OneHeightOneWidthAsPerDwg, DisplayLabel = "One Height + One Width Side Polish As Per DWG", FormulaHint = "(H + W)/1000 × Qty (As Per DWG)" },
             new PolishSubTypeMeta { Type = PolishSubType.OneHeightSide, DisplayLabel = "One Height Side Polish", FormulaHint = "H/1000 × Qty" },
             new PolishSubTypeMeta { Type = PolishSubType.OneWidthSide, DisplayLabel = "One Width Side Polish", FormulaHint = "W/1000 × Qty" },
-            new PolishSubTypeMeta { Type = PolishSubType.Custom, DisplayLabel = "Custom (Manual)", FormulaHint = "Enter the manual linear-metre quantity below." }
+            new PolishSubTypeMeta { Type = PolishSubType.Custom, DisplayLabel = "Custom (Manual)", FormulaHint = "Enter a description and the manual linear-metre quantity below." }
         });
 
         public static PolishSubTypeMeta GetInfo(PolishSubType type) =>

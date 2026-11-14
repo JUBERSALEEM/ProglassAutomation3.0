@@ -93,6 +93,7 @@ namespace ProGlassAutomation.Models.Proforma
             get => _customPolishQuantity;
             set => _customPolishQuantity = value < 0m ? 0m : value;
         }
+        public string CustomPolishDescription { get; set; } = "";
 
         /// <summary>Step-4 U-Insert sell rate captured for this specification.</summary>
         public bool HasUInsertExtra { get; set; }
@@ -275,6 +276,7 @@ namespace ProGlassAutomation.Models.Proforma
             SpecName = SpecName,
             PolishSubType = PolishSubType,
             CustomPolishQuantity = CustomPolishQuantity,
+            CustomPolishDescription = CustomPolishDescription,
             HasUInsertExtra = HasUInsertExtra,
             UInsertPricePerSqm = UInsertPricePerSqm,
             OuterGlassColor = OuterGlassColor,

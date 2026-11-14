@@ -124,6 +124,11 @@
                 <TextBlock Text="Auto reads the spec; Custom uses the manual LM above."
                            Style="{DynamicResource ProformaFieldHint}" />
                 <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                         Width="220"
+                         Text="{Binding SelectedGroup.CustomPolishDescription, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Custom polish instruction/description for this specification."
+                         AutomationProperties.Name="Custom polish description" />
+                <TextBox Style="{DynamicResource {x:Type TextBox}}"
                          Width="150"
                          Text="{Binding SelectedGroup.CustomPolishQuantity, UpdateSourceTrigger=PropertyChanged, StringFormat=N3}"
                          TextChanged="OnCustomPolishQuantityChanged"
