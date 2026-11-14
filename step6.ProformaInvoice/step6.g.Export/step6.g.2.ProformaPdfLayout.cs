@@ -14,6 +14,8 @@ namespace ProGlassAutomation.Services.Proforma
     /// <summary>Renders the one customer invoice composition in any of the five PDF styles.</summary>
     public static class ProformaPdfLayout
     {
+        static ProformaPdfLayout() => QuestPDF.Settings.License = LicenseType.Community;
+
         public static byte[] Render(ProformaInvoiceDraft draft, ProformaPdfStyle style)
         {
             ArgumentNullException.ThrowIfNull(draft);
