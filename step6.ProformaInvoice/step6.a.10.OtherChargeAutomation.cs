@@ -66,7 +66,7 @@ namespace ProGlassAutomation.Models.Proforma
                     Reason = "The specification explicitly names a silicon bed."
                 });
 
-            if (spec.Contains("U-INSERT") || spec.Contains("U INSERT") || spec.Contains("UINSERT"))
+            if (group.RequiresUInsert || spec.Contains("U-INSERT") || spec.Contains("U INSERT") || spec.Contains("UINSERT"))
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "U_INSERT",

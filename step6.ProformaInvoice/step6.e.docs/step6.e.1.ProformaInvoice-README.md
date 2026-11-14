@@ -140,9 +140,10 @@ Four builds, the trade's own vocabulary:
   rather than multiplying the whole grid length blindly. The per-group `PolishSubType` selector is now ported with all legacy edge
   formulas, spec-name detection and a Custom/manual linear-metre field. It never infers
   drawing-dependent holes/cutouts from dimensions, and delivery remains an
-  operator-entered decision. U-Insert uses the Step 4 per-spec rate captured on each specification; the
-  invoice-level Step 6 catalogue rate is only the fallback when that seed is
-  blank. Its billable area is the first-pane/cavity area, not both DGU panes.
+  operator-entered decision. U-Insert has an explicit Step 4 per-spec toggle and rate captured on each
+  specification; the invoice-level Step 6 catalogue rate is only the fallback
+  when that seed is blank. Its billable area is the first-pane/cavity area,
+  not both DGU panes.
 - Wastage rows remain aggregated by colour in V3. Clear-glass wastage is marked
   optional with a reason because offcuts may be reusable; coloured/coated glass
   explains why offcuts are less reusable. The editable sheet quantity is read by

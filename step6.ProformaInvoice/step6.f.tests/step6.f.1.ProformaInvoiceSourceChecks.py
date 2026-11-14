@@ -491,6 +491,11 @@ check("all five customer PDF styles are registered" in pdf_tests
 check("PerimeterFactor" in read(SPEC_GRID)
       and "PerimeterFactor / 2m" in read(SPEC_GRID),
       "legacy Step 5 LAM perimeter factor four is not preserved")
+check("HasUInsertExtra" in read(MODELS)
+      and "HasUInsertExtra" in read(SPEC_GRID)
+      and "group.RequiresUInsert" in read(CHARGE_AUTOMATION)
+      and "SelectedSection.HasUInsertExtra" in read(MODULE / "step6.d.Views/step6.d.4.ProformaPricingStage.xaml"),
+      "Step 4 U-Insert extra toggle is not wired to the per-spec Step 6 trigger")
 check("UInsertPricePerSqm" in read(MODELS)
       and "[JsonIgnore]\n        public bool RequiresUInsert" in read(SPEC_GRID)
       and "UInsertPricePerSqm" in read(SPEC_GRID)

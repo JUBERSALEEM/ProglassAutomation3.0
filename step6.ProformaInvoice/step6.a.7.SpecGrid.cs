@@ -95,6 +95,7 @@ namespace ProGlassAutomation.Models.Proforma
         }
 
         /// <summary>Step-4 U-Insert sell rate captured for this specification.</summary>
+        public bool HasUInsertExtra { get; set; }
         public decimal UInsertPricePerSqm { get; set; }
 
         public string OuterGlassColor { get; set; } = "";
@@ -165,7 +166,8 @@ namespace ProGlassAutomation.Models.Proforma
         /// <summary>True when this specification explicitly requests U-Insert.</summary>
         [JsonIgnore]
         public bool RequiresUInsert =>
-            SpecName.Contains("U-INSERT", StringComparison.OrdinalIgnoreCase)
+            HasUInsertExtra
+            || SpecName.Contains("U-INSERT", StringComparison.OrdinalIgnoreCase)
             || SpecName.Contains("U INSERT", StringComparison.OrdinalIgnoreCase)
             || SpecName.Contains("UINSERT", StringComparison.OrdinalIgnoreCase);
 
@@ -253,6 +255,7 @@ namespace ProGlassAutomation.Models.Proforma
                 BaseRatePerSqm = result.RatePerSqm;
             }
             CostCard = result.CostCard ?? new SpecCostCard();
+            HasUInsertExtra = section.HasUInsertExtra;
             UInsertPricePerSqm = Math.Max(0m, section.UInsertPricePerSqm);
 
             var panes = result.CostCard?.Panes ?? new List<SpecCostPane>();
@@ -272,6 +275,7 @@ namespace ProGlassAutomation.Models.Proforma
             SpecName = SpecName,
             PolishSubType = PolishSubType,
             CustomPolishQuantity = CustomPolishQuantity,
+            HasUInsertExtra = HasUInsertExtra,
             UInsertPricePerSqm = UInsertPricePerSqm,
             OuterGlassColor = OuterGlassColor,
             InnerGlassColor = InnerGlassColor,

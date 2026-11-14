@@ -152,6 +152,10 @@
                         </Grid>
 
                         <StackPanel Margin="{DynamicResource MarginItem}">
+                            <CheckBox Content="U-INSERT EXTRA"
+                                      IsChecked="{Binding SelectedSection.HasUInsertExtra, Mode=TwoWay}"
+                                      ToolTip="When selected, this specification receives a separate Step 6 U-Insert charge."
+                                      AutomationProperties.Name="Enable U-Insert extra for this specification" />
                             <TextBlock Text="U-INSERT RATE · AED/M² (PER SPECIFICATION)"
                                        Style="{DynamicResource ProformaFieldLabel}" />
                             <TextBox Style="{DynamicResource {x:Type TextBox}}"

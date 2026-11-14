@@ -11,7 +11,7 @@ namespace ProGlassAutomation.Step6Tests
             var section = new PricingSection
             {
                 GlassType = GlassBuilds.Dgu,
-                UInsertPricePerSqm = 13m
+                HasUInsertExtra = true, UInsertPricePerSqm = 13m
             };
             var group = new SpecGroup();
             group.ApplyPricing(section, new PricingResult
@@ -19,8 +19,8 @@ namespace ProGlassAutomation.Step6Tests
                 IsComplete = true, SpecName = "DGU + U-Insert", RatePerSqm = 100m,
                 CostCard = new SpecCostCard()
             });
-            return group.UInsertPricePerSqm == 13m
-                && group.Clone().UInsertPricePerSqm == 13m;
+            return group.HasUInsertExtra && group.UInsertPricePerSqm == 13m
+                && group.Clone().HasUInsertExtra && group.Clone().UInsertPricePerSqm == 13m;
         }
 
         private static void ChargeAutomation()
@@ -193,14 +193,14 @@ namespace ProGlassAutomation.Step6Tests
 
             var uInsertA = new SpecGroup
             {
-                GroupNumber = 10, SpecName = "DGU + U-Insert", GlassType = GlassBuilds.Dgu,
-                UInsertPricePerSqm = 12m
+                GroupNumber = 10, SpecName = "DGU 6+6", GlassType = GlassBuilds.Dgu,
+                HasUInsertExtra = true, UInsertPricePerSqm = 12m
             };
             uInsertA.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, Qty = 1 });
             var uInsertB = new SpecGroup
             {
-                GroupNumber = 11, SpecName = "DGU + U-Insert", GlassType = GlassBuilds.Dgu,
-                UInsertPricePerSqm = 0m
+                GroupNumber = 11, SpecName = "DGU 6+6", GlassType = GlassBuilds.Dgu,
+                HasUInsertExtra = true, UInsertPricePerSqm = 0m
             };
             uInsertB.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, Qty = 1 });
             var uInsertSheet = new OtherChargesSheet();
