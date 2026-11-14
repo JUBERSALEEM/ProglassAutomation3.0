@@ -225,18 +225,6 @@ namespace ProGlassAutomation.Services.Proforma
                 else sheet.Cell(4 + i, 2).Style.NumberFormat.Format = "0.0\"%\"";
             }
             string[] headers = { "Kind", "Spec #", "Specification", "Description", "Sheet", "Quantity", "Rate AED/m²", "Amount AED" };
-            WriteHeader(sheet, 12, headers);
-            int row = 13;
-            foreach (ProfitLossRow item in result.Rows)
-            {
-                object[] valuesRow = { item.Kind.ToString(), item.SpecNumber, item.SpecName,
-                    item.Description, item.SheetWidthMm > 0 && item.SheetHeightMm > 0
-                        ? item.SheetWidthMm + " × " + item.SheetHeightMm : "",
-                    item.Quantity, item.PricePerSqm, item.Amount };
-                for (int col = 0; col < valuesRow.Length; col++)
-                    sheet.Cell(row, col + 1).Value = XLCellValue.FromObject(valuesRow[col]);
-                row++;
-            }
             if (!string.IsNullOrWhiteSpace(result.BasisNote))
             {
                 sheet.Cell(10, 1).Value = "Costing basis";
