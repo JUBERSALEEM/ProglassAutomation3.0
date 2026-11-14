@@ -279,6 +279,7 @@ ClosedXML 0.105.0 is the only added spreadsheet dependency. CSV is written by th
 | `step6.a.13.ProformaInvoiceDraft.cs` | the document body, structure, recalculation, clone |
 | `step6.a.14.ProformaInvoiceRules.cs` | normalization, validation, stage evaluation, text limits |
 | `step6.a.15.PolishSubType.cs` | all legacy per-edge polish modes, detection and geometry formulas |
+| `step6.a.16.WastageChargeRow.cs` | colour wastage allowance, optimization formula and whole-sheet cost quantity |
 | `step6.b.1.ProformaInvoiceSchema.cs` | migration 1018, shape assertion, numbering |
 | `step6.b.2.ProformaInvoiceJson.cs` | body serialization and its refusal rules |
 | `step6.b.3.ProformaInvoiceRecord.cs` | the stored row |
