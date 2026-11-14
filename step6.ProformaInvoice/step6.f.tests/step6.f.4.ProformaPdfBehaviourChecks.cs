@@ -20,6 +20,10 @@ namespace ProGlassAutomation.Step6Tests
                 && ProformaPdfStyles.All.Any(style => style.Kind == ProformaPdfLayoutKind.Editorial)
                 && ProformaPdfStyles.All.Any(style => style.Kind == ProformaPdfLayoutKind.Workshop)
                 && ProformaPdfStyles.All.Any(style => style.Kind == ProformaPdfLayoutKind.QuietForm));
+            Check("Industrial Steel retains the repeated in-body title treatment",
+                ProformaPdfStyles.All.Single(style => style.Id == "IndustrialSteel").RepeatTitleInBody
+                && ProformaPdfStyles.All.Where(style => style.Id != "IndustrialSteel")
+                    .All(style => !style.RepeatTitleInBody));
 
             var draft = new ProformaInvoiceDraft();
             draft.EnsureStructure();
