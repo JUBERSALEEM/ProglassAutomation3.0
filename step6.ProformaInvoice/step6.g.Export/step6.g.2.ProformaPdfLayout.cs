@@ -45,7 +45,9 @@ namespace ProGlassAutomation.Services.Proforma
                 });
 
                 page.Footer().PaddingTop(5).BorderTop(0.5f).BorderColor(style.Border)
-                    .AlignCenter().Text(text =>
+                    .AlignCenter()
+                    .DefaultTextStyle(text => text.FontSize(7).FontColor(style.Muted))
+                    .Text(text =>
                     {
                         text.Span(string.IsNullOrWhiteSpace(invoice.ProformaNumber)
                             ? "PROFORMA INVOICE" : invoice.ProformaNumber);
@@ -53,7 +55,7 @@ namespace ProGlassAutomation.Services.Proforma
                         text.CurrentPageNumber();
                         text.Span(" of ");
                         text.TotalPages();
-                    }).FontSize(7).FontColor(style.Muted);
+                    });
             })).GeneratePdf();
         }
 
