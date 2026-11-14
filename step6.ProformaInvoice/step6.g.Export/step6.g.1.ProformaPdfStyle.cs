@@ -51,19 +51,19 @@ namespace ProGlassAutomation.Services.Proforma
                 "Formal commercial navy with a restrained brass accent.",
                 "#0B2E59", "#071E3B", "#E9EEF6", "#14202E", "#5B6B7E",
                 "#D5DDE7", "#F4F7FB", "#FFFFFF", "#FFFFFF", "#C9A227",
-                16f, 9.5f, 16f, 8f, 5.5f, 3.6f, true, false, false, false),
+                16f, 9.5f, 16f, 8f, 5.5f, 3.6f, true, false, false),
             new ProformaPdfStyle(
                 "ModernTeal", ProformaPdfLayoutKind.SplitConsole, "Modern Teal", "MODERN",
                 "Airy teal and cyan styling for everyday quotations.",
                 "#0F766E", "#134E4A", "#D8F1EE", "#10333A", "#537079",
                 "#BFE0DC", "#F0FAF8", "#FFFFFF", "#FFFFFF", "#06B6D4",
-                15f, 11f, 19f, 8.2f, 6f, 4f, true, false),
+                15f, 11f, 19f, 8.2f, 6f, 4f, true, false, false),
             new ProformaPdfStyle(
                 "EditorialInk", ProformaPdfLayoutKind.Editorial, "Editorial Ink", "EDITORIAL",
                 "Warm paper, black ink and copper rules for premium client packs.",
                 "#1B1B18", "#0C0C0A", "#F4EFE7", "#1B1B18", "#6E675E",
                 "#DAD2C6", "#FAF8F4", "#FAFAF7", "#FAFAF7", "#B4552D",
-                18f, 12.5f, 21f, 8f, 4.6f, 4.4f, false, false),
+                18f, 12.5f, 21f, 8f, 4.6f, 4.4f, false, false, false),
             new ProformaPdfStyle(
                 "IndustrialSteel", ProformaPdfLayoutKind.Workshop, "Industrial Steel", "INDUSTRIAL",
                 "Dense graphite and safety amber with a full table grid.",
@@ -75,7 +75,7 @@ namespace ProGlassAutomation.Services.Proforma
                 "Quiet ivory paper, charcoal hairlines and generous whitespace.",
                 "#222933", "#0B0F14", "#F7F3EA", "#171D26", "#6F675B",
                 "#D9D0BF", "#FFFFFF", "#FAF6EE", "#FFFFFF", "#8B5E34",
-                20f, 14f, 11.5f, 8f, 3.6f, 3.8f, false, false)
+                20f, 14f, 11.5f, 8f, 3.6f, 3.8f, false, false, false)
         });
 
         public static ProformaPdfStyle Default => All[0];

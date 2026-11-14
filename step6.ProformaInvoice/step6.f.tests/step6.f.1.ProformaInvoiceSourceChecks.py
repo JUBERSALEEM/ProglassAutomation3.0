@@ -477,6 +477,15 @@ check("ExportWorkbookCommand" in read(PDF_VIEW)
       "step6.d.7 summary stage: Excel/CSV export controls are not wired")
 check("ExportRegisterWorkbookCommand" in read(REGISTER_VIEW),
       "step6.d.1 register: filtered register export control is not wired")
+pdf_style_source = read(PDF_STYLES)
+check(pdf_style_source.count("new ProformaPdfStyle(") == 5
+      and "bool RepeatTitleInBody);" in pdf_style_source,
+      "step6.g.1: all five PDF style constructors must match the complete style record")
+pdf_tests = read(MODULE / "step6.f.tests/step6.f.4.ProformaPdfBehaviourChecks.cs")
+check("all five customer PDF styles are registered" in pdf_tests
+      and "renders a customer invoice PDF" in pdf_tests
+      and "renders an internal dossier PDF" in pdf_tests,
+      "step6.f.4: all five styles must render both customer invoice and dossier PDFs")
 charge_source = read(CHARGE_AUTOMATION)
 for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
               "BEVELED", "FROSTED", "ARGON GAS"):
