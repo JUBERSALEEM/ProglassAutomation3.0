@@ -134,7 +134,7 @@ namespace ProGlassAutomation.Models.Proforma
 
             // ── Polish follows the glass count, not a word ───────────────
             bool sameGlass = SamePaneColours(group);
-            bool polishNamed = spec.Contains("POLISH");
+            bool polishNamed = spec.Contains("POLISH") || group.PolishSubType != PolishSubType.Auto;
             if (doubleGlass && sameGlass)
                 suggestions.Add(new ChargeSuggestion
                 {
