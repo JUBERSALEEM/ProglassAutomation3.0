@@ -34,7 +34,8 @@ namespace ProGlassAutomation.Services.Proforma
 
         public static ProformaGridImportResult ReadExcel(string path)
         {
-            using var workbook = new XLWorkbook(new MemoryStream(ReadBytesShared(path)));
+            using var memory = new MemoryStream(ReadBytesShared(path));
+            using var workbook = new XLWorkbook(memory);
             IXLWorksheet? sheet = workbook.Worksheets.FirstOrDefault();
             IXLRange? used = sheet?.RangeUsed();
             if (used == null)
