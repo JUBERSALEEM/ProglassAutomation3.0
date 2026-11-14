@@ -233,18 +233,18 @@ namespace ProGlassAutomation.Step6Tests
                 HasUInsertExtra = true, UInsertPricePerSqm = 0m
             };
             uInsertB.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, Qty = 1 });
-            var uInsertSheet = new OtherChargesSheet();
-            uInsertSheet.EnsureCatalogueRows();
-            OtherChargeAutomation.Apply(uInsertSheet, new[] { uInsertA, uInsertB });
-            PredefinedChargeRow uInsertRow = uInsertSheet.Predefined.Single(row => row.TemplateKey == "U_INSERT");
-            uInsertRow.Rate = 10m;
-            uInsertSheet.Recalculate(new[] { uInsertA, uInsertB });
+            var multiUInsertSheet = new OtherChargesSheet();
+            multiUInsertSheet.EnsureCatalogueRows();
+            OtherChargeAutomation.Apply(multiUInsertSheet, new[] { uInsertA, uInsertB });
+            PredefinedChargeRow multiUInsertRow = multiUInsertSheet.Predefined.Single(row => row.TemplateKey == "U_INSERT");
+            multiUInsertRow.Rate = 10m;
+            multiUInsertSheet.Recalculate(new[] { uInsertA, uInsertB });
             Check("U-Insert uses pane-one cavity area and Step 4 per-spec rates before Step 6 fallback",
-                uInsertRow.IsActive && uInsertRow.Quantity == 4m && uInsertRow.Amount == 44m);
-            uInsertRow.Metric = ChargeMetric.TotalLm;
-            uInsertSheet.Recalculate(new[] { uInsertA, uInsertB });
+                multiUInsertRow.IsActive && multiUInsertRow.Quantity == 4m && multiUInsertRow.Amount == 44m);
+            multiUInsertRow.Metric = ChargeMetric.TotalLm;
+            multiUInsertSheet.Recalculate(new[] { uInsertA, uInsertB });
             Check("U-Insert cannot be switched away from its cavity-area metric",
-                uInsertRow.Quantity == 4m && uInsertRow.Amount == 44m);
+                multiUInsertRow.Quantity == 4m && multiUInsertRow.Amount == 44m);
             Check("pricing section U-Insert seed survives clone and group creation",
                 new PricingSection { UInsertPricePerSqm = 13m }.Clone().UInsertPricePerSqm == 13m
                 && UInsertSeedCopiesToGroup());
