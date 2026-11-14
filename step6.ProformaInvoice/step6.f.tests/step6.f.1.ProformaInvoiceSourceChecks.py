@@ -48,7 +48,13 @@ OWNER = MODULE / "step6.e.docs/step6.e.2.Owner-Verification.md"
 REGISTRY = ROOT / "docs/06.Feature-Registry.md"
 DECISIONS = ROOT / "docs/05.Decision-Log.md"
 
-CSHARP = sorted(MODULE.glob("*.cs"))
+CSHARP = sorted(MODULE.rglob("*.cs"))
+PDF_STYLES = MODULE / "step6.g.Export/step6.g.1.ProformaPdfStyle.cs"
+PDF_LAYOUT = MODULE / "step6.g.Export/step6.g.2.ProformaPdfLayout.cs"
+PDF_EXPORTER = MODULE / "step6.g.Export/step6.g.3.ProformaPdfExporter.cs"
+PDF_VIEWMODEL = MODULE / "step6.c.Presentation/step6.c.9.ProformaWorkspaceViewModel.PdfExport.cs"
+PDF_VIEW = MODULE / "step6.d.Views/step6.d.7.ProformaSummaryStage.xaml"
+PROJECT = ROOT / "ProGlassAutomation.csproj"
 failures = []
 
 
@@ -374,6 +380,37 @@ for stage in ("Header", "Pricing", "SpecGrid", "OtherCharges", "Summary", "Attac
           f"step6.a.1.InvoiceLifecycle.cs: stage {stage} is missing")
 check("new ProformaInvoiceRepository()" in read(WORKSPACE),
       "step6.c.1.ProformaInvoiceWorkspace.cs: the workspace no longer talks to the repository")
+
+# 17 ── The five PDF styles share one QuestPDF invoice composition ────────────
+style_source = read(PDF_STYLES)
+style_ids = ("ClassicNavy", "ModernTeal", "EditorialInk", "IndustrialSteel", "MinimalIvory")
+check(style_source.count("new ProformaPdfStyle(") == 5,
+      "step6.g.1.ProformaPdfStyle.cs: the PDF style catalogue must contain exactly five styles")
+for style_id in style_ids:
+    check(style_id in style_source,
+          f"step6.g.1.ProformaPdfStyle.cs: PDF style {style_id} is missing")
+layout_source = read(PDF_LAYOUT)
+check(layout_source.count("Document.Create(") == 1,
+      "step6.g.2.ProformaPdfLayout.cs: five styles must use one shared document composition")
+for section in ("Letterhead(", "Parties(", "Specifications(", "Charges(", "FinancialSummary(", "Signatures("):
+    check(section in layout_source,
+          f"step6.g.2.ProformaPdfLayout.cs: PDF section {section} is missing")
+project_source = read(PROJECT)
+check('PackageReference Include="QuestPDF" Version="2024.12.2"' in project_source,
+      "ProGlassAutomation.csproj: the approved QuestPDF dependency is missing")
+check("PdfSharp" not in project_source,
+      "ProGlassAutomation.csproj: a second PDF engine was added")
+check("ExportPdfCommand" in read(PDF_VIEWMODEL)
+      and "PdfStyles" in read(PDF_VIEWMODEL)
+      and "SelectedPdfStyle" in read(PDF_VIEWMODEL),
+      "step6.c.9 PDF view model: the five-style export command is incomplete")
+check("ExportPdfCommand" in read(PDF_VIEW)
+      and "SelectedPdfStyle" in read(PDF_VIEW)
+      and "PdfStyles" in read(PDF_VIEW),
+      "step6.d.7 summary view: the five-style export controls are not wired")
+for path in (PDF_STYLES, PDF_LAYOUT, PDF_EXPORTER, PDF_VIEWMODEL):
+    check(path.is_file() and len(read(path).splitlines()) <= 400,
+          f"{path.relative_to(ROOT)}: missing or exceeds the 400-line file rule")
 
 if failures:
     print(f"proforma invoice source checks: {len(failures)} failure(s).")
