@@ -87,8 +87,8 @@ namespace ProGlassAutomation.Models.Proforma
                     Description = "45° bevel edge for a mitred joint assembly.",
                     Unit = ChargeUnit.Lm, DefaultMetric = ChargeMetric.TotalLm, DefaultRate = 30m },
             new() { Key = "POLISH", ChargeName = "Polish (lm)",
-                    Description = "Edge polishing of a single pane or a mixed-glass unit.",
-                    Unit = ChargeUnit.Lm, DefaultMetric = ChargeMetric.TotalLm, DefaultRate = 6m },
+                    Description = "Edge polishing of single-pane or unmatched glass groups.",
+                    Unit = ChargeUnit.Lm, DefaultMetric = ChargeMetric.PolishLm, DefaultRate = 6m },
             new() { Key = "POLISH_MATCHED_LAM", ChargeName = "Polish — matched double glass (lm)",
                     Description = "Both measured panes are polished; a missing second size counts the first pane twice.",
                     Unit = ChargeUnit.Lm, DefaultMetric = ChargeMetric.MatchedPolishLm,
@@ -142,6 +142,7 @@ namespace ProGlassAutomation.Models.Proforma
         {
             ChargeMetric.TotalSqm => "Total m² of the grid",
             ChargeMetric.TotalLm => "Total linear metres of the grid",
+            ChargeMetric.PolishLm => "Regular polish length",
             ChargeMetric.MatchedPolishLm => "Matched double-glass polish length",
             ChargeMetric.TotalPieces => "Total pieces of the grid",
             ChargeMetric.FixedQuantity => "Quantity typed on the row",
@@ -152,7 +153,7 @@ namespace ProGlassAutomation.Models.Proforma
         public static IReadOnlyList<ChargeMetric> MetricsFor(ChargeUnit unit) => unit switch
         {
             ChargeUnit.Sqm => new[] { ChargeMetric.TotalSqm, ChargeMetric.TotalPieces, ChargeMetric.FixedQuantity },
-            ChargeUnit.Lm => new[] { ChargeMetric.TotalLm, ChargeMetric.MatchedPolishLm, ChargeMetric.TotalPieces, ChargeMetric.FixedQuantity },
+            ChargeUnit.Lm => new[] { ChargeMetric.TotalLm, ChargeMetric.PolishLm, ChargeMetric.MatchedPolishLm, ChargeMetric.TotalPieces, ChargeMetric.FixedQuantity },
             ChargeUnit.Qty => new[] { ChargeMetric.TotalPieces, ChargeMetric.FixedQuantity, ChargeMetric.TotalSqm },
             _ => Array.Empty<ChargeMetric>()
         };
