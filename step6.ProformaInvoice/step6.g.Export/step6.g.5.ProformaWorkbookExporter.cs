@@ -41,15 +41,20 @@ namespace ProGlassAutomation.Services.Proforma
             ArgumentNullException.ThrowIfNull(rows);
             var workbook = new XLWorkbook();
             var sheet = workbook.Worksheets.Add("Invoice Register");
+            sheet.TabColor = XLColor.FromHtml(Danger);
             string[] headers =
             {
                 "PI Number", "Status", "Client", "Project", "Inquiry", "Prepared By",
                 "Sales Representative", "Issue Date", "Valid Until", "Net Subtotal",
                 "Grand Total", "Profit", "Updated UTC"
             };
-            WriteTitle(sheet, "PROFORMA INVOICE REGISTER", headers.Length);
-            WriteHeader(sheet, 3, headers);
-            int row = 4;
+            WriteTitle(sheet, "INTERNAL PROFORMA INVOICE REGISTER", headers.Length);
+            sheet.Range(2, 1, 2, headers.Length).Merge();
+            sheet.Cell(2, 1).Value = "INTERNAL REGISTER — INCLUDES PROFIT FIGURES. DO NOT SEND TO CUSTOMER.";
+            sheet.Cell(2, 1).Style.Font.FontColor = XLColor.FromHtml(Danger);
+            sheet.Cell(2, 1).Style.Font.Bold = true;
+            WriteHeader(sheet, 4, headers);
+            int row = 5;
             foreach (ProformaInvoiceListRow item in rows)
             {
                 object[] values =
@@ -63,8 +68,8 @@ namespace ProGlassAutomation.Services.Proforma
                     sheet.Cell(row, col + 1).Value = XLCellValue.FromObject(values[col]);
                 row++;
             }
-            FormatData(sheet, 3, row - 1, headers.Length);
-            sheet.SheetView.FreezeRows(3);
+            FormatData(sheet, 4, row - 1, headers.Length);
+            sheet.SheetView.FreezeRows(4);
             sheet.Columns().AdjustToContents();
             return workbook;
         }
