@@ -55,7 +55,6 @@
                     <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
                     <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
                     <Setter Property="BorderThickness" Value="4,0,0,0" />
-                    <Setter Property="Padding" Value="{DynamicResource PaddingPlate}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsHolographic}" Value="True">
                     <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
@@ -221,90 +220,81 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- ── Top bar (the previous version's anatomy): menu toggle, wordmark,
-             centred module heading, session, clock, light/dark switch. Every
-             colour and metric is a theme token, so all nine themes restyle it. -->
-        <Border Grid.Row="0" Grid.ColumnSpan="2" Height="56"
+        <!-- Shell chrome: three stable zones keep the workspace title centred
+             independently of the variable-width operator/session controls. -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2" MinHeight="64"
                 Background="{DynamicResource SurfacePrimary}"
                 BorderBrush="{DynamicResource BorderSubtle}"
                 BorderThickness="0,0,0,1">
             <Grid Margin="{DynamicResource PaddingCompact}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-
-                <Button Grid.Column="0" Content="&#x2630;"
-                        Command="{Binding ToggleMenu}"
-                        Style="{StaticResource ShellIconButton}"
-                        Margin="{DynamicResource UiGapControl}"
-                        VerticalAlignment="Center"
-                        ToolTip="Hide or show the menu"
-                        AutomationProperties.Name="Toggle menu" />
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="&#x2630;" Command="{Binding ToggleMenu}"
+                            Style="{StaticResource ShellIconButton}"
+                            Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center"
+                            ToolTip="Hide or show the menu" AutomationProperties.Name="Toggle menu" />
                     <Border Width="{DynamicResource ControlMinHeight}" Height="{DynamicResource ControlMinHeight}"
-                            CornerRadius="{DynamicResource ChipCornerRadius}"
-                            Background="{DynamicResource AccentPrimary}"
+                            CornerRadius="{DynamicResource ChipCornerRadius}" Background="{DynamicResource AccentPrimary}"
                             Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center">
                         <studio:ShellMark Kind="Marks" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}"
-                                          Foreground="{DynamicResource TextOnAccent}"
-                                          VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                          Foreground="{DynamicResource TextOnAccent}" VerticalAlignment="Center" HorizontalAlignment="Center" />
                     </Border>
-                    <TextBlock Text="ProGlass" Style="{DynamicResource SectionHeading}"
-                               Foreground="{DynamicResource TextPrimary}"
-                               VerticalAlignment="Center" />
-                    <Border Margin="{DynamicResource UiGapControl}" Padding="{DynamicResource PaddingCompact}"
-                            CornerRadius="{DynamicResource ChipCornerRadius}"
-                            Background="{DynamicResource SurfaceSecondary}"
-                            BorderBrush="{DynamicResource BorderSubtle}"
-                            BorderThickness="{DynamicResource BorderThicknessControl}"
-                            VerticalAlignment="Center">
-                        <TextBlock Text="SUITE" Style="{DynamicResource Caption}" />
-                    </Border>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="ProGlass" Style="{DynamicResource SectionHeading}"
+                                   Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" Margin="0" />
+                        <Border Margin="{DynamicResource UiGapControl}" Padding="{DynamicResource PaddingCompact}"
+                                CornerRadius="{DynamicResource ChipCornerRadius}" Background="{DynamicResource SurfaceSecondary}"
+                                BorderBrush="{DynamicResource BorderSubtle}" BorderThickness="{DynamicResource BorderThicknessControl}"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="SUITE" Style="{DynamicResource Caption}" />
+                        </Border>
+                    </StackPanel>
                 </StackPanel>
-
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
-                            HorizontalAlignment="Center" Margin="{DynamicResource MarginInline}">
-                    <studio:ShellMark Title="{Binding WorkspaceTitle}"
-                                      Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}"
-                                      Foreground="{DynamicResource AccentPrimary}"
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                            HorizontalAlignment="Center" Margin="{DynamicResource MarginInline}" MaxWidth="440">
+                    <studio:ShellMark Title="{Binding WorkspaceTitle}" Width="{DynamicResource ChoiceMarkSize}"
+                                      Height="{DynamicResource ChoiceMarkSize}" Foreground="{DynamicResource AccentPrimary}"
                                       Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center" />
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding WorkspaceTitle}" Foreground="{DynamicResource TextPrimary}"
-                                   FontSize="{DynamicResource FontSizeSection}"
-                                   FontWeight="{DynamicResource FontWeightHeading}"
-                                   TextTrimming="CharacterEllipsis" MaxWidth="520" />
+                                   FontSize="{DynamicResource FontSizeSection}" FontWeight="{DynamicResource FontWeightHeading}"
+                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                         <TextBlock Text="{Binding WorkspaceSubtitle}" Style="{DynamicResource Caption}"
-                                   TextTrimming="CharacterEllipsis" MaxWidth="520" />
+                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                     </StackPanel>
                 </StackPanel>
-
-                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center"
-                            Margin="{DynamicResource UiGapControlEnd}">
-                    <StackPanel x:Name="SessionBanner" Orientation="Horizontal" VerticalAlignment="Center" />
-                </StackPanel>
-
-                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource SurfaceSecondary}" BorderBrush="{DynamicResource BorderSubtle}"
+                            BorderThickness="{DynamicResource BorderThicknessControl}" CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource UiGapControlEnd}">
+                        <StackPanel x:Name="SessionBanner" Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel VerticalAlignment="Center" MaxWidth="156">
+                                <TextBlock Text="OPERATOR" Style="{DynamicResource Caption}" FontSize="10" />
+                                <TextBlock Text="{Binding SessionLabel}" ToolTip="{Binding SessionTooltip}"
+                                           FontWeight="{DynamicResource FontWeightHeading}"
+                                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                            </StackPanel>
+                            <Button Content="{Binding ActionLabel}" Command="{Binding ActionCommand}"
+                                    Style="{StaticResource ShellBannerButton}" Margin="{DynamicResource UiGapControl}"
+                                    AutomationProperties.Name="{Binding ActionAccessibleName}" ToolTip="{Binding ActionTooltip}" />
+                        </StackPanel>
+                    </Border>
                     <TextBlock Text="{Binding ShellClock}" Style="{DynamicResource Caption}"
-                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}"
-                               ToolTip="Local time" />
-                    <Button Content="&#x263E;"
-                            Command="{Binding ToggleAppearance}"
-                            Style="{StaticResource ShellIconButton}"
-                            Margin="{DynamicResource UiGapControl}"
-                            VerticalAlignment="Center"
-                            ToolTip="Switch light and dark"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}" ToolTip="Local time" />
+                    <Button Content="&#x263E;" Command="{Binding ToggleAppearance}"
+                            Style="{StaticResource ShellIconButton}" Margin="{DynamicResource UiGapControl}"
+                            VerticalAlignment="Center" ToolTip="Switch light and dark"
                             AutomationProperties.Name="Switch light and dark" />
                 </StackPanel>
             </Grid>
         </Border>
 
         <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource ShellSidebar}">
-            <ContentControl Style="{DynamicResource Card}">
+            <ContentControl Style="{DynamicResource Card}" Padding="0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
@@ -312,476 +302,28 @@
                 </Grid.RowDefinitions>
                 <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" CanContentScroll="False" PanningMode="VerticalOnly">
                     <StackPanel Margin="{DynamicResource PaddingCompact}">
-                        <Button Command="{Binding ShowBusiness}" AutomationProperties.Name="Home page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsBusiness}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsBusiness}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsBusiness}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsBusiness}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Home" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Home" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
+                        <studio:ShellNavEntry Command="{Binding ShowBusiness}" IsSelected="{Binding IsBusiness}" Mark="Home" Label="Home" AutomationProperties.Name="Home page" />
                         <TextBlock Text="Business" Style="{StaticResource ShellSectionLabel}" FontWeight="{DynamicResource FontWeightHeading}" />
-                        <Button Command="{Binding ShowInquiry}" AutomationProperties.Name="Inquiries page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsInquiry}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsInquiry}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsInquiry}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsInquiry}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Inquiry" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Inquiries" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
+                        <studio:ShellNavEntry Command="{Binding ShowInquiry}" IsSelected="{Binding IsInquiry}" Mark="Inquiry" Label="Inquiries" AutomationProperties.Name="Inquiries page" />
                         <!-- step2 — Client Management. Same nav pattern as Inquiries;
                              the workspace index (8) is appended so existing
                              workspace indexes keep their meaning. -->
-                        <Button Command="{Binding ShowClients}" AutomationProperties.Name="Clients page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsClients}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsClients}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsClients}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsClients}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <!-- Briefcase: the companies we work for. The person mark moved to
-                                     Users when step3 added the directory. -->
-                                <studio:ShellMark Kind="Work" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Clients" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
+                        <studio:ShellNavEntry Command="{Binding ShowClients}" IsSelected="{Binding IsClients}" Mark="Work" Label="Clients" AutomationProperties.Name="Clients page" />
                         <!-- step3 — User Management. Same nav pattern as Inquiries;
                              the workspace index (9) is appended for the same
                              reason: every earlier index keeps its meaning. -->
-                        <Button Command="{Binding ShowUsers}" AutomationProperties.Name="Users page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsUsers}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsUsers}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsUsers}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsUsers}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <!-- Person mark: the people who use the application,
-                                     as opposed to the companies they work for. -->
-                                <studio:ShellMark Kind="Author" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Users" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
+                        <studio:ShellNavEntry Command="{Binding ShowUsers}" IsSelected="{Binding IsUsers}" Mark="Author" Label="Users" AutomationProperties.Name="Users page" />
                         <studio:ShellNavEntry Command="{Binding ShowProjects}" IsSelected="{Binding IsProjects}" Mark="Engineering" Label="Projects" AutomationProperties.Name="Projects page" />
                         <studio:ShellNavEntry Command="{Binding ShowProforma}" IsSelected="{Binding IsProforma}" Mark="Work" Label="Proforma" AutomationProperties.Name="Proforma invoice page" />
                         <TextBlock Text="Settings" Style="{StaticResource ShellSectionLabel}" FontWeight="{DynamicResource FontWeightHeading}" />
                         <!-- step4 — Company Profile (index 10); it describes this installation, not records. -->
-                        <Button Command="{Binding ShowCompany}" AutomationProperties.Name="Company profile page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsCompany}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsCompany}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsCompany}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsCompany}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <!-- The gear, because this page describes the installation
-                                     itself rather than a list of records: Clients keeps the
-                                     briefcase and Users keeps the person, so the three are
-                                     never mistakable for one another. -->
-                                <studio:ShellMark Kind="Settings" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Company" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ShowStudio}" AutomationProperties.Name="Theme Studio page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsStudio}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsStudio}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsStudio}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsStudio}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Theme" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Theme Studio" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ShowTexts}" AutomationProperties.Name="Texts Studio page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsTexts}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsTexts}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsTexts}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsTexts}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Texts" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Texts Studio" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ShowColors}" AutomationProperties.Name="Colors Studio page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsColors}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsColors}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsColors}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsColors}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Colors" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Colors Studio" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ShowIcons}" AutomationProperties.Name="Icons Studio page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsIcons}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsIcons}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsIcons}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsIcons}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Marks" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Icons Studio" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ShowPages}" AutomationProperties.Name="Pages Studio page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsPages}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsPages}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsPages}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsPages}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="Layout" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="Pages Studio" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ShowAbout}" AutomationProperties.Name="About page">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource ShellNavButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAbout}" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-                                        </DataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsSwiss}" Value="True" />
-                                                <Condition Binding="{Binding IsAbout}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsHolographic}" Value="True" />
-                                                <Condition Binding="{Binding IsAbout}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource AccentSoft}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeroAccent}" />
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsGlass}" Value="True" />
-                                                <Condition Binding="{Binding IsAbout}" Value="True" />
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter Property="Background" Value="{DynamicResource GlassFrostElevated}" />
-                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
-                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-                                        </MultiDataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <studio:ShellMark Kind="About" Width="{DynamicResource ChoiceMarkSize}" Height="{DynamicResource ChoiceMarkSize}" Margin="{DynamicResource MarginInline}" VerticalAlignment="Center" />
-                                <TextBlock Text="About" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
+                        <studio:ShellNavEntry Command="{Binding ShowCompany}" IsSelected="{Binding IsCompany}" Mark="Settings" Label="Company" AutomationProperties.Name="Company page" />
+                        <studio:ShellNavEntry Command="{Binding ShowStudio}" IsSelected="{Binding IsStudio}" Mark="Theme" Label="Theme Studio" AutomationProperties.Name="Theme Studio page" />
+                        <studio:ShellNavEntry Command="{Binding ShowTexts}" IsSelected="{Binding IsTexts}" Mark="Texts" Label="Texts Studio" AutomationProperties.Name="Texts Studio page" />
+                        <studio:ShellNavEntry Command="{Binding ShowColors}" IsSelected="{Binding IsColors}" Mark="Colors" Label="Colors Studio" AutomationProperties.Name="Colors Studio page" />
+                        <studio:ShellNavEntry Command="{Binding ShowIcons}" IsSelected="{Binding IsIcons}" Mark="Marks" Label="Icons Studio" AutomationProperties.Name="Icons Studio page" />
+                        <studio:ShellNavEntry Command="{Binding ShowPages}" IsSelected="{Binding IsPages}" Mark="Layout" Label="Pages Studio" AutomationProperties.Name="Pages Studio page" />
+                        <studio:ShellNavEntry Command="{Binding ShowAbout}" IsSelected="{Binding IsAbout}" Mark="About" Label="About" AutomationProperties.Name="About page" />
                     </StackPanel>
                 </ScrollViewer>
                 <TextBlock Grid.Row="1" Text="ProGlass Automation · Version 3.0" Style="{StaticResource ShellSectionLabel}" />
