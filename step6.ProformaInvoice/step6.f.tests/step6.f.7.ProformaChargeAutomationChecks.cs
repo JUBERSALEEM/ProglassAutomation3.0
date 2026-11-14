@@ -92,6 +92,19 @@ namespace ProGlassAutomation.Step6Tests
             Check("unmatched laminate uses the regular polish row",
                 mixedLamKeys.Contains("POLISH") && !mixedLamKeys.Contains("POLISH_MATCHED_LAM"));
 
+            mixedLam.Rows.Add(new SpecRow
+            {
+                SerialNumber = 1, W1 = 800, H1 = 1800,
+                W2 = 750, H2 = 1750, Qty = 1
+            });
+            var mixedSheet = new OtherChargesSheet();
+            mixedSheet.EnsureCatalogueRows();
+            OtherChargeAutomation.Apply(mixedSheet, new[] { group, mixedLam });
+            mixedSheet.Recalculate(SpecGridTotals.From(new[] { group, mixedLam }));
+            Check("regular and matched polish rows do not charge the same group twice",
+                mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH").Quantity == mixedLam.TotalLm
+                && mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").Quantity == group.MatchedPolishLm);
+
             var wastage = new OtherChargesSheet();
             wastage.RebuildWastages(new[] { group });
             WastageChargeRow clear = wastage.Wastages.Single(row => row.ColorName == "Clear");
