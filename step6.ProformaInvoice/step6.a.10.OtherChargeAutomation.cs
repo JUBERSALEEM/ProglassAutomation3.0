@@ -2,11 +2,10 @@
 // FILE: step6.ProformaInvoice/step6.a.10.OtherChargeAutomation.cs
 // MODULE: step6 — stage 4's suggestions, derived from the specification.
 //
-// A charge is suggested only when the SPECIFICATION SAYS SO ("U-Insert",
-// "Overlap", "Sandblast", "Mitre") or when the BUILD makes it unavoidable (a
-// DGU cavity has gas and a perimeter seal; polishing a unit whose panes are
-// the same glass polishes both). Holes, cutouts and delivery depend on a
-// drawing and a truck, not on a spec name, so they are never guessed.
+// A charge is suggested when the SPECIFICATION names it (including shutter
+// bonding, fan holes, cutouts, drilled holes and frosting) or when the BUILD
+// makes it unavoidable. Drawing-dependent work is never inferred from size
+// alone; holes/cutouts are suggested only when the specification names them.
 //
 // Pure and deterministic: same input, same suggestions. `Apply` never
 // overrules a switch the operator has touched.
@@ -38,10 +37,12 @@ namespace ProGlassAutomation.Models.Proforma
             var suggestions = new List<ChargeSuggestion>();
             if (group == null) return suggestions;
 
-            string spec = (group.SpecName ?? "").ToUpperInvariant();
+            string spec = (group.SpecName ?? "").ToUpperInvariant()
+                .Replace('-', ' ').Replace('_', ' ');
             string type = EffectiveGlassType(group.GlassType, group.SpecName);
             bool dguLike = type is GlassBuilds.Dgu or GlassBuilds.DguLam;
             bool lamLike = type is GlassBuilds.Lam or GlassBuilds.DguLam;
+            bool doubleGlass = dguLike || type == GlassBuilds.Lam;
 
             // ── Unavoidable for the build ────────────────────────────────
             if (dguLike || spec.Contains("ARGON GAS"))
@@ -189,10 +190,11 @@ namespace ProGlassAutomation.Models.Proforma
             if (direct.Length > 0) return direct;
 
             string text = (specName ?? "").ToUpperInvariant();
-            if (text.Contains("DGU+LAM")) return GlassBuilds.DguLam;
-            if (text.Contains("DGU")) return GlassBuilds.Dgu;
-            if (text.Contains("LAM")) return GlassBuilds.Lam;
-            if (text.Contains("SGU")) return GlassBuilds.Sgu;
+            string compact = text.Replace(" ", "").Replace("-", "").Replace("_", "");
+            if (compact.Contains("DGU+LAM") || compact.Contains("DGULAM")) return GlassBuilds.DguLam;
+            if (compact.Contains("DGU")) return GlassBuilds.Dgu;
+            if (compact.Contains("LAM")) return GlassBuilds.Lam;
+            if (compact.Contains("SGU")) return GlassBuilds.Sgu;
             return "";
         }
 
