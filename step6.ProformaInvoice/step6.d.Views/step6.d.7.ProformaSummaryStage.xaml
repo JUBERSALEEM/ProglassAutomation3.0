@@ -175,6 +175,34 @@
                 </Grid>
             </ContentControl>
 
+            <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
+                <Grid Margin="{DynamicResource PaddingCard}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="PDF EXPORT" Style="{DynamicResource ProformaFieldLabel}" />
+                        <TextBlock Text="{Binding SelectedPdfStyle.Description}"
+                                   Style="{DynamicResource ProformaFieldHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1" Width="190"
+                              Style="{DynamicResource {x:Type ComboBox}}"
+                              ItemsSource="{Binding PdfStyles}"
+                              SelectedItem="{Binding SelectedPdfStyle}"
+                              DisplayMemberPath="Name"
+                              Margin="{DynamicResource UiGapControlEnd}"
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name="PDF layout style" />
+                    <Button Grid.Column="2" Style="{DynamicResource PrimaryButton}"
+                            Content="EXPORT PDF" Command="{Binding ExportPdfCommand}"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Export the saved proforma invoice as PDF" />
+                </Grid>
+            </ContentControl>
+
             <StackPanel Orientation="Horizontal" Margin="{DynamicResource MarginItem}">
                 <Button Style="{DynamicResource SubtleButton}" Content="RECALCULATE"
                         Command="{Binding RecalculateCommand}"
