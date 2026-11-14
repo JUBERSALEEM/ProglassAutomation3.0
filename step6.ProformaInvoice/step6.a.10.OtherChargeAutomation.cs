@@ -70,7 +70,7 @@ namespace ProGlassAutomation.Models.Proforma
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "U_INSERT",
-                    Reason = "The specification names a U-insert."
+                    Reason = "Step 4 enables U-Insert for this specification."
                 });
 
             if (spec.Contains("OVERLAP"))
