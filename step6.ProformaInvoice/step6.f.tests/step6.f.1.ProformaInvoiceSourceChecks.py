@@ -535,12 +535,20 @@ check("MatchedPolishLm" in read(SPEC_GRID) and "PolishLm" in read(SPEC_GRID)
       and "ChargeMetric.MatchedPolishLm" in read(CHARGES_MODEL)
       and "ChargeMetric.PolishLm" in read(CHARGES_MODEL),
       "matched double-glass polish must use measured pane geometry, not a fixed multiplier")
+check("UInsertPricePerSqm" in read(SPEC_GRID)
+      and "UInsertAmount" in read(SPEC_GRID)
+      and "UInsertPricePerSqm" in read(MODULE / "step6.a.5.PricingModels.cs")
+      and "SelectedSection.UInsertPricePerSqm" in read(MODULE / "step6.d.Views/step6.d.4.ProformaPricingStage.xaml"),
+      "Step 4 per-spec U-Insert rate must flow into the specification snapshot and charge calculation")
+check("EffectiveRate" in read(PDF_LAYOUT) and "EffectiveRate" in read(WORKBOOK),
+      "customer PDF/XLSX must show the blended effective U-Insert rate")
 wastage_model = read(CHARGES_MODEL)
 check("IsOptionalSuggestion" in wastage_model and "SuggestionReason" in wastage_model
       and "SheetQuantity = row.SheetQuantity" in wastage_model,
       "step6.a.9: clear-glass guidance and sheet-cost quantity must survive rebuild/clone")
 wastage_view = read(CHARGES_VIEW)
 check("ToolTip=\"{Binding SuggestionReason}\"" in wastage_view
+      and "ToolTip=\"{Binding Description}\"" in wastage_view
       and "Binding=\"{Binding SheetQuantity" in wastage_view,
       "step6.d.6: wastage guidance and sheet-cost quantity are not visible")
 check("CellEditEnding=\"OnWastageCellEditEnding\"" in wastage_view
