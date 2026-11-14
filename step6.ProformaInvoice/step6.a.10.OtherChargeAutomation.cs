@@ -59,7 +59,7 @@ namespace ProGlassAutomation.Models.Proforma
             }
 
             // ── Named by the specification ───────────────────────────────
-            if (spec.Contains("SILICON BED") && !dguLike)
+            if ((spec.Contains("SILICON BED") || spec.Contains("SILICONE BED")) && !dguLike)
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "SILICON_BED",
@@ -118,14 +118,14 @@ namespace ProGlassAutomation.Models.Proforma
                 });
 
             if (spec.Contains("MITRE") || spec.Contains("MITRING")
-                || spec.Contains("BEVELED") || spec.Contains("BEVELLED"))
+                || spec.Contains("BEVEL"))
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "MITRING",
                     Reason = "The specification names mitring or beveling."
                 });
 
-            if (spec.Contains("SANDBLAST") || spec.Contains("FROSTED"))
+            if (spec.Contains("SANDBLAST") || spec.Contains("SAND BLAST") || spec.Contains("FROSTED"))
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "SANDBLASTING",
