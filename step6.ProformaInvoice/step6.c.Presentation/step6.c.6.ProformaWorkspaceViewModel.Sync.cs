@@ -24,7 +24,7 @@ namespace ProGlassAutomation.ViewModels.Proforma
             SelectedSection = null;
             SelectedGroup = null;
             SyncFromDraft();
-            _workspace.GoToStage(InvoiceStage.Header);
+            _workspace.GoToStage(InvoiceStage.Company);
             SyncStages();
         }
 
@@ -68,7 +68,9 @@ namespace ProGlassAutomation.ViewModels.Proforma
 
         private static string StageLabel(InvoiceStage stage) => stage switch
         {
-            InvoiceStage.Header => "Header",
+            InvoiceStage.Company => "Company",
+            InvoiceStage.Client => "Client",
+            InvoiceStage.Project => "Project",
             InvoiceStage.Pricing => "Pricing",
             InvoiceStage.SpecGrid => "Spec grid",
             InvoiceStage.OtherCharges => "Charges",
