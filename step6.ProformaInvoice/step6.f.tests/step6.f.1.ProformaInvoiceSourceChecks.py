@@ -506,7 +506,9 @@ polish_view = read(MODULE / "step6.d.Views/step6.d.5.ProformaGridStage.xaml")
 polish_code = read(MODULE / "step6.d.Views/step6.d.5.ProformaGridStage.xaml.cs")
 check("PolishSubTypeInfo.All" in polish_view
       and "SelectedGroup.PolishSubType" in polish_view
-      and "OnPolishSubTypeChanged" in polish_code,
+      and "SelectedGroup.CustomPolishQuantity" in polish_view
+      and "OnPolishSubTypeChanged" in polish_code
+      and "OnCustomPolishQuantityChanged" in polish_code,
       "step6.d.5: per-group polish subtype selector is not wired")
 check("SelectedGroup.CustomPolishQuantity" in polish_view
       and "OnCustomPolishQuantityChanged" in polish_code
