@@ -70,5 +70,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
     <!-- QuestPDF is the single PDF renderer for the PI's five selectable styles. -->
     <PackageReference Include="QuestPDF" Version="2025.12.4" />
+    <!-- ClosedXML supplies the approved XLSX import/export paths; CSV stays dependency-free. -->
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
   </ItemGroup>
 </Project>
