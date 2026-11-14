@@ -83,7 +83,7 @@ namespace ProGlassAutomation.Services.Proforma
 
         private static void WriteRow(StringBuilder output, System.Collections.Generic.IReadOnlyList<string> cells)
         {
-            output.AppendJoin(',', cells.Select(Escape));
+            output.Append(string.Join(",", cells.Select(Escape)));
             output.Append("\r\n");
         }
 
