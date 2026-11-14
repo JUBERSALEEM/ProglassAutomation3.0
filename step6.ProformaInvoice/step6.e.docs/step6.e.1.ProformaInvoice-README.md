@@ -269,7 +269,7 @@ ClosedXML 0.105.0 is the only added spreadsheet dependency. CSV is written by th
 | `step6.a.4.InvoiceParties.cs` | header snapshot model |
 | `step6.a.5.PricingModels.cs` | build vocabulary, panes, cost card, sections |
 | `step6.a.6.PricingEstimator.cs` | the four formulas, provenance, warnings |
-| `step6.a.7.SpecGrid.cs` | groups, rows, areas, colour areas |
+| `step6.a.7.SpecGrid.cs` | groups, rows, areas, colour areas and polish metrics |
 | `step6.a.8.ChargeCatalog.cs` | the 17 templates and their metrics |
 | `step6.a.9.OtherCharges.cs` | charge sheet, per-colour wastage rebuild, clear-glass guidance, sheet-cost quantity |
 | `step6.a.10.OtherChargeAutomation.cs` | what may be suggested from the specification |
@@ -277,6 +277,7 @@ ClosedXML 0.105.0 is the only added spreadsheet dependency. CSV is written by th
 | `step6.a.12.ProfitLoss.cs` | whole-sheet costing, margin, target KPI |
 | `step6.a.13.ProformaInvoiceDraft.cs` | the document body, structure, recalculation, clone |
 | `step6.a.14.ProformaInvoiceRules.cs` | normalization, validation, stage evaluation, text limits |
+| `step6.a.15.PolishSubType.cs` | all legacy per-edge polish modes, detection and geometry formulas |
 | `step6.b.1.ProformaInvoiceSchema.cs` | migration 1018, shape assertion, numbering |
 | `step6.b.2.ProformaInvoiceJson.cs` | body serialization and its refusal rules |
 | `step6.b.3.ProformaInvoiceRecord.cs` | the stored row |
