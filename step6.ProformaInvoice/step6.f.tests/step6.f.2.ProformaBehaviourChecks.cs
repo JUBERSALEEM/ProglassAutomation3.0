@@ -53,6 +53,9 @@ namespace ProGlassAutomation.Step6Tests
             Section("PDF styles and rendering");
             PdfExport();
 
+            Section("Cut-list import and file exports");
+            ImportExport();
+
             Section("Stored body");
             StoredBody();
 
