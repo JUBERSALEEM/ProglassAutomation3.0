@@ -223,6 +223,22 @@ namespace ProGlassAutomation.Models.Proforma
                     IsActive = false
                 });
             }
+
+            // JSON bodies saved before the geometry-aware polish metrics used
+            // TotalLm × 2 for matched glass. Upgrade only those exact catalogue
+            // defaults; active/manual on-off choices remain untouched.
+            PredefinedChargeRow? regularPolish = Predefined.FirstOrDefault(row =>
+                string.Equals(row.TemplateKey, "POLISH", StringComparison.OrdinalIgnoreCase));
+            if (regularPolish?.Metric == ChargeMetric.TotalLm && regularPolish.MetricMultiplier == 1m)
+                regularPolish.Metric = ChargeMetric.PolishLm;
+
+            PredefinedChargeRow? matchedPolish = Predefined.FirstOrDefault(row =>
+                string.Equals(row.TemplateKey, "POLISH_MATCHED_LAM", StringComparison.OrdinalIgnoreCase));
+            if (matchedPolish?.Metric == ChargeMetric.TotalLm && matchedPolish.MetricMultiplier == 2m)
+            {
+                matchedPolish.Metric = ChargeMetric.MatchedPolishLm;
+                matchedPolish.MetricMultiplier = 1m;
+            }
         }
 
         /// <summary>
