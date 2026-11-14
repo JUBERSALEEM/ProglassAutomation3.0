@@ -112,6 +112,8 @@ namespace ProGlassAutomation.Step6Tests
                 clear.IsOptionalSuggestion && clear.SuggestionReason.Contains("optional", StringComparison.OrdinalIgnoreCase));
             Check("wastage sheet-cost quantity is editable and defaults to one",
                 clear.SheetQuantity == 1 && wastage.Clone().Wastages.Single().SheetQuantity == 1);
+            clear.SheetQuantity = -5;
+            Check("wastage sheet-cost quantity cannot become negative", clear.SheetQuantity == 0);
         }
     }
 }
