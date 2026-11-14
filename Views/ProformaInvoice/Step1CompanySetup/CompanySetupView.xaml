@@ -1,0 +1,427 @@
+<!-- Step 1 — flat industrial form. No cards.
+     Optional fields bind Visibility to Services.Features.ProformaFieldVisibility
+     so a non-coder operator can hide any field from Settings → Features →
+     Proforma Invoice without touching XAML. Company Name and Proforma ID
+     are DB-required and stay always visible. -->
+<UserControl Style="{StaticResource ErpPageRootStyle}" x:Class="ProGlassAutomation.Views.ProformaInvoice.Step1CompanySetup.CompanySetupView"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:features="clr-namespace:ProGlassAutomation.Services.Features"
+             xmlns:shared="clr-namespace:ProGlassAutomation.Views.Shared"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True" SnapsToDevicePixels="True"
+             Background="{DynamicResource Ov.Canvas}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        <!-- 2026-09-14: Was BasedOn="{StaticResource {x:Type TextBox}}" — an implicit
+             TextBox style that does not exist anywhere in the app, so loading this
+             view threw (XamlParseException) the moment the PI wizard opened step 1.
+             Base on the app's canonical TextBox style instead. -->
+        <Style TargetType="TextBox" BasedOn="{StaticResource Input.TextBox}"/>
+            </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="24"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <Border Style="{StaticResource PiStationIdentityStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource PiStationCodeStyle}" Text="01"/>
+                        <TextBlock Grid.Column="1" Style="{StaticResource PiStationTitleStyle}" Text="{DynamicResource Common.Company}"/>
+                        <TextBlock Grid.Column="2" Style="{StaticResource PiStationHintStyle}" Text="{DynamicResource ProformaInvoice.LetterheadTRNBankDetailsQuotation}"/>
+                        <Button Grid.Column="3" Command="{Binding GoToGridCommand}"
+                                Style="{StaticResource PiViewAllLinkStyle}" ToolTip="{DynamicResource ProformaInvoice.SkipGlassDataGridStep5}">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.SkipGrid}" TextDecorations="Underline"/>
+                        </Button>
+                    </Grid>
+                </Border>
+                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="{DynamicResource ProformaInvoice.Identity}" Margin="0,0,0,12"/>
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.5*"/><ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Style="{StaticResource Field.Panel}">
+                        <TextBlock Style="{StaticResource Field.Label}">
+                            <Run Text="{DynamicResource ProformaInvoice.RegisteredNAME}"/><Run Text=" *" Foreground="{DynamicResource DangerBrush}"/>
+                        </TextBlock>
+                        <TextBox Text="{Binding CompanyName, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="ProformaInvoice.CompanyName"
+                                 AutomationProperties.Name="Company registered name" Style="{StaticResource TextBoxStyle}"/>
+                        <TextBlock Text="{Binding CompanyNameValidationMessage}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Field.Error}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasCompanyNameError}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Field.Panel}" Grid.Column="2"
+                                Visibility="{Binding Path=ShowCompanyTrn,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.FederalTRN}"/>
+                        <TextBox Text="{Binding CompanyTrn, UpdateSourceTrigger=PropertyChanged}" MaxLength="15"
+                                 AutomationProperties.AutomationId="ProformaInvoice.CompanyTrn"
+                                 AutomationProperties.Name="Company TRN" Style="{StaticResource TextBoxStyle}"/>
+                        <TextBlock Text="{Binding TrnValidationMessage}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Field.Error}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsTrnValid}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Field.Panel}" Grid.Column="4"
+                                Visibility="{Binding Path=ShowCompanyLocation,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.Headquarters}"/>
+                        <TextBox Text="{Binding CompanyLocation, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="ProformaInvoice.CompanyLocation"
+                                 AutomationProperties.Name="Company headquarters" Style="{StaticResource TextBoxStyle}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ══ LETTERHEAD LOGO (bound to the Company module) ══
+                     The logo travels with the company: pick it here or in
+                     Company Center — either way it lands on every printed
+                     document and is saved back to the company record. -->
+                <Border Background="{DynamicResource SurfacePrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderDefaultBrush}"
+                        BorderThickness="{DynamicResource CardBorderThickness}"
+                        CornerRadius="{DynamicResource CardCornerRadius}"
+                        Padding="12" Margin="0,0,0,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="48" Height="54" Background="{DynamicResource Surface.Primary.BackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderDefaultBrush}" BorderThickness="{DynamicResource Border.HairlineThickness}"
+                                CornerRadius="{DynamicResource Radius.Small}" VerticalAlignment="Center">
+                            <Grid>
+                                <TextBlock Text="LOGO" FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.Bold}"
+                                           Foreground="{DynamicResource TextTertiaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasLogo}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Image Source="{Binding LogoPath}" Stretch="Uniform" Margin="4">
+                                    <Image.Style>
+                                        <Style TargetType="Image">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasLogo}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Image.Style>
+                                </Image>
+                            </Grid>
+                        </Border>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Margin="0">
+                                <Run Text="{DynamicResource CompanyCenter.ChooseLOGO}"/>
+                                <Run Text=" — "/>
+                                <Run Text="{Binding LogoLayoutLabel, Mode=OneWay}" FontWeight="{DynamicResource Weight.Bold}"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding LogoPath}" FontSize="{DynamicResource FontSize.BodySmall}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding LogoPath}"
+                                       Margin="0,4,0,0"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Style="{StaticResource OutlinedPillButton}" Tag="&#xE8B9;"
+                                        Content="{DynamicResource CompanyCenter.ChooseLOGO}"
+                                        Command="{Binding PickLogoCommand}"/>
+                                <Button Style="{StaticResource RowOutlinedButton}" Tag="&#xE711;"
+                                        Content="{DynamicResource Action.Clear}"
+                                        Command="{Binding ClearLogoCommand}" Margin="10,0,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Style="{StaticResource Field.Panel}" Visibility="{Binding Path=ShowRepresentative,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource CompanyCenter.Representative}"/>
+                        <TextBox Text="{Binding Representative, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="ProformaInvoice.Representative"
+                                 AutomationProperties.Name="Representative" Style="{StaticResource TextBoxStyle}"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Field.Panel}" Grid.Column="2"
+                                Visibility="{Binding Path=ShowRepresentativeMobile,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource Phone.Label}"
+                                   TextOptions.TextFormattingMode="Display"/>
+                        <shared:CountryPhoneControl
+                                 PhoneText="{Binding RepresentativeMobile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="ProformaInvoice.RepresentativeMobile"
+                                 AutomationProperties.Name="Representative mobile"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Field.Panel}" Grid.Column="4"
+                                Visibility="{Binding Path=ShowCompanyEmail,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource Common.Email}"/>
+                        <TextBox Text="{Binding CompanyEmail, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="ProformaInvoice.CompanyEmail"
+                                 AutomationProperties.Name="Company email" Style="{StaticResource TextBoxStyle}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Style="{StaticResource Field.Panel}" Visibility="{Binding Path=ShowBankName,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.BANK}"/>
+                        <TextBox Text="{Binding BankName, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.AutomationId="ProformaInvoice.BankName"
+                                 AutomationProperties.Name="Bank name" Style="{StaticResource TextBoxStyle}"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Field.Panel}" Grid.Column="2"
+                                Visibility="{Binding Path=ShowAccountNumber,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.AccountIBAN}"/>
+                        <TextBox Text="{Binding AccountNumber, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource FontFamily.Code}"
+                                 AutomationProperties.AutomationId="ProformaInvoice.AccountNumber"
+                                 AutomationProperties.Name="Account or IBAN" Style="{StaticResource TextBoxStyle}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,14"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*"/><ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Style="{StaticResource Field.Panel}">
+                        <TextBlock Style="{StaticResource Field.Label}">
+                            <Run Text="{DynamicResource ProformaInvoice.ProformaID}"/><Run Text=" *" Foreground="{DynamicResource DangerBrush}"/>
+                        </TextBlock>
+                        <TextBox Text="{Binding ProformaId, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource FontFamily.Code}"
+                                 AutomationProperties.AutomationId="ProformaInvoice.ProformaId"
+                                 AutomationProperties.Name="Proforma ID" Style="{StaticResource TextBoxStyle}"/>
+                        <TextBlock Text="{Binding ProformaIdValidationMessage}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Field.Error}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasProformaIdError}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Field.Panel}" Grid.Column="2"
+                                Visibility="{Binding Path=ShowIssueDate,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.IssueDATE}"/>
+                        <DatePicker SelectedDate="{Binding IssueDate}" Style="{StaticResource PiDatePickerStyle}"
+                                    AutomationProperties.AutomationId="ProformaInvoice.IssueDate"
+                                    AutomationProperties.Name="Issue date"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Field.Panel}" Grid.Column="4"
+                                Visibility="{Binding Path=ShowValidUntil,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.ValidUntil}"/>
+                        <DatePicker SelectedDate="{Binding ValidUntil}" Style="{StaticResource PiDatePickerStyle}"
+                                    AutomationProperties.AutomationId="ProformaInvoice.ValidUntil"
+                                    AutomationProperties.Name="Valid until"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Field.Panel}" Grid.Column="6"
+                                Visibility="{Binding Path=ShowProformaStatus,
+                                    Source={x:Static features:ProformaFieldVisibility.Instance},
+                                    Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource Common.Status}"/>
+                        <ComboBox ItemsSource="{Binding StatusOptions}" SelectedItem="{Binding ProformaStatus}" Style="{StaticResource PiComboBoxStyle}"
+                                  AutomationProperties.AutomationId="ProformaInvoice.ProformaStatus"
+                                  AutomationProperties.Name="Proforma status"/>
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Margin="0,12,0,0" FontSize="{DynamicResource FontSize.Body}" Foreground="{DynamicResource SuccessBrush}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasLoadedProfile}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                    <Run Text="{DynamicResource ProformaInvoice.Loaded}"/><Run Text="{Binding LoadedProfileName, Mode=OneWay}" FontWeight="{DynamicResource Weight.Bold}"/>
+                </TextBlock>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Column="1" Width="1" Background="{DynamicResource DividerBrush}" HorizontalAlignment="Center"/>
+
+        <DockPanel Grid.Column="2">
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="{DynamicResource ProformaInvoice.Saved}" Margin="0" VerticalAlignment="Center"/>
+                <Button HorizontalAlignment="Right" Command="{Binding RefreshCardsCommand}"
+                        ToolTip="{DynamicResource ProformaInvoice.RefreshSavedCompaniesDatabase}">
+                    <TextBlock Text="&#xE72C;" FontFamily="{DynamicResource FontFamily.Icon}" FontSize="{DynamicResource FontSize.Title}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </Button>
+            </Grid>
+            <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Common.Loading}" FontSize="{DynamicResource FontSize.Body}"
+                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLoadingCards}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock DockPanel.Dock="Top" Text="{Binding CardsErrorMessage}" FontSize="{DynamicResource FontSize.Body}"
+                       Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Margin="0,0,0,8">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasCardsError}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock DockPanel.Dock="Top" Text="{DynamicResource ProformaInvoice.NoSavedCompaniesYet}"
+                       FontSize="{DynamicResource FontSize.Body}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasNoSavedCompanies}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Margin="0,8,0,0"
+                    Command="{Binding ShowAllCompaniesCommand}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource PiViewAllLinkStyle}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasMoreCompanies}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <TextBlock FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}" Foreground="{DynamicResource AccentBrush}" TextDecorations="Underline">
+                    <Run Text="{DynamicResource ProformaInvoice.View}"/><Run Text="{Binding TotalCompanyCount, Mode=OneWay}"/><Run Text=")"/>
+                </TextBlock>
+            </Button>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding SavedProfiles}">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLoadingCards}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HasNoSavedCompanies}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource PiListRowStyle}" ToolTip="{DynamicResource ProformaInvoice.ClickAutoFillCompanyDetails}">
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick"
+                                                  Command="{Binding DataContext.LoadProfileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  CommandParameter="{Binding}"/>
+                                </Border.InputBindings>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding CompanyName}" FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding TrnMasked}" FontSize="{DynamicResource FontSize.Body}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding UsageBadgeText}" FontSize="{DynamicResource FontSize.BodySmall}"
+                                               Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
+</UserControl>

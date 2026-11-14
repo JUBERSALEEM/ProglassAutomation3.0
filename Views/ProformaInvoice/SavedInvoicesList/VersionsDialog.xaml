@@ -1,0 +1,114 @@
+<!-- ═══════════════════════════════════════════════════════════════════
+     FILE: Views/ProformaInvoice/SavedInvoicesList/VersionsDialog.xaml
+     PROJECT: ProGlassAutomation
+     MODULE: Proforma Invoice — version history (§24)
+
+     Lists every saved version of one invoice:
+        Version 4  •  09 Aug 2026 10:12  •  Manager  •  Invoice updated
+     Restore opens that version in the wizard (a NEW version is created
+     when the user saves again — history is never erased).
+
+     2026-09 dialog audit: rebuilt on the shared ThemedDialogWindow chrome
+     (previously an OS-framed 560×540 window). Title/subtitle now live in
+     the shared header; the version card keeps its own inner ScrollViewer
+     and the chrome clamps the window to the work area.
+     ═══════════════════════════════════════════════════════════════════ -->
+
+<dialogs:ThemedDialogWindow x:Class="ProGlassAutomation.Views.ProformaInvoice.SavedInvoicesList.VersionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="clr-namespace:ProGlassAutomation.Views.Shared.Dialogs"
+        Title="{DynamicResource Common.VersionHistory}"
+        Width="560" Height="540"
+        MinWidth="460" MinHeight="340"
+        ResizeMode="CanResize"
+        DialogIcon="&#xE81C;"
+             FontFamily="{DynamicResource AppFontFamily}">
+
+    <Grid>
+        <!-- Collapsed by default: code-behind decides. Without this the
+             "no versions" message painted for one frame before the list
+             was bound. -->
+        <TextBlock x:Name="EmptyText"
+                   Visibility="Collapsed"
+                   Text="{DynamicResource ProformaInvoice.NoVersionsRecordedYet}"
+                   FontSize="{DynamicResource FontSize.Body}" FontStyle="Italic"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextTertiaryBrush}"/>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl x:Name="VersionsList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border CornerRadius="{DynamicResource CardCornerRadius}"
+                                BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                BorderThickness="{DynamicResource Border.BottomHairlineThickness}"
+                                Padding="2,6" Style="{StaticResource SurfacePrimaryStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0"
+                                        Width="40" Height="40"
+                                        CornerRadius="{DynamicResource CardCornerRadiusLarge}"
+                                        Background="{DynamicResource TintIndigoBrush}"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding VersionNo}"
+                                               FontSize="{DynamicResource FontSize.H3}" FontWeight="{DynamicResource Weight.Bold}"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1"
+                                            Margin="12,0"
+                                            VerticalAlignment="Center">
+                                    <TextBlock FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextPrimaryBrush}">
+                                        <Run Text="{DynamicResource About.Version}"/>
+                                        <Run Text="{Binding VersionNo, Mode=OneWay}"/>
+                                        <Run Text=" — "/>
+                                        <Run Text="{Binding Summary, Mode=OneWay}"/>
+                                    </TextBlock>
+                                    <TextBlock FontSize="{DynamicResource FontSize.Body}" Margin="0,2,0,0"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextSecondaryBrush}">
+                                        <Run Text="{Binding TimestampLocal, Mode=OneWay}"/>
+                                        <Run Text="{DynamicResource ProformaInvoice.By}"/>
+                                        <Run Text="{Binding Username, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <Button Grid.Column="2"
+                                        Content="{DynamicResource ProformaInvoice.Restore}"
+                                        FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                                        Padding="14,6"
+                                        Cursor="Hand"
+                                        BorderThickness="{DynamicResource Border.NoneThickness}"
+                                        Background="{DynamicResource AccentBrush}"
+                                        Foreground="{DynamicResource OnAccentForegroundBrush}"
+                                        VerticalAlignment="Center"
+                                        IsEnabled="{Binding CanRestore, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Click="OnRestoreClick"
+                                        Tag="{Binding}" Style="{StaticResource SecondaryButtonStyle}"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+
+    <dialogs:ThemedDialogWindow.FooterContent>
+        <Button Style="{StaticResource OutlinedPillButton}"
+                Tag="&#xE711;"
+                Content="{DynamicResource Action.Close}"
+                IsCancel="True"/>
+    </dialogs:ThemedDialogWindow.FooterContent>
+</dialogs:ThemedDialogWindow>
