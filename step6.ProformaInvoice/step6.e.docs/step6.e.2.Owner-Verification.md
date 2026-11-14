@@ -99,3 +99,21 @@ the body and the row would then disagree; report it instead.
 byte generation, page breaks, logo rendering, dossier P&L opt-in behaviour, and
 visual comparison of all five styles. The new automated render checks are in `step6.f.4`; the Windows owner
 checks above remain mandatory before calling PDF export complete.
+
+
+## Cut-list import and workbook/CSV export — owner verification
+
+| # | Step | Expected |
+| --- | --- | --- |
+| 6.1 | Import an XLSX file with REF/W1/H1/QTY headers | rows append to the selected group with the expected dimensions and quantities |
+| 6.2 | Import comma CSV, tab TXT, semicolon CSV with decimal commas, and dimension-pair shorthand | all valid rows parse; malformed/zero-quantity rows are skipped with a visible count |
+| 6.3 | Import scanner JSON | aliases for ref/spec/type/dimensions/qty are accepted; invalid JSON is reported |
+| 6.4 | Import a file with two different specification names or glass types | import is rejected without partial row mutation |
+| 6.5 | Export invoice workbook without internal P&L | Summary, Specifications, Other Charges and Terms exist; no internal cost sheet exists |
+| 6.6 | Enable internal P&L and export workbook | red-marked Internal P&L and P&L Targets sheets are included |
+| 6.7 | Export cut-list CSV and register workbook | 13 columns, three-decimal areas, totals, and the current register filter are preserved |
+| 6.8 | Import an XLSX file while it is open in Excel | the last-saved bytes are read using shared file access |
+
+**Known V3 boundary:** PDF/photo OCR is not ported because this repository has no
+Gemini file-AI service/settings integration. Excel, CSV, text and scanner JSON
+are supported without inventing a new external AI dependency.
