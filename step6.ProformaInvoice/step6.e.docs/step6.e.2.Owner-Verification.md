@@ -91,6 +91,8 @@ the body and the row would then disagree; report it instead.
 | 5.4 | Remove the stored company logo or use a company profile without one | the PDF still exports with readable company identity; no broken image or crash |
 | 5.5 | Export an unsaved draft | the UI asks the operator to save first; no unnumbered customer PDF is produced |
 | 5.6 | Inspect the customer PDF for internal P&L values | no internal profit, cost or margin worksheet is disclosed |
+| 5.9 | Company Profile logo layout is LeftPortrait | the logo appears at the left using the saved size and the rest of the letterhead remains readable |
+| 5.10 | Company Profile logo layout is TopPanel, then None | TopPanel centres the logo above company details; None omits the logo; missing files do not break export |
 
 5.7 | Export the full dossier without enabling P&L | no cost, profit or margin figures appear |
 | 5.8 | Enable internal P&L and export the dossier | the red internal-only warning appears on every page; cost rows, profit and target analysis are present |
