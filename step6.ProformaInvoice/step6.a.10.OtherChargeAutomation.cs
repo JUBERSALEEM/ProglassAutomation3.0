@@ -44,7 +44,7 @@ namespace ProGlassAutomation.Models.Proforma
             bool lamLike = type is GlassBuilds.Lam or GlassBuilds.DguLam;
 
             // ── Unavoidable for the build ────────────────────────────────
-            if (dguLike)
+            if (dguLike || spec.Contains("ARGON GAS"))
             {
                 suggestions.Add(new ChargeSuggestion
                 {
@@ -59,6 +59,13 @@ namespace ProGlassAutomation.Models.Proforma
             }
 
             // ── Named by the specification ───────────────────────────────
+            if (spec.Contains("SILICON BED") && !dguLike)
+                suggestions.Add(new ChargeSuggestion
+                {
+                    TemplateKey = "SILICON_BED",
+                    Reason = "The specification explicitly names a silicon bed."
+                });
+
             if (spec.Contains("U-INSERT") || spec.Contains("U INSERT") || spec.Contains("UINSERT"))
                 suggestions.Add(new ChargeSuggestion
                 {
