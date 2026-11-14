@@ -198,13 +198,13 @@ customer-facing file is created.
 
 The five styles are:
 
-| Style | Operator label | Character |
-| --- | --- | --- |
-| Classic Navy | EXECUTIVE | Formal commercial letterhead |
-| Modern Teal | MODERN | Airy contemporary quote |
-| Editorial Ink | EDITORIAL | Warm paper and restrained rules |
-| Industrial Steel | INDUSTRIAL | Dense, fully gridded production copy |
-| Minimal Ivory | MINIMAL | Quiet archive-style whitespace |
+| Style | Legacy layout kind | Operator label | Character |
+| --- | --- | --- | --- |
+| Classic Navy | FormalBand | EXECUTIVE | Formal commercial letterhead |
+| Modern Teal | SplitConsole | MODERN | Airy contemporary quote |
+| Editorial Ink | Editorial | EDITORIAL | Warm paper and restrained rules |
+| Industrial Steel | Workshop | INDUSTRIAL | Dense, fully gridded production copy |
+| Minimal Ivory | QuietForm | MINIMAL | Quiet archive-style whitespace |
 
 These are five treatments of one invoice structure, not five divergent
 document architectures. Every style prints the same company identity, invoice
