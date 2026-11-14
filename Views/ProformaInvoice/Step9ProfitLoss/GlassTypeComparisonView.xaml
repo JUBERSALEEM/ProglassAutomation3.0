@@ -1,0 +1,388 @@
+<!--
+    Glass Type Comparison View - Separate Tab for Strategic Analysis
+
+    Shows:
+    - DGU (Double Glazed Unit) profitability
+    - SGU (Single Glazed Unit) profitability
+    - LAM (Laminated) profitability
+    - DGU+LAM (Hybrid) profitability
+    - Best and worst performers
+    - Strategic recommendations
+-->
+<UserControl Style="{StaticResource ErpPageRootStyle}" x:Class="ProGlassAutomation.Views.ProformaInvoice.Step9ProfitLoss.GlassTypeComparisonView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1000"
+             FontFamily="{DynamicResource AppFontFamily}"
+             Background="{DynamicResource Ov.Canvas}">
+
+        <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        <!-- Migrated HeaderStyle to global Typography.Title -->
+            </ResourceDictionary>
+    </UserControl.Resources>
+
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="GLASS TYPE COMPARISON"/>
+                <TextBlock Text="Extra strategy view: totals first, product comparison table second, recommendation last."
+                          />
+            </StackPanel>
+            <!-- Export toolbar (multi-generation report output) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
+                <Button Content="CSV" Command="{Binding ExportCsvCommand}" Style="{StaticResource OutlinedPillButton}" ToolTip="Export this analysis as CSV."/>
+                <Button Content="EXCEL" Command="{Binding ExportExcelCommand}" Style="{StaticResource OutlinedPillButton}" ToolTip="Export this analysis as Excel."/>
+                <Button Content="PDF" Command="{Binding ExportPdfCommand}" Style="{StaticResource OutlinedPillButton}" ToolTip="Export this analysis as PDF."/>
+                <Button Content="{DynamicResource Sharing.Share}" Command="{Binding ShareCommand}" Style="{StaticResource OutlinedPillButton}" ToolTip="Share this analysis via the Sharing Center."/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main result first -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,16">
+            <TextBlock Text="MAIN RESULT — PRODUCT TYPE TOTALS" FontWeight="{DynamicResource Weight.Bold}" Margin="0,0,0,8"/>
+            <StackPanel Orientation="Horizontal">
+            <!-- Total Revenue -->
+            <Border Style="{StaticResource SurfacePrimaryStyle}" Width="180">
+                <StackPanel>
+                    <TextBlock Text="TOTAL REVENUE"/>
+                    <TextBlock Text="{Binding TotalRevenueDisplay}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Total Cost -->
+            <Border Style="{StaticResource SurfacePrimaryStyle}" Width="180">
+                <StackPanel>
+                    <TextBlock Text="TOTAL COST"/>
+                    <TextBlock Text="{Binding TotalCostDisplay}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Total Profit -->
+            <Border Style="{StaticResource SurfacePrimaryStyle}" Width="180">
+                <StackPanel>
+                    <TextBlock Text="TOTAL PROFIT"/>
+                    <TextBlock Text="{Binding TotalProfitDisplay}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource KpiValueStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TotalProfit, Converter={StaticResource DecimalComparisonConverter}, ConverterParameter=0}" Value="LessThan">
+                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Overall Margin -->
+            <Border Style="{StaticResource SurfacePrimaryStyle}" Width="180">
+                <StackPanel>
+                    <TextBlock Text="OVERALL MARGIN"/>
+                    <TextBlock Text="{Binding OverallMarginDisplay}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource KpiValueStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding OverallMarginPercent, Converter={StaticResource DecimalComparisonConverter}, ConverterParameter=0}" Value="LessThan">
+                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- Refresh Button -->
+            <Button Content="REFRESH"
+                    Command="{Binding RefreshCommand}"
+                    Width="120"
+                    Height="40"
+                    Margin="16,0,0,0"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource PrimaryPillButton}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Glass Type Comparison Table -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SurfacePrimaryBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="{DynamicResource Border.HairlineThickness}"
+                CornerRadius="{DynamicResource Radius.Small}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Table Header -->
+                <Border Grid.Row="0"
+                        Background="{DynamicResource AccentBrush}"
+                        CornerRadius="{DynamicResource Radius.Top.Medium}"
+                        Padding="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="0.8*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="GLASS TYPE"/>
+                        <TextBlock Grid.Column="1" Text="JOBS" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="2" Text="AREA" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="3" Text="REVENUE" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="4" Text="COST" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="5" Text="PROFIT" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="6" Text="MARGIN %" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="7" Text="STATUS"/>
+                    </Grid>
+                </Border>
+
+                <!-- Table Rows -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding GlassTypeRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SurfaceDetailStyle}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="{DynamicResource Border.BottomHairlineThickness}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*"/>
+                                            <ColumnDefinition Width="0.8*"/>
+                                            <ColumnDefinition Width="1*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="1*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Glass Type -->
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding GlassType}"
+                                                  
+                                                   FontWeight="{DynamicResource Weight.Bold}"/>
+
+                                        <!-- Job Count -->
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding JobCountDisplay}"
+                                                  
+                                                   HorizontalAlignment="Right"/>
+
+                                        <!-- Total Area -->
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding TotalAreaDisplay}"
+                                                  
+                                                   HorizontalAlignment="Right"/>
+
+                                        <!-- Total Revenue -->
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding TotalRevenueDisplay}"
+                                                  
+                                                   HorizontalAlignment="Right"/>
+
+                                        <!-- Total Cost -->
+                                        <TextBlock Grid.Column="4"
+                                                   Text="{Binding TotalCostDisplay}"
+                                                  
+                                                   HorizontalAlignment="Right"/>
+
+                                        <!-- Total Profit -->
+                                        <TextBlock Grid.Column="5"
+                                                   Text="{Binding TotalProfitDisplay}"
+                                                   HorizontalAlignment="Right"
+                                                   FontWeight="{DynamicResource Weight.SemiBold}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TableCellStyle}">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- Margin % -->
+                                        <TextBlock Grid.Column="6"
+                                                   Text="{Binding MarginDisplay}"
+                                                   HorizontalAlignment="Right"
+                                                   FontWeight="{DynamicResource Weight.Bold}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TableCellStyle}">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsProfitable}" Value="False">
+                                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- Status -->
+                                        <TextBlock Grid.Column="7"
+                                                   FontWeight="{DynamicResource Weight.SemiBold}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TableCellStyle}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsBestPerformer}" Value="True">
+                                                            <Setter Property="Text" Value="★ BEST"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsWorstPerformer}" Value="True">
+                                                            <Setter Property="Text" Value="⚠ WORST"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Empty State -->
+                <Border Grid.Row="1"
+                        Visibility="{Binding GlassTypeRows.Count, Converter={StaticResource CountToVisibilityConverter}}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="32">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="No glass types found"
+                                   FontSize="{DynamicResource FontSize.H3}"
+                                   FontWeight="{DynamicResource Weight.SemiBold}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                        <TextBlock Text="Add specifications in Step 5 and press REFRESH to compare glass type profitability."
+                                   FontSize="{DynamicResource FontSize.BodySmall}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Totals footer — the same column definitions as the table,
+                     so the sums land exactly under their columns. -->
+                <Border Grid.Row="2"
+                        Background="{DynamicResource SurfacePrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="{DynamicResource Border.TopHairlineThickness}"
+                        Padding="8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="0.8*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="TOTAL"
+                                   FontWeight="{DynamicResource Weight.Bold}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding TotalJobCountDisplay}"
+                                   HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="2" Text="{Binding TotalAreaDisplay}"
+                                   HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="3" Text="{Binding TotalRevenueDisplay}"
+                                   HorizontalAlignment="Right" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="4" Text="{Binding TotalCostDisplay}"
+                                   HorizontalAlignment="Right" FontWeight="{DynamicResource Weight.SemiBold}"/>
+                        <TextBlock Grid.Column="5" Text="{Binding TotalProfitDisplay}"
+                                   HorizontalAlignment="Right" FontWeight="{DynamicResource Weight.Bold}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource TableCellStyle}">
+                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TotalProfit, Converter={StaticResource DecimalComparisonConverter}, ConverterParameter=0}" Value="LessThan">
+                                            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Grid.Column="6" Text="{Binding OverallMarginDisplay}"
+                                   Style="{StaticResource Typography.Body}" HorizontalAlignment="Right" FontWeight="{DynamicResource Weight.Bold}"/>
+                        <TextBlock Grid.Column="7" Text="—"
+                                   Style="{StaticResource Typography.Body}"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Recommendation Box -->
+        <Border Grid.Row="3" Style="{StaticResource SurfaceSecondaryStyle}"
+                Visibility="{Binding Recommendation, Converter={StaticResource StringToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Text="STRATEGIC RECOMMENDATION"
+                           FontSize="{DynamicResource FontSize.BodySmall}"
+                           FontWeight="{DynamicResource Weight.Bold}"
+                           Foreground="{DynamicResource AccentBrush}"
+                           Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding Recommendation}"
+                           FontSize="{DynamicResource FontSize.Body}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="4" Margin="0,8,0,0">
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontSize="{DynamicResource FontSize.Caption}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- Loading Overlay -->
+        <Border Grid.RowSpan="5"
+                Background="{DynamicResource SurfaceOverlayBrush}"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Analyzing..."
+                           FontSize="{DynamicResource FontSize.H3}"
+                           FontWeight="{DynamicResource Weight.SemiBold}"
+                           Foreground="{DynamicResource OnAccentForegroundBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8"/>
+                <ProgressBar IsIndeterminate="True" Width="200" Height="4"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
