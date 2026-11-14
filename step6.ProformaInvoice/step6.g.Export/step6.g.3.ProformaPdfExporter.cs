@@ -40,6 +40,37 @@ namespace ProGlassAutomation.Services.Proforma
             await File.WriteAllBytesAsync(fullPath, pdf, cancellationToken).ConfigureAwait(false);
         }
 
+        public async Task ExportDossierAsync(
+            ProformaInvoiceDraft draft,
+            ProformaPdfStyle style,
+            string outputPath,
+            bool includeProfitLoss = false,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(draft);
+            ArgumentNullException.ThrowIfNull(style);
+            if (string.IsNullOrWhiteSpace(outputPath))
+                throw new ArgumentException("Choose a PDF output path.", nameof(outputPath));
+
+            string fullPath = Path.GetFullPath(outputPath);
+            string? folder = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrWhiteSpace(folder))
+                Directory.CreateDirectory(folder);
+
+            ProformaInvoiceDraft snapshot = draft.Clone();
+            byte[] pdf = await Task.Run(
+                () => ProformaDossierPdfLayout.Render(snapshot, style, includeProfitLoss),
+                cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            await File.WriteAllBytesAsync(fullPath, pdf, cancellationToken).ConfigureAwait(false);
+        }
+
+        public static string SuggestedDossierFileName(ProformaInvoiceDraft draft)
+        {
+            string invoiceName = SuggestedFileName(draft);
+            return invoiceName.Replace("PI_", "PI_DOSSIER_", StringComparison.Ordinal);
+        }
+
         public static string SuggestedFileName(ProformaInvoiceDraft draft)
         {
             string number = string.IsNullOrWhiteSpace(draft.ProformaNumber)
