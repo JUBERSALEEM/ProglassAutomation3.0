@@ -26,6 +26,13 @@ namespace ProGlassAutomation.Step6Tests
         {
             var draft = new ProformaInvoiceDraft();
             draft.EnsureStructure();
+            Check("new invoices receive the six legacy default terms",
+                draft.TermsText.Contains("50% advance upon PO confirmation", StringComparison.Ordinal)
+                && draft.TermsText.Contains("3-4 weeks", StringComparison.Ordinal)
+                && draft.TermsText.Contains("12 months", StringComparison.Ordinal)
+                && draft.TermsText.Contains("valid for 7 days", StringComparison.Ordinal)
+                && draft.TermsText.Contains("5% UAE VAT", StringComparison.Ordinal)
+                && draft.TermsText.Contains("Installation is NOT included", StringComparison.Ordinal));
             draft.Parties.Client.ClientName = "Al Noor Glass LLC";
             draft.Notes = "Stored once";
             draft.AddPricingSection(GlassBuilds.Dgu);
