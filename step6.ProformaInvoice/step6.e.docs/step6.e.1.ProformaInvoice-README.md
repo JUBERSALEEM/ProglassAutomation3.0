@@ -135,9 +135,12 @@ Four builds, the trade's own vocabulary:
 - Automation (`UseAdvancedAutomation`) may: switch on argon and the silicon bed
   for DGU/DGU+LAM; detect U-INSERT, OVERLAP (LM or SQM), SHUTTER BONDING,
   FANHOLE, CUTOUT, HOLES, SANDBLAST/FROSTED and MITRE/BEVELED when explicitly
-  named in the specification; and follow `SamePaneColours` for polishing.
-  It never infers drawing-dependent holes/cutouts from dimensions, and delivery
-  remains an operator-entered decision.
+  named in the specification; and follow `SamePaneColours` for polishing. Matched double-glass polish uses
+  measured W1/H1 and W2/H2 geometry (and counts W1 twice when W2/H2 is absent),
+  rather than multiplying the whole grid length blindly. The legacy's
+  per-edge `PolishSubType` selector is still a parity gap: V3 currently uses
+  full-edge polish length. It never infers drawing-dependent holes/cutouts from
+  dimensions, and delivery remains an operator-entered decision.
 - Wastage rows remain aggregated by colour in V3. Clear-glass wastage is marked
   optional with a reason because offcuts may be reusable; coloured/coated glass
   explains why offcuts are less reusable. The editable sheet quantity is read by
