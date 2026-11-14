@@ -145,7 +145,11 @@ namespace ProGlassAutomation.Models.Proforma
                 suggestions.Add(new ChargeSuggestion
                 {
                     TemplateKey = "POLISH",
-                    Reason = "A single pane with a named glass colour is polished."
+                    Reason = polishNamed
+                        ? "The specification names edge polishing."
+                        : lamLike
+                            ? "The laminate unit requires edge finishing."
+                            : "A named pane colour requires edge finishing."
                 });
 
             // One suggestion per template, first reason wins.
