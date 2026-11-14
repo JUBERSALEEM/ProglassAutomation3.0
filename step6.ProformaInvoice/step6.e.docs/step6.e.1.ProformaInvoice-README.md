@@ -90,7 +90,7 @@ Four builds, the trade's own vocabulary:
 | Build | Panes | Quoted rate per m² |
 | --- | --- | --- |
 | SGU | 1 | cutting + tempering |
-| DGU | 2 | (outer + inner) ÷ yield + spacer + cutting + tempering |
+| DGU | 2 | (outer + inner) ÷ yield + spacer |
 | LAM | 2 | (outer + inner) ÷ yield + interlayer sell + cutting + tempering |
 | DGU+LAM | 3 | (outer + middle + inner) ÷ yield + spacer + interlayer sell + cutting + tempering |
 
@@ -108,6 +108,7 @@ Four builds, the trade's own vocabulary:
   stage 7 costs each group from its own card — never from whichever section
   happens to be selected in the view.
 - A missing pane rate marks the group incomplete instead of pricing it as zero.
+- DGU deliberately does **not** add pane cutting/tempering a second time: the legacy v2.0.15 DGU estimator uses only the two pane rates, yield and spacer. The V3 regression test supplies non-zero cutting/tempering inputs and asserts the quoted DGU rate remains unchanged.
 - The specification name is **generated** from the build and the panes
   (`DGU 6mm Clear FT / 6mm Clear FT + 12mm Air`), never typed, so a spec cannot
   disagree with its own price.
