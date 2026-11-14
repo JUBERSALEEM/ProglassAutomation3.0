@@ -1,0 +1,129 @@
+<UserControl x:Class="ProGlassAutomation.Views.ProformaInvoice.Step4PricingEstimator.SguParameters.SguParametersView"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:glass="clr-namespace:ProGlassAutomation.Controls.GlassShowcase"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="1.15*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Style="{StaticResource ModuleSectionCardStyle}" Padding="10" ClipToBounds="True">
+            <glass:GlassAssemblyShowcase Kind="Sgu"
+                                         MinHeight="340"
+                                         ShowWell="True"
+                                         ShowCaption="False"
+                                         OuterColor="{Binding GlassColor}"
+                                         OuterThickness="{Binding SelectedThickness}"
+                                         OuterTreatment="{Binding SelectedTreatment}"/>
+        </Border>
+
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Border Style="{StaticResource ModuleSectionCardStyle}" Padding="20,18">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource ProformaInvoice.SingleLite}" FontSize="{DynamicResource FontSize.H2}" FontWeight="{DynamicResource Weight.Bold}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                    <TextBlock Text="{DynamicResource ProformaInvoice.OnePaneThicknessColourTreatmentDrive3DBuild}"
+                               Style="{StaticResource ModulePageSubtitleStyle}" Margin="0,2,0,16"/>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource ProformaInvoice.Thickness}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding ThicknessOptions}" SelectedItem="{Binding SelectedThickness}" Style="{StaticResource Step4ComboStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.Colour}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding ColorOptions}" Text="{Binding GlassColor, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Step4EditableComboStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.Treatment}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding TreatmentOptions}" SelectedItem="{Binding SelectedTreatment}" Style="{StaticResource Step4ComboStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource ProformaInvoice.PriceSQM}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <TextBox Text="{Binding BasePricePerSqm, StringFormat={}{0:0.##}, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Step4InputStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.SheetW}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <TextBox Text="{Binding SheetWidthMm, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Step4InputStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.SheetH}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <TextBox Text="{Binding SheetHeightMm, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Step4InputStyle}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,16"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="1.2*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource Module.Cutting}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <TextBox Text="{Binding CuttingCostPerSqm, StringFormat={}{0:0.##}}" Style="{StaticResource Step4InputStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="{DynamicResource Nav.Tempering}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <TextBox Text="{Binding TemperingCostPerSqm, StringFormat={}{0:0.##}}" Style="{StaticResource Step4InputStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.Yield}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <TextBox Text="{Binding YieldFactor, StringFormat={}{0:0.##}}" Style="{StaticResource Step4InputStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="6">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.Margin}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <TextBox Text="{Binding TargetMarginPercent, StringFormat={}{0:0.##}}" Style="{StaticResource Step4InputStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="8">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.EDGEPolish}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding PolishOptions}" SelectedItem="{Binding SelectedPolishOption}" Style="{StaticResource Step4ComboStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Border Style="{StaticResource ModuleSectionCardStyle}" Padding="12" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource ProformaInvoice.PanelExtra}" Style="{StaticResource ModuleFieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding PanelExtraOptions}" SelectedItem="{Binding PanelExtra, Mode=TwoWay}" Style="{StaticResource Step4ComboStyle}"/>
+                            <CheckBox Content="Combine panel extras" IsChecked="{Binding UseCustomPanelExtra, Mode=TwoWay}" Margin="0,8,0,4"/>
+                            <TextBox Text="{Binding CustomPanelExtra, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource Step4InputStyle}"
+                                     Visibility="{Binding UseCustomPanelExtra, Converter={StaticResource BoolToVisibilityConverter}}"
+                                     ToolTip="Example: With Fanhole and Cutout As Per DWG"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

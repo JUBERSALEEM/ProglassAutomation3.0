@@ -1,0 +1,606 @@
+<!--
+    Step 5 — stacked spec groups, page scroll.
+    Do NOT put the row list in a * TabControl/ListView viewport:
+    that collapsed the grid to zero height and virtualized empty rows
+    away when the user dragged them.
+-->
+<UserControl x:Class="ProGlassAutomation.Views.ProformaInvoice.Step5DataGrid.DataGridView"
+             TextOptions.TextHintingMode="Fixed"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:behaviors="clr-namespace:ProGlassAutomation.Behaviors"
+             xmlns:controls="clr-namespace:ProGlassAutomation.Controls.AutoCompleteTextBox"
+             xmlns:summary="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step5DataGrid.GrandTotalSummary"
+             mc:Ignorable="d"
+             d:DesignHeight="800"
+             d:DesignWidth="1100"
+             FontFamily="{DynamicResource AppFontFamily}"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             Background="{DynamicResource Ov.Canvas}">
+
+    <UserControl.InputBindings>
+        <KeyBinding Modifiers="Control+Shift" Key="N" Command="{Binding AddSpecGroupCommand}"/>
+        <KeyBinding Modifiers="Control" Key="F" Command="{Binding OpenGlobalFindCommand}"/>
+        <KeyBinding Modifiers="Control" Key="H" Command="{Binding OpenGlobalFindReplaceCommand}"/>
+    </UserControl.InputBindings>
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        
+        
+        
+        <Style x:Key="GridRowStyle" TargetType="ListViewItem">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="AllowDrop" Value="False"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="RowBorder"
+                                BorderThickness="{DynamicResource Border.BottomHairlineThickness}"
+                                BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                Padding="0,2"
+                                Background="Transparent"
+                                HorizontalAlignment="Stretch">
+                            <ContentPresenter HorizontalAlignment="Stretch"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RowBorder" Property="Background"
+                                        Value="{DynamicResource SurfaceTertiaryBrush}"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                                <Setter TargetName="RowBorder" Property="Background"
+                                        Value="{DynamicResource TintAmberBrush}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="RowBorder" Property="Background"
+                                        Value="{DynamicResource TintBlueBrush}"/>
+                                <Setter TargetName="RowBorder" Property="BorderBrush"
+                                        Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="RowBorder" Property="BorderThickness"
+                                        Value="3,0,0,1"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+            </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False"
+                  PanningMode="VerticalOnly"
+                  Focusable="False"
+                  Background="Transparent"
+                  behaviors:SmoothScrollBehavior.IsEnabled="True">
+        <StackPanel>
+
+            <StackPanel Margin="0,0,0,10">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="05"/>
+                    <TextBlock Text="{DynamicResource Dg.CutList}"/>
+                </StackPanel>
+                <TextBlock Text="{DynamicResource Dg.ColumnsHint}"
+                           TextWrapping="Wrap"/>
+
+                <Grid Margin="0,10,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Command="{Binding ImportCutListCommand}"
+                            Style="{StaticResource PrimaryPillButton}"
+                            Tag="&#xE8B5;"
+                            Height="32" MinWidth="88" Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            ToolTip="{DynamicResource Dg.ImportHint}"
+                            Content="{DynamicResource Dg.Import}"/>
+
+                    <Button x:Name="ExportMenuButton"
+                            Grid.Column="1"
+                            Style="{StaticResource OutlinedPillButton}"
+                            Tag="&#xEDE1;"
+                            Height="32" MinWidth="96" Margin="0,0,10,0"
+                            VerticalAlignment="Center"
+                            behaviors:ContextMenuButtonBehavior.Menu="{Binding ContextMenu, RelativeSource={RelativeSource Self}}"
+                            ToolTip="{DynamicResource Dg.ExportCutList}"
+                            Content="{DynamicResource Dg.Export}">
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{StaticResource ModernContextMenuStyle}"
+                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="{DynamicResource Dg.Excel}"
+                                          Style="{StaticResource ModernMenuItemStyle}"
+                                          Command="{Binding ExportExcelCommand}"/>
+                                <MenuItem Header="{DynamicResource Dg.Csv}"
+                                          Style="{StaticResource ModernMenuItemStyle}"
+                                          Command="{Binding ExportCsvCommand}"/>
+                                <MenuItem Header="{DynamicResource Dg.Pdf}"
+                                          Style="{StaticResource ModernMenuItemStyle}"
+                                          Command="{Binding ExportPdfCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="{DynamicResource Sharing.Share}"
+                                          Style="{StaticResource ModernMenuItemStyle}"
+                                          Command="{Binding ShareCutListCommand}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding IoStatus}"
+                               FontSize="{DynamicResource FontSize.Body}"
+                               FontWeight="{DynamicResource Weight.SemiBold}"
+                               Foreground="{DynamicResource AccentBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,12,0"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IoStatus}" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <StackPanel Grid.Column="3"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <!-- LIVE RUN STATE. The run executes asynchronously
+                             inside the optimization module after the button's
+                             command has already returned, so without this the
+                             operator clicks QUICK and nothing on screen moves
+                             until Step 6 changes — which reads as "the button
+                             does nothing". The numbers are the engine's own
+                             (RunProgressPercent / RunProgressDetail), mirrored
+                             by ProformaInvoiceViewModel; nothing is estimated
+                             or animated for effect. Uses the app's themed
+                             progress track, and collapses to zero width when
+                             idle so the panel is unchanged at rest. -->
+                        <StackPanel Orientation="Horizontal"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,12,0"
+                                    Visibility="{Binding IsOptimizationRunning, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <ProgressBar Style="{StaticResource PiProgressTrackStyle}"
+                                         Width="120"
+                                         Maximum="100"
+                                         VerticalAlignment="Center"
+                                         Value="{Binding OptimizationProgressPercent, Mode=OneWay}"
+                                         AutomationProperties.Name="Optimization run progress"/>
+                            <TextBlock Text="{Binding OptimizationProgressDetail, Mode=OneWay}"
+                                       FontSize="{DynamicResource FontSize.BodySmall}"
+                                       FontWeight="{DynamicResource Weight.SemiBold}"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center"
+                                       MaxWidth="240"
+                                       TextTrimming="CharacterEllipsis"
+                                       TextWrapping="NoWrap"
+                                       Margin="10,0,0,0"/>
+                        </StackPanel>
+                        <!-- QUICK / OPTIMIZE: cut the LIVE grid instead of a
+                             confirmed Job Order, so Step 6 can read real sheet
+                             qty and utilization rather than hand-typed numbers.
+                             Same two stages, same pill styles and same engine as
+                             the OPTIMIZATION tab. Enabled state comes from the
+                             commands' CanExecute, which is false until the
+                             composer binds a runner — so the buttons disable
+                             instead of failing on click when Step 5 is hosted
+                             somewhere with no optimization module behind it.
+                             Outcome is reported on the IoStatus strip to the
+                             left, which this panel already binds. -->
+                        <Button Command="{Binding RunQuickOptimizationCommand}"
+                                Style="{StaticResource OutlinedPillButton}"
+                                Height="32"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Center"
+                                ToolTip="{DynamicResource Dg.RunQuickTip}"
+                                Content="{DynamicResource Dg.RunQuick}"/>
+                        <Button Command="{Binding RunOptimizeOptimizationCommand}"
+                                Style="{StaticResource PrimaryPillButton}"
+                                Height="32"
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                ToolTip="{DynamicResource Dg.RunOptimizeTip}"
+                                Content="{DynamicResource Dg.RunOptimize}"/>
+                        <!-- VIEW RESULT: the run happens in the optimisation
+                             module, on this document's own host, so "did it
+                             work" is answered over there. Same pill height as
+                             its two neighbours, and deliberately no MinWidth —
+                             that is what clipped Step 6's ADD button in 14 of
+                             the 15 languages this app ships. -->
+                        <Button Command="{Binding ViewOptimizationResultCommand}"
+                                Style="{StaticResource OutlinedPillButton}"
+                                Height="32"
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center"
+                                ToolTip="{DynamicResource Dg.ViewResultTip}"
+                                Content="{DynamicResource Dg.ViewResult}"/>
+                        <TextBlock Text="{DynamicResource Dg.Specs}"
+                                   FontSize="{DynamicResource FontSize.Body}"
+                                   FontWeight="{DynamicResource Weight.Bold}"
+                                   Foreground="{DynamicResource SecondaryForegroundBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <Border Background="{DynamicResource AccentBrush}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="10,4"
+                                MinWidth="36"
+                                Margin="0,0,10,0" Style="{StaticResource SurfacePrimaryStyle}">
+                            <TextBlock Text="{Binding TotalSpecGroups}"
+                                       FontSize="{DynamicResource FontSize.Title}"
+                                       FontWeight="{DynamicResource Weight.Bold}"
+                                       Foreground="{DynamicResource OnAccentForegroundBrush}"
+                                       HorizontalAlignment="Center"/>
+                        </Border>
+                        <Button Command="{Binding AddSpecGroupCommand}"
+                                Style="{StaticResource PiGhostChipButton}"
+                                Height="32"
+                                ToolTip="{DynamicResource Dg.AddSpecGroup}"
+                                Content="{DynamicResource Dg.AddSpec}"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding SpecGroups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource SurfacePrimaryBrush}"
+                                BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                BorderThickness="{DynamicResource CardBorderThickness}"
+                                CornerRadius="{DynamicResource CardCornerRadius}"
+                                Padding="12,10"
+                                Margin="0,0,0,10"
+                                SnapsToDevicePixels="True" Style="{StaticResource SurfacePrimaryStyle}">
+                            <Border.InputBindings>
+                                <KeyBinding Modifiers="Control" Key="N" Command="{Binding AddRowCommand}"/>
+                            </Border.InputBindings>
+                            <StackPanel>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="32" Height="32"
+                                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                                            Background="{DynamicResource AccentBrush}"
+                                            VerticalAlignment="Bottom"
+                                            Margin="0,0,0,1" Style="{StaticResource SurfacePrimaryStyle}">
+                                        <TextBlock Text="{Binding GroupNumber}"
+                                                   FontSize="{DynamicResource FontSize.Title}"
+                                                   FontWeight="{DynamicResource Weight.Bold}"
+                                                   Foreground="{DynamicResource OnAccentForegroundBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="{DynamicResource Dg.GlassType}" Margin="0,0,0,2"/>
+                                        <ComboBox ItemsSource="{Binding DataContext.GlassTypeOptions,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  SelectedItem="{Binding SelectedGlassType}"
+                                                  Style="{StaticResource PiComboBoxStyle}"
+                                                  Height="34"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="{DynamicResource Dg.Specification}" Margin="0,0,0,2"/>
+                                        <controls:AutoCompleteTextBox
+                                            ItemsSource="{Binding FilteredSpecs}"
+                                            Text="{Binding SpecTypedText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            SelectedItem="{Binding SelectedSpecItem, Mode=TwoWay}"
+                                            IsDropDownOpen="{Binding IsSpecDropdownOpen, Mode=TwoWay}"
+                                            DisplayMemberPath="SpecName"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="6" VerticalAlignment="Bottom">
+                                        <TextBlock Text="{DynamicResource Dg.Base}" Margin="0,0,0,2"
+                                                   ToolTip="{Binding ImportedPrice, Converter={StaticResource CurrencyConverter}, ConverterParameter=imported}"/>
+                                        <TextBox Text="{Binding BaseRate, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}"
+                                                 Style="{StaticResource Input.TextBox}"
+                                                 behaviors:TextBoxBehaviors.SelectAllOnFocus="True"
+                                                 behaviors:TextBoxBehaviors.AcceptDecimals="True"
+                                                 Width="80"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="8" VerticalAlignment="Bottom">
+                                        <TextBlock Text="{DynamicResource Dg.SurchargePct}" Margin="0,0,0,2"
+                                                   ToolTip="{Binding SurchargeRate, Converter={StaticResource CurrencyConverter}, ConverterParameter=surcharge}"/>
+                                        <TextBox Text="{Binding SurchargePercent, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}"
+                                                 Style="{StaticResource Input.TextBox}"
+                                                 behaviors:TextBoxBehaviors.SelectAllOnFocus="True"
+                                                 behaviors:TextBoxBehaviors.AcceptDecimals="True"
+                                                 Width="64"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="10"
+                                            Command="{Binding DataContext.RemoveSpecGroupCommand,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Style="{StaticResource PiIconButtonStyle}"
+                                            VerticalAlignment="Bottom"
+                                            ToolTip="{DynamicResource Dg.RemoveSpec}">
+                                        <TextBlock Text="&#xE74D;"
+                                                   FontFamily="{DynamicResource FontFamily.Icon}"
+                                                   FontSize="{DynamicResource FontSize.Title}"
+                                                   Foreground="{DynamicResource DangerBrush}"/>
+                                    </Button>
+                                </Grid>
+
+                                <StackPanel Margin="0,0,0,8">
+                                    <TextBlock Text="{Binding SpecDisplayName}" ToolTip="{Binding Step4RateTooltip}"
+                                               FontSize="{DynamicResource FontSize.Title}"
+                                               FontWeight="{DynamicResource Weight.Bold}"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    <TextBlock Text="{Binding SheetSelectionSummary}" ToolTip="{Binding Step4RateTooltip}"
+                                               FontSize="{DynamicResource FontSize.BodySmall}"
+                                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasSheetSelectionSummary}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <Border Style="{StaticResource PiTableHeaderStyle}" Padding="6,5">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="1.6*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.65*"/>
+                                            <ColumnDefinition Width="0.85*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.8*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="26"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{DynamicResource Dg.Hash}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="1" Text="{DynamicResource Dg.GlassRef}" Style="{StaticResource LineItemsHeaderTextStyle}" HorizontalAlignment="Left"/>
+                                        <TextBlock Grid.Column="2" Text="{DynamicResource Dg.W1}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="3" Text="{DynamicResource Dg.H1}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="4" Text="{DynamicResource Dg.W2}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="5" Text="{DynamicResource Dg.H2}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="6" Text="{DynamicResource Dg.Qty}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="7" Text="{DynamicResource God.Sqm}" Style="{StaticResource LineItemsHeaderTextStyle}"
+                                                   ToolTip="{DynamicResource Dg.UnitPanel}"/>
+                                        <TextBlock Grid.Column="8" Text="{DynamicResource Dg.TotalSqm}" Style="{StaticResource LineItemsHeaderTextStyle}"
+                                                   ToolTip="{DynamicResource Dg.TotalSqmHint}"/>
+                                        <TextBlock Grid.Column="9" Text="{DynamicResource Dg.Rate}" Style="{StaticResource LineItemsHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="10" Text="{DynamicResource Dg.Value}" Style="{StaticResource LineItemsHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                </Border>
+
+                                <ListView ItemsSource="{Binding ItemRows}"
+                                          ItemContainerStyle="{StaticResource GridRowStyle}"
+                                          Background="Transparent"
+                                          BorderThickness="{DynamicResource Border.NoneThickness}"
+                                          Padding="0"
+                                          Margin="0"
+                                          MinHeight="44"
+                                          AllowDrop="False"
+                                          Focusable="True"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Stretch"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                          ScrollViewer.CanContentScroll="False"
+                                          behaviors:DataGridNavigationBehavior.EnableExcelNav="True">
+                                    <ListView.Template>
+                                        <ControlTemplate TargetType="ListView">
+                                            <ItemsPresenter/>
+                                        </ControlTemplate>
+                                    </ListView.Template>
+                                    <ListView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical"/>
+                                        </ItemsPanelTemplate>
+                                    </ListView.ItemsPanel>
+                                    <ListView.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="{DynamicResource Dg.AddRow}" Command="{Binding AddRowCommand}"/>
+                                            <Separator/>
+                                            <MenuItem Header="{DynamicResource Dg.Find}" Command="{Binding OpenFindCommand}"/>
+                                            <MenuItem Header="{DynamicResource Dg.FindReplace}" Command="{Binding OpenFindReplaceCommand}"/>
+                                            <Separator/>
+                                            <MenuItem Header="{DynamicResource Dg.PasteHint}"
+                                                      Command="{Binding PasteExcelCommand}"/>
+                                        </ContextMenu>
+                                    </ListView.ContextMenu>
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid HorizontalAlignment="Stretch">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28"/>
+                                                    <ColumnDefinition Width="1.6*"/>
+                                                    <ColumnDefinition Width="0.75*"/>
+                                                    <ColumnDefinition Width="0.75*"/>
+                                                    <ColumnDefinition Width="0.75*"/>
+                                                    <ColumnDefinition Width="0.75*"/>
+                                                    <ColumnDefinition Width="0.65*"/>
+                                                    <ColumnDefinition Width="0.85*"/>
+                                                    <ColumnDefinition Width="0.75*"/>
+                                                    <ColumnDefinition Width="0.8*"/>
+                                                    <ColumnDefinition Width="1.2*"/>
+                                                    <ColumnDefinition Width="26"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding SerialNumber}" Style="{StaticResource LineItemsSerialStyle}"/>
+                                                <TextBox Grid.Column="1" Text="{Binding GlassRef, UpdateSourceTrigger=LostFocus}" Style="{StaticResource LineItemsTextCellStyle}" behaviors:TextBoxBehaviors.SelectAllOnFocus="True" Margin="2,0"/>
+                                                <TextBox Grid.Column="2" Text="{Binding W1, UpdateSourceTrigger=LostFocus}" Style="{StaticResource LineItemsIntCellStyle}" behaviors:TextBoxBehaviors.SelectAllOnFocus="True" behaviors:TextBoxBehaviors.AcceptIntegersOnly="True" Margin="2,0"/>
+                                                <TextBox Grid.Column="3" Text="{Binding H1, UpdateSourceTrigger=LostFocus}" Style="{StaticResource LineItemsIntCellStyle}" behaviors:TextBoxBehaviors.SelectAllOnFocus="True" behaviors:TextBoxBehaviors.AcceptIntegersOnly="True" Margin="2,0"/>
+                                                <TextBox Grid.Column="4" Text="{Binding W2, UpdateSourceTrigger=LostFocus}" Style="{StaticResource LineItemsIntCellStyle}" behaviors:TextBoxBehaviors.SelectAllOnFocus="True" behaviors:TextBoxBehaviors.AcceptIntegersOnly="True" Margin="2,0"/>
+                                                <TextBox Grid.Column="5" Text="{Binding H2, UpdateSourceTrigger=LostFocus}" Style="{StaticResource LineItemsIntCellStyle}" behaviors:TextBoxBehaviors.SelectAllOnFocus="True" behaviors:TextBoxBehaviors.AcceptIntegersOnly="True" Margin="2,0"/>
+                                                <TextBox Grid.Column="6" Text="{Binding Qty, UpdateSourceTrigger=LostFocus}" Style="{StaticResource LineItemsIntCellStyle}" behaviors:TextBoxBehaviors.SelectAllOnFocus="True" behaviors:TextBoxBehaviors.AcceptIntegersOnly="True" Margin="2,0"/>
+                                                <TextBlock Grid.Column="7" Text="{Binding Sqm1, StringFormat={}{0:0.000}}" Style="{StaticResource LineItemsReadonlyStyle}"/>
+                                                <TextBlock Grid.Column="8" Text="{Binding TotalSqm, StringFormat={}{0:0.000}}" Style="{StaticResource LineItemsReadonlyStyle}"/>
+                                                <TextBox Grid.Column="9" Text="{Binding Rate, StringFormat={}{0:0.##}, UpdateSourceTrigger=LostFocus}" Style="{StaticResource LineItemsDecimalCellStyle}" behaviors:TextBoxBehaviors.SelectAllOnFocus="True" behaviors:TextBoxBehaviors.AcceptDecimals="True" Margin="1,0"/>
+                                                <TextBlock Grid.Column="10" Text="{Binding Value, StringFormat=AED {0:N2}}" Style="{StaticResource LineItemsMoneyStyle}"/>
+                                                <Button Grid.Column="11"
+                                                        Command="{Binding DataContext.RemoveRowCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource PiIconButtonStyle}"
+                                                        ToolTip="{DynamicResource Dg.DeleteRow}">
+                                                    <TextBlock Text="&#xE711;" FontFamily="{DynamicResource FontFamily.Icon}" FontSize="{DynamicResource FontSize.BodySmall}" FontWeight="{DynamicResource Weight.Bold}"
+                                                               Foreground="{DynamicResource DangerBrush}"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+
+                                <Border BorderBrush="{DynamicResource DividerBrush}" BorderThickness="{DynamicResource Border.TopHairlineThickness}" Margin="0,8,0,0" Padding="0,8,0,0" SnapsToDevicePixels="True">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="1.6*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.65*"/>
+                                            <ColumnDefinition Width="0.85*"/>
+                                            <ColumnDefinition Width="0.75*"/>
+                                            <ColumnDefinition Width="0.8*"/>
+                                            <ColumnDefinition Width="1.2*"/>
+                                            <ColumnDefinition Width="26"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBox Width="64" Text="{Binding BulkRowCountText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource Input.TextBox}"
+                                                     behaviors:TextBoxBehaviors.SelectAllOnFocus="True"
+                                                     behaviors:TextBoxBehaviors.AcceptIntegersOnly="True"
+                                                     ToolTip="{DynamicResource Dg.GenerateRows}"/>
+                                            <Button Command="{Binding GenerateRowsCommand}"
+                                                    Style="{StaticResource PiGhostChipButton}"
+                                                    Margin="6,0,8,0"
+                                                    VerticalAlignment="Center"
+                                                    Content="{DynamicResource Dg.Generate}"/>
+                                            <Button Command="{Binding AddRowCommand}"
+                                                    Style="{StaticResource PiGhostChipButton}"
+                                                    VerticalAlignment="Center"
+                                                    Content="{DynamicResource Dg.AddRowShort}"/>
+                                        </StackPanel>
+
+                                        <!-- Total QTY under QTY column -->
+                                        <TextBlock Grid.Column="6"
+                                                   Text="{Binding FooterTotalQty, Mode=OneWay}"
+                                                   FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                        <!-- Total SQM under TOTAL SQM column -->
+                                        <TextBlock Grid.Column="8"
+                                                   Text="{Binding FooterTotalSqm, StringFormat={}{0:0.00}, Mode=OneWay}"
+                                                   FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                        <!-- Total value under VALUE column -->
+                                        <TextBlock Grid.Column="10"
+                                                   FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                                                   Foreground="{DynamicResource SuccessBrush}"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                   Margin="0,0,4,0">
+                                            <Run Text="AED "/><Run Text="{Binding FooterTotalValue, StringFormat={}{0:N2}, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <summary:GrandTotalSummaryView DataContext="{Binding SummaryViewModel}"
+                                           Margin="0,4,0,8"/>
+        </StackPanel>
+    </ScrollViewer>
+        <!-- Step 5 optimization running popup — centered modal over the grid -->
+        <Border Background="#66000000"
+                Visibility="{Binding IsOptimizationRunning, Converter={StaticResource BoolToVisibilityConverter}}"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                Panel.ZIndex="100" IsHitTestVisible="True">
+            <Border Background="{DynamicResource SurfacePrimaryBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="2"
+                    CornerRadius="12"
+                    Padding="24"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    MinWidth="360" MaxWidth="520"
+                    Style="{StaticResource SurfacePrimaryStyle}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+                        <ProgressBar Style="{StaticResource PiProgressTrackStyle}"
+                                     Width="28" Height="28" IsIndeterminate="True"
+                                     VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <TextBlock Text="Optimization running…"
+                                   FontSize="{DynamicResource FontSize.Title}"
+                                   FontWeight="{DynamicResource Weight.Bold}"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ProgressBar Style="{StaticResource PiProgressTrackStyle}"
+                                 Height="8" Maximum="100"
+                                 Value="{Binding OptimizationProgressPercent, Mode=OneWay}"
+                                 Margin="0,0,0,10"/>
+                    <TextBlock Text="{Binding OptimizationProgressDetail, Mode=OneWay}"
+                               FontSize="{DynamicResource FontSize.Body}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap" TextAlignment="Center"
+                               Margin="0,0,0,4"/>
+                    <TextBlock Text="{Binding OptimizationProgressPercent, StringFormat={}{0}%, Mode=OneWay}"
+                               FontSize="{DynamicResource FontSize.BodySmall}"
+                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Please wait — cutting sheets… You can keep editing, but do not close this invoice until the bar reaches 100%."
+                               FontSize="{DynamicResource FontSize.BodySmall}"
+                               Foreground="{DynamicResource SecondaryForegroundBrush}"
+                               TextWrapping="Wrap" TextAlignment="Center"
+                               Opacity="0.8" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>
