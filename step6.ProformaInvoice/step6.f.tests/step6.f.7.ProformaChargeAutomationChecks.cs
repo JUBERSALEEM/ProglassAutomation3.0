@@ -59,6 +59,36 @@ namespace ProGlassAutomation.Step6Tests
             Check("automation activates a named fan-hole row",
                 sheet.Predefined.Single(row => row.TemplateKey == "FAN_HOLES").IsActive);
 
+            var uInsert = new SpecGroup
+            {
+                GroupNumber = 4,
+                SpecName = "DGU + U-Insert",
+                GlassType = GlassBuilds.Dgu,
+                OuterGlassColor = "Clear",
+                InnerGlassColor = "Clear",
+                UInsertPricePerSqm = 25m
+            };
+            uInsert.Rows.Add(new SpecRow
+            {
+                SerialNumber = 1, W1 = 1000, H1 = 2000, Qty = 2
+            });
+            SpecGridTotals uInsertTotals = SpecGridTotals.From(new[] { uInsert });
+            Check("Step 4 per-spec U-Insert rate is retained on the grid group",
+                uInsert.UInsertPricePerSqm == 25m);
+            Check("per-spec U-Insert amount overrides the invoice fallback rate",
+                uInsertTotals.UInsertSqm == 4m && uInsertTotals.UInsertAmount(10m) == 100m);
+            var uInsertSheet = new OtherChargesSheet();
+            uInsertSheet.EnsureCatalogueRows();
+            OtherChargeAutomation.Apply(uInsertSheet, new[] { uInsert });
+            uInsertSheet.Recalculate(new[] { uInsert });
+            Check("U-Insert catalogue row bills the per-spec amount",
+                uInsertSheet.Predefined.Single(row => row.TemplateKey == "U_INSERT").Amount == 100m);
+
+            var fallbackUInsert = uInsert.Clone();
+            fallbackUInsert.UInsertPricePerSqm = 0m;
+            Check("U-Insert falls back to invoice catalogue rate when Step 4 rate is blank",
+                SpecGridTotals.From(new[] { fallbackUInsert }).UInsertAmount(10m) == 40m);
+
             SpecGridTotals totals = SpecGridTotals.From(new[] { group });
             PredefinedChargeRow matchedPolish = sheet.Predefined.Single(
                 row => row.TemplateKey == "POLISH_MATCHED_LAM");
