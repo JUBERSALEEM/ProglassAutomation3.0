@@ -228,11 +228,12 @@
                 BorderThickness="0,0,0,1">
             <Grid Margin="{DynamicResource PaddingCompact}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center"
+                            HorizontalAlignment="Left">
                     <Button Content="&#x2630;" Command="{Binding ToggleMenu}"
                             Style="{StaticResource ShellIconButton}"
                             Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center"
@@ -255,7 +256,7 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
-                            HorizontalAlignment="Center" Margin="{DynamicResource MarginInline}" MaxWidth="440">
+                            HorizontalAlignment="Center" Margin="{DynamicResource MarginInline}" MaxWidth="300">
                     <studio:ShellMark Title="{Binding WorkspaceTitle}" Width="{DynamicResource ChoiceMarkSize}"
                                       Height="{DynamicResource ChoiceMarkSize}" Foreground="{DynamicResource AccentPrimary}"
                                       Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center" />
@@ -267,12 +268,13 @@
                                    TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                            HorizontalAlignment="Right">
                     <Border Background="{DynamicResource SurfaceSecondary}" BorderBrush="{DynamicResource BorderSubtle}"
                             BorderThickness="{DynamicResource BorderThicknessControl}" CornerRadius="{DynamicResource ControlCornerRadius}"
                             Padding="{DynamicResource PaddingCompact}" Margin="{DynamicResource UiGapControlEnd}">
                         <StackPanel x:Name="SessionBanner" Orientation="Horizontal" VerticalAlignment="Center">
-                            <StackPanel VerticalAlignment="Center" MaxWidth="156">
+                            <StackPanel VerticalAlignment="Center" MaxWidth="112">
                                 <TextBlock Text="OPERATOR" Style="{DynamicResource Caption}" FontSize="10" />
                                 <TextBlock Text="{Binding SessionLabel}" ToolTip="{Binding SessionTooltip}"
                                            FontWeight="{DynamicResource FontWeightHeading}"
