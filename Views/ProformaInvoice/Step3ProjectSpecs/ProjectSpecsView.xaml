@@ -1,0 +1,249 @@
+<!-- Step 3 — PROJECT NAME then PROJECT REFERENCE. No cards.
+     Every field on Step 3 is optional (the DB accepts an empty project
+     row), so every field here binds Visibility to
+     Services.Features.ProformaFieldVisibility. -->
+<UserControl Style="{StaticResource ErpPageRootStyle}" x:Class="ProGlassAutomation.Views.ProformaInvoice.Step3ProjectSpecs.ProjectSpecsView"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:features="clr-namespace:ProGlassAutomation.Services.Features"
+             FontFamily="{DynamicResource AppFontFamily}"
+             UseLayoutRounding="True" SnapsToDevicePixels="True"
+             Background="{DynamicResource Ov.Canvas}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        <!-- 2026-09-14: Was BasedOn="{StaticResource {x:Type TextBox}}" — an implicit
+             TextBox style that does not exist anywhere in the app, so loading this
+             view threw when the PI wizard opened step 3. Base on the app's
+             canonical TextBox style instead. -->
+        <Style TargetType="TextBox" BasedOn="{StaticResource Input.TextBox}"/>
+            </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.35*"/>
+            <ColumnDefinition Width="24"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <Border Style="{StaticResource PiStationIdentityStyle}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource PiStationCodeStyle}" Text="03"/>
+                        <TextBlock Style="{StaticResource PiStationTitleStyle}" Text="{DynamicResource Common.Project}"/>
+                        <TextBlock Style="{StaticResource PiStationHintStyle}" Text="{DynamicResource ProformaInvoice.ProjectNameProjectReferenceStaySeparate}"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock Style="{StaticResource SectionTitleStyle}" Text="{DynamicResource ProformaInvoice.SITE}" Margin="0,0,0,12"/>
+
+                <StackPanel Style="{StaticResource Field.Panel}" Visibility="{Binding Path=ShowProjectName,
+                                Source={x:Static features:ProformaFieldVisibility.Instance},
+                                Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.ProjectNAME}"
+                               ToolTip="{DynamicResource ProformaInvoice.ProjectNameAppearsListsInvoices}"/>
+                    <TextBox Text="{Binding ProjectIdentifierName, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{DynamicResource ProformaInvoice.EGIMADHabib}"
+                             AutomationProperties.AutomationId="ProformaInvoice.ProjectName"
+                             AutomationProperties.Name="Project name" Style="{StaticResource TextBoxStyle}"/>
+                </StackPanel>
+
+                <StackPanel Style="{StaticResource Field.Panel}" Visibility="{Binding Path=ShowProjectReference,
+                                Source={x:Static features:ProformaFieldVisibility.Instance},
+                                Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.ProjectReference}"
+                               ToolTip="{DynamicResource ProformaInvoice.FullDescriptiveProjectReference}"/>
+                    <TextBox Text="{Binding ProjectReference, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{DynamicResource ProformaInvoice.EGHouseIMADHabib}"
+                             AutomationProperties.AutomationId="ProformaInvoice.ProjectReference"
+                             AutomationProperties.Name="Project reference" Style="{StaticResource TextBoxStyle}"/>
+                </StackPanel>
+
+                <StackPanel Style="{StaticResource Field.Panel}" Visibility="{Binding Path=ShowContractNo,
+                                Source={x:Static features:ProformaFieldVisibility.Instance},
+                                Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.ContractNO}"/>
+                    <TextBox Text="{Binding ProjectContractNo, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{DynamicResource ProformaInvoice.EG428IMADHabib}"
+                             AutomationProperties.AutomationId="ProformaInvoice.ContractNo"
+                             AutomationProperties.Name="Contract number" Style="{StaticResource TextBoxStyle}"/>
+                </StackPanel>
+
+                <StackPanel Style="{StaticResource Field.Panel}" Visibility="{Binding Path=ShowLpoNumber,
+                                Source={x:Static features:ProformaFieldVisibility.Instance},
+                                Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.LPOPONumber}"/>
+                    <TextBox Text="{Binding LpoNumber, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{DynamicResource ProformaInvoice.EG2680}"
+                             AutomationProperties.AutomationId="ProformaInvoice.LpoNumber"
+                             AutomationProperties.Name="LPO / PO number" Style="{StaticResource TextBoxStyle}"/>
+                </StackPanel>
+
+                <StackPanel Style="{StaticResource Field.Panel}" Visibility="{Binding Path=ShowSiteDeliveryLocation,
+                                Source={x:Static features:ProformaFieldVisibility.Instance},
+                                Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Style="{StaticResource Field.Label}" Text="{DynamicResource ProformaInvoice.SITEDeliveryLocation}"/>
+                    <TextBox Text="{Binding SiteDeliveryLocation, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{DynamicResource ProformaInvoice.EGAjman}" Margin="0,0,0,12"
+                             AutomationProperties.AutomationId="ProformaInvoice.SiteDeliveryLocation"
+                             AutomationProperties.Name="Site / delivery location" Style="{StaticResource TextBoxStyle}"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsClientFilterActive}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="{Binding FilterBannerText}" FontSize="{DynamicResource FontSize.Body}"
+                               Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    <Button Margin="12,0,0,0" Command="{Binding ClearClientFilterCommand}"
+                           >
+                        <TextBlock Text="{DynamicResource ProformaInvoice.ClearFilter}" TextDecorations="Underline"/>
+                    </Button>
+                </StackPanel>
+
+                <TextBlock Margin="0,12,0,0" FontSize="{DynamicResource FontSize.Body}" Foreground="{DynamicResource SuccessBrush}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasLoadedProfile}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                    <Run Text="{DynamicResource ProformaInvoice.Loaded}"/><Run Text="{Binding LoadedProfileName, Mode=OneWay}" FontWeight="{DynamicResource Weight.Bold}"/>
+                </TextBlock>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Column="1" Width="1" Background="{DynamicResource DividerBrush}" HorizontalAlignment="Center"/>
+
+        <DockPanel Grid.Column="2">
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="{DynamicResource ProformaInvoice.Saved}" Margin="0"/>
+                    <TextBlock Style="{StaticResource Typography.Caption}" Text="{DynamicResource ProformaInvoice.FilteredSelectedClient}"/>
+                </StackPanel>
+                <Button HorizontalAlignment="Right" Command="{Binding RefreshCardsCommand}"
+                        ToolTip="{DynamicResource ProformaInvoice.RefreshSavedProjectsDatabase}">
+                    <TextBlock Text="&#xE72C;" FontFamily="{DynamicResource FontFamily.Icon}" FontSize="{DynamicResource FontSize.Title}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </Button>
+            </Grid>
+            <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Common.Loading}" FontSize="{DynamicResource FontSize.Body}"
+                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLoadingCards}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock DockPanel.Dock="Top" Text="{Binding CardsErrorMessage}" FontSize="{DynamicResource FontSize.Body}"
+                       Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Margin="0,0,0,8">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasCardsError}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock DockPanel.Dock="Top" Text="{DynamicResource ProformaInvoice.NoSavedProjectsYet}"
+                       FontSize="{DynamicResource FontSize.Body}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasNoSavedProjects}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Margin="0,8,0,0"
+                    Command="{Binding ShowAllProjectsCommand}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource PiViewAllLinkStyle}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasMoreProjects}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+                <TextBlock FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}" Foreground="{DynamicResource AccentBrush}" TextDecorations="Underline">
+                    <Run Text="{DynamicResource ProformaInvoice.View}"/><Run Text="{Binding TotalProjectCount, Mode=OneWay}"/><Run Text=")"/>
+                </TextBlock>
+            </Button>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding SavedProjectCards}">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLoadingCards}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HasNoSavedProjects}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource PiListRowStyle}" ToolTip="{DynamicResource ProformaInvoice.ClickAutoFillProjectDetails}">
+                                <Border.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick"
+                                                  Command="{Binding DataContext.LoadProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  CommandParameter="{Binding}"/>
+                                </Border.InputBindings>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayProjectName}" FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock FontSize="{DynamicResource FontSize.Body}" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding ReferencePreview, Mode=OneWay}"/>
+                                            <Run Text="  ·  "/>
+                                            <Run Text="{Binding ProjectContractNo, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding UsageBadgeText}" FontSize="{DynamicResource FontSize.BodySmall}"
+                                               Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
+</UserControl>
