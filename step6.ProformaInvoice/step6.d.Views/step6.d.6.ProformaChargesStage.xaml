@@ -96,6 +96,7 @@
         <ContentControl Grid.Row="4" Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
             <DataGrid Style="{StaticResource ListGrid}"
                       ItemsSource="{Binding WastageCharges}"
+                      CellEditEnding="OnWastageCellEditEnding"
                       CanUserReorderColumns="False" CanUserSortColumns="False"
                       AutomationProperties.Name="Colour wastage">
                 <DataGrid.Columns>
