@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using ProGlassAutomation.Models.Proforma;
 
 namespace ProGlassAutomation.Services.Proforma
 {
