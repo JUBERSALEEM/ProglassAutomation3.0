@@ -402,7 +402,7 @@ for section in ("Letterhead(", "Parties(", "Specifications(", "Charges(", "Finan
     check(section in layout_source,
           f"step6.g.2.ProformaPdfLayout.cs: PDF section {section} is missing")
 project_source = read(PROJECT)
-check('PackageReference Include="QuestPDF" Version="2024.12.2"' in project_source,
+check('PackageReference Include="QuestPDF" Version="2025.12.4"' in project_source,
       "ProGlassAutomation.csproj: the approved QuestPDF dependency is missing")
 check("PdfSharp" not in project_source,
       "ProGlassAutomation.csproj: a second PDF engine was added")
