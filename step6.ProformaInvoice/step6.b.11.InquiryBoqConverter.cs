@@ -177,7 +177,7 @@ namespace ProGlassAutomation.Services.Proforma
                 draft.Groups.Add(group);
             }
 
-            draft.Parties.Inquiry = new InquiryReference
+            draft.Parties.Inquiry = new InquiryLink
             {
                 InquiryId = inquiry.Id,
                 InquiryNumber = inquiry.InquiryNumber,

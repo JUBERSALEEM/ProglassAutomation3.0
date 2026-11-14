@@ -247,7 +247,7 @@ namespace ProGlassAutomation.Services.Proforma
                     }
                     else
                     {
-                        parties.Inquiry = new InquiryReference
+                        parties.Inquiry = new InquiryLink
                         {
                             InquiryId = inquiry.Id,
                             InquiryNumber = inquiry.InquiryNumber,

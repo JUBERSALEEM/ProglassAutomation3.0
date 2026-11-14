@@ -122,7 +122,7 @@ namespace ProGlassAutomation.Services.Proforma
             copy.Attachments = new System.Collections.Generic.List<ProformaAttachment>();
 
             // One inquiry must not look quoted twice by two live documents.
-            copy.Parties.Inquiry = new InquiryReference();
+            copy.Parties.Inquiry = new InquiryLink();
             copy.Parties.PartiesRefreshedAtUtc = DateTime.UtcNow;
 
             string note = "Copied from " + source.ProformaNumber + ".";

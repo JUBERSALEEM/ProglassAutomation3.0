@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Windows.Input;
 using ProGlassAutomation.Models.Proforma;
 using ProGlassAutomation.ThemeStudio;
 using ProGlassAutomation.Services.Proforma;
@@ -155,5 +156,17 @@ namespace ProGlassAutomation.ViewModels.Proforma
             RemoveAttachmentCommand = new DelegateCommand(() => _ = RemoveAttachmentAsync(),
                 () => _selectedAttachment != null);
         }
+
+        // ── Charge switches asked for by the charges stage ──────────────
+        // A checkbox can write the row's flag, but "the operator switched this
+        // off" is a different fact from "the catalogue suggested it". The
+        // workspace records the manual decision and recomputes, so the engine
+        // keeps one rule rather than two.
+        internal void ApplyChargeToggle(PredefinedChargeRow row) =>
+            _workspace.SetChargeActive(row.TemplateKey, row.IsActive);
+
+        internal void ApplyWastageToggle(WastageChargeRow row) =>
+            _workspace.SetWastageActive(row.ColorName, row.IsActive);
+
     }
 }

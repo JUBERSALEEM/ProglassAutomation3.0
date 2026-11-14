@@ -134,7 +134,7 @@ namespace ProGlassAutomation.Models.Proforma
     }
 
     /// <summary>The optional source inquiry, kept as a link and a printed reference.</summary>
-    public sealed class InquiryReference
+    public sealed class InquiryLink
     {
         public int? InquiryId { get; set; }
         public string InquiryNumber { get; set; } = "";
@@ -143,7 +143,7 @@ namespace ProGlassAutomation.Models.Proforma
         [JsonIgnore]
         public bool IsLinked => InquiryId is > 0;
 
-        public InquiryReference Clone() => (InquiryReference)MemberwiseClone();
+        public InquiryLink Clone() => (InquiryLink)MemberwiseClone();
     }
 
     /// <summary>Everything the header stage owns, in one serializable block.</summary>
@@ -153,7 +153,7 @@ namespace ProGlassAutomation.Models.Proforma
         public ClientIdentity Client { get; set; } = new();
         public ProjectIdentity Project { get; set; } = new();
         public PreparedByIdentity PreparedBy { get; set; } = new();
-        public InquiryReference Inquiry { get; set; } = new();
+        public InquiryLink Inquiry { get; set; } = new();
 
         /// <summary>
         /// A timestamp of the last time the master-data snapshot was refreshed,
@@ -188,7 +188,7 @@ namespace ProGlassAutomation.Models.Proforma
         private static ClientIdentity CopyClient(ClientIdentity value) => value.Clone();
         private static ProjectIdentity CopyProject(ProjectIdentity value) => value.Clone();
         private static PreparedByIdentity CopyPreparedBy(PreparedByIdentity value) => value.Clone();
-        private static InquiryReference CopyInquiry(InquiryReference value) => value.Clone();
+        private static InquiryLink CopyInquiry(InquiryLink value) => value.Clone();
 
         /// <summary>
         /// The header is usable when the letterhead and the customer exist.

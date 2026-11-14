@@ -26,12 +26,13 @@ public partial class ProformaChargesStage : UserControl
 
         switch (box.DataContext)
         {
+            // The workspace decides, not the view: it records that the operator,
+            // not the catalogue, made this choice, and recomputes the sheet.
             case PredefinedChargeRow predefined:
-                // Records that the operator, not the catalogue, decided this row.
-                predefined.SetManualActive(predefined.IsActive);
+                viewModel.ApplyChargeToggle(predefined);
                 break;
             case WastageChargeRow wastage:
-                wastage.Recalculate();
+                viewModel.ApplyWastageToggle(wastage);
                 break;
         }
 
