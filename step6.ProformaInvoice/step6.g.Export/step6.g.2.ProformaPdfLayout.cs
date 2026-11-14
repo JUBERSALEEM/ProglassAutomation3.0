@@ -25,7 +25,7 @@ namespace ProGlassAutomation.Services.Proforma
             {
                 page.Size(PageSizes.A4);
                 page.Margin(style.MarginMm, Unit.Millimetre);
-                page.Background(style.Paper);
+                page.PageColor(style.Paper);
                 page.DefaultTextStyle(text => text.FontFamily("Arial")
                     .FontSize(style.TableFontSize + 1f).FontColor(style.Text));
 
