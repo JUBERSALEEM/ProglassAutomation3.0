@@ -44,6 +44,9 @@ namespace ProGlassAutomation.Step6Tests
             Section("Spec grid and charges");
             GridAndCharges();
 
+            Section("Other-charge automation parity");
+            ChargeAutomation();
+
             Section("Summary");
             Summary();
 
