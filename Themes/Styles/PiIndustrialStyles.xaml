@@ -1,0 +1,755 @@
+<!--
+    FILE: Themes/Styles/PiIndustrialStyles.xaml
+    PROJECT: ProGlassAutomation
+    MODULE: Proforma Invoice industrial chrome
+
+    Shared work-surface / slim-row / KPI-strip primitives for the
+    9-step PI wizard. Every brush is DynamicResource so light, dark
+    and Monet accents flip without a second copy of the markup.
+
+    Do NOT hardcode copper / indigo hex here. AccentBrush is the
+    live accent (theme + Monet). Card corners stay 12 px via the
+    theme tokens.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="../../Views/Dashboard/Overview/IndigoStudioResources.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- One steel work surface — replaces nested stripe cards. -->
+    <Style x:Key="PiWorkSurfaceStyle" TargetType="Border" BasedOn="{StaticResource SurfacePrimaryStyle}">
+
+        <Setter Property="Padding"         Value="12,8"/>
+        <Setter Property="Effect"          Value="{StaticResource ShadowSoft}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiSectionLabelStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource TextCaption}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Margin"     Value="0,0,0,8"/>
+    </Style>
+
+    <Style x:Key="PiFieldLabelStyle" TargetType="TextBlock"
+           BasedOn="{StaticResource ModuleFieldLabelStyle}">
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Margin"     Value="0,0,0,4"/>
+    </Style>
+
+    <!-- Slim letterhead / saved-profile row. -->
+    <Style x:Key="PiSlimRowStyle" TargetType="Border" BasedOn="{StaticResource SurfaceDetailStyle}">
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderBrush"     Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="{DynamicResource ControlCornerRadius}"/>
+        <Setter Property="Padding"         Value="10,8"/>
+        <Setter Property="Margin"          Value="0,0,0,4"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background"  Value="{DynamicResource SurfaceTertiaryBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PiUsageBadgeStyle" TargetType="Border" BasedOn="{StaticResource SurfaceDetailStyle}">
+        <Setter Property="Background"   Value="{DynamicResource TintIndigoBrush}"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}"/>
+        <Setter Property="Padding"      Value="6,2"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- KPI strip cell — one row of metrics, not a pile of cards. -->
+    <Style x:Key="PiKpiCellStyle" TargetType="Border" BasedOn="{StaticResource ErpKpiSurfaceStyle}">
+
+        <Setter Property="Padding"         Value="12,4"/>
+        <Setter Property="Margin"          Value="0,0,6,0"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiKpiCaptionStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource TextXSmall}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+    </Style>
+
+    <Style x:Key="PiKpiValueStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource TextSubhead}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Margin"     Value="0,2,0,0"/>
+        <!-- 2026-09-05 money polish: tabular figures column-align every
+             amount and stop digit jitter on refresh (same contract the
+             dashboard KPI style already had). -->
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+
+    <!-- ACTIONS dropdown item — same contract as Sheet Store. -->
+    <Style x:Key="PiInvoiceMenuActionItem" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="12,9"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="Transparent"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="12,9"
+                            SnapsToDevicePixels="True">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{TemplateBinding Tag}"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource TextSection}"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"/>
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       FontSize="{StaticResource TextBodyLarge}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SurfaceTertiaryBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bg" Property="Opacity" Value="0.8"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bg" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══ WIZARD RAIL / FOOTER ══════════════════════════════════════ -->
+
+    <Style x:Key="PiRailBarStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource WindowBackgroundBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding"         Value="16,0"/>
+        <Setter Property="Height"          Value="40"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiFooterBarStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        <Setter Property="Padding"         Value="16,0"/>
+        <Setter Property="Height"          Value="48"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiFooterGhostButton" TargetType="Button">
+        <Setter Property="Height"          Value="40"/>
+        <Setter Property="MinWidth"        Value="88"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="FontWeight"      Value="SemiBold"/>
+        <Setter Property="Foreground"      Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{DynamicResource SurfacePrimaryBrush}"
+                            BorderBrush="{DynamicResource BorderDefaultBrush}"
+                            BorderThickness="{DynamicResource Border.HairlineThickness}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="14,0"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Root" Property="Background"  Value="{DynamicResource SurfaceTertiaryBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PiFooterPrimaryButton" TargetType="Button">
+        <Setter Property="Height"          Value="40"/>
+        <Setter Property="MinWidth"        Value="120"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Background"      Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Foreground"      Value="{DynamicResource OnAccentForegroundBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="FontWeight"      Value="SemiBold"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="16,0"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentDarkBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ══ STEP 4 — type chip / layer strip / apply bar ══════════════ -->
+
+    <Style x:Key="PiLayerStripStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="16"/>
+        <Setter Property="Padding"         Value="14,12"/>
+        <Setter Property="Margin"          Value="0,0,0,10"/>
+        <Setter Property="Effect"          Value="{StaticResource ShadowSoft}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <!-- Framed 3D product well — theme surface, never hardcoded paper. -->
+    <Style x:Key="PiShowcaseWellStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource GlassSurfaceElevated}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="16"/>
+        <Setter Property="Padding"         Value="8"/>
+        <Setter Property="Effect"          Value="{StaticResource ShadowSoft}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiNumberBadgeStyle" TargetType="Border" BasedOn="{StaticResource SurfaceDetailStyle}">
+        <Setter Property="Width"             Value="22"/>
+        <Setter Property="Height"            Value="22"/>
+        <Setter Property="CornerRadius"      Value="11"/>
+        <Setter Property="Background"        Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin"            Value="0,0,8,0"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiListRowStyle" TargetType="Border" BasedOn="{StaticResource PiSlimRowStyle}">
+        <Setter Property="BorderBrush"     Value="{DynamicResource DividerBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="CornerRadius"    Value="0"/>
+        <Setter Property="Padding"         Value="8,7"/>
+        <Setter Property="Margin"          Value="0"/>
+    </Style>
+
+    <Style x:Key="PiLetterheadZoneStyle" TargetType="Border" BasedOn="{StaticResource SurfacePrimaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfaceTertiaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="12"/>
+        <Setter Property="MinHeight"       Value="56"/>
+        <Setter Property="Padding"         Value="12,8"/>
+        <Setter Property="Margin"          Value="0,0,0,14"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiMetricStripStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource DividerBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding"         Value="4,8"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiCostTileStyle" TargetType="Border" BasedOn="{StaticResource SurfaceDetailStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="12"/>
+        <Setter Property="Padding"         Value="10,8"/>
+        <Setter Property="Margin"          Value="0,0,6,0"/>
+        <Setter Property="Effect"          Value="{StaticResource ShadowSoft}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiLayerTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource TextCaption}"/>
+        <Setter Property="FontWeight"        Value="Bold"/>
+        <Setter Property="Foreground"        Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="MinWidth"          Value="108"/>
+    </Style>
+
+    <Style x:Key="PiSpecLineStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <Style x:Key="PiStickyApplyBarStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        <Setter Property="Padding"         Value="12,8"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiVerticalRuleStyle" TargetType="Border" BasedOn="{StaticResource SurfaceDetailStyle}">
+        <Setter Property="Width"      Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource DividerBrush}"/>
+        <Setter Property="Margin"     Value="10,0"/>
+    </Style>
+
+    <Style x:Key="PiTableHeaderStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfaceTertiaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding"         Value="10,6"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiDatePickerStyle" TargetType="DatePicker">
+        <Setter Property="Background"               Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="Foreground"               Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderThickness"          Value="1"/>
+        <Setter Property="BorderBrush"              Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="FontSize" Value="{StaticResource TextBodyLarge}"/>
+        <Setter Property="Padding"                  Value="10,0"/>
+        <Setter Property="Height"                   Value="34"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush"     Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="BorderThickness" Value="2"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PiComboBoxStyle" TargetType="ComboBox">
+        <Setter Property="Template" Value="{StaticResource Themed.ComboBoxTemplate}"/>
+        <Setter Property="Background"               Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="Foreground"               Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderThickness"          Value="1"/>
+        <Setter Property="BorderBrush"              Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="FontSize" Value="{StaticResource TextBodyLarge}"/>
+        <Setter Property="Padding"                  Value="12,0"/>
+        <Setter Property="Height"                   Value="34"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush"     Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="BorderThickness" Value="2"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PiEditableComboBoxStyle" TargetType="ComboBox"
+           BasedOn="{StaticResource PiComboBoxStyle}">
+        <Setter Property="Template" Value="{StaticResource Themed.EditableComboBoxTemplate}"/>
+        <Setter Property="IsEditable"          Value="True"/>
+        <Setter Property="IsTextSearchEnabled" Value="True"/>
+        <Setter Property="TextSearch.TextPath" Value="."/>
+    </Style>
+
+    <Style x:Key="PiSpecTabControlStyle" TargetType="TabControl">
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding"         Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment"   Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid KeyboardNavigation.TabNavigation="Local">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TabPanel x:Name="HeaderPanel"
+                                  Grid.Row="0"
+                                  IsItemsHost="True"
+                                  Margin="0,0,80,4"/>
+                        <ContentPresenter x:Name="PART_SelectedContentHost"
+                                          Grid.Row="1"
+                                          ContentSource="SelectedContent"
+                                          Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="TabItem">
+                    <Setter Property="Padding"    Value="12,6"/>
+                    <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="{DynamicResource SecondaryForegroundBrush}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border x:Name="TabBd"
+                                        Background="Transparent"
+                                        BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                        BorderThickness="{DynamicResource Border.BottomHairlineThickness}"
+                                        Padding="{TemplateBinding Padding}"
+                                        Margin="0,0,8,0"
+                                        SnapsToDevicePixels="True">
+                                    <ContentPresenter ContentSource="Header"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="TabBd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="TabBd" Property="Background" Value="{DynamicResource SurfaceTertiaryBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Text-link button. Underline lives on the content TextBlock —
+         TextDecorations is not an attached property on ContentPresenter. -->
+    <Style x:Key="PiViewAllLinkStyle" TargetType="Button">
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Padding"         Value="0"/>
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="FontWeight"      Value="SemiBold"/>
+        <Setter Property="Foreground"      Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter HorizontalAlignment="Left"
+                                      VerticalAlignment="Center"
+                                      RecognizesAccessKey="True"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource AccentHoverBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PiGhostChipButton" TargetType="Button">
+        <Setter Property="Height"          Value="34"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding"         Value="0"/>
+        <Setter Property="Foreground"      Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="FontWeight"      Value="Bold"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                            Background="Transparent"
+                            BorderBrush="{DynamicResource AccentBrush}"
+                            BorderThickness="{DynamicResource Border.HairlineThickness}"
+                            CornerRadius="{DynamicResource Radius.None}"
+                            Padding="10,4"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background"
+                                    Value="{DynamicResource TintIndigoBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PiBandTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource TextCaption}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryForegroundBrush}"/>
+        <Setter Property="Margin"     Value="0,12,0,6"/>
+    </Style>
+
+    <Style x:Key="PiInlineMetaStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryForegroundBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- ══ INDUSTRIAL STATION DECK ══════════════════════════════════ -->
+
+    <Style x:Key="PiStationRailStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,1,0"/>
+        <Setter Property="Padding"         Value="10,12"/>
+        <Setter Property="Width"           Value="176"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiStationHeaderBarStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding"         Value="16,10"/>
+        <Setter Property="MinHeight"       Value="56"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiWorkDeckStyle" TargetType="Border" BasedOn="{StaticResource SurfacePrimaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfaceTertiaryBrush}"/>
+        <Setter Property="CornerRadius"    Value="0"/>
+        <Setter Property="Padding"         Value="8,4"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiZonePlateStyle" TargetType="Border" BasedOn="{StaticResource PiWorkSurfaceStyle}">
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+
+    <Style x:Key="PiZoneHeaderStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfaceTertiaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding"         Value="14,8"/>
+        <Setter Property="MinHeight"       Value="34"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiVaultHeaderStyle" TargetType="Border" BasedOn="{StaticResource PiZoneHeaderStyle}"/>
+
+    <Style x:Key="PiProductViewportStyle" TargetType="Border" BasedOn="{StaticResource SurfacePrimaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfacePrimaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="18"/>
+        <Setter Property="ClipToBounds"    Value="True"/>
+        <Setter Property="Effect"          Value="{StaticResource ShadowSoft}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiCommandFooterStyle" TargetType="Border" BasedOn="{StaticResource PiFooterBarStyle}">
+        <Setter Property="Height"  Value="52"/>
+        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="Effect"  Value="{StaticResource GlassShadowSoft}"/>
+    </Style>
+
+    <Style x:Key="PiProgressTrackStyle" TargetType="ProgressBar">
+        <Setter Property="Height"     Value="4"/>
+        <Setter Property="Minimum"    Value="0"/>
+        <Setter Property="Maximum"    Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceTertiaryBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <!-- Global iPhone-style ON/OFF pill. Theme-aware: off = muted track,
+         on = AccentBrush. Used for PI charge rows, VAT, terms, P&L. -->
+    <Style x:Key="PiToggleSwitch" TargetType="ToggleButton">
+        <Setter Property="Width"               Value="52"/>
+        <Setter Property="Height"              Value="26"/>
+        <Setter Property="Cursor"              Value="Hand"/>
+        <Setter Property="BorderThickness"     Value="0"/>
+        <Setter Property="Background"          Value="{DynamicResource NeutralBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="UseLayoutRounding"   Value="True"/>
+        <Setter Property="FocusVisualStyle"    Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Track"
+                                CornerRadius="{DynamicResource Radius.Large}"
+                                Background="{TemplateBinding Background}"
+                                SnapsToDevicePixels="True"/>
+                        <TextBlock x:Name="OffLabel" Text="OFF"
+                                   FontSize="{StaticResource TextXSmall}" FontWeight="Bold"
+                                   Foreground="{DynamicResource OnAccentForegroundBrush}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,7,0"
+                                   IsHitTestVisible="False"/>
+                        <TextBlock x:Name="OnLabel" Text="ON"
+                                   FontSize="{StaticResource TextXSmall}" FontWeight="Bold"
+                                   Foreground="{DynamicResource OnAccentForegroundBrush}"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center"
+                                   Margin="7,0,0,0"
+                                   Opacity="0"
+                                   IsHitTestVisible="False"/>
+                        <Ellipse x:Name="Thumb"
+                                 Width="20" Height="20"
+                                 Fill="{DynamicResource SurfacePrimaryBrush}"
+                                 HorizontalAlignment="Left"
+                                 Margin="3,0,0,0"
+                                 SnapsToDevicePixels="True">
+                            <Ellipse.RenderTransform>
+                                <TranslateTransform x:Name="ThumbTransform" X="0"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="OffLabel" Property="Opacity" Value="0"/>
+                            <Setter TargetName="OnLabel" Property="Opacity" Value="1"/>
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb"
+                                                         Storyboard.TargetProperty="RenderTransform.X"
+                                                         To="26" Duration="0:0:0.16">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb"
+                                                         Storyboard.TargetProperty="RenderTransform.X"
+                                                         To="0" Duration="0:0:0.16">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Track" Property="Opacity" Value="0.92"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Track" Property="BorderThickness" Value="2"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PiStationIdentityStyle" TargetType="Border" BasedOn="{StaticResource SurfaceSecondaryStyle}">
+        <Setter Property="Background"      Value="{DynamicResource SurfaceTertiaryBrush}"/>
+        <Setter Property="BorderBrush"     Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="CornerRadius"    Value="8,8,0,0"/>
+        <Setter Property="Padding"         Value="8,6,8,6"/>
+        <Setter Property="Margin"          Value="0,0,0,6"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="PiStationCodeStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Consolas"/>
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,10,0"/>
+    </Style>
+
+    <Style x:Key="PiStationTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource TextBodyLarge}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="PiStationHintStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource TextBody}"/>
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryForegroundBrush}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="12,0,0,0"/>
+    </Style>
+
+    <Style x:Key="PiIconButtonStyle" TargetType="Button">
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Padding"         Value="0"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg"
+                            Background="Transparent"
+                            CornerRadius="{DynamicResource Radius.None}"
+                            Padding="6,4">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background"
+                                    Value="{DynamicResource SurfaceTertiaryBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.35"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

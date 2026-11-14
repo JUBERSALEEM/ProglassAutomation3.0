@@ -1,0 +1,293 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:behaviors="clr-namespace:ProGlassAutomation.Behaviors"
+                    xmlns:local="clr-namespace:ProGlassAutomation.Views.Dashboard.Overview">
+    <!-- Indigo Studio: intentionally page-scoped. No app theme or other module's
+         card/button templates are replaced. No design-time/sample data ships here. -->
+    <local:EmptyDeliverySnapshotConverter x:Key="Ov.EmptyDelivery"/>
+    <SolidColorBrush x:Key="Ov.Canvas" Color="#F3F0FA"/>
+    <SolidColorBrush x:Key="Ov.Surface" Color="#FFFEFC"/>
+    <SolidColorBrush x:Key="Ov.Soft" Color="#EEE8F8"/>
+    <SolidColorBrush x:Key="Ov.Line" Color="#E2DBEF"/>
+    <SolidColorBrush x:Key="Ov.Ink" Color="#2C2440"/>
+    <SolidColorBrush x:Key="Ov.Muted" Color="#6B6078"/>
+    <SolidColorBrush x:Key="Ov.Accent" Color="#6546B5"/>
+    <SolidColorBrush x:Key="Ov.AccentHover" Color="#533698"/>
+    <SolidColorBrush x:Key="Ov.AreaEnd" Color="#B4A1E1"/>
+    <SolidColorBrush x:Key="Ov.OnAccent" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Ov.OnAccentMuted" Color="#E3DAF7"/>
+    <SolidColorBrush x:Key="Ov.Success" Color="#22714E"/>
+    <SolidColorBrush x:Key="Ov.Danger" Color="#B83E50"/>
+    <SolidColorBrush x:Key="Ov.DangerSoft" Color="#FBECEF"/>
+    <SolidColorBrush x:Key="Ov.Warning" Color="#92601F"/>
+    <SolidColorBrush x:Key="Ov.SuccessSoft" Color="#EAF4EF"/>
+    <SolidColorBrush x:Key="Ov.WarningSoft" Color="#FAF2E7"/>
+    <local:IndigoStatusBrushConverter x:Key="Ov.StatusBrush"
+        Accent="{StaticResource Ov.Accent}" AccentSoft="{StaticResource Ov.Soft}"
+        Success="{StaticResource Ov.Success}" SuccessSoft="{StaticResource Ov.SuccessSoft}"
+        Danger="{StaticResource Ov.Danger}" DangerSoft="{StaticResource Ov.DangerSoft}"
+        Warning="{StaticResource Ov.Warning}" WarningSoft="{StaticResource Ov.WarningSoft}"
+        Neutral="{StaticResource Ov.Muted}" NeutralSoft="{StaticResource Ov.Soft}"/>
+    <LinearGradientBrush x:Key="Ov.Hero" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#6744B9" Offset="0"/>
+        <GradientStop Color="#493080" Offset="1"/>
+    </LinearGradientBrush>
+
+    <Style x:Key="Ov.Text" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="{DynamicResource Ov.Ink}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style x:Key="Ov.Title" TargetType="TextBlock" BasedOn="{StaticResource Ov.Text}">
+        <Setter Property="FontSize" Value="32"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style x:Key="Ov.CardTitle" TargetType="TextBlock" BasedOn="{StaticResource Ov.Text}">
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style x:Key="Ov.Meta" TargetType="TextBlock" BasedOn="{StaticResource Ov.Text}">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{DynamicResource Ov.Muted}"/>
+    </Style>
+    <Style x:Key="Ov.Value" TargetType="TextBlock" BasedOn="{StaticResource Ov.Text}">
+        <Setter Property="FontSize" Value="30"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+    <Style x:Key="Ov.Glyph" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="Foreground" Value="{DynamicResource Ov.Accent}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+    <!-- Face and edge follow Appearance. A plate used to miss these cards
+         because Ov.Surface is a fixed studio white, and aliased snapping
+         dropped the corner arc of the edge colour. -->
+    <Style x:Key="Ov.Card" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Appearance.StudioFace}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Appearance.StudioEdge}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="18"/>
+        <Setter Property="Padding" Value="24"/>
+        <Setter Property="SnapsToDevicePixels" Value="False"/>
+        <Setter Property="RenderOptions.EdgeMode" Value="Unspecified"/>
+        <Setter Property="behaviors:RoundedEdgeStrokeBehavior.IsEnabled" Value="True"/>
+    </Style>
+    <Style x:Key="Ov.CardCompact" TargetType="Border" BasedOn="{StaticResource Ov.Card}">
+        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="Padding" Value="16,14"/>
+    </Style>
+    <Style x:Key="Ov.CardMicro" TargetType="Border" BasedOn="{StaticResource Ov.Card}">
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="14,12"/>
+    </Style>
+    <Style x:Key="Ov.IconBox" TargetType="Border">
+        <Setter Property="Width" Value="34"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Background" Value="{DynamicResource Ov.Soft}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="Ov.Focus" TargetType="Control">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Control">
+                    <Border BorderBrush="{DynamicResource Ov.Accent}" BorderThickness="2"
+                            CornerRadius="10" Margin="-3"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="Ov.Button" TargetType="Button">
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Ov.Ink}"/>
+        <Setter Property="Background" Value="{DynamicResource Ov.Surface}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Ov.Line}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="16,10"/>
+        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource Ov.Focus}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="10" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Ov.Accent}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Ov.Accent}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.78"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.45"/>
+                            <Setter Property="Cursor" Value="Arrow"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="Ov.PrimaryButton" TargetType="Button" BasedOn="{StaticResource Ov.Button}">
+        <Setter Property="Background" Value="{DynamicResource Ov.Accent}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Ov.OnAccent}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Ov.Accent}"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Ov.AccentHover}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Ov.KpiHost" TargetType="ItemsControl">
+        <!-- Stack every item, including Delivery's fifth row. Never cap item count. -->
+        <Setter Property="ItemsPanel">
+            <Setter.Value><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></Setter.Value>
+        </Setter>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    </Style>
+    <DataTemplate x:Key="Ov.KpiTemplate">
+        <Border Padding="0,13" BorderBrush="{DynamicResource Ov.Line}" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Icon}" Style="{StaticResource Ov.Glyph}" FontSize="10" HorizontalAlignment="Left"
+                           Foreground="{Binding Accent, Converter={StaticResource Ov.StatusBrush}}"/>
+                <TextBlock x:Name="Label" Grid.Column="1" Text="{Binding Title}" Style="{StaticResource Ov.Meta}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <Viewbox Grid.Column="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="Value" Text="{Binding DisplayValue}" Style="{StaticResource Ov.Value}" FontSize="16"/>
+                </Viewbox>
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding SubLabel}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Ov.Meta}">
+                            <Setter Property="Margin" Value="16,6,0,0"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SubLabel}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Title}" Value="Invoices"><Setter TargetName="Label" Property="Text" Value="Proformas"/></DataTrigger>
+            <DataTrigger Binding="{Binding Title}" Value="Preparing"><Setter TargetName="Label" Property="Text" Value="Preparing notes"/></DataTrigger>
+            <DataTrigger Binding="{Binding Title}" Value="Dispatched"><Setter TargetName="Label" Property="Text" Value="Sent out notes"/></DataTrigger>
+            <DataTrigger Binding="{Binding IsAlert}" Value="True"><Setter TargetName="Value" Property="Foreground" Value="{DynamicResource Ov.Danger}"/></DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    <DataTemplate x:Key="Ov.DeliveryTemplate">
+        <!-- Preserve DeliveryMixSlices, but never sum notes and pieces into a donut. -->
+        <Border Background="{DynamicResource Ov.Soft}" CornerRadius="12" Padding="10,16" Margin="5">
+            <StackPanel>
+                <TextBlock x:Name="Label" Text="{Binding Label}" Style="{StaticResource Ov.Meta}" MinHeight="34"/>
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
+                    <TextBlock Text="{Binding ValueDisplay}" Style="{StaticResource Ov.Value}" FontSize="24"/>
+                </Viewbox>
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <!-- View-only wording: Dispatched includes notes already delivered. -->
+            <DataTrigger Binding="{Binding Label}" Value="Dispatched"><Setter TargetName="Label" Property="Text" Value="Sent out · notes"/></DataTrigger>
+            <DataTrigger Binding="{Binding Label}" Value="Preparing"><Setter TargetName="Label" Property="Text" Value="Preparing · notes"/></DataTrigger>
+            <DataTrigger Binding="{Binding Label}" Value="Delivered pcs"><Setter TargetName="Label" Property="Text" Value="Delivered · pieces"/></DataTrigger>
+            <DataTrigger Binding="{Binding Label}" Value="Pending pcs"><Setter TargetName="Label" Property="Text" Value="Pending · pieces"/></DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    <DataTemplate x:Key="Ov.FeedTemplate">
+        <Border BorderBrush="{DynamicResource Ov.Line}" BorderThickness="0,1,0,0" Padding="0,14">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource Ov.IconBox}" VerticalAlignment="Top">
+                    <TextBlock Text="{Binding Icon}" Style="{StaticResource Ov.Glyph}" FontSize="16"/>
+                </Border>
+                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                    <TextBlock Text="{Binding Title}" ToolTip="{Binding Title}" Style="{StaticResource Ov.Text}"
+                               FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding SubTitle}" Style="{StaticResource Ov.Meta}" Margin="0,4,0,6"/>
+                    <WrapPanel>
+                        <TextBlock Text="{Binding ValueDisplay}" Style="{StaticResource Ov.Text}" FontWeight="SemiBold" Margin="0,2,10,4"/>
+                        <Border Background="{Binding TintColor, Converter={StaticResource Ov.StatusBrush}}"
+                                CornerRadius="6" Padding="8,3" Margin="0,0,0,4">
+                            <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{Binding StatusColor, Converter={StaticResource Ov.StatusBrush}}" TextWrapping="Wrap"/>
+                        </Border>
+                    </WrapPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="Ov.StageTemplate">
+        <Grid Margin="5">
+            <Border x:Name="Stage" Background="{DynamicResource Ov.Soft}" BorderBrush="{DynamicResource Ov.Line}"
+                    BorderThickness="1" CornerRadius="12" Padding="12" MinHeight="118">
+                <StackPanel>
+                    <DockPanel LastChildFill="True">
+                        <TextBlock x:Name="StageGlyph" Text="{Binding Glyph}" Style="{StaticResource Ov.Glyph}" FontSize="14" Margin="0,0,8,0"/>
+                        <TextBlock x:Name="StageName" Text="{Binding Name}" Style="{StaticResource Ov.Text}" FontWeight="SemiBold"/>
+                    </DockPanel>
+                    <Viewbox HorizontalAlignment="Left" Stretch="Uniform" StretchDirection="DownOnly" Margin="0,8,0,6">
+                        <TextBlock x:Name="StageValue" Text="{Binding ValueDisplay}" Style="{StaticResource Ov.Value}" FontSize="24"/>
+                    </Viewbox>
+                    <TextBlock x:Name="Foot" Text="{Binding Foot}" Style="{StaticResource Ov.Meta}"/>
+                </StackPanel>
+            </Border>
+            <TextBlock x:Name="Connector" Text="›" Foreground="{DynamicResource Ov.Accent}" FontSize="22"
+                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-10,0,0,0" IsHitTestVisible="False"/>
+        </Grid>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding PipelineColumns, RelativeSource={RelativeSource AncestorType={x:Type local:OverviewDashboardView}}}" Value="1">
+                <Setter TargetName="Connector" Property="Text" Value="⌄"/>
+                <Setter TargetName="Connector" Property="HorizontalAlignment" Value="Center"/>
+                <Setter TargetName="Connector" Property="VerticalAlignment" Value="Top"/>
+                <Setter TargetName="Connector" Property="Margin" Value="0,-17,0,0"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsFirst}" Value="True"><Setter TargetName="Connector" Property="Visibility" Value="Collapsed"/></DataTrigger>
+            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                <Setter TargetName="Foot" Property="FontWeight" Value="SemiBold"/>
+                <Setter TargetName="Foot" Property="Foreground" Value="{Binding AccentKey, Converter={StaticResource Ov.StatusBrush}}"/>
+                <Setter TargetName="Stage" Property="BorderBrush" Value="{Binding AccentKey, Converter={StaticResource Ov.StatusBrush}}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Name}" Value="Quote">
+                <Setter TargetName="Stage" Property="Background" Value="{DynamicResource Ov.AccentHover}"/>
+                <Setter TargetName="StageName" Property="Foreground" Value="{DynamicResource Ov.OnAccent}"/>
+                <Setter TargetName="StageGlyph" Property="Foreground" Value="{DynamicResource Ov.OnAccent}"/>
+                <Setter TargetName="StageValue" Property="Foreground" Value="{DynamicResource Ov.OnAccent}"/>
+                <Setter TargetName="Foot" Property="Foreground" Value="{DynamicResource Ov.OnAccentMuted}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Name}" Value="Production">
+                <Setter TargetName="Stage" Property="Background" Value="{DynamicResource Ov.Accent}"/>
+                <Setter TargetName="StageName" Property="Foreground" Value="{DynamicResource Ov.OnAccent}"/>
+                <Setter TargetName="StageGlyph" Property="Foreground" Value="{DynamicResource Ov.OnAccent}"/>
+                <Setter TargetName="StageValue" Property="Foreground" Value="{DynamicResource Ov.OnAccent}"/>
+                <Setter TargetName="Foot" Property="Foreground" Value="{DynamicResource Ov.OnAccentMuted}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Name}" Value="Delivery">
+                <Setter TargetName="Stage" Property="Background" Value="{DynamicResource Ov.AreaEnd}"/>
+                <Setter TargetName="Foot" Property="Foreground" Value="{DynamicResource Ov.Ink}"/>
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    <Style x:Key="Ov.Skeleton" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Ov.Soft}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Height" Value="18"/>
+        <Setter Property="Margin" Value="0,0,0,14"/>
+    </Style>
+</ResourceDictionary>

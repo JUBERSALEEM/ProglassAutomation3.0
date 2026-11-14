@@ -1,0 +1,23 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Studio Bento popup palette: detached visual tree resource contract. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    <SolidColorBrush x:Key="ModuleBackgroundBrush" Color="{Binding Color, Source={StaticResource Ov.Surface}}"/>
+    <SolidColorBrush x:Key="SurfaceSecondaryBrush" Color="{Binding Color, Source={StaticResource Ov.Surface}}"/>
+    <SolidColorBrush x:Key="PopupSurfaceBrush" Color="{Binding Color, Source={StaticResource Ov.Surface}}"/>
+    <SolidColorBrush x:Key="OutlineBrush" Color="{Binding Color, Source={StaticResource Ov.Line}}"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="{Binding Color, Source={StaticResource Ov.Line}}"/>
+    <SolidColorBrush x:Key="BorderFocusBrush" Color="{Binding Color, Source={StaticResource Ov.Accent}}"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="{Binding Color, Source={StaticResource Ov.Accent}}"/>
+    <SolidColorBrush x:Key="MenuHoverBrush" Color="{Binding Color, Source={StaticResource Ov.Soft}}"/>
+    <SolidColorBrush x:Key="TintIndigoBrush" Color="{Binding Color, Source={StaticResource Ov.Soft}}"/>
+    <SolidColorBrush x:Key="PrimaryForegroundBrush" Color="{Binding Color, Source={StaticResource Ov.Ink}}"/>
+    <SolidColorBrush x:Key="SecondaryForegroundBrush" Color="{Binding Color, Source={StaticResource Ov.Muted}}"/>
+    <SolidColorBrush x:Key="MutedForegroundBrush" Color="{Binding Color, Source={StaticResource Ov.Muted}}"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{Binding Color, Source={StaticResource Ov.Ink}}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{Binding Color, Source={StaticResource Ov.Muted}}"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{Binding Color, Source={StaticResource Ov.Muted}}"/>
+    <SolidColorBrush x:Key="OnAccentForegroundBrush" Color="{Binding Color, Source={StaticResource Ov.OnAccent}}"/>
+</ResourceDictionary>
