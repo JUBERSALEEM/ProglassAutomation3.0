@@ -42,7 +42,7 @@ namespace ProGlassAutomation.ViewModels.Proforma
             IReadOnlyList<StageStatus> statuses = _workspace.StageStatuses;
             if (Stages.Count == 0)
             {
-                foreach (InvoiceStage stage in Enum.GetValues<InvoiceStage>().Distinct())
+                foreach (InvoiceStage stage in new[] { InvoiceStage.Company, InvoiceStage.Client, InvoiceStage.Project, InvoiceStage.Pricing, InvoiceStage.SpecGrid, InvoiceStage.OtherCharges, InvoiceStage.Summary, InvoiceStage.Attachments, InvoiceStage.ProfitLoss })
                 {
                     Stages.Add(new ProformaStageChip
                     {
