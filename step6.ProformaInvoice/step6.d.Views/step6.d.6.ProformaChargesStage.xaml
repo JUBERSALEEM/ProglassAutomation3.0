@@ -82,13 +82,19 @@
                     <DataGridTemplateColumn Header="METRIC">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
+                                <TextBlock Text="{Binding MetricText}"
+                                           ToolTip="{Binding MetricText}"
+                                           Style="{StaticResource ListText}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
                                 <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
                                           ItemsSource="{Binding AvailableMetrics}"
                                           SelectedItem="{Binding Metric, Mode=TwoWay}"
-                                          ToolTip="{Binding MetricText}"
-                                          MinWidth="120" />
+                                          MinWidth="150" />
                             </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="TARGET SPECS"
                                         Binding="{Binding TargetGroupsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
