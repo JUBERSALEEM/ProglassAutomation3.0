@@ -38,7 +38,8 @@ namespace ProGlassAutomation.Services.Proforma
         float CellPaddingX,
         float CellPaddingY,
         bool ZebraRows,
-        bool TableGrid);
+        bool TableGrid,
+        bool RepeatTitleInBody);
 
     /// <summary>The five owner-facing PDF styles; none changes the document's content order.</summary>
     public static class ProformaPdfStyles
@@ -50,7 +51,7 @@ namespace ProGlassAutomation.Services.Proforma
                 "Formal commercial navy with a restrained brass accent.",
                 "#0B2E59", "#071E3B", "#E9EEF6", "#14202E", "#5B6B7E",
                 "#D5DDE7", "#F4F7FB", "#FFFFFF", "#FFFFFF", "#C9A227",
-                16f, 9.5f, 16f, 8f, 5.5f, 3.6f, true, false),
+                16f, 9.5f, 16f, 8f, 5.5f, 3.6f, true, false, false, false),
             new ProformaPdfStyle(
                 "ModernTeal", ProformaPdfLayoutKind.SplitConsole, "Modern Teal", "MODERN",
                 "Airy teal and cyan styling for everyday quotations.",
@@ -68,7 +69,7 @@ namespace ProGlassAutomation.Services.Proforma
                 "Dense graphite and safety amber with a full table grid.",
                 "#2E3A46", "#131C26", "#E8EDF2", "#17212B", "#536170",
                 "#C6D2DD", "#F2F5F7", "#FFFFFF", "#FFFFFF", "#F59E0B",
-                13f, 8f, 12.5f, 7.6f, 4.2f, 2.8f, true, true),
+                13f, 8f, 12.5f, 7.6f, 4.2f, 2.8f, true, true, true),
             new ProformaPdfStyle(
                 "MinimalIvory", ProformaPdfLayoutKind.QuietForm, "Minimal Ivory", "MINIMAL",
                 "Quiet ivory paper, charcoal hairlines and generous whitespace.",
