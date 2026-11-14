@@ -140,7 +140,9 @@ Four builds, the trade's own vocabulary:
   rather than multiplying the whole grid length blindly. The legacy's
   per-edge `PolishSubType` selector is still a parity gap: V3 currently uses
   full-edge polish length. It never infers drawing-dependent holes/cutouts from
-  dimensions, and delivery remains an operator-entered decision.
+  dimensions, and delivery remains an operator-entered decision. U-Insert uses the V3 invoice-level
+  charge-catalogue rate; the legacy Step 4 per-spec U-Insert rate has not yet
+  been added to the V3 pricing-section snapshot.
 - Wastage rows remain aggregated by colour in V3. Clear-glass wastage is marked
   optional with a reason because offcuts may be reusable; coloured/coated glass
   explains why offcuts are less reusable. The editable sheet quantity is read by
