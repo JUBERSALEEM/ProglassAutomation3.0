@@ -25,6 +25,10 @@ namespace ProGlassAutomation.Step6Tests
 
         private static void ChargeAutomation()
         {
+            Check("spaced DGU + LAM labels normalize as the compound build",
+                GlassBuilds.Normalize("DGU + LAM") == GlassBuilds.DguLam
+                && OtherChargeAutomation.EffectiveGlassType("", "DGU + LAM") == GlassBuilds.DguLam);
+
             var group = new SpecGroup
             {
                 GroupNumber = 1,
