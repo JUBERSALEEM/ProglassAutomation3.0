@@ -123,6 +123,23 @@ namespace ProGlassAutomation.Models.Proforma
         [JsonIgnore]
         public decimal TotalLm => Math.Round(Rows.Sum(row => row.TotalLm), 3);
 
+        /// <summary>Regular polish excludes matched double-glass groups so two polish rows cannot bill the same unit twice.</summary>
+        [JsonIgnore]
+        public decimal PolishLm
+        {
+            get
+            {
+                string build = GlassBuilds.Normalize(GlassType);
+                bool doubleGlass = build == GlassBuilds.Dgu || build == GlassBuilds.Lam
+                    || build == GlassBuilds.DguLam;
+                bool matchedDouble = doubleGlass && IsMatchedSameGlass;
+                bool lamLike = build == GlassBuilds.Lam || build == GlassBuilds.DguLam;
+                bool polishNamed = (SpecName ?? "").IndexOf("POLISH", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool hasPaneColour = !string.IsNullOrWhiteSpace(OuterGlassColor);
+                return !matchedDouble && (lamLike || polishNamed || hasPaneColour) ? TotalLm : 0m;
+            }
+        }
+
         /// <summary>Matched double-glass units polish both measured panes; when W2/H2 is absent the same panel is counted twice.</summary>
         [JsonIgnore]
         public decimal MatchedPolishLm
@@ -298,6 +315,7 @@ namespace ProGlassAutomation.Models.Proforma
         public int GroupCount { get; init; }
         public decimal TotalSqm { get; init; }
         public decimal TotalLm { get; init; }
+        public decimal PolishLm { get; init; }
         public decimal MatchedPolishLm { get; init; }
         public int TotalPieces { get; init; }
         public decimal TotalValue { get; init; }
@@ -310,6 +328,7 @@ namespace ProGlassAutomation.Models.Proforma
                 GroupCount = list.Count,
                 TotalSqm = MoneyRounding.RoundArea(list.Sum(group => group.TotalSqm)),
                 TotalLm = Math.Round(list.Sum(group => group.TotalLm), 3),
+                PolishLm = Math.Round(list.Sum(group => group.PolishLm), 3),
                 MatchedPolishLm = Math.Round(list.Sum(group => group.MatchedPolishLm), 3),
                 TotalPieces = list.Sum(group => group.TotalPieces),
                 TotalValue = MoneyRounding.Round(list.Sum(group => group.TotalValue))
