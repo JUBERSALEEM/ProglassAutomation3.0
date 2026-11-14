@@ -86,6 +86,8 @@ namespace ProGlassAutomation.Models.Proforma
         public string SpecName { get; set; } = "";
         /// <summary>Per-group polish edge selection; Auto reads the specification wording.</summary>
         public PolishSubType PolishSubType { get; set; } = global::ProGlassAutomation.Models.Proforma.PolishSubType.Auto;
+        /// <summary>Manual linear metres used only when PolishSubType is Custom.</summary>
+        public decimal CustomPolishQuantity { get; set; }
 
         public string OuterGlassColor { get; set; } = "";
         public string InnerGlassColor { get; set; } = "";
@@ -244,6 +246,7 @@ namespace ProGlassAutomation.Models.Proforma
             GlassType = GlassType,
             SpecName = SpecName,
             PolishSubType = PolishSubType,
+            CustomPolishQuantity = CustomPolishQuantity,
             OuterGlassColor = OuterGlassColor,
             InnerGlassColor = InnerGlassColor,
             ThirdGlassColor = ThirdGlassColor,

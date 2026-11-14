@@ -1,4 +1,3 @@
-using System;
 using ProGlassAutomation.Models.Proforma;
 
 namespace ProGlassAutomation.Step6Tests
@@ -7,53 +6,57 @@ namespace ProGlassAutomation.Step6Tests
     {
         private static void PolishSubtypeChecks()
         {
-            Eq("all-side polish", 6m,
-                PolishMetricCalculator.CalculatePanel(1000, 2000, PolishSubType.AllSidePolish));
-            Eq("both-height polish", 4m,
-                PolishMetricCalculator.CalculatePanel(1000, 2000, PolishSubType.BothHeightSide));
-            Eq("both-width polish", 2m,
-                PolishMetricCalculator.CalculatePanel(1000, 2000, PolishSubType.BothWidthSide));
-            Eq("both-height plus one width polish", 5m,
-                PolishMetricCalculator.CalculatePanel(1000, 2000, PolishSubType.BothHeightOneWidth));
-            Eq("one-height plus one-width polish", 3m,
-                PolishMetricCalculator.CalculatePanel(1000, 2000, PolishSubType.OneHeightOneWidth));
-            Eq("one-height polish", 2m,
-                PolishMetricCalculator.CalculatePanel(1000, 2000, PolishSubType.OneHeightSide));
-            Eq("one-width polish", 1m,
-                PolishMetricCalculator.CalculatePanel(1000, 2000, PolishSubType.OneWidthSide));
-
-            Check("spec-name detection preserves the DWG subtype",
-                PolishSubTypeInfo.Detect("Both Height Side Polish As Per DWG")
-                    == PolishSubType.BothHeightSideAsPerDwg);
-
-            var mixed = new SpecGroup
+            var group = new SpecGroup
             {
-                GroupNumber = 1, GlassType = GlassBuilds.Dgu,
-                OuterGlassColor = "Clear", InnerGlassColor = "Grey",
-                PolishSubType = PolishSubType.BothHeightSide
+                GroupNumber = 1, GlassType = GlassBuilds.Sgu, SpecName = "Custom glass",
+                OuterGlassColor = "Clear"
             };
-            mixed.Rows.Add(new SpecRow
+            group.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, Qty = 1 });
+            Check("all-side polish is 6 lm", PolishMetricCalculator.CalculateRegular(group) == 6m);
+            group.PolishSubType = PolishSubType.BothHeightSide;
+            Check("both-height polish is 4 lm", group.PolishLm == 4m);
+            group.PolishSubType = PolishSubType.BothWidthSide;
+            Check("both-width polish is 2 lm", group.PolishLm == 2m);
+            group.PolishSubType = PolishSubType.BothHeightOneWidth;
+            Check("two heights and one width polish is 5 lm", group.PolishLm == 5m);
+            group.PolishSubType = PolishSubType.OneHeightOneWidth;
+            Check("one height and one width polish is 3 lm", group.PolishLm == 3m);
+            group.PolishSubType = PolishSubType.OneHeightSide;
+            Check("one-height polish is 2 lm", group.PolishLm == 2m);
+            group.PolishSubType = PolishSubType.OneWidthSide;
+            Check("one-width polish is 1 lm", group.PolishLm == 1m);
+            group.PolishSubType = PolishSubType.AllSidePolishAsPerDwg;
+            Check("as-per-drawing formula matches the legacy measured formula", group.PolishLm == 6m);
+            group.PolishSubType = PolishSubType.Custom;
+            group.CustomPolishQuantity = 7.25m;
+            Check("custom polish uses its manual quantity", group.PolishLm == 7.25m);
+            Check("custom quantity survives a group clone", group.Clone().CustomPolishQuantity == 7.25m);
+
+            var automatic = group.Clone();
+            automatic.PolishSubType = PolishSubType.Auto;
+            automatic.CustomPolishQuantity = 0m;
+            automatic.SpecName = "Both Height + One Width Side Polish As Per DWG";
+            Check("Auto detects drawing-based edge formula", automatic.PolishLm == 5m);
+            automatic.SpecName = "One Width Side Polish";
+            Check("Auto detects one-width-only polishing", automatic.PolishLm == 1m);
+
+            var dgu = new SpecGroup
             {
-                SerialNumber = 1, W1 = 1000, H1 = 2000,
-                W2 = 900, H2 = 1900, Qty = 2
-            });
-            Eq("mixed DGU uses selected edge subtype on both measured panes",
-                15.6m, mixed.PolishLm);
-
-            var matched = mixed.Clone();
-            matched.GroupNumber = 2;
+                GroupNumber = 2, GlassType = GlassBuilds.Dgu, SpecName = "DGU 6+6",
+                OuterGlassColor = "Clear", InnerGlassColor = "Grey",
+                PolishSubType = PolishSubType.AllSidePolish
+            };
+            dgu.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, W2 = 900, H2 = 1800, Qty = 2 });
+            Check("unmatched DGU counts polish on both measured panes",
+                dgu.PolishLm == 22.8m && dgu.MatchedPolishLm == 0m);
+            var matched = dgu.Clone();
             matched.InnerGlassColor = "Clear";
-            Eq("matched DGU uses both measured panes for selected subtype",
-                15.6m, matched.MatchedPolishLm);
-
-            matched.Rows[0].W2 = 0;
-            matched.Rows[0].H2 = 0;
-            Eq("matched DGU counts first pane twice when second dimensions are absent",
-                16m, matched.MatchedPolishLm);
-
-            matched.PolishSubType = PolishSubType.Custom;
-            Eq("custom polish leaves quantity to the manual charge metric",
-                0m, matched.MatchedPolishLm);
+            Check("matched DGU moves both panes to matched polish",
+                matched.PolishLm == 0m && matched.MatchedPolishLm == 22.8m);
+            matched.Rows[0].W2 = 0; matched.Rows[0].H2 = 0;
+            Check("matched DGU without second dimensions counts pane one twice",
+                matched.MatchedPolishLm == 24m);
+            Check("all legacy polish choices are available", PolishSubTypeInfo.All.Count == 14);
         }
     }
 }
