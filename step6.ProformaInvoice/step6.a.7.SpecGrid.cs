@@ -123,6 +123,44 @@ namespace ProGlassAutomation.Models.Proforma
         [JsonIgnore]
         public decimal TotalLm => Math.Round(Rows.Sum(row => row.TotalLm), 3);
 
+        /// <summary>Matched double-glass units polish both measured panes; when W2/H2 is absent the same panel is counted twice.</summary>
+        [JsonIgnore]
+        public decimal MatchedPolishLm
+        {
+            get
+            {
+                string build = GlassBuilds.Normalize(GlassType);
+                bool doubleGlass = build == GlassBuilds.Dgu || build == GlassBuilds.Lam
+                    || build == GlassBuilds.DguLam;
+                if (!doubleGlass || !IsMatchedSameGlass) return 0m;
+
+                decimal total = 0m;
+                foreach (SpecRow row in Rows)
+                {
+                    if (row.Qty <= 0 || row.W1 <= 0 || row.H1 <= 0) continue;
+                    decimal first = GlassMeasure.PanelLm(row.W1, row.H1);
+                    decimal second = row.W2 > 0 && row.H2 > 0
+                        ? GlassMeasure.PanelLm(row.W2, row.H2) : first;
+                    total += (first + second) * row.Qty;
+                }
+                return Math.Round(total, 3);
+            }
+        }
+
+        [JsonIgnore]
+        public bool IsMatchedSameGlass
+        {
+            get
+            {
+                string outer = (OuterGlassColor ?? "").Trim();
+                string inner = (InnerGlassColor ?? "").Trim();
+                string third = (ThirdGlassColor ?? "").Trim();
+                return outer.Length > 0
+                    && string.Equals(outer, inner, StringComparison.OrdinalIgnoreCase)
+                    && (third.Length == 0 || string.Equals(outer, third, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
         /// <summary>Every row priced at the group rate unless it carries an override.</summary>
         [JsonIgnore]
         public decimal TotalValue => MoneyRounding.Round(
@@ -260,6 +298,7 @@ namespace ProGlassAutomation.Models.Proforma
         public int GroupCount { get; init; }
         public decimal TotalSqm { get; init; }
         public decimal TotalLm { get; init; }
+        public decimal MatchedPolishLm { get; init; }
         public int TotalPieces { get; init; }
         public decimal TotalValue { get; init; }
 
@@ -271,6 +310,7 @@ namespace ProGlassAutomation.Models.Proforma
                 GroupCount = list.Count,
                 TotalSqm = MoneyRounding.RoundArea(list.Sum(group => group.TotalSqm)),
                 TotalLm = Math.Round(list.Sum(group => group.TotalLm), 3),
+                MatchedPolishLm = Math.Round(list.Sum(group => group.MatchedPolishLm), 3),
                 TotalPieces = list.Sum(group => group.TotalPieces),
                 TotalValue = MoneyRounding.Round(list.Sum(group => group.TotalValue))
             };
