@@ -48,11 +48,19 @@ namespace ProGlassAutomation.ViewModels.Proforma
                 await exporter.ExportAsync(Draft, SelectedPdfStyle, dialog.FileName);
                 SetStatus("PDF exported using " + SelectedPdfStyle.Name + ".");
                 ClearError();
-                Process.Start(new ProcessStartInfo
+                try
                 {
-                    FileName = dialog.FileName,
-                    UseShellExecute = true
-                });
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = dialog.FileName,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception openError)
+                {
+                    SetStatus("PDF saved, but the viewer could not be opened: "
+                        + openError.GetBaseException().Message);
+                }
             }
             catch (Exception error)
             {
