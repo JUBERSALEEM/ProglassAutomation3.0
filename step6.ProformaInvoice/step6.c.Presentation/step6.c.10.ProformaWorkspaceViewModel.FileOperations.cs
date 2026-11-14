@@ -95,7 +95,10 @@ namespace ProGlassAutomation.ViewModels.Proforma
                 }
 
                 if (target.SpecName.Length == 0 && importedSpecs.Length == 1)
+                {
                     target.SpecName = importedSpecs[0];
+                    target.HasManualSpecOverride = true;
+                }
 
                 foreach (ProformaGridImportRow imported in result.Rows)
                 {
