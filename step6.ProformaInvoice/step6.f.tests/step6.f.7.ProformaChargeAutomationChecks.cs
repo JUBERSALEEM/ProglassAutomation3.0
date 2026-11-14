@@ -179,6 +179,18 @@ namespace ProGlassAutomation.Step6Tests
             Check("polish metric migration preserves manual active state",
                 legacyPolishSheet.Predefined.All(row => !row.IsActive && row.HasManualActiveOverride));
 
+            var lamPerimeter = new SpecGroup
+            {
+                GroupNumber = 9, GlassType = GlassBuilds.Lam, SpecName = "LAM 6+6"
+            };
+            lamPerimeter.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, W2 = 1000, H2 = 2000, Qty = 1 });
+            var dguPerimeter = lamPerimeter.Clone();
+            dguPerimeter.GlassType = GlassBuilds.Dgu;
+            Check("legacy LAM applies perimeter factor four to both panes",
+                lamPerimeter.PerimeterFactor == 4 && lamPerimeter.TotalLm == 24m);
+            Check("DGU retains perimeter factor two",
+                dguPerimeter.PerimeterFactor == 2 && dguPerimeter.TotalLm == 12m);
+
             var uInsertA = new SpecGroup
             {
                 GroupNumber = 10, SpecName = "DGU + U-Insert", GlassType = GlassBuilds.Dgu,

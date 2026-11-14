@@ -132,8 +132,13 @@ namespace ProGlassAutomation.Models.Proforma
         [JsonIgnore]
         public int TotalPieces => Rows.Where(row => row.Qty > 0).Sum(row => row.Qty);
 
+        /// <summary>Legacy Step 5 factor: LAM uses four edge runs per pane; other builds use two.</summary>
         [JsonIgnore]
-        public decimal TotalLm => Math.Round(Rows.Sum(row => row.TotalLm), 3);
+        public int PerimeterFactor => GlassBuilds.Normalize(GlassType) == GlassBuilds.Lam ? 4 : 2;
+
+        [JsonIgnore]
+        public decimal TotalLm => Math.Round(
+            Rows.Sum(row => row.TotalLm) * PerimeterFactor / 2m, 3);
 
         /// <summary>Regular polish excludes matched double-glass groups so two polish rows cannot bill the same unit twice.</summary>
         [JsonIgnore]
