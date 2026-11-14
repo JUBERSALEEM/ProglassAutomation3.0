@@ -110,7 +110,7 @@ checks above remain mandatory before calling PDF export complete.
 | 6.1 | Import an XLSX file with REF/W1/H1/QTY headers | rows append to the selected group with the expected dimensions and quantities |
 | 6.2 | Import comma CSV, tab TXT, semicolon CSV with decimal commas, and dimension-pair shorthand | all valid rows parse; malformed/zero-quantity rows are skipped with a visible count |
 | 6.3 | Import scanner JSON | aliases for ref/spec/type/dimensions/qty are accepted; invalid JSON is reported |
-| 6.4 | Import a file with two different specification names or glass types | import is rejected without partial row mutation |
+| 6.4 | Import a file with multiple specification names or glass types that match existing groups | rows are mapped to the matching groups; unknown or ambiguous groups are rejected without partial row mutation |
 | 6.5 | Export invoice workbook without internal P&L | Summary, Specifications, Other Charges and Terms exist; no internal cost sheet exists |
 | 6.6 | Enable internal P&L and export workbook | red-marked Internal P&L and P&L Targets sheets are included |
 | 6.7 | Export cut-list CSV and register workbook | 13 columns, three-decimal areas, totals, and the current register filter are preserved |
