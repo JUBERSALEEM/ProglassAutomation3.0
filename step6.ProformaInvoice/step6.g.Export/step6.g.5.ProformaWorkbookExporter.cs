@@ -188,7 +188,7 @@ namespace ProGlassAutomation.Services.Proforma
             foreach (PredefinedChargeRow item in invoice.Charges.Predefined.Where(x => x.IsActive))
                 AddCharge(sheet, ref row, "Predefined", item.ChargeName, item.Quantity, item.UnitText, item.Rate, item.Amount);
             foreach (WastageChargeRow item in invoice.Charges.Wastages.Where(x => x.IsActive))
-                AddCharge(sheet, ref row, "Wastage", item.ColorName + " (" + item.SheetQuantity + " sheets)",
+                AddCharge(sheet, ref row, "Wastage", item.ColorName,
                     item.AreaSqm, "m²", item.EffectiveRate, item.Amount);
             foreach (CustomChargeRow item in invoice.Charges.Custom.Where(x => x.IsActive))
                 AddCharge(sheet, ref row, "Custom", item.ChargeName, item.Qty, item.UnitText, item.Rate, item.Amount);
