@@ -1,0 +1,68 @@
+<Window x:Class="ProGlassAutomation.Views.ProformaInvoice.SavedInvoicesList.SavedInvoicesListDialog"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed"
+             SnapsToDevicePixels="True"
+             UseLayoutRounding="True"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.SavedInvoicesList"
+        mc:Ignorable="d"
+        Title="{DynamicResource ProformaInvoice.LoadSavedProformaInvoice}"
+        Height="800"
+        Width="1400"
+        MinHeight="600"
+        MinWidth="1000"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="{DynamicResource AppFontFamily}"
+        Background="{DynamicResource Ov.Canvas}">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Embedded list UserControl -->
+        <local:SavedInvoicesListView x:Name="EmbeddedListView"
+                                     Grid.Row="0"/>
+
+        <!-- Footer bar — fixed: SideMenuBackgroundBrush + BorderBrush separator -->
+        <Border CornerRadius="{DynamicResource CardCornerRadius}" Grid.Row="1"
+                Background="{DynamicResource SideMenuBackgroundBrush}"
+                BorderThickness="{DynamicResource Border.TopHairlineThickness}"
+                BorderBrush="{DynamicResource BorderDefaultBrush}"
+                Padding="20,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Optional status hint -->
+                <TextBlock Grid.Column="0"
+                           Text="{DynamicResource ProformaInvoice.SelectInvoiceLoadWizardCloseCancel}"
+                           FontSize="{DynamicResource FontSize.Body}"
+                           Foreground="{DynamicResource TextTertiaryBrush}"
+                           VerticalAlignment="Center"/>
+
+                <!-- Close button — fixed: hover + press states, CornerRadius=10 -->
+                <Button Grid.Column="1"
+                        Style="{StaticResource OutlinedPillButton}"
+                        Tag="&#xE711;" Content="{DynamicResource Action.Close}"
+                        ToolTip="{DynamicResource Action.Close}"
+                        IsCancel="True"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
