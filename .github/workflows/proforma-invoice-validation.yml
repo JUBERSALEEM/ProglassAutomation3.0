@@ -1,0 +1,42 @@
+name: Proforma Invoice validation
+
+on:
+  push:
+    branches:
+      - feature/proforma-invoice-full-port
+  pull_request:
+    branches:
+      - arena/0b6506e3-proglassautomation3-0
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-build-and-regression:
+    runs-on: windows-latest
+    steps:
+      - name: Check out the branch
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Run Proforma Invoice source safety gate
+        run: python step6.ProformaInvoice/step6.f.tests/step6.f.1.ProformaInvoiceSourceChecks.py
+
+      - name: Restore WPF application
+        run: dotnet restore ProGlassAutomation.csproj
+
+      - name: Build WPF application
+        run: dotnet build ProGlassAutomation.csproj --no-restore --configuration Release
+
+      - name: Run Proforma Invoice regression suite
+        run: dotnet run --project step6.ProformaInvoice/step6.f.tests/step6.f.ProformaTests.csproj --configuration Release
