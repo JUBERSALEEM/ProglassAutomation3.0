@@ -485,9 +485,10 @@ for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
 check("ChargeAutomation();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")
       and CHARGE_TESTS.is_file(),
       "step6.f.7 charge automation regression checks are not wired")
-check("MatchedPolishLm" in read(SPEC_GRID)
-      and "MatchedPolishLm" in read(CHARGE_CATALOG)
-      and "ChargeMetric.MatchedPolishLm" in read(CHARGES_MODEL),
+check("MatchedPolishLm" in read(SPEC_GRID) and "PolishLm" in read(SPEC_GRID)
+      and "MatchedPolishLm" in read(CHARGE_CATALOG) and "PolishLm" in read(CHARGE_CATALOG)
+      and "ChargeMetric.MatchedPolishLm" in read(CHARGES_MODEL)
+      and "ChargeMetric.PolishLm" in read(CHARGES_MODEL),
       "matched double-glass polish must use measured pane geometry, not a fixed multiplier")
 wastage_model = read(CHARGES_MODEL)
 check("IsOptionalSuggestion" in wastage_model and "SuggestionReason" in wastage_model
