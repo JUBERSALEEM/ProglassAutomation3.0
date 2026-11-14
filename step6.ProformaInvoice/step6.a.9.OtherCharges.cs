@@ -54,6 +54,14 @@ namespace ProGlassAutomation.Models.Proforma
         [JsonIgnore]
         public string UnitText => ChargeCatalog.UnitText(Unit);
 
+        /// <summary>Customer-facing blended rate; U-Insert includes Step 4 per-spec rates and the invoice fallback.</summary>
+        [JsonIgnore]
+        public decimal EffectiveRate =>
+            string.Equals(TemplateKey, "U_INSERT", StringComparison.OrdinalIgnoreCase)
+            && IsActive && Quantity > 0m && Amount > 0m
+                ? MoneyRounding.Round(Amount / Quantity)
+                : Rate;
+
         /// <summary>Automation may suggest a state; it may not win an argument.</summary>
         public void ApplySuggestedActive(bool active)
         {
