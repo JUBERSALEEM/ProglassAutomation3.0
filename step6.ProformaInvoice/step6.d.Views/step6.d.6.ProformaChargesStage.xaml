@@ -81,8 +81,22 @@
                     <DataGridTextColumn Header="QUANTITY" Binding="{Binding Quantity, StringFormat=N2}"
                                         IsReadOnly="True"
                                         ElementStyle="{StaticResource ListMonoText}" />
-                    <DataGridTextColumn Header="RATE" Binding="{Binding Rate, StringFormat=N2}"
-                                        ElementStyle="{StaticResource ListMonoText}" />
+                    <DataGridTemplateColumn Header="RATE">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Rate, StringFormat=N2}"
+                                           ToolTip="{Binding Description}"
+                                           Style="{StaticResource ListMonoText}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding Rate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{Binding Description}"
+                                         Style="{DynamicResource {x:Type TextBox}}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="AMOUNT" Binding="{Binding Amount, StringFormat=N2}"
                                         IsReadOnly="True"
                                         ElementStyle="{StaticResource ListMonoText}" />
