@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.IO;
 using ClosedXML.Excel;
 using ProGlassAutomation.Models.Proforma;
 using ProGlassAutomation.Services.Proforma;
@@ -36,6 +37,32 @@ namespace ProGlassAutomation.Step6Tests
                 "[{\"ref\":\"E1\",\"w1\":700,\"h1\":800,\"qty\":2}]");
             Check("scanner JSON cut-list import",
                 json.Rows.Count == 1 && json.Rows[0].GlassRef == "E1");
+
+            string tempXlsx = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+            try
+            {
+                using (var source = new XLWorkbook())
+                {
+                    var sheet = source.Worksheets.Add("Cut List");
+                    sheet.Cell(1, 1).Value = "REF";
+                    sheet.Cell(1, 2).Value = "W1";
+                    sheet.Cell(1, 3).Value = "H1";
+                    sheet.Cell(1, 4).Value = "QTY";
+                    sheet.Cell(2, 1).Value = "X1";
+                    sheet.Cell(2, 2).Value = 1200;
+                    sheet.Cell(2, 3).Value = 2400;
+                    sheet.Cell(2, 4).Value = 2;
+                    source.SaveAs(tempXlsx);
+                }
+                var xlsx = ProformaGridImportService.ReadExcel(tempXlsx);
+                Check("XLSX first-sheet cut-list import",
+                    xlsx.Rows.Count == 1 && xlsx.Rows[0].GlassRef == "X1"
+                    && xlsx.Rows[0].W1 == 1200 && xlsx.Rows[0].Qty == 2);
+            }
+            finally
+            {
+                if (File.Exists(tempXlsx)) File.Delete(tempXlsx);
+            }
 
             var draft = new ProformaInvoiceDraft();
             draft.EnsureStructure();
