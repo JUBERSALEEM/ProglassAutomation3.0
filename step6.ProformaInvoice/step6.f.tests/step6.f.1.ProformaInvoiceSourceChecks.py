@@ -11,7 +11,7 @@ cost a group against the wrong pricing section, and must not lose a manual charg
 toggle. Each of those would corrupt data quietly rather than fail a build.
 
 Every rule names the defect, the file and what to do instead. The behaviour half
-(step6.f.2) needs Windows and a .NET SDK; this half runs anywhere.
+(step6.f.2–f.5) need Windows and a .NET SDK; this half runs anywhere.
 """
 
 import re
