@@ -59,7 +59,7 @@ namespace ProGlassAutomation.Services.Proforma
             })).GeneratePdf();
         }
 
-        private static void Letterhead(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
+        internal static void Letterhead(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
         {
             var company = invoice.Parties.Company;
             container.Column(column =>
@@ -96,7 +96,7 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void Parties(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
+        internal static void Parties(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
         {
             container.Row(row =>
             {
@@ -122,7 +122,7 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void Specifications(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
+        internal static void Specifications(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
         {
             container.Column(column =>
             {
@@ -195,7 +195,7 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void Charges(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
+        internal static void Charges(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
         {
             var lines = new List<(string Name, decimal Qty, string Unit, decimal Rate, decimal Amount)>();
             lines.AddRange(invoice.Charges.Predefined.Where(row => row.IsActive)
@@ -243,7 +243,7 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void FinancialSummary(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
+        internal static void FinancialSummary(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
         {
             var summary = invoice.Summary;
             container.AlignRight().Width(280).Column(column =>
@@ -265,7 +265,7 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void Signatures(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
+        internal static void Signatures(IContainer container, ProformaInvoiceDraft invoice, ProformaPdfStyle style)
         {
             container.Row(row =>
             {
@@ -288,7 +288,7 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void InfoCard(IContainer container, string title, IEnumerable<string> values, ProformaPdfStyle style)
+        internal static void InfoCard(IContainer container, string title, IEnumerable<string> values, ProformaPdfStyle style)
         {
             container.Border(0.6f).BorderColor(style.Border).Padding(8).Column(column =>
             {
@@ -298,7 +298,7 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void TextPanel(IContainer container, string title, string value, ProformaPdfStyle style)
+        internal static void TextPanel(IContainer container, string title, string value, ProformaPdfStyle style)
         {
             container.Border(0.6f).BorderColor(style.Border).Padding(8).Column(column =>
             {
@@ -307,13 +307,13 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void SectionTitle(ColumnDescriptor column, string title, ProformaPdfStyle style)
+        internal static void SectionTitle(ColumnDescriptor column, string title, ProformaPdfStyle style)
         {
             column.Item().PaddingBottom(3).BorderBottom(1).BorderColor(style.Highlight)
                 .Text(title).Bold().FontSize(9).FontColor(style.Accent);
         }
 
-        private static void SummaryLine(ColumnDescriptor column, string label, decimal value, ProformaPdfStyle style)
+        internal static void SummaryLine(ColumnDescriptor column, string label, decimal value, ProformaPdfStyle style)
         {
             column.Item().PaddingVertical(3).BorderBottom(0.4f).BorderColor(style.Border).Row(row =>
             {
@@ -322,7 +322,7 @@ namespace ProGlassAutomation.Services.Proforma
             });
         }
 
-        private static void HeaderCell(IContainer cell, string value, ProformaPdfStyle style)
+        internal static void HeaderCell(IContainer cell, string value, ProformaPdfStyle style)
         {
             cell.Background(style.Accent).PaddingHorizontal(style.CellPaddingX)
                 .PaddingVertical(style.CellPaddingY)
@@ -331,7 +331,7 @@ namespace ProGlassAutomation.Services.Proforma
                 .Text(value);
         }
 
-        private static void BodyCell(IContainer cell, string value, ProformaPdfStyle style,
+        internal static void BodyCell(IContainer cell, string value, ProformaPdfStyle style,
             bool alternate, bool right = false)
         {
             IContainer content = cell;
@@ -351,7 +351,7 @@ namespace ProGlassAutomation.Services.Proforma
                 column.Item().Text(value).FontSize(7.5f).FontColor(style.Muted);
         }
 
-        private static bool HasCharges(ProformaInvoiceDraft invoice) =>
+        internal static bool HasCharges(ProformaInvoiceDraft invoice) =>
             invoice.Charges.Predefined.Any(row => row.IsActive)
             || invoice.Charges.Wastages.Any(row => row.IsActive)
             || invoice.Charges.Custom.Any(row => row.IsActive);
@@ -365,10 +365,10 @@ namespace ProGlassAutomation.Services.Proforma
         private static string Date(DateTime value) =>
             value.ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
 
-        private static string Money(decimal value) =>
+        internal static string Money(decimal value) =>
             value.ToString("#,##0.00;(#,##0.00)", CultureInfo.InvariantCulture);
 
-        private static string Area(decimal value) =>
+        internal static string Area(decimal value) =>
             value.ToString("N3", CultureInfo.InvariantCulture);
 
         private static string Quantity(decimal value) =>
