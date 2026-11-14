@@ -1,0 +1,187 @@
+<!-- ═══════════════════════════════════════════════════════════════════
+     FILE: Views/ProformaInvoice/SavedInvoicesList/InvoiceApprovalDialog.xaml
+     PROJECT: ProGlassAutomation
+     MODULE: Proforma Invoice — approval gate (signed PI vs LPO)
+
+     2026-09 dialog audit: rebuilt on the shared ThemedDialogWindow chrome
+     (header badge/title/subtitle, close, footer from the one template).
+     Content-driven sizing (previously fixed 560×520 NoResize): long
+     localized strings wrap and the window grows, work-area clamped.
+     Keeps the fixed-height validation strip (Visibility=Hidden when
+     clean) so showing an error never moves the footer.
+     ═══════════════════════════════════════════════════════════════════ -->
+
+<dialogs:ThemedDialogWindow x:Class="ProGlassAutomation.Views.ProformaInvoice.SavedInvoicesList.InvoiceApprovalDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:behaviors="clr-namespace:ProGlassAutomation.Behaviors"
+        xmlns:dialogs="clr-namespace:ProGlassAutomation.Views.Shared.Dialogs"
+        Title="{DynamicResource ProformaInvoice.ConfirmInvoiceApproval}"
+        Width="560"
+        DialogIcon="&#xE73E;"
+        DialogSubtitle="{DynamicResource ProformaInvoice.HowInvoiceConfirmedCustomer}"
+             FontFamily="{DynamicResource AppFontFamily}">
+
+    <Window.Resources>
+
+        <!-- Label style centralized in Themes/Styles/DialogStyles.xaml
+             (DialogFieldLabelStyle) — the 2026-09 dialog audit. -->
+        
+
+        <Style x:Key="ApprovalTextBox" TargetType="TextBox">
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Title}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Chrome"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Background="{DynamicResource Surface.Secondary.BackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                BorderThickness="{DynamicResource CardBorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="14,0"
+                                          VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush"
+                                        Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="BorderBrush"
+                                        Value="{DynamicResource AccentHoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Design-system radio: accent ring + dot, matches the app theme. -->
+        <Style x:Key="ApprovalRadioStyle" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Title}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource Weight.SemiBold}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="18" Height="18"
+                                  VerticalAlignment="Center">
+                                <Ellipse x:Name="Ring"
+                                         Stroke="{DynamicResource BorderDefaultBrush}"
+                                         StrokeThickness="1.5"
+                                         Fill="{DynamicResource Surface.Secondary.BackgroundBrush}"/>
+                                <Ellipse x:Name="Dot"
+                                         Width="8" Height="8"
+                                         Fill="{DynamicResource AccentBrush}"
+                                         Visibility="Collapsed"/>
+                            </Grid>
+                            <ContentPresenter Margin="9,0,0,0"
+                                              VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Ring" Property="Stroke"
+                                        Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="Dot" Property="Visibility"
+                                        Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Ring" Property="Stroke"
+                                        Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Ring" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <StackPanel>
+
+        <!-- Bounded + wrapping so the runtime note can never overflow the
+             card edge (kept from the previous header block). -->
+        <TextBlock Text="{Binding AttachmentNote}"
+                   FontSize="{DynamicResource FontSize.BodySmall}"
+                   FontWeight="{DynamicResource Weight.SemiBold}"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource AccentBrush}"/>
+
+        <!-- Options -->
+        <StackPanel Margin="0,10,0,0">
+            <RadioButton GroupName="ApprovalMode"
+                         IsChecked="{Binding ApprovalMode, Converter={StaticResource IndexEqualsConverter}, ConverterParameter=0}"
+                         Style="{StaticResource ApprovalRadioStyle}">
+                <TextBlock Text="{DynamicResource ProformaInvoice.CustomerSignedProformaInvoice}"
+                           TextWrapping="Wrap"/>
+            </RadioButton>
+            <RadioButton GroupName="ApprovalMode"
+                         IsChecked="{Binding ApprovalMode, Converter={StaticResource IndexEqualsConverter}, ConverterParameter=1}"
+                         Margin="0,8,0,0"
+                         Style="{StaticResource ApprovalRadioStyle}"
+                         behaviors:FocusOnCheckedBehavior.Target="{Binding ElementName=LpoBox}">
+                <TextBlock Text="{DynamicResource ProformaInvoice.CustomerProvidedLPOPurchaseOrder}"
+                           TextWrapping="Wrap"/>
+            </RadioButton>
+        </StackPanel>
+
+        <!-- LPO number — shown for both options. The label stays a constant
+             single line in BOTH states (state is conveyed by the label text
+             itself), so switching modes can never change the layout height. -->
+        <Grid x:Name="LpoPanel" Margin="0,10,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="{Binding LpoLabelText}"
+                       Style="{StaticResource DialogFieldLabelStyle}"/>
+            <TextBox x:Name="LpoBox" Grid.Row="1"
+                     MinHeight="{DynamicResource DensityInputHeight}"
+                     Style="{StaticResource ApprovalTextBox}"
+                     Text="{Binding LpoNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+        </Grid>
+
+        <!-- Validation strip — always reserved at a fixed height;
+             Visibility toggles Hidden/Visible only, so the window and
+             footer below never move when an error appears. -->
+        <Border Height="36"
+                Margin="0,8,0,0"
+                Padding="12,6"
+                CornerRadius="{DynamicResource CardCornerRadius}"
+                Background="{DynamicResource TintRedBrush}"
+                BorderBrush="{DynamicResource DangerBrush}"
+                BorderThickness="{DynamicResource Border.HairlineThickness}"
+                VerticalAlignment="Top"
+                Visibility="{Binding ValidationVisibility}">
+            <TextBlock Text="{Binding ValidationMessage}"
+                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource DangerBrush}"/>
+        </Border>
+    </StackPanel>
+
+    <dialogs:ThemedDialogWindow.FooterContent>
+        <StackPanel Orientation="Horizontal">
+            <Button Style="{StaticResource OutlinedPillButton}"
+                    Tag="&#xE711;" Content="{DynamicResource Action.Cancel}"
+                    Margin="0,0,10,0"
+                    ToolTip="{DynamicResource ProformaInvoice.CloseWithoutChangingStatus}"
+                    IsCancel="True"/>
+            <Button Style="{StaticResource PrimaryPillButton}"
+                    Tag="&#xE73E;" Content="{DynamicResource ProformaInvoice.ApproveInvoice}"
+                    ToolTip="{DynamicResource ProformaInvoice.ApproveConvertJobOrder}"
+                    Command="{Binding ApproveCommand}"
+                    IsDefault="True"/>
+        </StackPanel>
+    </dialogs:ThemedDialogWindow.FooterContent>
+</dialogs:ThemedDialogWindow>
