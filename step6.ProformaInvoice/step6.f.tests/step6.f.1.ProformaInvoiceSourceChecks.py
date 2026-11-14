@@ -507,7 +507,7 @@ check("UInsertPricePerSqm" in read(MODELS)
       "legacy Step 4 per-spec U-Insert pricing is not wired through pricing, grid and charges")
 charge_source = read(CHARGE_AUTOMATION)
 for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
-              "BEVELED", "FROSTED", "ARGON GAS"):
+              "BEVEL", "FROSTED", "ARGON GAS"):
     check(token in charge_source,
           f"step6.a.10.OtherChargeAutomation.cs: legacy rule {token} is missing")
 check("ChargeAutomation();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")
