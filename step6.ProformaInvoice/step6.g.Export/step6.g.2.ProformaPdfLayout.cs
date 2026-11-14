@@ -98,7 +98,7 @@ namespace ProGlassAutomation.Services.Proforma
                 {
                     column.Item().Background(style.AccentLight).Padding(6).Row(row =>
                     {
-                        row.RelativeItem().Text(group.GroupNumber + ". " + group.DisplayText)
+                        row.RelativeItem().Text(group.GroupNumber + ". " + PolishSubTypeInfo.DisplayGroupTitle(group))
                             .Bold().FontColor(style.AccentDark);
                         row.AutoItem().Text(group.GlassType + "  ·  " + Money(group.EffectiveRatePerSqm) + " / m²")
                             .FontSize(8).FontColor(style.Muted);
