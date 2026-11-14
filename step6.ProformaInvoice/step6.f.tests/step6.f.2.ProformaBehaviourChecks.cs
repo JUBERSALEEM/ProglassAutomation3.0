@@ -10,8 +10,8 @@
 //     cd step6.ProformaInvoice/step6.f.tests
 //     dotnet run
 //
-// The storage half (repository, numbering, attachments) is step6.f.3; the two
-// files are one Program class split to stay inside rule K's 400-line cap.
+// Storage checks are in step6.f.3, PDF render checks in step6.f.4, and the
+// profit-and-loss checks in step6.f.5. Parts stay below rule K's 400-line cap.
 //
 // The suite uses a disposable database in the temp folder, never production.
 // ═══════════════════════════════════════════════════════════════════════
