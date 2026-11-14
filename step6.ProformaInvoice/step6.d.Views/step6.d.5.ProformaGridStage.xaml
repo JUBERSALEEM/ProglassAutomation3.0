@@ -87,6 +87,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Margin="{DynamicResource UiGapControl}">
@@ -101,7 +102,22 @@
                          Text="{Binding SelectedGroup.OuterGlassColor, UpdateSourceTrigger=PropertyChanged}"
                          AutomationProperties.Name="Outer glass colour" />
             </StackPanel>
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+            <StackPanel Grid.Column="2" Margin="{DynamicResource UiGapControl}">
+                <TextBlock Text="POLISH EDGE TYPE" Style="{DynamicResource ProformaFieldLabel}" />
+                <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                          ItemsSource="{x:Static models:PolishSubTypeInfo.All}"
+                          DisplayMemberPath="DisplayLabel"
+                          SelectedValuePath="Type"
+                          SelectedValue="{Binding SelectedGroup.PolishSubType, Mode=TwoWay}"
+                          SelectionChanged="OnPolishSubTypeChanged"
+                          ToolTip="{Binding SelectedItem.FormulaHint, RelativeSource={RelativeSource Self}}"
+                          MinWidth="190"
+                          IsTextSearchEnabled="True"
+                          AutomationProperties.Name="Polish edge subtype" />
+                <TextBlock Text="Auto reads the spec; Custom uses a manual quantity."
+                           Style="{DynamicResource ProformaFieldHint}" />
+            </StackPanel>
+            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom">
                 <Button Style="{DynamicResource SubtleButton}" Content="ADD ROW"
                         Command="{Binding AddRowCommand}"
                         Margin="{DynamicResource UiGapControl}"
