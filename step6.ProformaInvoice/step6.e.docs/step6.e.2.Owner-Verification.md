@@ -132,3 +132,5 @@ are supported without inventing a new external AI dependency.
 | 7.5 | Manually switch a suggested charge off, then recalculate | the manual active override remains off |
 | 7.6 | Compare matched DGU polish with W2/H2 present and absent | both measured panes are counted; when W2/H2 is absent, W1/H1 is counted twice |
 | 7.7 | Select each legacy polish edge type on a specification group | the selected formula is used for W1/H1 and W2/H2, matched panes are not double charged, and Custom uses the per-group manual LM input |
+| 7.8 | Set a Step 4 U-Insert rate on a spec naming U-Insert, then clear it | the per-spec rate overrides the invoice-level fallback; PDF/XLSX show the blended effective rate |
+
