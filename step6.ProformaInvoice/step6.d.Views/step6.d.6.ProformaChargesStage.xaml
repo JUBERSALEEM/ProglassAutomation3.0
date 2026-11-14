@@ -110,9 +110,18 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="COLOUR" Binding="{Binding ColorName}"
-                                        IsReadOnly="True"
-                                        ElementStyle="{StaticResource ListStrongText}" />
+                    <DataGridTemplateColumn Header="COLOUR">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding ColorName}"
+                                           ToolTip="{Binding SuggestionReason}"
+                                           Style="{StaticResource ListStrongText}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="SHEETS FOR COST"
+                                        Binding="{Binding SheetQuantity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        ElementStyle="{StaticResource ListMonoText}" />
                     <DataGridTextColumn Header="RATE" Binding="{Binding Rate, StringFormat=N2}"
                                         ElementStyle="{StaticResource ListMonoText}" />
                     <DataGridTextColumn Header="AREA M²" Binding="{Binding AreaSqm, StringFormat=N2}"
