@@ -49,6 +49,13 @@ namespace ProGlassAutomation.Models.Proforma
             string polish = GetInfo(group.PolishSubType).DisplayLabel;
             return name.Length == 0 ? "Polish: " + polish : name + " · Polish: " + polish;
         }
+
+        public static string DisplayGroupTitle(SpecGroup group)
+        {
+            string title = group.DisplayText;
+            return group.PolishSubType == PolishSubType.Auto
+                ? title : title + " · " + GetInfo(group.PolishSubType).DisplayLabel;
+        }
     }
 
     public static class PolishMetricCalculator
