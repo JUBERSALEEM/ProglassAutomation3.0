@@ -187,7 +187,7 @@ Costed from whole sheets, not from sell area, because that is what the shop buys
 | Per-build panels priced from a catalogue hash | per-group `SpecCostCard` with provenance flags | a re-price must not erase a deliberate cost |
 | JSON snapshot in `SavedProformaInvoice`, `SchemaVersion 2` | JSON body + typed row, `FormatVersion 1` | the register can query without parsing every body |
 | Number from a sequence table | highest stored sequence for the year | a cancel must not free a number |
-| Wizard UI, cards, plates | **not copied** — no XAML in this delivery | owner instruction: backend only |
+| Wizard UI, cards, plates | native seven-stage V3 WPF workspace using Theme Studio tokens | fresh V3 presentation; no legacy XAML or card templates copied |
 | Print/PDF in step 7 | one V3 QuestPDF composition with five selectable print styles | explicitly authorized 2026-11-14; no legacy renderer or UI is copied |
 
 ## 10. PDF export — owner authorized 2026-11-14
@@ -257,7 +257,7 @@ runtime verification; a source commit is not proof of a rendered PDF.
 | `step6.b.11.InquiryBoqConverter.cs` | inquiry BOQ → spec grid |
 | `step6.b.12.ProformaInvoiceAttachmentStore.cs` | attachment add/remove, temp→move→row |
 | `step6.c.1.ProformaInvoiceWorkspace.cs` | the stage engine the page drives |
-| `step6.c.Presentation/step6.c.2…c.7` | `ProformaWorkspaceViewModel` in six parts: register (§2), editor and header (§3), stages 2–6 (§4), commands (§5), the one recalculation seam (§6), lifecycle actions (§7) |
+| `step6.c.Presentation/step6.c.2…c.9` | `ProformaWorkspaceViewModel` parts: register, editor/header, stages, commands, recalculation, lifecycle and PDF export |
 | `step6.d.Views/step6.d.0.ProformaStyles.xaml` | the page's field idiom — labels, values, totals; tokens only |
 | `step6.d.Views/step6.d.1.ProformaWorkspaceView.xaml` | the page: scope plate, status chips, search, register, editor slot |
 | `step6.d.Views/step6.d.2.ProformaEditorView.xaml` | the editor: heading, lifecycle commands, stage rail, stage host |
@@ -267,7 +267,7 @@ runtime verification; a source commit is not proof of a rendered PDF.
 | `step6.g.Export/step6.g.2.ProformaPdfLayout.cs` | QuestPDF invoice rendering, pagination, tables and signatures |
 | `step6.g.Export/step6.g.3.ProformaPdfExporter.cs` | detached-snapshot export to a PDF file |
 | `step6.c.Presentation/step6.c.9…PdfExport.cs` | style selection, save dialog and export command |
-| `step6.f.tests/step6.f.2…` | behaviour checks (needs a .NET SDK) |
+| `step6.f.tests/step6.f.2…f.5` | behaviour, storage, five-style PDF render and P&L checks (needs .NET 8) |
 
 ## 12. Verification status — honest
 
