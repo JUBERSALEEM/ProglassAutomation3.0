@@ -42,7 +42,7 @@ namespace ProGlassAutomation.Services.Proforma
                 page.Content().Column(column =>
                 {
                     column.Spacing(style.SectionGap);
-                    column.Item().Element(c => ProformaPdfLayout.Letterhead(c, invoice, style));
+                    column.Item().Element(c => ProformaPdfLetterheadRenderer.Render(c, invoice, style));
                     column.Item().Element(c => KpiBand(c, invoice, style));
                     column.Item().Element(c => ProformaPdfLayout.Parties(c, invoice, style));
                     column.Item().Element(c => ProformaPdfLayout.Specifications(c, invoice, style));
