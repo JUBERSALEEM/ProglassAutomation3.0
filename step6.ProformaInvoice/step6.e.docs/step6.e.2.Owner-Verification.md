@@ -79,3 +79,20 @@ so this is also the test that 1018 did not disturb 1017's preservation proof.
 For each failure: the check number, the first message shown, and the file/line if
 the message names one. Do not fix numbering or totals by editing stored data —
 the body and the row would then disagree; report it instead.
+
+
+## PDF export — added after the 2026-11-14 owner approval
+
+| # | Step | Expected |
+| --- | --- | --- |
+| 5.1 | Save a complete invoice and export Classic Navy | a valid PDF opens; company logo/identity, permanent PI number, dates, parties and project are correct |
+| 5.2 | Export the same invoice in Modern Teal, Editorial Ink, Industrial Steel and Minimal Ivory | all five styles contain the same invoice sections and totals; only print treatment changes |
+| 5.3 | Use an invoice with several specification groups, long descriptions and enough rows for multiple pages | rows stay aligned, group subtotals and the grand total remain correct, footer page numbers are present, no clipped columns |
+| 5.4 | Remove the stored company logo or use a company profile without one | the PDF still exports with readable company identity; no broken image or crash |
+| 5.5 | Export an unsaved draft | the UI asks the operator to save first; no unnumbered customer PDF is produced |
+| 5.6 | Inspect the customer PDF for internal P&L values | no internal profit, cost or margin worksheet is disclosed |
+
+**Not yet verified:** QuestPDF package restore, Windows compilation, actual PDF
+byte generation, page breaks, logo rendering, and visual comparison of all five
+styles. The new automated render checks are in `step6.f.4`; the Windows owner
+checks above remain mandatory before calling PDF export complete.
