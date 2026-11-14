@@ -354,7 +354,7 @@ def targets():
 
 
 def relative(path):
-    return str(path.relative_to(ROOT)).replace("\\\\", "/")
+    return str(path.relative_to(ROOT)).replace("\\", "/")
 
 
 def main():
