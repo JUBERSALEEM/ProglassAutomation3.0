@@ -52,8 +52,9 @@ namespace ProGlassAutomation.Models.Proforma
         public decimal DefaultRate { get; init; }
 
         /// <summary>
-        /// Multiplies the measured quantity. 2 for "polish both panes" — the
-        /// charge is per linear metre of edge and a laminated unit has two.
+        /// Multiplies the measured quantity for templates that genuinely bill
+        /// repeated operations. Matched polish uses its geometry-aware metric
+        /// instead of a fixed multiplier.
         /// </summary>
         public decimal MetricMultiplier { get; init; } = 1m;
 
