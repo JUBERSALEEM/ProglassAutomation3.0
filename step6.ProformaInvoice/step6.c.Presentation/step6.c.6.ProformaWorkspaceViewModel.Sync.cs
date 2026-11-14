@@ -46,7 +46,7 @@ namespace ProGlassAutomation.ViewModels.Proforma
                 {
                     Stages.Add(new ProformaStageChip
                     {
-                        Key = stage.ToString(),
+                        Key = StageKey(stage),
                         Label = StageLabel(stage),
                         Number = (int)stage
                     });
@@ -55,8 +55,8 @@ namespace ProGlassAutomation.ViewModels.Proforma
 
             foreach (ProformaStageChip chip in Stages)
             {
-                StageStatus? status = statuses.FirstOrDefault(item =>
-                    string.Equals(item.Stage.ToString(), chip.Key, StringComparison.Ordinal));
+                Enum.TryParse(chip.Key, out InvoiceStage chipStage);
+                StageStatus? status = statuses.FirstOrDefault(item => item.Stage == chipStage);
                 chip.IsComplete = status?.IsComplete ?? false;
                 chip.ProblemCount = status?.Problems.Count ?? 0;
                 chip.IsSelected = string.Equals(chip.Key, CurrentStageKey, StringComparison.Ordinal);
@@ -65,6 +65,19 @@ namespace ProGlassAutomation.ViewModels.Proforma
             SelectedStageChip = Stages.FirstOrDefault(chip => chip.IsSelected);
             OnPropertyChanged(nameof(StageHeadline));
         }
+
+        private static string StageKey(InvoiceStage stage) => stage switch
+        {
+            InvoiceStage.Company => "Company",
+            InvoiceStage.Client => "Client",
+            InvoiceStage.Project => "Project",
+            InvoiceStage.Pricing => "Pricing",
+            InvoiceStage.SpecGrid => "SpecGrid",
+            InvoiceStage.OtherCharges => "OtherCharges",
+            InvoiceStage.Summary => "Summary",
+            InvoiceStage.Attachments => "Attachments",
+            _ => "ProfitLoss"
+        };
 
         private static string StageLabel(InvoiceStage stage) => stage switch
         {
