@@ -28,6 +28,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.x
+      - name: Run shell UI consistency checks
+        run: |
+          python Theme/step1.d.tests/step1.d.18.LayoutSpacingChecks.py
+          python Theme/step1.d.tests/step1.d.19.FileSizeChecks.py
+          python step5.ProjectRecords/step5.f.tests/step5.f.1.ProjectSourceChecks.py
 
       - name: Run Proforma Invoice source safety gate
         run: python step6.ProformaInvoice/step6.f.tests/step6.f.1.ProformaInvoiceSourceChecks.py
