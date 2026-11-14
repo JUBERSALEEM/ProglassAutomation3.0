@@ -29,7 +29,10 @@ namespace ProGlassAutomation.Services.Proforma
             WriteCharges(workbook.Worksheets.Add("Other Charges"), invoice);
             WriteTerms(workbook.Worksheets.Add("Terms"), invoice);
             if (includeProfitLoss)
+            {
                 WriteProfitLoss(workbook.Worksheets.Add("Internal P&L"), invoice);
+                WriteProfitLossTargets(workbook.Worksheets.Add("P&L Targets"), invoice);
+            }
             return workbook;
         }
 
@@ -234,8 +237,74 @@ namespace ProGlassAutomation.Services.Proforma
                     sheet.Cell(row, col + 1).Value = XLCellValue.FromObject(valuesRow[col]);
                 row++;
             }
-            FormatData(sheet, 12, row - 1, headers.Length);
-            sheet.SheetView.FreezeRows(12);
+            if (!string.IsNullOrWhiteSpace(result.BasisNote))
+            {
+                sheet.Cell(10, 1).Value = "Costing basis";
+                sheet.Cell(10, 2).Value = result.BasisNote;
+                sheet.Range(10, 2, 10, 8).Merge();
+            }
+            int warningRow = 11;
+            foreach (string warning in result.Warnings)
+            {
+                sheet.Cell(warningRow, 1).Value = "Warning";
+                sheet.Cell(warningRow, 2).Value = warning;
+                sheet.Range(warningRow, 2, warningRow, 8).Merge();
+                sheet.Cell(warningRow, 1).Style.Font.FontColor = XLColor.FromHtml(Danger);
+                warningRow++;
+            }
+            WriteHeader(sheet, Math.Max(12, warningRow + 1), headers);
+            int tableHeaderRow = Math.Max(12, warningRow + 1);
+            int dataStart = tableHeaderRow + 1;
+            int currentRow = dataStart;
+            foreach (ProfitLossRow item in result.Rows)
+            {
+                object[] valuesRow = { item.Kind.ToString(), item.SpecNumber, item.SpecName,
+                    item.Description, item.SheetWidthMm > 0 && item.SheetHeightMm > 0
+                        ? item.SheetWidthMm + " × " + item.SheetHeightMm : "",
+                    item.Quantity, item.PricePerSqm, item.Amount };
+                for (int col = 0; col < valuesRow.Length; col++)
+                    sheet.Cell(currentRow, col + 1).Value = XLCellValue.FromObject(valuesRow[col]);
+                currentRow++;
+            }
+            FormatData(sheet, tableHeaderRow, currentRow - 1, headers.Length);
+            sheet.SheetView.FreezeRows(tableHeaderRow);
+            sheet.Columns().AdjustToContents();
+        }
+
+        private static void WriteProfitLossTargets(IXLWorksheet sheet, ProformaInvoiceDraft invoice)
+        {
+            sheet.TabColor = XLColor.FromHtml(Danger);
+            string[] headers =
+            {
+                "Spec #", "Specification", "Area m²", "Given AED/m²", "Cost Basis AED/m²",
+                "Target Uplift %", "Target AED/m²", "Difference AED/m²",
+                "Extra Profit AED/m²", "Margin vs Target %", "Extra Profit Margin %", "Status"
+            };
+            WriteTitle(sheet, "INTERNAL SPECIFICATION TARGET ANALYSIS", headers.Length);
+            sheet.Range(2, 1, 2, headers.Length).Merge();
+            sheet.Cell(2, 1).Value = "INTERNAL COPY — COST AND TARGET ANALYSIS. DO NOT SEND TO CUSTOMER.";
+            sheet.Cell(2, 1).Style.Font.FontColor = XLColor.FromHtml(Danger);
+            sheet.Cell(2, 1).Style.Font.Bold = true;
+            WriteHeader(sheet, 4, headers);
+
+            int row = 5;
+            foreach (SpecTargetRow target in invoice.ProfitLoss.SpecTargets)
+            {
+                object[] values =
+                {
+                    target.SpecNumber, target.SpecName, target.AreaSqm,
+                    target.GivenPricePerSqm, target.CostBasisPerSqm,
+                    target.TargetUpliftPercent, target.SpecificationTargetPerSqm,
+                    target.DifferencePerSqm, target.ExtraProfitPerSqm,
+                    target.MarginAgainstTargetPercent ?? 0m,
+                    target.ExtraProfitMarginPercent ?? 0m, target.StatusText
+                };
+                for (int col = 0; col < values.Length; col++)
+                    sheet.Cell(row, col + 1).Value = XLCellValue.FromObject(values[col]);
+                row++;
+            }
+            FormatData(sheet, 4, row - 1, headers.Length);
+            sheet.SheetView.FreezeRows(4);
             sheet.Columns().AdjustToContents();
         }
 
