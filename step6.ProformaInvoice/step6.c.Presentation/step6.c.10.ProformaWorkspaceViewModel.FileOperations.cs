@@ -184,7 +184,9 @@ namespace ProGlassAutomation.ViewModels.Proforma
                     : "Invoice workbook exported without internal cost and margin.");
                 ClearError();
                 if (!OpenExport(dialog.FileName))
-                    SetStatus("Workbook saved, but the default viewer could not be opened.");
+                    SetStatus(IncludeProfitLossInWorkbook
+                        ? "INTERNAL workbook saved with cost and margin. Do not send to the customer. Viewer could not open it."
+                        : "Workbook saved, but the default viewer could not be opened.");
             }
             catch (Exception error)
             {
