@@ -68,5 +68,7 @@
     <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.4" />
     <!-- Inquiry register persists with local EF Core + SQLite (same store engine as the legacy app). -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
+    <!-- QuestPDF is the single PDF renderer for the PI's five selectable styles. -->
+    <PackageReference Include="QuestPDF" Version="2024.12.2" />
   </ItemGroup>
 </Project>
