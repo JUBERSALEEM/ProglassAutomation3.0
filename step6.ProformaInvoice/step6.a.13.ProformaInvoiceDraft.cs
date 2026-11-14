@@ -66,7 +66,7 @@ namespace ProGlassAutomation.Models.Proforma
         public ProfitLossResult ProfitLoss { get; set; } = new();
 
         public string Notes { get; set; } = "";
-        public string TermsText { get; set; } = "";
+        public string TermsText { get; set; } = ProformaTermsDefaults.BuildDefaultText();
 
         /// <summary>Furthest stage opened, restored so a reopened draft keeps context.</summary>
         public InvoiceStage FurthestStageReached { get; set; } = InvoiceStage.Header;
