@@ -55,22 +55,18 @@ namespace ProGlassAutomation.Models.Proforma
     /// </summary>
     public enum InvoiceStage
     {
-        /// <summary>ADV steps 1–3, merged: company + client + project + prepared-by.</summary>
-        Header = 1,
-        /// <summary>ADV step 4 — the pricing estimator (glass build → rate/sqm).</summary>
-        Pricing = 2,
-        /// <summary>ADV step 5 — the specification grid (W1/H1/W2/H2 × qty).</summary>
-        SpecGrid = 3,
-        /// <summary>ADV step 6 — predefined, wastage and custom charges.</summary>
-        OtherCharges = 4,
-        /// <summary>ADV step 7 — discount, VAT and the totals waterfall.</summary>
-        Summary = 5,
-        /// <summary>ADV step 8 — the evidence chain.</summary>
-        Attachments = 6,
-        /// <summary>ADV step 9 — costs, profit, margin and the target KPI.</summary>
-        ProfitLoss = 7
+        Company = 1,
+        /// <summary>Compatibility alias for drafts saved by the previous seven-stage version.</summary>
+        Header = Company,
+        Client = 2,
+        Project = 3,
+        Pricing = 4,
+        SpecGrid = 5,
+        OtherCharges = 6,
+        Summary = 7,
+        Attachments = 8,
+        ProfitLoss = 9
     }
-
     /// <summary>One legal status change, with the wording the UI shows.</summary>
     public sealed class InvoiceTransition
     {
