@@ -33,6 +33,9 @@ namespace ProGlassAutomation.Services.Proforma
                 {
                     column.Spacing(style.SectionGap);
                     column.Item().Element(c => ProformaPdfLetterheadRenderer.Render(c, invoice, style));
+                    if (style.RepeatTitleInBody)
+                        column.Item().Text("PROFORMA INVOICE · " + invoice.ProformaNumber)
+                            .Bold().FontSize(9).FontColor(style.Accent);
                     column.Item().Element(c => Parties(c, invoice, style));
                     column.Item().Element(c => Specifications(c, invoice, style));
                     if (HasCharges(invoice))
