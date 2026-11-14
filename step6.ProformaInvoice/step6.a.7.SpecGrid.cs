@@ -85,7 +85,7 @@ namespace ProGlassAutomation.Models.Proforma
         public string GlassType { get; set; } = GlassBuilds.Sgu;
         public string SpecName { get; set; } = "";
         /// <summary>Per-group polish edge selection; Auto reads the specification wording.</summary>
-        public PolishSubType PolishSubType { get; set; } = PolishSubType.Auto;
+        public PolishSubType PolishSubType { get; set; } = global::ProGlassAutomation.Models.Proforma.PolishSubType.Auto;
 
         public string OuterGlassColor { get; set; } = "";
         public string InnerGlassColor { get; set; } = "";
