@@ -239,7 +239,7 @@
 
                 <Button Grid.Column="0" Content="&#x2630;"
                         Command="{Binding ToggleMenu}"
-                        Style="{StaticResource ShellMenuToggleButton}"
+                        Style="{StaticResource ShellIconButton}"
                         Margin="{DynamicResource UiGapControl}"
                         VerticalAlignment="Center"
                         ToolTip="Hide or show the menu"
@@ -294,7 +294,7 @@
                                ToolTip="Local time" />
                     <Button Content="&#x263E;"
                             Command="{Binding ToggleAppearance}"
-                            Style="{StaticResource ShellMenuToggleButton}"
+                            Style="{StaticResource ShellIconButton}"
                             Margin="{DynamicResource UiGapControl}"
                             VerticalAlignment="Center"
                             ToolTip="Switch light and dark"
@@ -307,23 +307,10 @@
             <ContentControl Style="{DynamicResource Card}">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <DockPanel Margin="{DynamicResource PaddingCompact}">
-                    <Button DockPanel.Dock="Right" Content="◀◀" Command="{Binding ToggleMenu}" Style="{StaticResource ShellIconButton}" ToolTip="Hide menu" AutomationProperties.Name="Close menu" />
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="{DynamicResource ControlMinHeight}" Height="{DynamicResource ControlMinHeight}" CornerRadius="{DynamicResource ChipCornerRadius}" Background="{DynamicResource AccentPrimary}" Margin="{DynamicResource UiGapControl}" VerticalAlignment="Center">
-                            <Image Source="{StaticResource AppMark}" Stretch="Uniform" Margin="{DynamicResource PaddingMark}" />
-                        </Border>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="ProGlass Automation" FontWeight="{DynamicResource FontWeightHeading}" />
-                            <TextBlock Text="Version 3.0" Style="{DynamicResource Caption}" />
-                        </StackPanel>
-                    </StackPanel>
-                </DockPanel>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" CanContentScroll="False" PanningMode="VerticalOnly">
+                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" CanContentScroll="False" PanningMode="VerticalOnly">
                     <StackPanel Margin="{DynamicResource PaddingCompact}">
                         <Button Command="{Binding ShowBusiness}" AutomationProperties.Name="Home page">
                             <Button.Style>
@@ -797,7 +784,7 @@
                         </Button>
                     </StackPanel>
                 </ScrollViewer>
-                <TextBlock Grid.Row="2" Text="ProGlass Automation · Version 3.0" Style="{StaticResource ShellSectionLabel}" />
+                <TextBlock Grid.Row="1" Text="ProGlass Automation · Version 3.0" Style="{StaticResource ShellSectionLabel}" />
             </Grid>
             </ContentControl>
         </Border>
