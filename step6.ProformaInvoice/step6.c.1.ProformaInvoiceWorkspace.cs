@@ -8,7 +8,7 @@
 // in which totals are derived.
 //
 // STAGES (ADV numbers in brackets)
-//   1 Header [ADV 1–3, merged]   company + client + project + prepared-by
+//   1 Company · 2 Client · 3 Project  all retain separate navigation and one shared snapshot
 //   2 Pricing [ADV 4]            glass build → rate per m²
 //   3 Specification grid [ADV 5] measured panels and values
 //   4 Other charges [ADV 6]      predefined, wastage, custom
@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 
 namespace ProGlassAutomation.Services.Proforma
 {
-    /// <summary>Drives stage 1–7 of one proforma invoice.</summary>
+    /// <summary>Drives stage 1–9 of one proforma invoice.</summary>
     public sealed class ProformaInvoiceWorkspace
     {
         private readonly IProformaInvoiceRepository _repository;
@@ -48,7 +48,7 @@ namespace ProGlassAutomation.Services.Proforma
 
         public ProformaInvoiceDraft Draft { get; private set; } = new();
 
-        public InvoiceStage CurrentStage { get; private set; } = InvoiceStage.Header;
+        public InvoiceStage CurrentStage { get; private set; } = InvoiceStage.Company;
 
         public InvoiceValidationResult Validation { get; private set; } = new();
 
@@ -84,7 +84,7 @@ namespace ProGlassAutomation.Services.Proforma
                 Parties = parties.Parties
             };
             Draft.EnsureStructure();
-            CurrentStage = InvoiceStage.Header;
+            CurrentStage = InvoiceStage.Company;
             Messages = parties.Warnings;
             RefreshDerived();
         }
@@ -106,7 +106,7 @@ namespace ProGlassAutomation.Services.Proforma
             Draft = draft;
             Draft.EnsureStructure();
             CurrentStage = Draft.FurthestStageReached == 0
-                ? InvoiceStage.Header : Draft.FurthestStageReached;
+                ? InvoiceStage.Company : Draft.FurthestStageReached;
             Messages = Array.Empty<string>();
             RefreshDerived();
             return true;

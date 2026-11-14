@@ -394,7 +394,7 @@ check("ProformaInvoiceRules.Validate" in workspace,
       "step6.c.1.ProformaInvoiceWorkspace.cs: the workspace no longer revalidates after a change")
 check("StageStatuses" in workspace,
       "step6.c.1.ProformaInvoiceWorkspace.cs: the stage markers are gone")
-for stage in ("Header", "Pricing", "SpecGrid", "OtherCharges", "Summary", "Attachments", "ProfitLoss"):
+for stage in ("Company", "Client", "Project", "Pricing", "SpecGrid", "OtherCharges", "Summary", "Attachments", "ProfitLoss"):
     check(stage in read(STATUS),
           f"step6.a.1.InvoiceLifecycle.cs: stage {stage} is missing")
 check("new ProformaInvoiceRepository()" in read(WORKSPACE),

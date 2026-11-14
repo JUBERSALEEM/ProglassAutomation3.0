@@ -98,12 +98,11 @@ namespace ProGlassAutomation.Step6Tests
                 !InvoiceLifecycle.CanTransition(ProformaInvoiceStatus.Approved, ProformaInvoiceStatus.Draft));
             Check("an unknown status is not \"defined\"",
                 !ProformaInvoiceStatus.IsDefined("Closed"));
-            Check("all nine legacy stages are numbered in order",
-                (int)InvoiceStage.Company == 1 && (int)InvoiceStage.Client == 2 && (int)InvoiceStage.Project == 3
-                && (int)InvoiceStage.Pricing == 4 && (int)InvoiceStage.SpecGrid == 5
-                && (int)InvoiceStage.OtherCharges == 6 && (int)InvoiceStage.Summary == 7
-                && (int)InvoiceStage.Attachments == 8 && (int)InvoiceStage.ProfitLoss == 9);
-            Check("stage list has exactly nine entries", Enum.GetValues<InvoiceStage>().Length == 9);
+            Check("stages are numbered 1..7 in the order the document is built",
+                (int)InvoiceStage.Header == 1 && (int)InvoiceStage.Pricing == 2
+                && (int)InvoiceStage.SpecGrid == 3 && (int)InvoiceStage.OtherCharges == 4
+                && (int)InvoiceStage.Summary == 5 && (int)InvoiceStage.Attachments == 6
+                && (int)InvoiceStage.ProfitLoss == 7);
         }
 
         // ── Money ───────────────────────────────────────────────────────

@@ -9,7 +9,7 @@
     <!-- ─────────────────────────────────────────────────────────────────
          step6.d.2 — the proforma invoice editor.
 
-         One rail, nine stages, one Save. The rail states each stage's own
+         One rail, seven stages, one Save. The rail states each stage's own
          readiness (the engine's evaluation, not a second opinion), so the
          operator can see what is missing before pressing save rather than after.
 
@@ -139,9 +139,8 @@
             </Grid>
         </ContentControl>
 
-        <!-- ── The nine stages ──────────────────────────────────────── -->
+        <!-- ── The seven stages ──────────────────────────────────────── -->
         <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Stages}" Focusable="False"
                           Margin="{DynamicResource PaddingControl}"
                           AutomationProperties.Name="Invoice stages">
@@ -161,7 +160,6 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            </ScrollViewer>
         </ContentControl>
 
         <!-- ── The stage the operator is on ──────────────────────────── -->
@@ -172,17 +170,15 @@
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="Company">
+                                <DataTrigger Binding="{Binding CurrentStageKey}" Value="Header">
                                     <Setter Property="Visibility" Value="Visible" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
-                    <stage:ProformaCompanyStage />
+                    <stage:ProformaHeaderStage />
                 </Grid>
 
-                <Grid><Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CurrentStageKey}" Value="Client"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style><stage:ProformaClientStage/></Grid>
-                <Grid><Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding CurrentStageKey}" Value="Project"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style><stage:ProformaProjectStage/></Grid>
                 <Grid>
                     <Grid.Style>
                         <Style TargetType="Grid">

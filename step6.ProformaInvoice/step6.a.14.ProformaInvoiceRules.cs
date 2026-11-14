@@ -243,22 +243,18 @@ namespace ProGlassAutomation.Models.Proforma
             var statuses = new List<StageStatus>();
             if (draft == null) return statuses;
 
-            var companyProblems = new List<string>();
-            if (draft.Parties.Company.IsEmpty) companyProblems.Add("Company identity is missing.");
-            statuses.Add(new StageStatus { Stage = InvoiceStage.Company, IsComplete = companyProblems.Count == 0, Problems = companyProblems });
+            var headerProblems = new List<string>();
+            if (draft.Parties.Company.IsEmpty) headerProblems.Add("Company identity is missing.");
+            if (!draft.Parties.Client.HasCustomer) headerProblems.Add("Customer name is required.");
+            if (draft.IssueDate == default || draft.ValidUntil == default) headerProblems.Add("Issue and validity dates are required.");
+            else if (draft.ValidUntil < draft.IssueDate) headerProblems.Add("Valid-until is before the issue date.");
 
-            var clientProblems = new List<string>();
-            if (!draft.Parties.Client.HasCustomer) clientProblems.Add("Customer name is required.");
-            if (!string.IsNullOrWhiteSpace(draft.Parties.Client.Trn) && !draft.Parties.Client.Trn.All(char.IsDigit))
-                clientProblems.Add("Customer TRN must contain digits only.");
-            statuses.Add(new StageStatus { Stage = InvoiceStage.Client, IsComplete = clientProblems.Count == 0, Problems = clientProblems });
-
-            var projectProblems = new List<string>();
-            if (draft.IssueDate == default || draft.ValidUntil == default)
-                projectProblems.Add("Issue and validity dates are required.");
-            else if (draft.ValidUntil < draft.IssueDate)
-                projectProblems.Add("Valid-until is before the issue date.");
-            statuses.Add(new StageStatus { Stage = InvoiceStage.Project, IsComplete = projectProblems.Count == 0, Problems = projectProblems });
+            statuses.Add(new StageStatus
+            {
+                Stage = InvoiceStage.Header,
+                IsComplete = headerProblems.Count == 0,
+                Problems = headerProblems
+            });
 
             var pricingProblems = new List<string>();
             if (draft.PricingSections.Count == 0) pricingProblems.Add("No pricing section exists.");
