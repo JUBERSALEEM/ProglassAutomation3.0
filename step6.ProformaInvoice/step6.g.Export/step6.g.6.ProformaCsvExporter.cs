@@ -39,10 +39,10 @@ namespace ProGlassAutomation.Services.Proforma
                         item.W2.ToString(CultureInfo.InvariantCulture),
                         item.H2.ToString(CultureInfo.InvariantCulture),
                         item.Qty.ToString(CultureInfo.InvariantCulture),
-                        Number(item.PanelSqm),
-                        Number(item.TotalSqm),
-                        Number(rate),
-                        Number(item.ValueAt(group.EffectiveRatePerSqm))
+                        Area(item.PanelSqm),
+                        Area(item.TotalSqm),
+                        Money(rate),
+                        Money(item.ValueAt(group.EffectiveRatePerSqm))
                     });
                 }
             }
@@ -95,7 +95,10 @@ namespace ProGlassAutomation.Services.Proforma
                 : text;
         }
 
-        private static string Number(decimal value) =>
+        private static string Money(decimal value) =>
             value.ToString("0.00", CultureInfo.InvariantCulture);
+
+        private static string Area(decimal value) =>
+            value.ToString("0.000", CultureInfo.InvariantCulture);
     }
 }
