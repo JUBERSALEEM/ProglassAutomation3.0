@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ProGlassAutomation.Models.Proforma
 {
@@ -37,6 +38,17 @@ namespace ProGlassAutomation.Models.Proforma
             new PolishSubTypeMeta { Type = PolishSubType.OneWidthSide, DisplayLabel = "One Width Side Polish", FormulaHint = "W/1000 × Qty" },
             new PolishSubTypeMeta { Type = PolishSubType.Custom, DisplayLabel = "Custom (Manual)", FormulaHint = "Enter the manual linear-metre quantity below." }
         });
+
+        public static PolishSubTypeMeta GetInfo(PolishSubType type) =>
+            All.FirstOrDefault(item => item.Type == type) ?? All[0];
+
+        public static string DisplaySpecName(SpecGroup group)
+        {
+            string name = (group.SpecName ?? "").Trim();
+            if (group.PolishSubType == PolishSubType.Auto) return name;
+            string polish = GetInfo(group.PolishSubType).DisplayLabel;
+            return name.Length == 0 ? "Polish: " + polish : name + " · Polish: " + polish;
+        }
     }
 
     public static class PolishMetricCalculator
