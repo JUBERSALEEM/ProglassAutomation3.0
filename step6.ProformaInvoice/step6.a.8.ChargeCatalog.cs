@@ -118,7 +118,7 @@ namespace ProGlassAutomation.Models.Proforma
                     Description = "Site delivery, flat rate per trip.",
                     Unit = ChargeUnit.Qty, DefaultMetric = ChargeMetric.FixedQuantity, DefaultRate = 150m },
             new() { Key = "U_INSERT", ChargeName = "U-Insert (m²)",
-                    Description = "U-channel gasket for structural glazing edge sealing.",
+                    Description = "Invoice-level fallback rate; a Step 4 per-spec U-Insert rate takes precedence where supplied.",
                     Unit = ChargeUnit.Sqm, DefaultMetric = ChargeMetric.TotalSqm, DefaultRate = 10m }
         };
 
