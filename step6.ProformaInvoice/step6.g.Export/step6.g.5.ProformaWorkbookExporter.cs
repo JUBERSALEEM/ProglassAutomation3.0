@@ -162,7 +162,7 @@ namespace ProGlassAutomation.Services.Proforma
                 {
                     object[] values =
                     {
-                        group.GroupNumber, group.DisplayText, group.GlassType, group.SpecName,
+                        group.GroupNumber, PolishSubTypeInfo.DisplayGroupTitle(group), group.GlassType, PolishSubTypeInfo.DisplaySpecName(group),
                         group.OuterGlassColor, group.InnerGlassColor, group.ThirdGlassColor,
                         item.SerialNumber, item.GlassRef, item.W1, item.H1, item.W2, item.H2,
                         item.Qty, item.PanelSqm, item.TotalSqm,
