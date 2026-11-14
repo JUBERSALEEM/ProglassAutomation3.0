@@ -2,8 +2,11 @@
 
 **Module:** `step6.ProformaInvoice/` — Proforma Invoice (PI)
 **Owner authorization:** 2026-11-13 — implement the proforma invoice module
-completely (ADV steps 1–9, merged to 7 stages in this application), **backend
-behaviour only**; no UI cards, plates or XAML may be taken from the reference.
+completely (reference steps 1–9, merged to 7 stages in this application), using
+V3's own domain, persistence, presentation and Theme Studio architecture.
+No legacy application code or UI is copied. **Additional owner authorization:**
+2026-11-14 — add customer-facing PDF export using QuestPDF, including all five
+print styles; preserve one shared invoice composition across those styles.
 **Migration:** 1018 on the single `inquiries.db` chain (additive).
 **Verification:** portable source and contract checks (`step6.f.1`) run in this
 environment and pass. The behaviour suite (`step6.f.2`, `dotnet run`) and a WPF
@@ -185,9 +188,45 @@ Costed from whole sheets, not from sell area, because that is what the shop buys
 | JSON snapshot in `SavedProformaInvoice`, `SchemaVersion 2` | JSON body + typed row, `FormatVersion 1` | the register can query without parsing every body |
 | Number from a sequence table | highest stored sequence for the year | a cancel must not free a number |
 | Wizard UI, cards, plates | **not copied** — no XAML in this delivery | owner instruction: backend only |
-| Print/PDF in step 7 | grand total and terms only; printing is a separate decision | docs/12 excludes print/PDF from PI scope |
+| Print/PDF in step 7 | one V3 QuestPDF composition with five selectable print styles | explicitly authorized 2026-11-14; no legacy renderer or UI is copied |
 
-## 10. Files
+## 10. PDF export — owner authorized 2026-11-14
+
+The Summary stage offers a PDF style selector and an **Export PDF** action. It
+exports a saved invoice only, so the document number is permanent before a
+customer-facing file is created.
+
+The five styles are:
+
+| Style | Operator label | Character |
+| --- | --- | --- |
+| Classic Navy | EXECUTIVE | Formal commercial letterhead |
+| Modern Teal | MODERN | Airy contemporary quote |
+| Editorial Ink | EDITORIAL | Warm paper and restrained rules |
+| Industrial Steel | INDUSTRIAL | Dense, fully gridded production copy |
+| Minimal Ivory | MINIMAL | Quiet archive-style whitespace |
+
+These are five treatments of one invoice structure, not five divergent
+document architectures. Every style prints the same company identity, invoice
+reference and dates, client/project details, specification groups and measured
+rows, active other charges, financial waterfall, notes, terms and approval
+signatures. The internal profit-and-loss worksheet remains inside the
+application; it is not disclosed on the customer quote.
+
+QuestPDF is the only PDF renderer. V3 did not previously reference it; the
+approved integration adds QuestPDF 2024.12.2 to the existing application
+project. The export service renders a detached invoice snapshot off the UI
+thread, writes the selected PDF path, and reports viewer-launch failures
+separately from file-generation failures. Company logos are resolved through
+the owning Company Profile logo store. No PdfSharp renderer or second PDF
+engine is introduced.
+
+The package is configured for QuestPDF Community licensing. Confirm the
+organisation's eligibility and any commercial licensing requirement before
+distribution. PDF generation and visual parity still require Windows build and
+runtime verification; a source commit is not proof of a rendered PDF.
+
+## 11. Files
 
 | File | Role |
 | --- | --- |
@@ -224,9 +263,13 @@ Costed from whole sheets, not from sell area, because that is what the shop buys
 | `step6.d.Views/step6.d.2.ProformaEditorView.xaml` | the editor: heading, lifecycle commands, stage rail, stage host |
 | `step6.d.Views/step6.d.3…d.9` | one view per stage — header, pricing, spec grid, charges, summary, documents, profit |
 | `step6.f.tests/step6.f.1…` | portable source gate |
+| `step6.g.Export/step6.g.1.ProformaPdfStyle.cs` | five named print styles, one shared document composition |
+| `step6.g.Export/step6.g.2.ProformaPdfLayout.cs` | QuestPDF invoice rendering, pagination, tables and signatures |
+| `step6.g.Export/step6.g.3.ProformaPdfExporter.cs` | detached-snapshot export to a PDF file |
+| `step6.c.Presentation/step6.c.9…PdfExport.cs` | style selection, save dialog and export command |
 | `step6.f.tests/step6.f.2…` | behaviour checks (needs a .NET SDK) |
 
-## 11. Verification status — honest
+## 12. Verification status — honest
 
 | Claim | Evidence |
 | --- | --- |
@@ -238,6 +281,7 @@ Costed from whole sheets, not from sell area, because that is what the shop buys
 | Migration runs on a real copy of production | **not verified**; run `step5.f.2` on a copy first (see `step6.e.2`) |
 | Views follow the theme contract (tokens only, implicit styles bound explicitly, shared `ListGrid`) | `step1.d.3`, `.17`, `.18`, `.20`, `.11` — executed here, pass; the step6 views are our own XAML, no reference markup copied |
 | Views render correctly on Windows in nine themes | **not verified** — the XAML is written and compiles by inspection only; no WPF runtime here to render it |
+| Five-style QuestPDF export | source and wiring committed; **not built or rendered** here — verify on Windows, including logo, long tables, page breaks and all five styles |
 
 Anyone reading a later report should treat the last three rows as open until a
 person runs them on Windows and records the outcome in
