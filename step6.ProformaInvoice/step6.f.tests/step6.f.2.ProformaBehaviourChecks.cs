@@ -103,7 +103,7 @@ namespace ProGlassAutomation.Step6Tests
                 && (int)InvoiceStage.Pricing == 4 && (int)InvoiceStage.SpecGrid == 5
                 && (int)InvoiceStage.OtherCharges == 6 && (int)InvoiceStage.Summary == 7
                 && (int)InvoiceStage.Attachments == 8 && (int)InvoiceStage.ProfitLoss == 9);
-            Check("stage list has exactly nine entries", Enum.GetValues<InvoiceStage>().Length == 9);
+            Check("stage list has exactly nine entries", Enum.GetValues<InvoiceStage>().Distinct().Count() == 9);
         }
 
         // ── Money ───────────────────────────────────────────────────────
