@@ -550,6 +550,15 @@ check("UInsertPricePerSqm" in read(SPEC_GRID)
       "Step 4 per-spec U-Insert rate must flow into the specification snapshot and charge calculation")
 check("EffectiveRate" in read(PDF_LAYOUT) and "EffectiveRate" in read(WORKBOOK),
       "customer PDF/XLSX must show the blended effective U-Insert rate")
+charge_model = read(CHARGES_MODEL)
+check("TargetGroupNumbers" in charge_model and "TargetGroupsText" in charge_model
+      and "totals.ForGroups(TargetGroupNumbers)" in charge_model
+      and "TargetGroupNumbers = row.TargetGroupNumbers.ToList()" in charge_model,
+      "Step 6 predefined charge per-spec target selection is not persisted and applied")
+check("AvailableMetrics" in charge_model
+      and 'ItemsSource="{Binding AvailableMetrics}"' in read(CHARGES_VIEW)
+      and "OnChargeCellEditEnding" in read(CHARGES_CODE),
+      "Step 6 charge metric selector is not editable or recalculated")
 wastage_model = read(CHARGES_MODEL)
 check("IsOptionalSuggestion" in wastage_model and "SuggestionReason" in wastage_model
       and "SheetQuantity = row.SheetQuantity" in wastage_model,
