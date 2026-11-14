@@ -238,7 +238,7 @@ The Grid stage imports cut-list data into the selected specification group:
 - **XLSX:** reads the first worksheet's used range using ClosedXML, including a workbook currently open in Excel.
 - **CSV and TXT:** header-aware comma, semicolon and tab parsing; decimal-comma values are supported in semicolon-delimited files.
 - **Scanner JSON:** accepts the structured row array used by scanner integrations.
-- **Row rules:** supports REF, W1, H1, optional W2/H2, quantity, dimension-pair shorthand, specification and glass type. Invalid dimensions/quantities are skipped and reported. Imports append to the selected group; mixed specification names or glass types are rejected instead of silently mispricing rows.
+- **Row rules:** supports REF, W1, H1, optional W2/H2, quantity, dimension-pair shorthand, specification and glass type. Invalid dimensions/quantities are skipped and reported. Imports append to the selected group or map rows to existing groups by specification and glass type. Unmatched or ambiguous groups are rejected before any rows are changed.
 
 PDF/image OCR is **not included** in this V3 batch: the V3 application has no Gemini file-AI service or AI settings contract. The import service reports this clearly instead of pretending to scan the file. Adding an AI provider requires a separate owner decision and credential/settings design.
 
