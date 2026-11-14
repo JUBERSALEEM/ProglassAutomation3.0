@@ -16,6 +16,11 @@ namespace ProGlassAutomation.Step6Tests
                 OuterGlassColor = "Clear",
                 InnerGlassColor = "Clear"
             };
+            group.Rows.Add(new SpecRow
+            {
+                SerialNumber = 1, W1 = 1000, H1 = 2000,
+                W2 = 900, H2 = 1900, Qty = 2
+            });
 
             var suggestions = OtherChargeAutomation.Suggest(group)
                 .Select(item => item.TemplateKey)
@@ -36,6 +41,23 @@ namespace ProGlassAutomation.Step6Tests
                 sheet.Predefined.Single(row => row.TemplateKey == "SHUTTER_BONDING").IsActive);
             Check("automation activates a named fan-hole row",
                 sheet.Predefined.Single(row => row.TemplateKey == "FAN_HOLES").IsActive);
+
+            SpecGridTotals totals = SpecGridTotals.From(new[] { group });
+            PredefinedChargeRow matchedPolish = sheet.Predefined.Single(
+                row => row.TemplateKey == "POLISH_MATCHED_LAM");
+            sheet.Recalculate(totals);
+            Check("matched polish uses the geometry-aware metric without double multiplication",
+                matchedPolish.Metric == ChargeMetric.MatchedPolishLm
+                && matchedPolish.MetricMultiplier == 1m
+                && matchedPolish.Quantity == totals.MatchedPolishLm
+                && totals.MatchedPolishLm == totals.TotalLm);
+
+            var sameGlassWithoutSecondSize = group.Clone();
+            sameGlassWithoutSecondSize.Rows[0].W2 = 0;
+            sameGlassWithoutSecondSize.Rows[0].H2 = 0;
+            decimal expectedDoublePane = GlassMeasure.PanelLm(1000, 2000) * 2m * 2m;
+            Check("matched polish counts the first pane twice when W2/H2 is absent",
+                SpecGridTotals.From(new[] { sameGlassWithoutSecondSize }).MatchedPolishLm == expectedDoublePane);
 
             PredefinedChargeRow manual = sheet.Predefined.Single(row => row.TemplateKey == "SHUTTER_BONDING");
             manual.SetManualActive(false);
