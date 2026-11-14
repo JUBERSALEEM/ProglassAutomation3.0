@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Microsoft.Win32;
 using ProGlassAutomation.Services.Proforma;
+using ProGlassAutomation.ThemeStudio;
 
 namespace ProGlassAutomation.ViewModels.Proforma
 {
