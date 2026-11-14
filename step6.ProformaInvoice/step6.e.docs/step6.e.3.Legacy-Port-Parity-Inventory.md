@@ -40,7 +40,7 @@ The legacy application references a much larger package set, including ClosedXML
 4. Add only the smallest required package set, with pinned compatible versions.
 5. Add an explicit compile/test project boundary so test entry points and test-only packages never enter the WPF application.
 
-V3's application project originally referenced EF Core SQLite and LiveCharts only; it did not contain QuestPDF or a shared PDF export service. The owner explicitly approved PDF output on 2026-11-14, so this batch adds only QuestPDF 2024.12.2. No PdfSharp-WPF, SkiaSharp-only PDF path, or duplicate PDF engine is added. Legacy package presence alone is not evidence that every package is required by the port.
+V3's application project originally referenced EF Core SQLite and LiveCharts only; it did not contain QuestPDF or a shared PDF export service. The owner explicitly approved PDF output on 2026-11-14, so this batch adds only QuestPDF 2025.12.4. No PdfSharp-WPF, SkiaSharp-only PDF path, or duplicate PDF engine is added. Legacy package presence alone is not evidence that every package is required by the port.
 
 ## 4. PDF output and five-style parity
 
