@@ -80,7 +80,7 @@ def scan_paths():
             continue
         if any(part.endswith(".tests") for part in parts):
             continue
-        relative = str(path.relative_to(ROOT)).replace("\\\\", "/")
+        relative = str(path.relative_to(ROOT)).replace("\\", "/")
         if any(relative == root or relative.startswith(root + "/") for root in LEGACY_VERBATIM_ROOTS):
             continue  # Legacy ADV source is deliberately preserved verbatim during the port.
         yield path
