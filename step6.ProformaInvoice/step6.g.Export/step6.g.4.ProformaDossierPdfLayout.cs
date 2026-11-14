@@ -106,7 +106,7 @@ namespace ProGlassAutomation.Services.Proforma
                     Kpi(row, "PRODUCTION COST", ProformaPdfLayout.Money(result.TotalProductionCost), style);
                     Kpi(row, "TOTAL COST", ProformaPdfLayout.Money(result.TotalCost), style);
                     Kpi(row, "NET PROFIT", ProformaPdfLayout.Money(result.Profit), style);
-                    Kpi(row, "MARGIN", result.MarginPercent?.ToString("N1") + " %" ?? "—", style);
+                    Kpi(row, "MARGIN", result.MarginPercent is decimal margin ? margin.ToString("N1") + " %" : "—", style);
                 });
 
                 if (result.Rows.Count > 0)
