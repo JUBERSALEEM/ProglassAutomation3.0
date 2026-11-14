@@ -138,7 +138,7 @@ Four builds, the trade's own vocabulary:
   named in the specification; and follow `SamePaneColours` for polishing. Matched double-glass polish uses
   measured W1/H1 and W2/H2 geometry (and counts W1 twice when W2/H2 is absent),
   rather than multiplying the whole grid length blindly. The per-group `PolishSubType` selector is now ported with all legacy edge
-  formulas, spec-name detection and a Custom/manual option. It never infers
+  formulas, spec-name detection and a Custom/manual linear-metre field. It never infers
   drawing-dependent holes/cutouts from dimensions, and delivery remains an
   operator-entered decision. U-Insert uses the V3 invoice-level
   charge-catalogue rate; the legacy Step 4 per-spec U-Insert rate has not yet
