@@ -79,7 +79,8 @@ namespace ProGlassAutomation.Models.Proforma
         {
             decimal measured = Metric switch
             {
-                ChargeMetric.TotalSqm => totals.TotalSqm,
+                ChargeMetric.TotalSqm => string.Equals(TemplateKey, "U_INSERT", StringComparison.OrdinalIgnoreCase)
+                    ? totals.UInsertSqm : totals.TotalSqm,
                 ChargeMetric.TotalLm => totals.TotalLm,
                 ChargeMetric.PolishLm => totals.PolishLm,
                 ChargeMetric.MatchedPolishLm => totals.MatchedPolishLm,
@@ -94,7 +95,14 @@ namespace ProGlassAutomation.Models.Proforma
         public void Recalculate(SpecGridTotals totals)
         {
             Quantity = ResolveQuantity(totals);
-            Amount = IsActive ? MoneyRounding.Round(Quantity * Rate) : 0m;
+            if (!IsActive)
+            {
+                Amount = 0m;
+                return;
+            }
+            Amount = string.Equals(TemplateKey, "U_INSERT", StringComparison.OrdinalIgnoreCase)
+                ? totals.UInsertAmount(Rate)
+                : MoneyRounding.Round(Quantity * Rate);
         }
     }
 

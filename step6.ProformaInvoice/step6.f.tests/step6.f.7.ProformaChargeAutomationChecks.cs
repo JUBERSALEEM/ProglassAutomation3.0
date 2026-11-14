@@ -6,6 +6,22 @@ namespace ProGlassAutomation.Step6Tests
 {
     internal static partial class Program
     {
+        private static bool UInsertSeedCopiesToGroup()
+        {
+            var section = new PricingSection
+            {
+                GlassType = GlassBuilds.Dgu,
+                UInsertPricePerSqm = 13m
+            };
+            var group = new SpecGroup();
+            group.ApplyPricing(section, new PricingResult
+            {
+                IsComplete = true, SpecName = "DGU + U-Insert", RatePerSqm = 100m,
+                CostCard = new SpecCostCard()
+            });
+            return group.UInsertPricePerSqm == 13m;
+        }
+
         private static void ChargeAutomation()
         {
             var group = new SpecGroup
@@ -123,6 +139,30 @@ namespace ProGlassAutomation.Step6Tests
                 && legacyPolishSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").MetricMultiplier == 1m);
             Check("polish metric migration preserves manual active state",
                 legacyPolishSheet.Predefined.All(row => !row.IsActive && row.HasManualActiveOverride));
+
+            var uInsertA = new SpecGroup
+            {
+                GroupNumber = 10, SpecName = "DGU + U-Insert", GlassType = GlassBuilds.Dgu,
+                UInsertPricePerSqm = 12m
+            };
+            uInsertA.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, Qty = 1 });
+            var uInsertB = new SpecGroup
+            {
+                GroupNumber = 11, SpecName = "DGU + U-Insert", GlassType = GlassBuilds.Dgu,
+                UInsertPricePerSqm = 0m
+            };
+            uInsertB.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, Qty = 1 });
+            var uInsertSheet = new OtherChargesSheet();
+            uInsertSheet.EnsureCatalogueRows();
+            OtherChargeAutomation.Apply(uInsertSheet, new[] { uInsertA, uInsertB });
+            PredefinedChargeRow uInsertRow = uInsertSheet.Predefined.Single(row => row.TemplateKey == "U_INSERT");
+            uInsertRow.Rate = 10m;
+            uInsertSheet.Recalculate(new[] { uInsertA, uInsertB });
+            Check("U-Insert uses pane-one cavity area and Step 4 per-spec rates before Step 6 fallback",
+                uInsertRow.IsActive && uInsertRow.Quantity == 4m && uInsertRow.Amount == 44m);
+            Check("pricing section U-Insert seed survives clone and group creation",
+                new PricingSection { UInsertPricePerSqm = 13m }.Clone().UInsertPricePerSqm == 13m
+                && UInsertSeedCopiesToGroup());
 
             var wastage = new OtherChargesSheet();
             wastage.RebuildWastages(new[] { group });

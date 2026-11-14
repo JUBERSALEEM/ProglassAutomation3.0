@@ -168,6 +168,8 @@ namespace ProGlassAutomation.Models.Proforma
 
         /// <summary>Air spacer rate per m² of glazing (DGU / DGU+LAM).</summary>
         public decimal SpacerPricePerSqm { get; set; }
+        /// <summary>Per-spec U-Insert rate per m²; copied to the specification snapshot.</summary>
+        public decimal UInsertPricePerSqm { get; set; }
         public string SpacerWidth { get; set; } = "12";
         public string SpacerMaterial { get; set; } = "Aluminium";
 
@@ -228,6 +230,7 @@ namespace ProGlassAutomation.Models.Proforma
             Middle = Middle.Clone(),
             Inner = Inner.Clone(),
             SpacerPricePerSqm = SpacerPricePerSqm,
+            UInsertPricePerSqm = UInsertPricePerSqm,
             SpacerWidth = SpacerWidth,
             SpacerMaterial = SpacerMaterial,
             InterlayerBuyPerSqm = InterlayerBuyPerSqm,

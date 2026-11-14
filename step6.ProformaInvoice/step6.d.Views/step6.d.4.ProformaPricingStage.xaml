@@ -151,6 +151,16 @@
                             </StackPanel>
                         </Grid>
 
+                        <StackPanel Margin="{DynamicResource MarginItem}">
+                            <TextBlock Text="U-INSERT RATE · AED/M² (PER SPECIFICATION)"
+                                       Style="{DynamicResource ProformaFieldLabel}" />
+                            <TextBox Style="{DynamicResource {x:Type TextBox}}"
+                                     Width="180"
+                                     Text="{Binding SelectedSection.UInsertPricePerSqm, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Used only for specifications that explicitly name U-Insert. This Step 4 rate overrides the invoice-level Step 6 fallback."
+                                     AutomationProperties.Name="Per-specification U-Insert rate per square metre" />
+                        </StackPanel>
+
                         <TextBlock Text="INTERLAYER" Style="{DynamicResource SectionHeading}"
                                    Margin="{DynamicResource MarginItem}" />
                         <Grid>

@@ -488,6 +488,13 @@ check("all five customer PDF styles are registered" in pdf_tests
       and "renders a customer invoice PDF" in pdf_tests
       and "renders an internal dossier PDF" in pdf_tests,
       "step6.f.4: all five styles must render both customer invoice and dossier PDFs")
+check("UInsertPricePerSqm" in read(MODELS)
+      and "UInsertPricePerSqm" in read(SPEC_GRID)
+      and "UInsertSqm" in read(SPEC_GRID)
+      and "UInsertAmount" in read(SPEC_GRID)
+      and "UInsertPricePerSqm" in read(MODULE / "step6.d.Views/step6.d.4.ProformaPricingStage.xaml")
+      and "UInsertAmount(Rate)" in read(CHARGES_MODEL),
+      "legacy Step 4 per-spec U-Insert pricing is not wired through pricing, grid and charges")
 charge_source = read(CHARGE_AUTOMATION)
 for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
               "BEVELED", "FROSTED", "ARGON GAS"):

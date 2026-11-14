@@ -94,6 +94,9 @@ namespace ProGlassAutomation.Models.Proforma
             set => _customPolishQuantity = value < 0m ? 0m : value;
         }
 
+        /// <summary>Step-4 U-Insert sell rate captured for this specification.</summary>
+        public decimal UInsertPricePerSqm { get; set; }
+
         public string OuterGlassColor { get; set; } = "";
         public string InnerGlassColor { get; set; } = "";
         /// <summary>Third pane colour of a DGU+LAM build; empty on other builds.</summary>
@@ -155,6 +158,18 @@ namespace ProGlassAutomation.Models.Proforma
         }
 
         /// <summary>Every row priced at the group rate unless it carries an override.</summary>
+        [JsonIgnore]
+        [JsonIgnore]
+        public bool RequiresUInsert =>
+            SpecName.Contains("U-INSERT", StringComparison.OrdinalIgnoreCase)
+            || SpecName.Contains("U INSERT", StringComparison.OrdinalIgnoreCase)
+            || SpecName.Contains("UINSERT", StringComparison.OrdinalIgnoreCase);
+
+        [JsonIgnore]
+        public decimal UInsertSqm => MoneyRounding.RoundArea(
+            Rows.Where(row => row.Qty > 0 && row.W1 > 0 && row.H1 > 0)
+                .Sum(row => GlassMeasure.PanelSqm(row.W1, row.H1) * row.Qty));
+
         [JsonIgnore]
         public decimal TotalValue => MoneyRounding.Round(
             Rows.Sum(row => row.ValueAt(EffectiveRatePerSqm)));
@@ -234,6 +249,7 @@ namespace ProGlassAutomation.Models.Proforma
                 BaseRatePerSqm = result.RatePerSqm;
             }
             CostCard = result.CostCard ?? new SpecCostCard();
+            UInsertPricePerSqm = Math.Max(0m, section.UInsertPricePerSqm);
 
             var panes = result.CostCard?.Panes ?? new List<SpecCostPane>();
             if (!HasManualGlassTypeOverride)
@@ -252,6 +268,7 @@ namespace ProGlassAutomation.Models.Proforma
             SpecName = SpecName,
             PolishSubType = PolishSubType,
             CustomPolishQuantity = CustomPolishQuantity,
+            UInsertPricePerSqm = UInsertPricePerSqm,
             OuterGlassColor = OuterGlassColor,
             InnerGlassColor = InnerGlassColor,
             ThirdGlassColor = ThirdGlassColor,
@@ -297,6 +314,20 @@ namespace ProGlassAutomation.Models.Proforma
         public decimal MatchedPolishLm { get; init; }
         public int TotalPieces { get; init; }
         public decimal TotalValue { get; init; }
+        public decimal UInsertSqm { get; init; }
+        private IReadOnlyList<SpecGroup> SourceGroups { get; init; } = Array.Empty<SpecGroup>();
+
+        public decimal UInsertAmount(decimal fallbackRate)
+        {
+            decimal amount = 0m;
+            foreach (SpecGroup group in SourceGroups.Where(item => item.RequiresUInsert))
+            {
+                decimal rate = group.UInsertPricePerSqm > 0m
+                    ? group.UInsertPricePerSqm : Math.Max(0m, fallbackRate);
+                amount += group.UInsertSqm * rate;
+            }
+            return MoneyRounding.Round(amount);
+        }
 
         public static SpecGridTotals From(IReadOnlyList<SpecGroup>? groups)
         {
@@ -304,6 +335,9 @@ namespace ProGlassAutomation.Models.Proforma
             return new SpecGridTotals
             {
                 GroupCount = list.Count,
+                SourceGroups = list.ToList(),
+                UInsertSqm = MoneyRounding.RoundArea(list.Where(group => group.RequiresUInsert)
+                    .Sum(group => group.UInsertSqm)),
                 TotalSqm = MoneyRounding.RoundArea(list.Sum(group => group.TotalSqm)),
                 TotalLm = Math.Round(list.Sum(group => group.TotalLm), 3),
                 PolishLm = Math.Round(list.Sum(group => group.PolishLm), 3),
