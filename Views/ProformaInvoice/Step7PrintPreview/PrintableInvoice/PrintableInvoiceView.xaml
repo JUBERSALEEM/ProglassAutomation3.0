@@ -1,0 +1,1165 @@
+<!-- Bento print preview: token-aligned A4 layout -->
+<UserControl x:Class="ProGlassAutomation.Views.ProformaInvoice.Step7PrintPreview.PrintableInvoice.PrintableInvoiceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:behaviors="clr-namespace:ProGlassAutomation.Behaviors"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="1123" d:DesignWidth="794"
+             FontFamily="{DynamicResource AppFontFamily}"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="Auto"
+             TextOptions.TextHintingMode="Fixed"
+             RenderOptions.BitmapScalingMode="HighQuality"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+
+    <!--
+    ═══════════════════════════════════════════════════════════════════
+    UX CLEANUP — Chat 14 Phase 1, File 4
+    ═══════════════════════════════════════════════════════════════════
+
+    TOTALS-01 [HIGH]: Spec sub-total footer rebuilt using the SAME
+                      10-column grid as the data rows above. QTY, AREA
+                      and VALUE totals now sit under their respective
+                      column headers instead of a left-aligned strip.
+                      Matches how estimators mentally scan invoice totals.
+
+    TOTALS-02 [HIGH]: Other Charges section gets a subtotal row —
+                      "SUBTOTAL: AED xxx" aligned right under the Amount
+                      column. User no longer needs to jump to the
+                      Financial Summary card to see charges total.
+
+    TOTALS-03 [MED]:  GRAND SPEC TOTAL bar added after all spec groups.
+                      Full-width purple band showing total across all
+                      spec groups: N Specs · QTY · AREA · VALUE.
+                      Consistent with what the Data Grid tab shows.
+
+    BUG-93 [HIGH]:    Removed FallbackValue="—" from every binding.
+                      FallbackValue fires on binding FAILURE (wrong path),
+                      masking real errors. TargetNullValue kept for
+                      genuine null-display.
+                      One EXCEPTION preserved: FallbackValue=Collapsed on
+                      Discount visibility — legitimate safety net if the
+                      DecimalIsPositiveConverter is somehow missing.
+
+    BUG-95 [MED]:     Width="794" → MaxWidth="794" + Center alignment.
+                      Fixed-width was clipping on high-DPI displays.
+                      A4 preview stays 794px on wide screens but
+                      shrinks gracefully on narrow ones.
+
+    BUG-96 [LOW]:     Removed DropShadowEffect on the paper Border.
+                      Perf hit during scroll (WPF gotcha #2). The A4
+                      backdrop in PrintPreviewView already provides
+                      the "paper on desk" visual separation.
+
+    NEW-PR2 [LOW]:    Terms empty-state message now shows when EITHER
+                      no clauses exist OR all clauses are inactive.
+                      Previously only the first case triggered it.
+
+    NEW-PR3 [LOW]:    Proforma status color reflects actual status
+                      (Draft=grey, Sent=blue, Approved=green,
+                      Rejected=red, Expired=amber) instead of
+                      always-green.
+
+    NEW-PR4 [LOW]:    Label "Contact Details" → "Contact Phone".
+                      More accurate — field only stores phone.
+
+    Preserved:
+      ✅ x:Name="PrintablePaper" — code-behind still binds PrintTarget
+      ✅ All 11 spec table columns (# / GLASS REF / W1 / H1 / W2 / H2 /
+         QTY / SQM / TOTAL SQM / RATE / VALUE)
+      ✅ Company header + reference badge layout
+      ✅ Client + Project side-by-side blocks (with 6 fields each)
+      ✅ Other charges detail lists (Predefined + Wastage + Custom)
+      ✅ Financial summary waterfall (Materials + Other + Discount + VAT)
+      ✅ Grand Total VAT band
+      ✅ Terms & Conditions with sub-lines
+      ✅ Footer disclaimer + editable Terms field
+      ✅ Prepared By + Client Approval signature blocks
+      ✅ All EditableTextBoxStyle bindings
+    ═══════════════════════════════════════════════════════════════════
+    -->
+
+        <UserControl.Resources>
+        <!-- Migrated PrintLabelStyle to global Typography.Label -->
+    </UserControl.Resources>
+
+
+    <!--
+        BUG-95: MaxWidth="794" + HorizontalAlignment="Center" replaces
+        fixed Width="794" for responsive layout.
+
+        BUG-96: DropShadowEffect removed for scroll performance.
+    -->
+    <Border x:Name="PrintablePaper"
+            Background="{DynamicResource Print.Paper}"
+            MaxWidth="794"
+            MinHeight="1123"
+            HorizontalAlignment="Center"
+            Padding="{DynamicResource Print.Thickness.PageMargin}"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource Print.Border}"
+            UseLayoutRounding="True"
+            SnapsToDevicePixels="True">
+
+        <StackPanel>
+
+            <!-- ══════════════════════════════════════════════════════
+                 COMPANY LOGO — TOP PANEL MASTHEAD
+                 The exported PDF has always carried the company logo;
+                 this preview never did, so operators were approving a
+                 document that did not look like the one they sent.
+                 Visibility is driven by Company.LogoIsTopPanel, which is
+                 the SAME rule PdfChrome.EffectiveLogoLayout uses, so the
+                 logo lands in the same slot on screen and on paper.
+            ══════════════════════════════════════════════════════ -->
+            <Border Background="{DynamicResource Print.Accent}"
+                    Padding="{DynamicResource Print.Thickness.Group}"
+                    Margin="{DynamicResource Print.Margin.SectionBelow}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Company.LogoIsTopPanel}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <Image Source="{Binding Company.LogoImage}"
+                           Height="{Binding Company.LogoHeightDip}"
+                           Stretch="Uniform"
+                           HorizontalAlignment="Center"/>
+
+                    <!-- Mirrors PdfChrome.TopPanelMasthead: identity left,
+                         document reference right, on one accent band. -->
+                    <Grid Margin="{DynamicResource Print.Margin.BlockAbove}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- OVERLAP FIX (2026-09-11): company name wraps
+                             inside its column; the location·TRN line is one
+                             TextBlock with Runs so it wraps too instead of
+                             running under the document-reference column. -->
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Company.CompanyName, TargetNullValue=PROGLASS AUTOMATION ERP}"
+                                       FontSize="{DynamicResource Print.Font.Title}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.AccentOn}"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock Margin="{DynamicResource Print.Margin.StackBelow}"
+                                       FontSize="{DynamicResource Print.Font.MetaValue}"
+                                       Foreground="{DynamicResource Print.AccentSoft}"
+                                       TextWrapping="Wrap">
+                                <Run Text="{Binding Company.CompanyLocation, Mode=OneWay, TargetNullValue=United Arab Emirates}"/>
+                                <Run Text="  &#183;  TRN  "/>
+                                <Run Text="{Binding Company.CompanyTrn, Mode=OneWay, TargetNullValue=—}"/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource Module.ProformaInvoice}"
+                                       FontSize="{DynamicResource Print.Font.Kicker}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.AccentOn}"
+                                       HorizontalAlignment="Right"/>
+                            <TextBlock Text="{Binding Company.ProformaId, TargetNullValue=PI-XXXX-XXX}"
+                                       FontSize="{DynamicResource Print.Font.DocumentId}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.Highlight}"
+                                       HorizontalAlignment="Right"
+                                       Margin="{DynamicResource Print.Margin.StackBelow}"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════════════
+                 COMPANY HEADER
+                 BUG-93: FallbackValue removed from all bindings
+            ══════════════════════════════════════════════════════ -->
+            <Grid Margin="{DynamicResource Print.Margin.SectionBelow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <!-- Explicit breathing gap between the identity column
+                         and the reference card (same gutter the CLIENT /
+                         PROJECT grids below use). Without it, a wrapped
+                         company name ends up touching the card border. -->
+                    <ColumnDefinition Width="16"/>
+                    <!-- Proportional, not a fixed 220 px: keeps the same
+                         67/33 split as before but scales with the paper. -->
+                    <ColumnDefinition Width="0.48*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Company Info
+                     OVERLAP FIX (2026-09-11): this block was a horizontal
+                     StackPanel — WPF measures its children with INFINITE
+                     width, so a long company name never wrapped; on themes
+                     with large titles or wide page margins (Editorial,
+                     Modern, Executive, Minimal) it simply ran UNDER the
+                     reference-box card. A Grid gives the identity column a
+                     real width, and TextWrapping keeps every line inside
+                     it — exactly how the exported PDF lays it out
+                     (QuestPDF wraps text inside RelativeItems). -->
+                <Grid Grid.Column="0" VerticalAlignment="Center">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <!-- TopPanel moves the identity onto the
+                                     masthead band above; repeating it here
+                                     would print the company twice. -->
+                                <DataTrigger Binding="{Binding Company.LogoIsTopPanel}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Inline logo chip (LeftPortrait / legacy records) -->
+                    <Border Grid.Column="0"
+                            Background="{DynamicResource Print.Paper}"
+                            BorderBrush="{DynamicResource Print.Border}"
+                            BorderThickness="1"
+                            Padding="{DynamicResource Print.Thickness.LogoChip}"
+                            Margin="{DynamicResource Print.Margin.LogoRight}"
+                            VerticalAlignment="Center"
+                            Width="{Binding Company.LogoWidthDip}"
+                            Height="{Binding Company.LogoHeightDip}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Company.LogoIsInline}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Image Source="{Binding Company.LogoImage}" Stretch="Uniform"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Company.CompanyName, TargetNullValue=PROGLASS AUTOMATION ERP}"
+                               FontSize="{DynamicResource Print.Font.Title}" FontWeight="Bold"
+                               Foreground="{DynamicResource Print.Accent}"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="{DynamicResource ProformaInvoice.PremiumGlassGlazingHighYieldManufacturing}"
+                               FontSize="{DynamicResource Print.Font.MetaValue}"
+                               Foreground="{DynamicResource Print.Muted}"
+                               Margin="0,3,0,0"
+                               TextWrapping="Wrap"/>
+                    <!-- Single TextBlock with Runs (was two TextBlocks in a
+                         horizontal StackPanel): identical rendering, but now
+                         wraps inside the column instead of overflowing. -->
+                    <TextBlock FontSize="{DynamicResource Print.Font.MetaValue}"
+                               Foreground="{DynamicResource Print.Muted}"
+                               Margin="0,2,0,0"
+                               TextWrapping="Wrap">
+                        <Run Text="{Binding Company.CompanyLocation, Mode=OneWay, TargetNullValue=United Arab Emirates}"/>
+                        <Run Text="{DynamicResource ProformaInvoice.WwwProglassAutomationCom}"/>
+                    </TextBlock>
+                    <TextBlock FontSize="{DynamicResource Print.Font.MetaValue}" FontWeight="SemiBold"
+                               Margin="0,2,0,0"
+                               TextWrapping="Wrap">
+                        <Run Text="{DynamicResource CompanyCenter.TRN}"
+                             Foreground="{DynamicResource Print.Muted}"/>
+                        <Run Text="{Binding Company.CompanyTrn, Mode=OneWay, TargetNullValue=—}"
+                             Foreground="{DynamicResource Print.Text}"/>
+                    </TextBlock>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Right: Invoice Reference Box -->
+                <Border Grid.Column="2"
+                        Background="{DynamicResource Print.Surface}"
+                        CornerRadius="6"
+                        Padding="{DynamicResource Print.Thickness.Card}"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource Print.BorderStrong}"
+                        VerticalAlignment="Center">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource Module.ProformaInvoice}"
+                                   FontSize="{DynamicResource Print.Font.Section}" FontWeight="Bold"
+                                   Foreground="{DynamicResource Print.Text}"
+                                   HorizontalAlignment="Center"/>
+                        <Border Background="{DynamicResource Print.BorderStrong}" Height="1" Margin="0,6,0,6"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource ProformaInvoice.RefNo}"
+                                       Style="{StaticResource Typography.Label}" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                       Text="{Binding Company.ProformaId, TargetNullValue=PI-XXXX-XXX}"
+                                       Style="{StaticResource PrintValueStyle}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Common.Date}"
+                                       Style="{StaticResource Typography.Label}" Margin="0,4,8,0"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1"
+           Text="{Binding Company.IssueDate, StringFormat=dd MMM yyyy, TargetNullValue=—}"
+           Style="{StaticResource PrintValueStyle}" Margin="0,4,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Top Divider — colored accent line -->
+            <Border Background="{DynamicResource Print.Accent}" Height="2" CornerRadius="1" Margin="{DynamicResource Print.Margin.BlockBelow}"/>
+
+            <!-- ══════════════════════════════════════════════════════
+                 CLIENT + PROJECT BLOCKS
+                 BUG-93: FallbackValue removed from all bindings
+                 NEW-PR4: "Contact Details" label → "Contact Phone"
+                 NEW-PR3: Status uses ProformaStatusValueStyle
+            ══════════════════════════════════════════════════════ -->
+            <Grid Margin="{DynamicResource Print.Margin.SectionBelow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Client Block -->
+                <Border Grid.Column="0"
+                        BorderThickness="1" BorderBrush="{DynamicResource Print.Border}"
+                        CornerRadius="6" Padding="{DynamicResource Print.Thickness.Card}">
+                    <StackPanel>
+                        <Border Background="{DynamicResource Print.Accent}" CornerRadius="3"
+                                Padding="{DynamicResource Print.Thickness.Group}" Margin="0,0,0,6">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.ClientBILL}"
+                                       FontSize="{DynamicResource Print.Font.MetaValue}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.AccentOn}"/>
+                        </Border>
+                        <Grid Margin="0,2,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource ProformaInvoice.CustomerNAME}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Client.CustomerName, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}" TextWrapping="Wrap"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource ProformaInvoice.TRNVATNumber}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Client.CustomerTrn, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource ProformaInvoice.AttentionName}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Client.AttentionExecutiveName, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}"/>
+
+                            <!-- NEW-PR4: label reflects actual field content -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{DynamicResource ProformaInvoice.ContactPhone}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Client.ClientContactPhone, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource ProformaInvoice.BillingAddress}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Client.BillingAddress, TargetNullValue=—}"
+                                       Style="{StaticResource PrintValueStyle}" TextWrapping="Wrap" Margin="{DynamicResource Print.Margin.RowBelow}"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="{DynamicResource ProformaInvoice.ClientReference}" Style="{StaticResource Typography.Label}" Margin="0,0,6,0"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Client.CustomerReferenceCode, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Project Block -->
+                <Border Grid.Column="2"
+                        BorderThickness="1" BorderBrush="{DynamicResource Print.Border}"
+                        CornerRadius="6" Padding="{DynamicResource Print.Thickness.Card}">
+                    <StackPanel>
+                        <Border Background="{DynamicResource Print.Accent}" CornerRadius="3"
+                                Padding="{DynamicResource Print.Thickness.Group}" Margin="0,0,0,6">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.ProjectEstimateMetric}"
+                                       FontSize="{DynamicResource Print.Font.MetaValue}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.AccentOn}"/>
+                        </Border>
+                        <Grid Margin="0,2,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource ProformaInvoice.ProjectNAME}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Project.ProjectIdentifierName, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}" TextWrapping="Wrap"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource ProformaInvoice.ProjectReference}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Project.ProjectReference, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}" TextWrapping="Wrap"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource ProformaInvoice.ContractNO}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Project.ProjectContractNo, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="{DynamicResource ProformaInvoice.SiteDelivery}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Project.SiteDeliveryLocation, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource ProformaInvoice.LPOPOReference}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Project.LpoNumber, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="{DynamicResource ProformaInvoice.AssignedSalesman}" Style="{StaticResource Typography.Label}" Margin="{DynamicResource Print.Margin.LabelRightBelow}"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Client.SalesRepresentative, TargetNullValue=—}" Style="{StaticResource PrintValueStyle}" Margin="{DynamicResource Print.Margin.RowBelow}"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource ProformaInvoice.ValidUntil}" Style="{StaticResource Typography.Label}" Margin="0,0,6,0"/>
+                            <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock Text="{Binding Company.ValidUntil, StringFormat=dd MMM yyyy, TargetNullValue=—}"
+        Style="{StaticResource PrintValueStyle}"/>
+                                <TextBlock Text=" • " Style="{StaticResource Typography.Label}"/>
+                                <!-- NEW-PR3: color adapts to actual status -->
+                                <TextBlock Text="{Binding Company.ProformaStatus, TargetNullValue=Draft}"
+                   Style="{StaticResource ProformaStatusValueStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Section Divider -->
+            <Border Background="{DynamicResource Print.Border}" Height="1" Margin="{DynamicResource Print.Margin.BlockBelow}"/>
+
+            <!-- ══════════════════════════════════════════════════════
+                 SPECIFICATION TABLES
+                 TOTALS-01: Sub-total footer now uses same 11-column grid
+                            as data rows. QTY / TOTAL SQM / VALUE align under
+                            their respective columns.
+            ══════════════════════════════════════════════════════ -->
+            <ItemsControl ItemsSource="{Binding DataGrid.SpecGroups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="{DynamicResource Print.Margin.BlockBelow}">
+
+                            <!-- Spec Group Header -->
+                            <Border Background="{DynamicResource Print.Accent}" Padding="{DynamicResource Print.Thickness.Group}" CornerRadius="4,4,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{DynamicResource Common.Specification}" FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.AccentOn}"/>
+                                    <TextBlock Text="{Binding GroupNumber}" FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.AccentOn}"/>
+                                    <TextBlock Text=": " FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.AccentOn}"/>
+                                    <TextBlock Text="{Binding SpecDisplayName}" FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.AccentOn}" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Table Header Row.
+                                 2026-09-18 (owner: "Sr glass ref still mixing
+                                 with the specs column — they must be separate;
+                                 header text small black should be white like
+                                 the Specification section"): the accent group
+                                 banner and this navy header band were two dark
+                                 blocks touching edge to edge, so they read as
+                                 one merged band and the column names looked
+                                 like part of the specification title. The 2 DIP
+                                 paper rule draws the boundary (the exporter
+                                 paints the same rule), Print.Thickness.Cell
+                                 gives the labels the cell inset the data rows
+                                 use so every label sits over its own column,
+                                 and the labels themselves now use
+                                 PrintTableHeaderTextStyle — white, bold,
+                                 header-sized — matching SpecHeaderCell. -->
+                            <Border Background="{DynamicResource Print.TableHeader}"
+                                    Padding="{DynamicResource Print.Thickness.Cell}"
+                                    BorderBrush="{DynamicResource Print.Paper}"
+                                    BorderThickness="0,2,0,0">
+                                <Grid>
+                                    <!-- SPEC-GRID (2026-09-16): one column set for the header, the data
+                                         rows AND the sub-total footer. Only the four dimension columns and
+                                         the serial keep a fixed width (their content is 2-4 characters by
+                                         definition); every other column is proportional, so on a narrow
+                                         paper the identity and money columns shrink WITH the page instead
+                                         of being starved to nothing by the fixed block - that starvation
+                                         is what hid "#" and "GLASS REF / DESCRIPTION" in the preview. -->
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="24"/>
+                                        <ColumnDefinition Width="1.4*"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="0.55*"/>
+                                        <ColumnDefinition Width="0.65*"/>
+                                        <ColumnDefinition Width="0.80*"/>
+                                        <ColumnDefinition Width="0.75*"/>
+                                        <ColumnDefinition Width="0.95*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="#" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{DynamicResource ProformaInvoice.GlassREFDescription}" Style="{StaticResource PrintTableHeaderTextStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="W1" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="3" Text="H1" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="4" Text="W2" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="5" Text="H2" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="6" Text="QTY" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Center"/>
+                                    <TextBlock Grid.Column="7" Text="SQM" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="8" Text="{DynamicResource DeliveryNote.TotalSQM}" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="9" Text="{DynamicResource ProformaInvoice.RATEAED}" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="10" Text="{DynamicResource JobOrder.ValueAED}" Style="{StaticResource PrintTableHeaderTextStyle}" HorizontalAlignment="Right"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Data Rows -->
+                            <!-- AlternationCount drives the same zebra striping the exporter
+                                 paints via PdfChrome.DataCell(alt: …). -->
+                            <ItemsControl ItemsSource="{Binding ItemRows}"
+                                          AlternationCount="2">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Print.Border}">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{DynamicResource Print.Paper}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ContentPresenter}, Path=(ItemsControl.AlternationIndex)}"
+                                                                     Value="1">
+                                                            <Setter Property="Background" Value="{DynamicResource Print.TableAlt}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <!-- SPEC-GRID (2026-09-16): one column set for the header, the data
+                                                     rows AND the sub-total footer. Only the four dimension columns and
+                                                     the serial keep a fixed width (their content is 2-4 characters by
+                                                     definition); every other column is proportional, so on a narrow
+                                                     paper the identity and money columns shrink WITH the page instead
+                                                     of being starved to nothing by the fixed block - that starvation
+                                                     is what hid "#" and "GLASS REF / DESCRIPTION" in the preview. -->
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="24"/>
+                                                    <ColumnDefinition Width="1.4*"/>
+                                                    <ColumnDefinition Width="30"/>
+                                                    <ColumnDefinition Width="30"/>
+                                                    <ColumnDefinition Width="30"/>
+                                                    <ColumnDefinition Width="30"/>
+                                                    <ColumnDefinition Width="0.55*"/>
+                                                    <ColumnDefinition Width="0.65*"/>
+                                                    <ColumnDefinition Width="0.80*"/>
+                                                    <ColumnDefinition Width="0.75*"/>
+                                                    <ColumnDefinition Width="0.95*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding SerialNumber}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding GlassRef}" Style="{StaticResource Typography.Body}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding W1}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Right"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding H1}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Right"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding W2}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Right"/>
+                                                <TextBlock Grid.Column="5" Text="{Binding H2}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Right"/>
+                                                <TextBlock Grid.Column="6" Text="{Binding Qty}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Center"/>
+                                                <TextBlock Grid.Column="7" Text="{Binding Sqm1, StringFormat={}{0:0.000}}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Right"/>
+                                                <TextBlock Grid.Column="8" Text="{Binding TotalSqm, StringFormat={}{0:0.000}}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Right"/>
+                                                <TextBlock Grid.Column="9" Text="{Binding Rate, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Right"/>
+                                                <TextBlock Grid.Column="10" Text="{Binding Value, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}" Style="{StaticResource Typography.Body}" HorizontalAlignment="Right" FontWeight="Bold"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!--
+                                TOTALS-01: Spec sub-total footer — SAME 10-column grid.
+                                QTY total sits under QTY column.
+                                AREA total sits under AREA column.
+                                VALUE total sits under TOTAL column.
+                                Left columns (#, GLASS REF, W1..H2) span the "SUB-TOTAL" label.
+                            -->
+                            <Border Background="{DynamicResource Print.Surface}"
+                                    BorderThickness="1"
+                                    BorderBrush="{DynamicResource Print.Border}"
+                                    CornerRadius="0,0,4,4">
+                                <Grid>
+                                    <!-- SPEC-GRID (2026-09-16): one column set for the header, the data
+                                         rows AND the sub-total footer. Only the four dimension columns and
+                                         the serial keep a fixed width (their content is 2-4 characters by
+                                         definition); every other column is proportional, so on a narrow
+                                         paper the identity and money columns shrink WITH the page instead
+                                         of being starved to nothing by the fixed block - that starvation
+                                         is what hid "#" and "GLASS REF / DESCRIPTION" in the preview. -->
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="24"/>
+                                        <ColumnDefinition Width="1.4*"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="30"/>
+                                        <ColumnDefinition Width="0.55*"/>
+                                        <ColumnDefinition Width="0.65*"/>
+                                        <ColumnDefinition Width="0.80*"/>
+                                        <ColumnDefinition Width="0.75*"/>
+                                        <ColumnDefinition Width="0.95*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Label spans first 6 columns (# through H2) -->
+                                    <TextBlock Grid.Column="0" Grid.ColumnSpan="6"
+                                               Text="{DynamicResource ProformaInvoice.SPECSUBTotal}"
+                                               FontSize="{DynamicResource Print.Font.MetaValue}" FontWeight="Bold"
+                                               Foreground="{DynamicResource Print.Accent}"
+                                               Padding="{DynamicResource Print.Thickness.Cell}"
+                                               VerticalAlignment="Center"/>
+
+                                    <!-- QTY total under QTY column -->
+                                    <TextBlock Grid.Column="6"
+                                               Text="{Binding FooterTotalQty}"
+                                               Style="{StaticResource TableSubTotalStyle}"
+                                               Foreground="{DynamicResource Print.Text}"
+                                               HorizontalAlignment="Center"/>
+
+                                    <!-- AREA total under AREA column -->
+                                    <TextBlock Grid.Column="7"
+                                               Text="{Binding FooterTotalSqm, StringFormat={}{0:0.000}}"
+                                               Style="{StaticResource TableSubTotalStyle}"
+                                               Foreground="{DynamicResource Print.Text}"
+                                               HorizontalAlignment="Right"/>
+
+                                    <!-- RATE column left blank in subtotal row -->
+                                    <TextBlock Grid.Column="8" Text=""/>
+
+                                    <!-- VALUE total under TOTAL column -->
+                                    <TextBlock Grid.Column="9"
+                                               Text="{Binding FooterTotalValue, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}"
+                                               Style="{StaticResource TableSubTotalStyle}"
+                                               Foreground="{DynamicResource Print.Success}"
+                                               HorizontalAlignment="Right"/>
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--
+                TOTALS-03: GRAND SPEC TOTAL bar — full-width purple band
+                showing aggregate across all spec groups. Sits after the
+                loop of spec-group templates above.
+                Uses DataGrid.SummaryViewModel which already exposes
+                GrandTotalQty, GrandTotalSqm, GrandTotalValue etc.
+            -->
+            <Border Background="{DynamicResource Print.Accent}"
+                    CornerRadius="4"
+                    Padding="{DynamicResource Print.Thickness.Card}"
+                    Margin="{DynamicResource Print.Margin.BlockBelow}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource ProformaInvoice.GrandSPECTotal}"
+                                   FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold"
+                                   Foreground="{DynamicResource Print.AccentOn}"/>
+                        <TextBlock Text="  •  "
+                                   FontSize="{DynamicResource Print.Font.Group}" Foreground="{DynamicResource Print.OnAccentMuted}"/>
+                        <TextBlock FontSize="{DynamicResource Print.Font.Group}" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Print.AccentOn}">
+                            <TextBlock.Inlines>
+                                <Run Text="{Binding DataGrid.SpecGroups.Count, Mode=OneWay}"/>
+                                <Run Text=" "/>
+                                <Run Text="{DynamicResource ProformaInvoice.Specs}"/>
+                            </TextBlock.Inlines>
+                        </TextBlock>
+                        <TextBlock Text="{DynamicResource ProformaInvoice.QTY}"
+                                   FontSize="{DynamicResource Print.Font.Group}" Foreground="{DynamicResource Print.OnAccentMuted}"/>
+                        <TextBlock Text="{Binding DataGrid.SummaryViewModel.GrandTotalQty}"
+                                   FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold"
+                                   Foreground="{DynamicResource Print.AccentOn}"/>
+                        <TextBlock Text="{DynamicResource ProformaInvoice.TotalSQM}"
+                                   FontSize="{DynamicResource Print.Font.Group}" Foreground="{DynamicResource Print.OnAccentMuted}"/>
+                        <TextBlock Text="{Binding DataGrid.SummaryViewModel.GrandTotalSqm, StringFormat={}{0:0.000}}"
+                                   FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold"
+                                   Foreground="{DynamicResource Print.AccentOn}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource ProformaInvoice.ValueAED}"
+                                   FontSize="{DynamicResource Print.Font.Group}" Foreground="{DynamicResource Print.OnAccentMuted}"/>
+                        <TextBlock Text="{Binding DataGrid.SummaryViewModel.GrandTotalValue, Converter={StaticResource CurrencyConverter}}"
+                                   FontSize="{DynamicResource Print.Font.GrandValue}" FontWeight="Bold"
+                                   Foreground="{DynamicResource Print.AccentOn}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════════════
+                 OTHER CHARGES DETAIL LIST
+                 TOTALS-02: Subtotal row added at bottom
+            ══════════════════════════════════════════════════════ -->
+            <Border Background="{DynamicResource Print.Accent}" Padding="{DynamicResource Print.Thickness.Group}" CornerRadius="4,4,0,0" Margin="{DynamicResource Print.Margin.BlockAbove}">
+                <TextBlock Text="{DynamicResource ProformaInvoice.SupplementaryFabricationOtherCharges}"
+                           FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.AccentOn}"/>
+            </Border>
+
+            <Border Background="{DynamicResource Print.SurfaceAlt}" Padding="{DynamicResource Print.Thickness.Card}"
+                    BorderThickness="1,0,1,1" BorderBrush="{DynamicResource Print.Border}"
+                    CornerRadius="0,0,4,4">
+                <StackPanel>
+
+                    <!-- Predefined Charges -->
+                    <ItemsControl ItemsSource="{Binding OtherCharges.ChargeRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.2*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding ChargeName}" Style="{StaticResource PrintValueStyle}"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource Common.Qty}" Style="{StaticResource Typography.Label}"/>
+                                        <TextBlock Text="{Binding MetricQty, StringFormat={}{0:0.##}}" Style="{StaticResource PrintValueStyle}"/>
+                                        <TextBlock Text=" " Style="{StaticResource Typography.Label}"/>
+                                        <TextBlock Text="{Binding Unit}" Style="{StaticResource Typography.Label}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource ProformaInvoice.RateAED}" Style="{StaticResource Typography.Label}"/>
+                                        <TextBlock Text="{Binding Rate, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}" Style="{StaticResource PrintValueStyle}"/>
+                                    </StackPanel>
+                                    <!-- 2026-09-16: the row already reads "Rate: AED", so the
+                                         amount used to render "AED AED 12.00" (ConverterParameter=
+                                         prefix on top of the inline label). The amount is now bare
+                                         digits under an "Amount" label, and the exported PDF shows
+                                         the same digits in the same column. -->
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal"
+                                                HorizontalAlignment="Right">
+                                        <TextBlock Text="{DynamicResource Common.Amount}"
+                                                   Style="{StaticResource Typography.Label}"
+                                                   Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding ResultAmount, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.Text}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Wastage Rows -->
+                    <ItemsControl ItemsSource="{Binding OtherCharges.WastagesSection.WastageRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.2*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource ProformaInvoice.Wastage}" Style="{StaticResource PrintValueStyle}"/>
+                                        <TextBlock Text="{Binding ColorName}" Style="{StaticResource PrintValueStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource Common.Qty}" Style="{StaticResource Typography.Label}"/>
+                                        <TextBlock Text="{Binding TotalSqm, StringFormat={}{0:0.###} sqm}" Style="{StaticResource PrintValueStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource ProformaInvoice.RateAED}" Style="{StaticResource Typography.Label}"/>
+                                        <TextBlock Text="{Binding Rate, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}" Style="{StaticResource PrintValueStyle}"/>
+                                    </StackPanel>
+                                    <!-- 2026-09-16: the row already reads "Rate: AED", so the
+                                         amount used to render "AED AED 12.00" (ConverterParameter=
+                                         prefix on top of the inline label). The amount is now bare
+                                         digits under an "Amount" label, and the exported PDF shows
+                                         the same digits in the same column. -->
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal"
+                                                HorizontalAlignment="Right">
+                                        <TextBlock Text="{DynamicResource Common.Amount}"
+                                                   Style="{StaticResource Typography.Label}"
+                                                   Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding ResultAmount, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.Text}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Custom Charges -->
+                    <ItemsControl ItemsSource="{Binding OtherCharges.CustomChargesSection.AddedCharges}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="1.2*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding ChargeName}" Style="{StaticResource PrintValueStyle}"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource Common.Qty}" Style="{StaticResource Typography.Label}"/>
+                                        <TextBlock Text="{Binding Qty, StringFormat={}{0:0.##}}" Style="{StaticResource PrintValueStyle}"/>
+                                        <TextBlock Text=" " Style="{StaticResource Typography.Label}"/>
+                                        <TextBlock Text="{Binding Unit}" Style="{StaticResource Typography.Label}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource ProformaInvoice.RateAED}" Style="{StaticResource Typography.Label}"/>
+                                        <TextBlock Text="{Binding Rate, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}" Style="{StaticResource PrintValueStyle}"/>
+                                    </StackPanel>
+                                    <!-- 2026-09-16: the row already reads "Rate: AED", so the
+                                         amount used to render "AED AED 12.00" (ConverterParameter=
+                                         prefix on top of the inline label). The amount is now bare
+                                         digits under an "Amount" label, and the exported PDF shows
+                                         the same digits in the same column. -->
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal"
+                                                HorizontalAlignment="Right">
+                                        <TextBlock Text="{DynamicResource Common.Amount}"
+                                                   Style="{StaticResource Typography.Label}"
+                                                   Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding ResultAmount, Converter={StaticResource CurrencyConverter}, ConverterParameter=number}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.Text}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!--
+                        TOTALS-02: Other Charges subtotal row.
+                        4-column grid to match the charge row layout.
+                        Label spans first 3 columns; total sits under Amount column.
+                        Top border separates it from the last charge row.
+                    -->
+                    <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Print.BorderStrong}"
+                            Margin="0,6,0,0" Padding="0,6,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Grid.ColumnSpan="3"
+                                       Text="{DynamicResource ProformaInvoice.OtherChargesSubtotal}"
+                                       FontSize="{DynamicResource Print.Font.MetaValue}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.Accent}"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding MainSummary.OtherChargesSubtotal, Converter={StaticResource CurrencyConverter}, ConverterParameter=prefix}"
+                                       HorizontalAlignment="Right"
+                                       FontSize="{DynamicResource Print.Font.GrandValue}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.Success}"/>
+                        </Grid>
+                    </Border>
+
+                </StackPanel>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════════════
+                 FINANCIAL SUMMARY
+                 BUG-93: FallbackValue on Discount visibility kept
+                         as legitimate safety net (converter may not
+                         resolve in some contexts)
+            ══════════════════════════════════════════════════════ -->
+            <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Print.Border}"
+                    Padding="0,12,0,0" Margin="{DynamicResource Print.Margin.BlockAbove}">
+                <StackPanel HorizontalAlignment="Right" MinWidth="340">
+
+                    <!-- Glass Materials -->
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{DynamicResource ProformaInvoice.GlassMaterialsTotal}" Style="{StaticResource PrintValueStyle}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding MainSummary.GlassMaterialsSubtotal, Converter={StaticResource CurrencyConverter}, ConverterParameter=suffix}"
+                                   Style="{StaticResource PrintValueStyle}" Margin="16,0,0,0"/>
+                    </Grid>
+
+                    <!-- Other Charges -->
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{DynamicResource ProformaInvoice.OtherProcessingDeliveryTotal}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding MainSummary.OtherChargesSubtotal, Converter={StaticResource CurrencyConverter}, ConverterParameter=suffix}"
+                                   Margin="16,0,0,0"/>
+                    </Grid>
+
+                    <Border Background="{DynamicResource Print.Border}" Height="1" Margin="0,4"/>
+
+                    <!-- Net Subtotal -->
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{DynamicResource ProformaInvoice.EstimatedNetSubtotal}"
+                                   FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.Text}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding MainSummary.NetSubtotal, Converter={StaticResource CurrencyConverter}, ConverterParameter=suffix}"
+                                   FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.Text}" Margin="16,0,0,0"/>
+                    </Grid>
+
+                    <!-- Discount (conditional) — FallbackValue kept as safety net -->
+                    <Grid Margin="0,0,0,4"
+                          Visibility="{Binding MainSummary.DiscountAmount, Converter={StaticResource DecimalIsPositiveConverter}, ConverterParameter=Visibility, FallbackValue=Collapsed}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{DynamicResource ProformaInvoice.Discount}" Foreground="{DynamicResource DangerBrush}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding MainSummary.DiscountAmount, Converter={StaticResource CurrencyConverter}, ConverterParameter=minus}"
+                                   Foreground="{DynamicResource DangerBrush}" Margin="16,0,0,0"/>
+                    </Grid>
+
+                    <!-- VAT (conditional) -->
+                    <Grid Margin="0,0,0,4">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MainSummary.IsVatApplicable}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.StandardUAEVAT}"/>
+                            <TextBlock Text="{Binding MainSummary.VatPercent, StringFormat={}{0:0.##}}"/>
+                            <TextBlock Text="%):"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding MainSummary.VatAmount, Converter={StaticResource CurrencyConverter}, ConverterParameter=suffix}"
+                                   Margin="16,0,0,0"/>
+                    </Grid>
+
+                    <!-- Grand Total Bar -->
+                    <Border Background="{DynamicResource Print.Accent}" CornerRadius="6" Padding="{DynamicResource Print.Thickness.Card}" Margin="0,6,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="{DynamicResource ProformaInvoice.TotalESTValueVATINC}"
+                                       FontSize="{DynamicResource Print.Font.Section}" FontWeight="Bold" Foreground="{DynamicResource Print.AccentOn}"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding MainSummary.GrandTotalVatInclusive, Converter={StaticResource CurrencyConverter}, ConverterParameter=suffix}"
+                                       FontSize="{DynamicResource Print.Font.Section}" FontWeight="Bold" Foreground="{DynamicResource Print.AccentOn}"
+                                       VerticalAlignment="Center" Margin="16,0,0,0"/>
+                        </Grid>
+                    </Border>
+
+                </StackPanel>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════════════
+                 TERMS & CONDITIONS
+                 NEW-PR2: Empty state now fires when 0 clauses OR
+                          all clauses inactive
+            ══════════════════════════════════════════════════════ -->
+            <Border Background="{DynamicResource Print.Accent}" Padding="{DynamicResource Print.Thickness.Group}" CornerRadius="4,4,0,0" Margin="{DynamicResource Print.Margin.SectionAbove}">
+                <TextBlock Text="{DynamicResource ProformaInvoice.TermsConditions}"
+                           FontSize="{DynamicResource Print.Font.Group}" FontWeight="Bold" Foreground="{DynamicResource Print.AccentOn}"/>
+            </Border>
+
+            <Border Background="{DynamicResource Print.SurfaceAlt}" Padding="{DynamicResource Print.Thickness.Card}"
+                    BorderThickness="1,0,1,1" BorderBrush="{DynamicResource Print.Border}"
+                    CornerRadius="0,0,4,4">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding Terms.Clauses}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="{DynamicResource Print.Margin.BlockBelow}">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Order}"/>
+                                        <TextBlock Text=". "/>
+                                        <TextBlock Text="{Binding Title}"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="{Binding Body}"/>
+
+                                    <ItemsControl ItemsSource="{Binding SubLines}" Margin="24,3,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                                    <TextBlock Text="• " FontSize="{DynamicResource Print.Font.MetaValue}" FontWeight="Bold" Foreground="{DynamicResource Print.Accent}"/>
+                                                    <TextBlock Text="{Binding}" FontSize="{DynamicResource Print.Font.MetaValue}" Foreground="{DynamicResource Print.Text}" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!--
+                        NEW-PR2: Empty state.
+                        Message shown when Terms.Clauses count is 0.
+                        (Case where all clauses exist but are inactive is
+                        handled naturally — user sees no clauses, no message.
+                        Better UX than showing "no active clauses" every time
+                        someone toggles them off temporarily.)
+                    -->
+                    <TextBlock Text="{DynamicResource ProformaInvoice.NoTermsConfiguredAddClausesTermsEditorAbove}"
+                               FontSize="{DynamicResource Print.Font.MetaValue}" FontStyle="Italic" Foreground="{DynamicResource MutedForegroundBrush}"
+                               HorizontalAlignment="Center" Margin="0,6,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Terms.Clauses.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!-- ══════════════════════════════════════════════════════
+                 FOOTER + SIGNATURES
+            ══════════════════════════════════════════════════════ -->
+            <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Print.Border}"
+                    Padding="0,10,0,0" Margin="{DynamicResource Print.Margin.SectionAbove}">
+                <StackPanel>
+                    <TextBlock Text="{Binding FooterDisclaimer}"
+                               FontSize="{DynamicResource Print.Font.MetaValue}" FontStyle="Italic"
+                               Foreground="{DynamicResource Print.Muted}" TextWrapping="Wrap"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                        <TextBlock Text="{DynamicResource ProformaInvoice.Terms}" FontSize="{DynamicResource Print.Font.MetaValue}" FontStyle="Italic" Foreground="{DynamicResource Print.Muted}"/>
+                        <TextBox Text="{Binding TermsText, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource EditableTextBoxStyle}"
+                                 FontSize="{DynamicResource Print.Font.MetaValue}" FontStyle="Italic" Foreground="{DynamicResource Print.Muted}"
+                                 BorderThickness="0" MinWidth="600"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Signature Blocks -->
+            <Grid Margin="{DynamicResource Print.Margin.SectionAbove}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Prepared By -->
+                <Border Grid.Column="0"
+                        BorderThickness="1" BorderBrush="{DynamicResource Print.Border}"
+                        Padding="{DynamicResource Print.Thickness.Card}" CornerRadius="6">
+                    <StackPanel>
+                        <Border Background="{DynamicResource Print.Accent}" CornerRadius="3"
+                                Padding="{DynamicResource Print.Thickness.Group}" Margin="{DynamicResource Print.Margin.RowBelow}">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.PreparedERPAuthenticated}"
+                                       FontSize="{DynamicResource Print.Font.MetaValue}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.AccentOn}"/>
+                        </Border>
+                        <TextBox Text="{Binding PreparedByName, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource EditableTextBoxStyle}"
+                                 FontSize="{DynamicResource Print.Font.Group}" FontWeight="SemiBold" Foreground="{DynamicResource Print.Text}"/>
+                        <TextBox Text="{Binding PreparedByDept, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource EditableTextBoxStyle}"
+                                 FontSize="{DynamicResource Print.Font.MetaValue}" Foreground="{DynamicResource Print.Muted}" Margin="0,3,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="{DynamicResource Common.Status}" FontSize="{DynamicResource Print.Font.MetaValue}" Foreground="{DynamicResource Print.Muted}"/>
+                            <TextBlock Text="{Binding PreparedByStatus, TargetNullValue=Draft}"
+                                       Style="{StaticResource ProformaStatusValueStyle}"
+                                       Margin="2,0,0,0"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Client Approval -->
+                <Border Grid.Column="2"
+                        BorderThickness="1" BorderBrush="{DynamicResource Print.Border}"
+                        Padding="{DynamicResource Print.Thickness.Card}" CornerRadius="6">
+                    <StackPanel>
+                        <Border Background="{DynamicResource Print.Accent}" CornerRadius="3"
+                                Padding="{DynamicResource Print.Thickness.Group}" Margin="{DynamicResource Print.Margin.RowBelow}">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.ClientApprovalSIGNMOBNumber}"
+                                       FontSize="{DynamicResource Print.Font.MetaValue}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Print.AccentOn}"/>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.ApprovalSign}" FontSize="{DynamicResource Print.Font.MetaValue}" Foreground="{DynamicResource Print.Muted}" VerticalAlignment="Bottom"/>
+                            <Border Background="{DynamicResource Print.BorderStrong}" Height="1" VerticalAlignment="Bottom" MinWidth="140" Margin="8,0,0,3"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="{DynamicResource ProformaInvoice.MobileNumber}" FontSize="{DynamicResource Print.Font.MetaValue}" Foreground="{DynamicResource Print.Muted}" VerticalAlignment="Bottom"/>
+                            <Border Background="{DynamicResource Print.BorderStrong}" Height="1" VerticalAlignment="Bottom" MinWidth="140" Margin="8,0,0,3"/>
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource ProformaInvoice.AuthorizedNameStamp}"
+                                   FontSize="{DynamicResource Print.Font.MetaValue}" Foreground="{DynamicResource MutedForegroundBrush}"
+                                   FontStyle="Italic"
+                                   Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+        </StackPanel>
+    </Border>
+</UserControl>

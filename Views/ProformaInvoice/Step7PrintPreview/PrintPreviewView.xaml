@@ -1,0 +1,217 @@
+<!--
+    Step 7 — Preview. Approved board:
+    left steel controls (summary, terms checklist, save/export at BOTTOM)
+    · right paper-white A4.
+    Paper stays #FFFFFF. Print ink unchanged.
+-->
+<UserControl Style="{StaticResource ErpPageRootStyle}" x:Class="ProGlassAutomation.Views.ProformaInvoice.Step7PrintPreview.PrintPreviewView"
+             TextOptions.TextHintingMode="Fixed"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:behaviors="clr-namespace:ProGlassAutomation.Behaviors"
+             xmlns:summary="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step7PrintPreview.InvoiceMainSummary"
+             xmlns:terms="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step7PrintPreview.TermsAndConditions"
+             xmlns:printable="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step7PrintPreview.PrintableInvoice"
+             mc:Ignorable="d"
+             d:DesignHeight="900"
+             d:DesignWidth="1400"
+             FontFamily="{DynamicResource AppFontFamily}"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             Background="{DynamicResource Ov.Canvas}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.15*"/>
+            <ColumnDefinition Width="10"/>
+            <ColumnDefinition Width="0.85*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Padding="0,0,8,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button Command="{Binding PrintableInvoice.SaveInvoiceCommand}"
+                            Style="{StaticResource PiFooterPrimaryButton}"
+                            Content="{DynamicResource ProformaInvoice.SAVE}"
+                            ToolTip="{DynamicResource ProformaInvoice.SaveInvoiceConfirmationHappensStep8}"
+                            Margin="0,0,8,0"/>
+                    <Button Command="{Binding PrintableInvoice.ExportPdfCommand}"
+                            Style="{StaticResource PiFooterGhostButton}"
+                            Content="{DynamicResource DeliveryNote.ExportPDF}"
+                            ToolTip="{DynamicResource ProformaInvoice.ExportInvoiceBrandedPDF}"
+                            Margin="0,0,8,0"/>
+                    <Button Command="{Binding PrintableInvoice.ExportExcelCommand}"
+                            Style="{StaticResource PiFooterGhostButton}"
+                            Content="{DynamicResource DeliveryNote.ExportExcel}"
+                            ToolTip="{DynamicResource ProformaInvoice.ExportInvoiceDataExcel}"
+                            Margin="0,0,8,0"/>
+                    <Button x:Name="ActionsMenuButton"
+                            Style="{StaticResource PiFooterGhostButton}"
+                            Content="{DynamicResource ProformaInvoice.MORE}"
+                            ToolTip="{DynamicResource ProformaInvoice.PrintMoreExportOptions}"
+                            behaviors:DropdownButtonBehavior.Popup="{Binding ElementName=ActionsMenuPopup}"/>
+                    <Popup x:Name="ActionsMenuPopup"
+                           PlacementTarget="{Binding ElementName=ActionsMenuButton}"
+                           Placement="Top"
+                           HorizontalAlignment="Left"
+                           VerticalOffset="-4"
+                           AllowsTransparency="True"
+                           StaysOpen="True"
+                           PopupAnimation="Fade">
+                        <Border Background="{DynamicResource PopupSurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="6"
+                                MinWidth="200">
+                            <StackPanel>
+                                <Button Style="{StaticResource PiInvoiceMenuActionItem}"
+                                        Tag="&#xE749;" Content="{DynamicResource Action.Print}"
+                                        Command="{Binding PrintableInvoice.PrintCommand}"
+                                        ToolTip="{DynamicResource ProformaInvoice.PrintInvoicePreview}"
+                                        behaviors:DropdownButtonBehavior.ClosePopup="{Binding ElementName=ActionsMenuPopup}"/>
+                                <Button Style="{StaticResource PiInvoiceMenuActionItem}"
+                                        Tag="&#xE8A5;" Content="{DynamicResource DeliveryNote.ExportCSV}"
+                                        Command="{Binding PrintableInvoice.ExportCsvCommand}"
+                                        ToolTip="{DynamicResource ProformaInvoice.ExportGlassPanelDataCSV}"
+                                        behaviors:DropdownButtonBehavior.ClosePopup="{Binding ElementName=ActionsMenuPopup}"/>
+                                <Button Style="{StaticResource PiInvoiceMenuActionItem}"
+                                        Tag="&#xE72D;" Content="{DynamicResource Sharing.Share}"
+                                        Command="{Binding PrintableInvoice.ShareCommand}"
+                                        ToolTip="{DynamicResource Sharing.ShareVia}"
+                                        behaviors:DropdownButtonBehavior.ClosePopup="{Binding ElementName=ActionsMenuPopup}"/>
+                                <Button Style="{StaticResource PiInvoiceMenuActionItem}"
+                                        Tag="&#xE715;" Content="{DynamicResource ProformaInvoice.EmailSoon}"
+                                        Command="{Binding PrintableInvoice.SendEmailCommand}"
+                                        ToolTip="{DynamicResource ProformaInvoice.ComingPhase720}"
+                                        IsEnabled="False"
+                                        behaviors:DropdownButtonBehavior.ClosePopup="{Binding ElementName=ActionsMenuPopup}"/>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </StackPanel>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              behaviors:SmoothScrollBehavior.IsEnabled="True">
+                    <StackPanel>
+                        <Border Style="{StaticResource PiStationIdentityStyle}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="07" Style="{StaticResource PiStationCodeStyle}"/>
+                                <TextBlock Text="{DynamicResource Phone.Preview}" Style="{StaticResource PiStationTitleStyle}"/>
+                                <TextBlock Text="{DynamicResource ProformaInvoice.TotalsTermsLeftA4Right}"
+                                           Style="{StaticResource PiStationHintStyle}"/>
+                            </StackPanel>
+                        </Border>
+                        <summary:InvoiceMainSummaryView DataContext="{Binding InvoiceMainSummary}"/>
+                        <terms:TermsAndConditionsView DataContext="{Binding Terms}" Margin="0,16,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Column="2"
+                Background="{DynamicResource Print.Paper}"
+                BorderBrush="{DynamicResource BorderDefaultBrush}"
+                BorderThickness="{DynamicResource CardBorderThickness}"
+                CornerRadius="{DynamicResource CardCornerRadius}"
+                Padding="16"
+                SnapsToDevicePixels="True">
+            <DockPanel>
+
+                <!--
+                    LIVE PDF LAYOUT SWITCHER
+                    ────────────────────────
+                    The five print layouts used to be reachable only from
+                    Settings → Appearance, so an operator could never see
+                    what a layout did to the document they were about to
+                    send. Selecting one here re-skins the paper in place via
+                    the Print.* DynamicResources, and because the exporter
+                    reads the same DocumentStyle the export cannot drift.
+                -->
+                <Border DockPanel.Dock="Top"
+                        Background="{DynamicResource SurfacePrimaryBrush}"
+                        BorderBrush="{DynamicResource BorderDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Padding="10,8"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="PDF LAYOUT"
+                                       VerticalAlignment="Center"
+                                       FontSize="{DynamicResource TextXSmall}"
+                                       FontWeight="{DynamicResource Weight.Bold}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,10,0"/>
+
+                            <ComboBox Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      MinWidth="180"
+                                      ItemsSource="{Binding PrintLayout.Layouts}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding PrintLayout.SelectedId, Mode=TwoWay}"
+                                      ToolTip="{Binding PrintLayout.SelectedDescription}" Style="{StaticResource ComboBoxStyle}"/>
+
+                            <!-- Style family badge. Binds the CURATED label
+                                 (EXECUTIVE / MODERN / EDITORIAL / INDUSTRIAL /
+                                 MINIMAL) — never the raw enum member, which
+                                 operators read as a leaked code string. -->
+                            <Border Grid.Column="2"
+                                    Background="{DynamicResource AccentBrush}"
+                                    CornerRadius="{DynamicResource Radius.XSmall}"
+                                    Padding="7,3"
+                                    Margin="10,0,0,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PrintLayout.SelectedStyleLabel}"
+                                           FontSize="{DynamicResource TextXSmall}"
+                                           FontWeight="{DynamicResource Weight.Bold}"
+                                           Foreground="{DynamicResource OnAccentForegroundBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <TextBlock Text="{Binding PrintLayout.SelectedDescription}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0"
+                                   FontSize="{DynamicResource TextXSmall}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                        <TextBlock Text="Preview and exported PDF share one layout engine — what you see here is what prints."
+                                   TextWrapping="Wrap"
+                                   Margin="0,4,0,0"
+                                   FontSize="{DynamicResource TextXSmall}"
+                                   FontStyle="Italic"
+                                   Foreground="{DynamicResource Print.Muted}"/>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Auto"
+                              Background="Transparent">
+                    <printable:PrintableInvoiceView DataContext="{Binding PrintableInvoice}"
+                                                    HorizontalAlignment="Center"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

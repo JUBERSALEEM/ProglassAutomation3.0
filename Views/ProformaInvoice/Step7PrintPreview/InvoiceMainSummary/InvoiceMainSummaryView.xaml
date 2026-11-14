@@ -1,0 +1,249 @@
+<!--
+    Step 7 left form: label + field rows. Not icon line-items.
+    Bindings unchanged.
+-->
+<UserControl x:Class="ProGlassAutomation.Views.ProformaInvoice.Step7PrintPreview.InvoiceMainSummary.InvoiceMainSummaryView"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed"
+             SnapsToDevicePixels="True"
+             UseLayoutRounding="True"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:behaviors="clr-namespace:ProGlassAutomation.Behaviors"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="420" d:DesignWidth="520"
+             FontFamily="{DynamicResource AppFontFamily}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        
+        
+        <Style x:Key="DiscountKindChip" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource Weight.Bold}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Root"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource AccentBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="10,4"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource OnAccentForegroundBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource TintIndigoBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+            </ResourceDictionary>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <TextBlock Text="{DynamicResource ProformaInvoice.InvoiceSummary}" Style="{StaticResource PiSectionLabelStyle}"/>
+
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{DynamicResource ProformaInvoice.GlassSubtotal}" Style="{StaticResource Typography.Label}"/>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding GlassMaterialsSubtotal, Converter={StaticResource CurrencyConverter}, ConverterParameter=prefix}"
+                       Style="{StaticResource Typography.Body}"/>
+        </Grid>
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{DynamicResource ProformaInvoice.OtherCharges}" Style="{StaticResource Typography.Label}"/>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding OtherChargesSubtotal, Converter={StaticResource CurrencyConverter}, ConverterParameter=prefix}"
+                       Style="{StaticResource Typography.Body}"/>
+        </Grid>
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{DynamicResource ProformaInvoice.NetSubtotal}" Style="{StaticResource Typography.Label}" FontWeight="{DynamicResource Weight.SemiBold}"/>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding NetSubtotal, Converter={StaticResource CurrencyConverter}, ConverterParameter=prefix}"
+                       Style="{StaticResource Typography.Body}"/>
+        </Grid>
+
+        <Grid Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{DynamicResource ProformaInvoice.Discount}"
+                       Style="{StaticResource PiFieldLabelStyle}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0"/>
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="0,0,10,0">
+                <RadioButton Content="AED"
+                             GroupName="PiDiscountKind"
+                             IsChecked="{Binding IsAedDiscount, Mode=TwoWay}"
+                             Style="{StaticResource DiscountKindChip}"
+                             Margin="0,0,4,0"
+                             ToolTip="{DynamicResource ProformaInvoice.DiscountDirhamAmountEG50023}"/>
+                <RadioButton Content="%"
+                             GroupName="PiDiscountKind"
+                             IsChecked="{Binding IsPercentageDiscount, Mode=TwoWay}"
+                             Style="{StaticResource DiscountKindChip}"
+                             ToolTip="{DynamicResource ProformaInvoice.DiscountPercentNetSubtotal}"/>
+            </StackPanel>
+            <TextBox Grid.Column="2"
+                     Text="{Binding DiscountValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.00}}"
+                     Style="{StaticResource Input.TextBox}"
+                     behaviors:TextBoxBehaviors.AcceptDecimals="True"
+                     HorizontalAlignment="Left"
+                     MinWidth="96"
+                     ToolTip="{DynamicResource ProformaInvoice.TypeDiscountAEDIfPill}"/>
+            <TextBlock Grid.Column="3"
+                       Text="{Binding DiscountUnitLabel}"
+                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Margin="6,0,12,0"/>
+            <TextBlock Grid.Column="4"
+                       Text="{Binding DiscountAmount, Converter={StaticResource CurrencyConverter}, ConverterParameter=minus}"
+                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                       Foreground="{DynamicResource DangerBrush}"
+                       VerticalAlignment="Center"/>
+        </Grid>
+
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{DynamicResource ProformaInvoice.Round}"
+                       Style="{StaticResource PiFieldLabelStyle}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="AED"
+                           FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <TextBox Text="{Binding RoundToGrandTotal, Mode=TwoWay, UpdateSourceTrigger=LostFocus, StringFormat={}{0:0.00}}"
+                         Style="{StaticResource Input.TextBox}"
+                         behaviors:TextBoxBehaviors.AcceptDecimals="True"
+                         MinWidth="110"
+                         ToolTip="{DynamicResource ProformaInvoice.CustomerEvenFigureEG1550000ApplyWritesAED}"/>
+                <Button Content="{DynamicResource Action.Apply}"
+                        Command="{Binding ApplyRoundToCommand}"
+                        Style="{StaticResource PiFooterPrimaryButton}"
+                        Height="32"
+                        MinWidth="88"
+                        Margin="10,0,0,0"
+                        ToolTip="{DynamicResource ProformaInvoice.ApplyAEDDiscountGrandTotalEqualsAmount}"/>
+            </StackPanel>
+            <TextBlock Grid.Column="2"
+                       Text="{Binding RoundToHint}"
+                       FontSize="{DynamicResource FontSize.BodySmall}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="220"
+                       Margin="12,0,0,0"/>
+        </Grid>
+
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{DynamicResource ProformaInvoice.SubtotalBeforeVAT}" Style="{StaticResource Typography.Label}"/>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding SubtotalBeforeVat, Converter={StaticResource CurrencyConverter}, ConverterParameter=prefix}"
+                       Style="{StaticResource Typography.Body}"/>
+        </Grid>
+
+        <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <ToggleButton Grid.Column="0"
+                          Style="{StaticResource PiToggleSwitch}"
+                          IsChecked="{Binding IsVatApplicable, Mode=TwoWay}"
+                          VerticalAlignment="Center"
+                          Margin="0,0,8,0"
+                          AutomationProperties.Name="VAT applicable"/>
+            <TextBlock Grid.Column="1"
+                       Text="VAT"
+                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0"/>
+            <TextBox Grid.Column="3"
+                     Text="{Binding VatPercent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.##}}"
+                     Style="{StaticResource Input.TextBox}"
+                     IsEnabled="{Binding IsVatApplicable}"/>
+            <TextBlock Grid.Column="4"
+                       Text="%"
+                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Margin="6,0,12,0"/>
+            <TextBlock Grid.Column="5"
+                       Text="{Binding VatAmount, Converter={StaticResource CurrencyConverter}, ConverterParameter=plus}"
+                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                       Foreground="{DynamicResource SuccessBrush}"
+                       VerticalAlignment="Center"/>
+        </Grid>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{DynamicResource ProformaInvoice.GrandTotalAED}"
+                       FontSize="{DynamicResource FontSize.H3}" FontWeight="{DynamicResource Weight.Bold}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding GrandTotalVatInclusive, Converter={StaticResource CurrencyConverter}, ConverterParameter=prefix}"
+                       FontSize="{DynamicResource FontSize.H1}" FontWeight="{DynamicResource Weight.Bold}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+        </Grid>
+    </StackPanel>
+</UserControl>
