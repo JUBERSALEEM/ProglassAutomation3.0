@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -64,8 +65,8 @@ namespace ProGlassAutomation.ViewModels.Proforma
                     return;
                 }
 
-                SpecGroup selected = Draft.Groups.FirstOrDefault(
-                    group => group.GroupNumber == SelectedGroup.GroupNumber)!;
+                SpecGroup? selected = Draft.Groups.FirstOrDefault(
+                    group => group.GroupNumber == SelectedGroup.GroupNumber);
                 if (selected == null)
                 {
                     Report("The selected specification group is no longer available.");
