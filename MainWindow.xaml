@@ -60,7 +60,6 @@
                     <Setter Property="Background" Value="{DynamicResource SurfacePrimary}" />
                     <Setter Property="BorderBrush" Value="{DynamicResource HeroAccent}" />
                     <Setter Property="BorderThickness" Value="3,0,0,0" />
-                    <Setter Property="Padding" Value="{DynamicResource PaddingPlate}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
