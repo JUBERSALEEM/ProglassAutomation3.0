@@ -45,7 +45,7 @@ namespace ProGlassAutomation.Step6Tests
             SpecGridTotals totals = SpecGridTotals.From(new[] { group });
             PredefinedChargeRow matchedPolish = sheet.Predefined.Single(
                 row => row.TemplateKey == "POLISH_MATCHED_LAM");
-            sheet.Recalculate(totals);
+            sheet.Recalculate(new[] { group });
             Check("matched polish uses the geometry-aware metric without double multiplication",
                 matchedPolish.Metric == ChargeMetric.MatchedPolishLm
                 && matchedPolish.MetricMultiplier == 1m
@@ -100,7 +100,7 @@ namespace ProGlassAutomation.Step6Tests
             var mixedSheet = new OtherChargesSheet();
             mixedSheet.EnsureCatalogueRows();
             OtherChargeAutomation.Apply(mixedSheet, new[] { group, mixedLam });
-            mixedSheet.Recalculate(SpecGridTotals.From(new[] { group, mixedLam }));
+            mixedSheet.Recalculate(new[] { group, mixedLam });
             Check("regular and matched polish rows do not charge the same group twice",
                 mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH").Quantity == mixedLam.TotalLm
                 && mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").Quantity == group.MatchedPolishLm);
