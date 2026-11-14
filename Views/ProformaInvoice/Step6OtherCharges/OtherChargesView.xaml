@@ -1,0 +1,592 @@
+<!--
+    Step 6 — Charges. Approved mockup composition:
+    one workbench, KPI strip, then three table bands:
+    Predefined · Wastage · Custom. Bindings and popups unchanged.
+-->
+<UserControl Style="{StaticResource ErpPageRootStyle}" x:Class="ProGlassAutomation.Views.ProformaInvoice.Step6OtherCharges.OtherChargesView"
+             TextOptions.TextHintingMode="Fixed"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:beh="clr-namespace:ProGlassAutomation.Behaviors"
+             xmlns:wastages="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step6OtherCharges.Wastages"
+             xmlns:custom="clr-namespace:ProGlassAutomation.Views.ProformaInvoice.Step6OtherCharges.CustomCharges"
+             mc:Ignorable="d"
+             d:DesignHeight="1200"
+             d:DesignWidth="1200"
+             FontFamily="{DynamicResource AppFontFamily}"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             Background="{DynamicResource Ov.Canvas}">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../../Dashboard/Overview/IndigoStudioResources.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        <Style x:Key="RateInputStyle" TargetType="TextBox">
+            <Setter Property="beh:TextBoxBehaviors.SelectAllOnFocus" Value="True"/>
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}"/>
+            <Setter Property="FontWeight" Value="{DynamicResource Weight.Bold}"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="MinWidth" Value="64"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="B"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="B" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        
+
+        <Style x:Key="SpecTargetToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Background" Value="{DynamicResource SurfacePrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="FontSize" Value="{DynamicResource FontSize.Body}"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="B"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ContentPresenter Grid.Column="0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="&#xE70D;"
+                                           FontFamily="{DynamicResource FontFamily.Icon}" FontSize="{DynamicResource FontSize.Caption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="B" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+            </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <Border Padding="0">
+            <StackPanel>
+
+                <Border Style="{StaticResource PiStationIdentityStyle}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="06" Style="{StaticResource PiStationCodeStyle}"/>
+                        <TextBlock Text="{DynamicResource ProformaInvoice.Charges}" Style="{StaticResource PiStationTitleStyle}"/>
+                        <TextBlock Text="{DynamicResource ProformaInvoice.PredefinedWastageCustomToggleInclude}"
+                                   Style="{StaticResource PiStationHintStyle}"/>
+                    </StackPanel>
+                </Border>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ToggleButton Style="{StaticResource PiToggleSwitch}"
+                                      IsChecked="{Binding UseAdvancedAutomation, Mode=TwoWay}"
+                                      AutomationProperties.Name="Advanced other-charge automation"/>
+                        <TextBlock Text="{DynamicResource ProformaInvoice.AdvancedAutoChargeMode}"
+                                   FontSize="{DynamicResource FontSize.Body}"
+                                   FontWeight="{DynamicResource Weight.SemiBold}"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="10,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding AutomationModeLabel}"
+                               FontSize="{DynamicResource FontSize.Body}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"
+                               Margin="18,0,0,0"/>
+                </Grid>
+                <TextBlock Text="{DynamicResource ProformaInvoice.ImportedDATAGRID}"
+                           Style="{StaticResource PiSectionLabelStyle}"
+                           Margin="0,0,0,4"/>
+
+                <Border Style="{StaticResource PiTableHeaderStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2.4*"/>
+                            <ColumnDefinition Width="0.7*"/>
+                            <ColumnDefinition Width="0.7*"/>
+                            <ColumnDefinition Width="0.7*"/>
+                            <ColumnDefinition Width="0.7*"/>
+                            <ColumnDefinition Width="0.7*"/>
+                            <ColumnDefinition Width="0.6*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Padding="0,0,6,0" Text="{DynamicResource DeliveryNote.SPEC}" HorizontalAlignment="Left"/>
+                        <TextBlock Grid.Column="1" Padding="6,0" Text="{DynamicResource ProformaInvoice.LM1}"/>
+                        <TextBlock Grid.Column="2" Padding="6,0" Text="{DynamicResource ProformaInvoice.LM2}"/>
+                        <TextBlock Grid.Column="3" Padding="6,0" Text="{DynamicResource ProformaInvoice.SQM1}"/>
+                        <TextBlock Grid.Column="4" Padding="6,0" Text="{DynamicResource ProformaInvoice.SQM2}"/>
+                        <TextBlock Grid.Column="5" Padding="6,0" Text="PCS"/>
+                        <TextBlock Grid.Column="6" Padding="6,0" Text="{DynamicResource ProformaInvoice.Panes}"/>
+                        <TextBlock Grid.Column="7" Padding="6,0,0,0" Text="{DynamicResource Nav.Polish}" HorizontalAlignment="Left"/>
+                    </Grid>
+                </Border>
+
+                <ItemsControl ItemsSource="{Binding MetricHub.PerSpecMetrics}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                    BorderThickness="{DynamicResource Border.BottomHairlineThickness}"
+                                    Padding="10,6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2.4*"/>
+                                        <ColumnDefinition Width="0.7*"/>
+                                        <ColumnDefinition Width="0.7*"/>
+                                        <ColumnDefinition Width="0.7*"/>
+                                        <ColumnDefinition Width="0.7*"/>
+                                        <ColumnDefinition Width="0.7*"/>
+                                        <ColumnDefinition Width="0.6*"/>
+                                        <ColumnDefinition Width="1.2*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,6,0">
+                                        <TextBlock Text="{Binding SpecDisplayName}"
+                                                   FontSize="{DynamicResource FontSize.Body}"
+                                                   FontWeight="{DynamicResource Weight.SemiBold}"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding GlassType}"
+                                                   FontSize="{DynamicResource FontSize.BodySmall}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Padding="6,0"
+                                               Text="{Binding Lm1, StringFormat={}{0:0.##}}"
+                                               FontSize="{DynamicResource FontSize.Body}"
+                                               FontWeight="{DynamicResource Weight.SemiBold}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Padding="6,0"
+                                               Text="{Binding Lm2, StringFormat={}{0:0.##}}"
+                                               FontSize="{DynamicResource FontSize.Body}"
+                                               FontWeight="{DynamicResource Weight.SemiBold}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="3" Padding="6,0"
+                                               Text="{Binding Sqm1, StringFormat={}{0:0.##}}"
+                                               FontSize="{DynamicResource FontSize.Body}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="4" Padding="6,0"
+                                               Text="{Binding Sqm2, StringFormat={}{0:0.##}}"
+                                               FontSize="{DynamicResource FontSize.Body}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="5" Padding="6,0"
+                                               Text="{Binding Qty}"
+                                               FontSize="{DynamicResource FontSize.Body}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="6" Padding="6,0"
+                                               Text="{Binding PhysicalPanes}"
+                                               FontSize="{DynamicResource FontSize.Body}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="7" Padding="6,0,0,0"
+                                               Text="{Binding MatchHint}"
+                                               FontSize="{DynamicResource FontSize.BodySmall}"
+                                               FontWeight="{DynamicResource Weight.Bold}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               TextWrapping="Wrap"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{DynamicResource ProformaInvoice.PredefinedCharges}" Margin="0,4,0,6"/>
+
+                <Border Style="{StaticResource PiTableHeaderStyle}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="64"/>
+                            <ColumnDefinition Width="2.2*"/>
+                            <ColumnDefinition Width="2.4*"/>
+                            <ColumnDefinition Width="0.9*"/>
+                            <ColumnDefinition Width="0.9*"/>
+                            <ColumnDefinition Width="1.8*"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- Each header cell carries the SAME alignment as the
+                             data cell beneath it. ON is a centred toggle, QTY and
+                             RATE are centred values, RESULT is right-aligned —
+                             these labels used to all sit left, visibly off their
+                             numbers. The 6px inset on RESULT keeps it clear of the
+                             table edge instead of ending flush against it. -->
+                        <TextBlock Grid.Column="0" Text="{DynamicResource ProformaInvoice.ON}" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{DynamicResource ProformaInvoice.Charge}" HorizontalAlignment="Left"/>
+                        <TextBlock Grid.Column="2" Text="{DynamicResource ProformaInvoice.Basis}" HorizontalAlignment="Left"/>
+                        <TextBlock Grid.Column="3" Text="QTY" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="4" Text="{DynamicResource Common.Rate}" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Column="5" Text="{DynamicResource ProformaInvoice.Result}" HorizontalAlignment="Right" Margin="0,0,6,0"/>
+                    </Grid>
+                </Border>
+
+                <ItemsControl ItemsSource="{Binding ChargeRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{DynamicResource BorderDefaultBrush}"
+                                    BorderThickness="{DynamicResource Border.BottomHairlineThickness}"
+                                    Padding="10,8">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="64"/>
+                                            <ColumnDefinition Width="2.2*"/>
+                                            <ColumnDefinition Width="2.4*"/>
+                                            <ColumnDefinition Width="0.9*"/>
+                                            <ColumnDefinition Width="0.9*"/>
+                                            <ColumnDefinition Width="1.8*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <ToggleButton Grid.Column="0"
+                                                      Style="{StaticResource PiToggleSwitch}"
+                                                      IsChecked="{Binding IsActive, Mode=TwoWay}"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      AutomationProperties.Name="Charge on"/>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding ChargeName}"
+                                                       FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                                <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="{DynamicResource FontSize.BodySmall}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+
+                                        <Grid Grid.Column="2" Margin="0,0,8,0">
+                                            <TextBlock Text="{DynamicResource ProformaInvoice.1TRIPRate}"
+                                                       FontSize="{DynamicResource FontSize.Body}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsDeliveryRow}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsDeliveryRow}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+
+                                                <ComboBox ItemsSource="{Binding AvailablePolishSubTypes}"
+                                                          SelectedItem="{Binding SelectedPolishSubType, Mode=TwoWay}"
+                                                          DisplayMemberPath="DisplayLabel"
+                                                          IsEnabled="{Binding IsActive}"
+                                                          Height="28"
+                                                          VerticalContentAlignment="Center"
+                                                          Margin="0,0,0,4">
+                                                    <ComboBox.Style>
+                                                        <Style TargetType="ComboBox">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsPolishRow}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ComboBox.Style>
+                                                </ComboBox>
+
+                                                <ToggleButton x:Name="TargetToggle"
+                                                              Style="{StaticResource SpecTargetToggleStyle}"
+                                                              IsEnabled="{Binding IsActive}"
+                                                              ToolTip="{Binding TargetSelection.SummaryText}">
+                                                    <TextBlock Text="{Binding TargetSelection.SummaryText, FallbackValue='Select specs and metric…'}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                </ToggleButton>
+
+                                                <Popup IsOpen="{Binding IsChecked, ElementName=TargetToggle}"
+                                                       StaysOpen="False"
+                                                       PlacementTarget="{Binding ElementName=TargetToggle}"
+                                                       AllowsTransparency="True"
+                                                       PopupAnimation="Fade">
+                                                    <Border DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=Popup}}"
+                                                            Background="{DynamicResource PopupSurfaceBrush}"
+                                                            BorderBrush="{DynamicResource AccentBrush}"
+                                                            BorderThickness="{DynamicResource Border.HairlineThickness}"
+                                                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                                                            Padding="14"
+                                                            MinWidth="480"
+                                                            MaxWidth="720"
+                                                            MaxHeight="480">
+                                                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                                      HorizontalScrollBarVisibility="Disabled">
+                                                            <StackPanel DataContext="{Binding TargetSelection}">
+                                                                <TextBlock Text="{DynamicResource ProformaInvoice.SelectSpecs}"
+                                                                           Style="{StaticResource PiSectionLabelStyle}"/>
+                                                                <ItemsControl ItemsSource="{Binding AvailableSpecs}" Margin="0,0,0,12">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                                                      Cursor="Hand"
+                                                                                      Margin="0,0,0,6"
+                                                                                      Foreground="{DynamicResource TextPrimaryBrush}"
+                                                                                      VerticalContentAlignment="Top"
+                                                                                      ToolTip="{Binding DisplayName}">
+                                                                                <TextBlock Text="{Binding DisplayName}"
+                                                                                           FontSize="{DynamicResource FontSize.Body}"
+                                                                                           TextWrapping="Wrap"
+                                                                                           Margin="4,0,0,0"/>
+                                                                            </CheckBox>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,0,0,10"/>
+                                                                <TextBlock Text="{DynamicResource ProformaInvoice.SelectMetric}"
+                                                                          />
+                                                                <ListBox ItemsSource="{Binding AvailableMetrics}"
+                                                                         SelectedItem="{Binding SelectedMetric, Mode=TwoWay}"
+                                                                         BorderThickness="{DynamicResource Border.NoneThickness}"
+                                                                         Background="Transparent"
+                                                                         Margin="0,0,0,10">
+                                                                    <ListBox.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <TextBlock Text="{Binding DisplayName}"
+                                                                                       FontSize="{DynamicResource FontSize.Body}"
+                                                                                       TextWrapping="Wrap"
+                                                                                       Margin="4,3"
+                                                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                                                       ToolTip="{Binding DisplayName}"/>
+                                                                        </DataTemplate>
+                                                                    </ListBox.ItemTemplate>
+                                                                    <ListBox.ItemContainerStyle>
+                                                                        <Style TargetType="ListBoxItem">
+                                                                            <Setter Property="Padding" Value="2,2"/>
+                                                                            <Setter Property="Background" Value="Transparent"/>
+                                                                            <Setter Property="BorderThickness" Value="0"/>
+                                                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                                            <Setter Property="Template">
+                                                                                <Setter.Value>
+                                                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                                                        <Border x:Name="ItemBd"
+                                                                                                Background="Transparent"
+                                                                                                Padding="{TemplateBinding Padding}"
+                                                                                                CornerRadius="{DynamicResource Radius.XSmall}">
+                                                                                            <ContentPresenter/>
+                                                                                        </Border>
+                                                                                        <ControlTemplate.Triggers>
+                                                                                            <Trigger Property="IsSelected" Value="True">
+                                                                                                <Setter TargetName="ItemBd" Property="Background" Value="{DynamicResource TintIndigoBrush}"/>
+                                                                                            </Trigger>
+                                                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                                                <Setter TargetName="ItemBd" Property="Background" Value="{DynamicResource TintIndigoBrush}"/>
+                                                                                            </Trigger>
+                                                                                        </ControlTemplate.Triggers>
+                                                                                    </ControlTemplate>
+                                                                                </Setter.Value>
+                                                                            </Setter>
+                                                                        </Style>
+                                                                    </ListBox.ItemContainerStyle>
+                                                                </ListBox>
+                                                                <TextBlock FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.Bold}"
+                                                                           Foreground="{DynamicResource AccentBrush}"
+                                                                           TextWrapping="Wrap">
+                                                                    <Run Text="{DynamicResource ProformaInvoice.Result}"/>
+                                                                    <Run Text="{Binding SummaryText, Mode=OneWay}"/>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </Popup>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding MetricQty, StringFormat={}{0:0.###}}"
+                                                   FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
+
+                                        <TextBox Grid.Column="4"
+                                                 Text="{Binding Rate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.##}}"
+                                                 Style="{StaticResource RateInputStyle}"
+                                                 beh:TextBoxBehaviors.AcceptDecimals="True"
+                                                 IsEnabled="{Binding IsActive}"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center"/>
+
+                                        <TextBlock Grid.Column="5"
+                                                   Text="{Binding FormulaDisplay}"
+                                                   FontSize="{DynamicResource FontSize.Body}"
+                                                   Margin="0,0,6,0"
+                                                   TextAlignment="Right"
+                                                   TextWrapping="Wrap"
+                                                   VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
+                                                    <Setter Property="FontWeight" Value="{DynamicResource Weight.Bold}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                            <Setter Property="FontWeight" Value="{DynamicResource Weight.Regular}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+
+                                    <Grid Margin="64,8,0,0">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsPolishRow}" Value="True"/>
+                                                            <Condition Binding="{Binding IsCustomPolish}" Value="True"/>
+                                                            <Condition Binding="{Binding IsActive}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="90"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource ProformaInvoice.Custom}"
+                                                   Style="{StaticResource PiFieldLabelStyle}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding CustomPolishDescription, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource Input.TextBox}"
+                                                 Margin="0,0,12,0"/>
+                                        <TextBlock Grid.Column="2" Text="{DynamicResource ProformaInvoice.QTYLm}"
+                                                   Style="{StaticResource PiFieldLabelStyle}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBox Grid.Column="3"
+                                                 Text="{Binding CustomPolishQty, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.###}}"
+                                                 Style="{StaticResource Input.TextBox}"
+                                                 beh:TextBoxBehaviors.AcceptDecimals="True"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <wastages:WastagesSectionView DataContext="{Binding WastagesSection}"/>
+                <custom:CustomChargesSectionView DataContext="{Binding CustomChargesSection}"/>
+
+                <Border Style="{StaticResource LineItemsFooterStyle}" Margin="0,12,0,0">
+                    <TextBlock FontSize="{DynamicResource FontSize.Body}" FontWeight="{DynamicResource Weight.SemiBold}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               HorizontalAlignment="Right">
+                        <Run Text="{DynamicResource ProformaInvoice.WastageAED}"/>
+                        <Run Text="{Binding WastagesSection.TotalWastageValue, Converter={StaticResource CurrencyConverter}, Mode=OneWay}"/>
+                        <Run Text="{DynamicResource ProformaInvoice.CustomAED}"/>
+                        <Run Text="{Binding CustomChargesSection.TotalCustomChargesValue, Converter={StaticResource CurrencyConverter}, Mode=OneWay}"/>
+                        <Run Text="{DynamicResource ProformaInvoice.Combined}"/>
+                        <Run Text="{Binding TotalOtherCharges, Converter={StaticResource CurrencyConverter}, ConverterParameter=prefix, Mode=OneWay}"
+                             FontWeight="{DynamicResource Weight.Bold}"
+                             Foreground="{DynamicResource SuccessBrush}"/>
+                    </TextBlock>
+                </Border>
+            </StackPanel>
+        </Border>
+    </ScrollViewer>
+</UserControl>
