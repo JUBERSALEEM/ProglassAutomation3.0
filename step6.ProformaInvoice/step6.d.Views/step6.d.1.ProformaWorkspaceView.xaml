@@ -149,6 +149,10 @@
                             Command="{Binding RefreshCommand}"
                             Margin="{DynamicResource UiGapControl}"
                             AutomationProperties.Name="Reload the invoice register" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="EXPORT REGISTER"
+                            Command="{Binding ExportRegisterWorkbookCommand}"
+                            Margin="{DynamicResource UiGapControl}"
+                            AutomationProperties.Name="Export the currently filtered invoice register to Excel" />
                     <Button Style="{DynamicResource SubtleButton}" Content="OPEN"
                             Command="{Binding OpenSelectedCommand}"
                             IsEnabled="{Binding CanOpenSelected}"
