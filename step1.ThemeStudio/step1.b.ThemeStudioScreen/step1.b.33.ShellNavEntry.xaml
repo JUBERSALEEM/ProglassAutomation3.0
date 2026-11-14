@@ -81,7 +81,7 @@
             <studio:ShellMark Kind="{Binding Mark, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}"
                               Width="{DynamicResource ChoiceMarkSize}"
                               Height="{DynamicResource ChoiceMarkSize}"
-                              Margin="{DynamicResource MarginInline}"
+                              Margin="0,0,8,0"
                               VerticalAlignment="Center" />
             <TextBlock Text="{Binding Label, RelativeSource={RelativeSource AncestorType={x:Type studio:ShellNavEntry}}}" VerticalAlignment="Center" />
         </StackPanel>
