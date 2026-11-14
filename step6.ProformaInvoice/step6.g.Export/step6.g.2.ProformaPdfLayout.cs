@@ -166,7 +166,7 @@ namespace ProGlassAutomation.Services.Proforma
         {
             var lines = new List<(string Name, decimal Qty, string Unit, decimal Rate, decimal Amount)>();
             lines.AddRange(invoice.Charges.Predefined.Where(row => row.IsActive)
-                .Select(row => (row.ChargeName, row.Quantity, row.UnitText, row.Rate, row.Amount)));
+                .Select(row => (row.ChargeName, row.Quantity, row.UnitText, row.EffectiveRate, row.Amount)));
             lines.AddRange(invoice.Charges.Wastages.Where(row => row.IsActive)
                 .Select(row => ("Wastage · " + row.ColorName + " (" + row.SheetQuantity + " sheets)",
                     row.AreaSqm, "m²", row.EffectiveRate, row.Amount)));
