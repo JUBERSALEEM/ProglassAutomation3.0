@@ -69,6 +69,7 @@ SPEC_GRID = MODULE / "step6.a.7.SpecGrid.cs"
 POLISH_SUBTYPE = MODULE / "step6.a.15.PolishSubType.cs"
 POLISH_TESTS = MODULE / "step6.f.tests/step6.f.8.ProformaPolishSubtypeChecks.cs"
 CHARGES_MODEL = MODULE / "step6.a.9.OtherCharges.cs"
+WASTAGE_MODEL = MODULE / "step6.a.16.WastageChargeRow.cs"
 CHARGES_VIEW = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml"
 CHARGES_CODE = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml.cs"
 CHARGE_TESTS = MODULE / "step6.f.tests/step6.f.7.ProformaChargeAutomationChecks.cs"
@@ -255,8 +256,8 @@ check("Recalculate" in body(DRAFT) and "Summary.Recalculate()" in body(DRAFT),
 
 # 8 ── Pricing: four builds, stated yield fallback, DGU+LAM never downgraded ──
 models = read(MODELS)
-dgu_lam_at = models.find("if (text.Equals(DguLam, StringComparison.OrdinalIgnoreCase))")
-dgu_at = models.find("if (text.Equals(Dgu, StringComparison.OrdinalIgnoreCase))")
+dgu_lam_at = models.find("if (text.Equals(DguLam, StringComparison.OrdinalIgnoreCase)")
+dgu_at = models.find("if (text.Equals(Dgu, StringComparison.OrdinalIgnoreCase)")
 check(0 < dgu_lam_at < dgu_at,
       "step6.a.5.PricingModels.cs: DGU+LAM is no longer matched before DGU, so the compound build "
       "could be read as a plain DGU")
@@ -559,10 +560,12 @@ check("AvailableMetrics" in charge_model
       and 'ItemsSource="{Binding AvailableMetrics}"' in read(CHARGES_VIEW)
       and "OnChargeCellEditEnding" in read(CHARGES_CODE),
       "Step 6 charge metric selector is not editable or recalculated")
-wastage_model = read(CHARGES_MODEL)
+wastage_model = read(WASTAGE_MODEL)
+charges_model = read(CHARGES_MODEL)
 check("IsOptionalSuggestion" in wastage_model and "SuggestionReason" in wastage_model
-      and "SheetQuantity = row.SheetQuantity" in wastage_model,
-      "step6.a.9: clear-glass guidance and sheet-cost quantity must survive rebuild/clone")
+      and "SheetQuantity" in wastage_model
+      and "SheetQuantity = row.SheetQuantity" in charges_model,
+      "step6.a.16/step6.a.9: clear-glass guidance and sheet-cost quantity must survive rebuild/clone")
 wastage_view = read(CHARGES_VIEW)
 check("ToolTip=\"{Binding SuggestionReason}\"" in wastage_view
       and "ToolTip=\"{Binding Description}\"" in wastage_view
