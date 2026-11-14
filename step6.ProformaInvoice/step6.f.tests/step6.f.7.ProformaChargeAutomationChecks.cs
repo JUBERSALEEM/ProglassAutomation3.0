@@ -195,6 +195,32 @@ namespace ProGlassAutomation.Step6Tests
             Check("DGU retains perimeter factor two",
                 dguPerimeter.PerimeterFactor == 2 && dguPerimeter.TotalLm == 12m);
 
+            var targetA = new SpecGroup { GroupNumber = 20, GlassType = GlassBuilds.Sgu, SpecName = "6mm Clear" };
+            targetA.Rows.Add(new SpecRow { W1 = 1000, H1 = 2000, Qty = 1 });
+            var targetB = new SpecGroup { GroupNumber = 21, GlassType = GlassBuilds.Sgu, SpecName = "6mm Grey" };
+            targetB.Rows.Add(new SpecRow { W1 = 500, H1 = 1000, Qty = 1 });
+            var targetedSheet = new OtherChargesSheet();
+            targetedSheet.Predefined.Add(new PredefinedChargeRow
+            {
+                TemplateKey = "CUSTOM_TEST", Unit = ChargeUnit.Lm, Metric = ChargeMetric.TotalLm,
+                IsActive = true, Rate = 2m, TargetGroupNumbers = new System.Collections.Generic.List<int> { 20 }
+            });
+            targetedSheet.Recalculate(new[] { targetA, targetB });
+            Check("predefined charges can target selected specification groups only",
+                targetedSheet.Predefined[0].Quantity == targetA.TotalLm
+                && targetedSheet.Predefined[0].Amount == targetA.TotalLm * 2m);
+            Check("target group editor starts with explicit selected ids",
+                targetedSheet.Predefined[0].TargetGroupsText == "20");
+            targetedSheet.Predefined[0].TargetGroupsText = "ALL";
+            targetedSheet.Recalculate(new[] { targetA, targetB });
+            Check("ALL restores the invoice-wide target",
+                targetedSheet.Predefined[0].TargetGroupNumbers.Count == 0
+                && targetedSheet.Predefined[0].Quantity == targetA.TotalLm + targetB.TotalLm);
+            targetedSheet.Predefined[0].TargetGroupsText = "21, 20, 21";
+            Check("target group editor normalizes and de-duplicates ids",
+                targetedSheet.Predefined[0].TargetGroupsText == "20, 21"
+                && targetedSheet.Clone().Predefined[0].TargetGroupsText == "20, 21");
+
             var uInsertA = new SpecGroup
             {
                 GroupNumber = 10, SpecName = "DGU 6+6", GlassType = GlassBuilds.Dgu,

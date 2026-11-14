@@ -42,6 +42,37 @@ namespace ProGlassAutomation.Models.Proforma
         /// <summary>The quantity when <see cref="Metric"/> is FixedQuantity.</summary>
         public decimal FixedQuantity { get; set; } = 1m;
 
+        /// <summary>Empty means all specification groups; otherwise only these group numbers are charged.</summary>
+        public List<int> TargetGroupNumbers { get; set; } = new();
+
+        [JsonIgnore]
+        public string TargetGroupsText
+        {
+            get => TargetGroupNumbers.Count == 0 ? "ALL" : string.Join(", ", TargetGroupNumbers.OrderBy(number => number));
+            set
+            {
+                string text = (value ?? "").Trim();
+                if (text.Length == 0 || string.Equals(text, "ALL", StringComparison.OrdinalIgnoreCase))
+                {
+                    TargetGroupNumbers.Clear();
+                    return;
+                }
+                var parsed = new List<int>();
+                foreach (string part in text.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (!int.TryParse(part, out int number) || number <= 0) return;
+                    parsed.Add(number);
+                }
+                TargetGroupNumbers = parsed.Distinct().OrderBy(number => number).ToList();
+            }
+        }
+
+        [JsonIgnore]
+        public IReadOnlyList<ChargeMetric> AvailableMetrics => ChargeCatalog.MetricsFor(Unit);
+
+        [JsonIgnore]
+        public string MetricText => ChargeCatalog.MetricText(Metric);
+
         /// <summary>Measured/typed quantity at the last recalculation.</summary>
         public decimal Quantity { get; set; }
 
@@ -85,15 +116,16 @@ namespace ProGlassAutomation.Models.Proforma
         /// <summary>Quantity from the grid, or the typed quantity for a fixed row.</summary>
         public decimal ResolveQuantity(SpecGridTotals totals)
         {
+            SpecGridTotals selected = totals.ForGroups(TargetGroupNumbers);
             decimal measured = string.Equals(TemplateKey, "U_INSERT", StringComparison.OrdinalIgnoreCase)
-                ? totals.UInsertSqm
+                ? selected.UInsertSqm
                 : Metric switch
             {
-                ChargeMetric.TotalSqm => totals.TotalSqm,
-                ChargeMetric.TotalLm => totals.TotalLm,
-                ChargeMetric.PolishLm => totals.PolishLm,
-                ChargeMetric.MatchedPolishLm => totals.MatchedPolishLm,
-                ChargeMetric.TotalPieces => totals.TotalPieces,
+                ChargeMetric.TotalSqm => selected.TotalSqm,
+                ChargeMetric.TotalLm => selected.TotalLm,
+                ChargeMetric.PolishLm => selected.PolishLm,
+                ChargeMetric.MatchedPolishLm => selected.MatchedPolishLm,
+                ChargeMetric.TotalPieces => selected.TotalPieces,
                 ChargeMetric.FixedQuantity => FixedQuantity,
                 _ => 0m
             };
@@ -103,14 +135,15 @@ namespace ProGlassAutomation.Models.Proforma
 
         public void Recalculate(SpecGridTotals totals)
         {
-            Quantity = ResolveQuantity(totals);
+            SpecGridTotals selected = totals.ForGroups(TargetGroupNumbers);
+            Quantity = ResolveQuantity(selected);
             if (!IsActive)
             {
                 Amount = 0m;
                 return;
             }
             Amount = string.Equals(TemplateKey, "U_INSERT", StringComparison.OrdinalIgnoreCase)
-                ? totals.UInsertAmount(Rate)
+                ? selected.UInsertAmount(Rate)
                 : MoneyRounding.Round(Quantity * Rate);
         }
     }
@@ -348,6 +381,7 @@ namespace ProGlassAutomation.Models.Proforma
                 IsActive = row.IsActive,
                 Rate = row.Rate,
                 FixedQuantity = row.FixedQuantity,
+                TargetGroupNumbers = row.TargetGroupNumbers.ToList(),
                 Quantity = row.Quantity,
                 Amount = row.Amount,
                 HasManualActiveOverride = row.HasManualActiveOverride

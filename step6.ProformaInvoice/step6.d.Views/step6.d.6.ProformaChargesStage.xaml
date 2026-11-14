@@ -58,6 +58,7 @@
         <ContentControl Grid.Row="2" Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
             <DataGrid Style="{StaticResource ListGrid}"
                       ItemsSource="{Binding PredefinedCharges}"
+                      CellEditEnding="OnChargeCellEditEnding"
                       CanUserReorderColumns="False" CanUserSortColumns="False"
                       AutomationProperties.Name="Catalogue charges">
                 <DataGrid.Columns>
@@ -77,6 +78,20 @@
                                         ElementStyle="{StaticResource ListStrongText}" />
                     <DataGridTextColumn Header="UNIT" Binding="{Binding UnitText}"
                                         IsReadOnly="True"
+                                        ElementStyle="{StaticResource ListText}" />
+                    <DataGridTemplateColumn Header="METRIC">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ComboBox Style="{DynamicResource {x:Type ComboBox}}"
+                                          ItemsSource="{Binding AvailableMetrics}"
+                                          SelectedItem="{Binding Metric, Mode=TwoWay}"
+                                          ToolTip="{Binding MetricText}"
+                                          MinWidth="120" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="TARGET SPECS"
+                                        Binding="{Binding TargetGroupsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                         ElementStyle="{StaticResource ListText}" />
                     <DataGridTextColumn Header="QUANTITY" Binding="{Binding Quantity, StringFormat=N2}"
                                         IsReadOnly="True"

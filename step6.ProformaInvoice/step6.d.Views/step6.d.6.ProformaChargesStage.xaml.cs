@@ -21,6 +21,13 @@ public partial class ProformaChargesStage : UserControl
 {
     public ProformaChargesStage() => InitializeComponent();
 
+    private void OnChargeCellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (e.EditAction != DataGridEditAction.Commit
+            || DataContext is not ProformaWorkspaceViewModel viewModel) return;
+        Dispatcher.BeginInvoke(new Action(viewModel.Reapply));
+    }
+
     private void OnWastageCellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
     {
         if (e.EditAction != DataGridEditAction.Commit

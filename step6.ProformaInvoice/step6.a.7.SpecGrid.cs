@@ -337,6 +337,13 @@ namespace ProGlassAutomation.Models.Proforma
             return MoneyRounding.Round(amount);
         }
 
+        public SpecGridTotals ForGroups(IReadOnlyList<int>? groupNumbers)
+        {
+            if (groupNumbers == null || groupNumbers.Count == 0) return this;
+            var allowed = groupNumbers.ToHashSet();
+            return From(SourceGroups.Where(group => allowed.Contains(group.GroupNumber)).ToList());
+        }
+
         public static SpecGridTotals From(IReadOnlyList<SpecGroup>? groups)
         {
             var list = groups ?? Array.Empty<SpecGroup>();
