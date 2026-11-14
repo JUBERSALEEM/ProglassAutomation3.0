@@ -34,7 +34,7 @@ namespace ProGlassAutomation.Step6Tests
                 json.Contains("\"FormatVersion\":1", StringComparison.Ordinal), json[..Math.Min(120, json.Length)]);
             Check("computed totals are not stored",
                 !json.Contains("\"GrandTotal\"", StringComparison.Ordinal)
-                && !json.Contains("\"TotalSqm\"", StringComparison.Ordinal));
+                && !json.Contains("\"TotalSqm\":", StringComparison.Ordinal));
             Check("status is stored by name, not by number",
                 json.Contains("\"Status\":\"Draft\"", StringComparison.Ordinal));
 

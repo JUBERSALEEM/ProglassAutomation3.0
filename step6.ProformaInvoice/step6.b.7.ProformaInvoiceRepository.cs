@@ -208,8 +208,9 @@ namespace ProGlassAutomation.Services.Proforma
                     draft.UpdatedAtUtc = record.UpdatedAtUtc;
                     draft.UpdatedByUserId = record.UpdatedByUserId;
                     draft.UpdatedByName = record.UpdatedByName;
-                    if (draft.CreatedAtUtc == default) draft.CreatedAtUtc = record.CreatedAtUtc;
-                    if (draft.CreatedByName.Length == 0) draft.CreatedByName = record.CreatedByName;
+                    draft.CreatedAtUtc = record.CreatedAtUtc;
+                    draft.CreatedByUserId = record.CreatedByUserId;
+                    draft.CreatedByName = record.CreatedByName;
 
                     var warnings = new List<string>(validation.Warnings);
                     if (draft.Parties.Inquiry.IsLinked)

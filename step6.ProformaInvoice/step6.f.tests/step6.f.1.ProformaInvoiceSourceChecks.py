@@ -506,6 +506,8 @@ check("UInsertPricePerSqm" in read(MODELS)
       and "UInsertAmount(Rate)" in read(CHARGES_MODEL)
       and 'string.Equals(TemplateKey, "U_INSERT"' in read(CHARGES_MODEL),
       "legacy Step 4 per-spec U-Insert pricing is not wired through pricing, grid and charges")
+check("MinimumYieldFactor = 0.60m" in read(PRICING),
+      "pricing must reject sub-60% yield and use the documented 1.00 fallback")
 charge_source = read(CHARGE_AUTOMATION)
 for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
               "BEVEL", "FROSTED", "ARGON GAS"):

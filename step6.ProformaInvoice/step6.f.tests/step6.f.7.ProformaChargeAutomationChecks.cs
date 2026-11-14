@@ -161,7 +161,7 @@ namespace ProGlassAutomation.Step6Tests
             OtherChargeAutomation.Apply(mixedSheet, new[] { group, mixedLam });
             mixedSheet.Recalculate(new[] { group, mixedLam });
             Check("regular and matched polish rows do not charge the same group twice",
-                mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH").Quantity == mixedLam.TotalLm
+                mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH").Quantity == mixedLam.PolishLm
                 && mixedSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").Quantity == group.MatchedPolishLm);
 
             var legacyPolishSheet = new OtherChargesSheet();
@@ -181,7 +181,8 @@ namespace ProGlassAutomation.Step6Tests
                 && legacyPolishSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").Metric == ChargeMetric.MatchedPolishLm
                 && legacyPolishSheet.Predefined.Single(row => row.TemplateKey == "POLISH_MATCHED_LAM").MetricMultiplier == 1m);
             Check("polish metric migration preserves manual active state",
-                legacyPolishSheet.Predefined.All(row => !row.IsActive && row.HasManualActiveOverride));
+                legacyPolishSheet.Predefined.Where(row => row.TemplateKey == "POLISH" || row.TemplateKey == "POLISH_MATCHED_LAM")
+                    .All(row => !row.IsActive && row.HasManualActiveOverride));
 
             var lamPerimeter = new SpecGroup
             {

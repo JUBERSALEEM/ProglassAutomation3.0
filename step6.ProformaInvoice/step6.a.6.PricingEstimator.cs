@@ -35,7 +35,7 @@ namespace ProGlassAutomation.Models.Proforma
         /// <summary>Default yield: 15% of purchased glass is lost to cutting.</summary>
         public const decimal DefaultYieldFactor = 0.85m;
 
-        public const decimal MinimumYieldFactor = 0.10m;
+        public const decimal MinimumYieldFactor = 0.60m;
         public const decimal MaximumYieldFactor = 1.00m;
         public const decimal MaximumMarginPercent = 400m;
 
