@@ -76,6 +76,5 @@
     <PackageReference Include="QuestPDF" Version="2025.12.4" />
     <!-- ClosedXML supplies the approved XLSX import/export paths; CSV stays dependency-free. -->
     <PackageReference Include="ClosedXML" Version="0.105.0" />
-    <PackageReference Include="CsvHelper" Version="33.1.0" />
   </ItemGroup>
 </Project>
