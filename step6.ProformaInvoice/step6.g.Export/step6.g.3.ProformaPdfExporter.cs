@@ -33,7 +33,9 @@ namespace ProGlassAutomation.Services.Proforma
             if (!string.IsNullOrWhiteSpace(folder))
                 Directory.CreateDirectory(folder);
 
-            byte[] pdf = ProformaPdfLayout.Render(draft, style);
+            ProformaInvoiceDraft snapshot = draft.Clone();
+            byte[] pdf = await Task.Run(
+                () => ProformaPdfLayout.Render(snapshot, style), cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             await File.WriteAllBytesAsync(fullPath, pdf, cancellationToken).ConfigureAwait(false);
         }
