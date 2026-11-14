@@ -64,6 +64,8 @@ IMPORT_PARSER = MODULE / "step6.h.Import/step6.h.1.ProformaGridImportParser.cs"
 IMPORT_SERVICE = MODULE / "step6.h.Import/step6.h.2.ProformaGridImportService.cs"
 FILE_OPERATIONS = MODULE / "step6.c.Presentation/step6.c.10.ProformaWorkspaceViewModel.FileOperations.cs"
 CHARGE_AUTOMATION = MODULE / "step6.a.10.OtherChargeAutomation.cs"
+CHARGES_MODEL = MODULE / "step6.a.9.OtherCharges.cs"
+CHARGES_VIEW = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml"
 CHARGE_TESTS = MODULE / "step6.f.tests/step6.f.7.ProformaChargeAutomationChecks.cs"
 PROJECT = ROOT / "ProGlassAutomation.csproj"
 failures = []
@@ -480,6 +482,14 @@ for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
 check("ChargeAutomation();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")
       and CHARGE_TESTS.is_file(),
       "step6.f.7 charge automation regression checks are not wired")
+wastage_model = read(CHARGES_MODEL)
+check("IsOptionalSuggestion" in wastage_model and "SuggestionReason" in wastage_model
+      and "SheetQuantity = row.SheetQuantity" in wastage_model,
+      "step6.a.9: clear-glass guidance and sheet-cost quantity must survive rebuild/clone")
+wastage_view = read(CHARGES_VIEW)
+check("ToolTip=\"{Binding SuggestionReason}\"" in wastage_view
+      and "Binding=\"{Binding SheetQuantity" in wastage_view,
+      "step6.d.6: wastage guidance and sheet-cost quantity are not visible")
 for path in (WORKBOOK, CSV_EXPORT, IMPORT_PARSER, IMPORT_SERVICE, FILE_OPERATIONS):
     check(path.is_file() and len(read(path).splitlines()) <= 400,
           f"{path.relative_to(ROOT)}: missing or exceeds the 400-line file rule")
