@@ -14,7 +14,12 @@ namespace ProGlassAutomation.Step6Tests
             };
             Check("all five customer PDF styles are registered",
                 ProformaPdfStyles.All.Count == 5
-                && expected.All(id => ProformaPdfStyles.All.Any(style => style.Id == id)));
+                && expected.All(id => ProformaPdfStyles.All.Any(style => style.Id == id))
+                && ProformaPdfStyles.All.Any(style => style.Kind == ProformaPdfLayoutKind.FormalBand)
+                && ProformaPdfStyles.All.Any(style => style.Kind == ProformaPdfLayoutKind.SplitConsole)
+                && ProformaPdfStyles.All.Any(style => style.Kind == ProformaPdfLayoutKind.Editorial)
+                && ProformaPdfStyles.All.Any(style => style.Kind == ProformaPdfLayoutKind.Workshop)
+                && ProformaPdfStyles.All.Any(style => style.Kind == ProformaPdfLayoutKind.QuietForm));
 
             var draft = new ProformaInvoiceDraft();
             draft.EnsureStructure();
