@@ -44,7 +44,7 @@ namespace ProGlassAutomation.Services.Proforma
             var table = new List<IReadOnlyList<string>>();
             int first = used.FirstColumn().ColumnNumber();
             int last = used.LastColumn().ColumnNumber();
-            foreach (IXLRangeRow row in used.RowsUsed())
+            foreach (var row in used.RowsUsed())
             {
                 var cells = new List<string>();
                 foreach (IXLCell cell in row.Cells(first, last))
