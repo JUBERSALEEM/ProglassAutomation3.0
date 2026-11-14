@@ -28,7 +28,9 @@ namespace ProGlassAutomation.Models.Proforma
         /// <summary>Pieces (panels) across the whole grid.</summary>
         TotalPieces = 2,
         /// <summary>A quantity the operator types (trips, cutouts on a drawing).</summary>
-        FixedQuantity = 3
+        FixedQuantity = 3,
+        /// <summary>Polish length across matched double-glass panels.</summary>
+        MatchedPolishLm = 4
     }
 
     /// <summary>Billing unit a charge is written in.</summary>
@@ -87,10 +89,10 @@ namespace ProGlassAutomation.Models.Proforma
             new() { Key = "POLISH", ChargeName = "Polish (lm)",
                     Description = "Edge polishing of a single pane or a mixed-glass unit.",
                     Unit = ChargeUnit.Lm, DefaultMetric = ChargeMetric.TotalLm, DefaultRate = 6m },
-            new() { Key = "POLISH_MATCHED_LAM", ChargeName = "Polish — same-glass unit (2 × lm)",
-                    Description = "Both panes polished when the unit is the same glass throughout.",
-                    Unit = ChargeUnit.Lm, DefaultMetric = ChargeMetric.TotalLm,
-                    DefaultRate = 6m, MetricMultiplier = 2m },
+            new() { Key = "POLISH_MATCHED_LAM", ChargeName = "Polish — matched double glass (lm)",
+                    Description = "Both measured panes are polished; a missing second size counts the first pane twice.",
+                    Unit = ChargeUnit.Lm, DefaultMetric = ChargeMetric.MatchedPolishLm,
+                    DefaultRate = 6m },
             new() { Key = "CUTOUT", ChargeName = "Cutout (qty)",
                     Description = "Water-jet internal cutout for hinges or structural patches.",
                     Unit = ChargeUnit.Qty, DefaultMetric = ChargeMetric.FixedQuantity, DefaultRate = 50m },
@@ -140,6 +142,7 @@ namespace ProGlassAutomation.Models.Proforma
         {
             ChargeMetric.TotalSqm => "Total m² of the grid",
             ChargeMetric.TotalLm => "Total linear metres of the grid",
+            ChargeMetric.MatchedPolishLm => "Matched double-glass polish length",
             ChargeMetric.TotalPieces => "Total pieces of the grid",
             ChargeMetric.FixedQuantity => "Quantity typed on the row",
             _ => ""
@@ -149,7 +152,7 @@ namespace ProGlassAutomation.Models.Proforma
         public static IReadOnlyList<ChargeMetric> MetricsFor(ChargeUnit unit) => unit switch
         {
             ChargeUnit.Sqm => new[] { ChargeMetric.TotalSqm, ChargeMetric.TotalPieces, ChargeMetric.FixedQuantity },
-            ChargeUnit.Lm => new[] { ChargeMetric.TotalLm, ChargeMetric.TotalPieces, ChargeMetric.FixedQuantity },
+            ChargeUnit.Lm => new[] { ChargeMetric.TotalLm, ChargeMetric.MatchedPolishLm, ChargeMetric.TotalPieces, ChargeMetric.FixedQuantity },
             ChargeUnit.Qty => new[] { ChargeMetric.TotalPieces, ChargeMetric.FixedQuantity, ChargeMetric.TotalSqm },
             _ => Array.Empty<ChargeMetric>()
         };
