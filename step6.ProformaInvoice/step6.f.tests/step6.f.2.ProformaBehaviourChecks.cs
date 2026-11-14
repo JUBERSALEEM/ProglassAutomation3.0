@@ -130,6 +130,14 @@ namespace ProGlassAutomation.Step6Tests
                 sguResult.SpecName == "6mm Clear FT", sguResult.SpecName);
 
             PricingSection dgu = TwoPane(GlassBuilds.Dgu, 100m, 80m, 12m, 0m, 1m, 10m);
+            // ADV v2.0.15 parity: DGU's quoted formula includes the spacer;
+            // cutting and tempering are not charged again in the DGU rate.
+            // Keep non-zero pane processing inputs here so a future refactor
+            // cannot accidentally double-charge them.
+            dgu.Outer.CuttingCostPerSqm = 7m;
+            dgu.Outer.TemperingCostPerSqm = 11m;
+            dgu.Inner.CuttingCostPerSqm = 13m;
+            dgu.Inner.TemperingCostPerSqm = 17m;
             PricingResult dguResult = PricingEstimator.Calculate(dgu);
             Eq("DGU basis = (100 + 80) ÷ 1 + spacer 12", 192m, dguResult.CostBasisPerSqm);
             Eq("DGU rate = 192 × 1.10", 211.20m, dguResult.RatePerSqm);
