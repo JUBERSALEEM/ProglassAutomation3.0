@@ -447,8 +447,8 @@ for path in (PDF_STYLES, PDF_LAYOUT, PDF_DOSSIER, PDF_LETTERHEAD, PDF_EXPORTER, 
 # 18 ── Workbook, CSV and cut-list import parity ────────────────────────────
 check('PackageReference Include="ClosedXML" Version="0.105.0"' in project_source,
       "ProGlassAutomation.csproj: ClosedXML is missing for XLSX import/export")
-check("CsvHelper" not in project_source,
-      "ProGlassAutomation.csproj: CSV should use the dependency-free V3 writer")
+check(all("CsvHelper" not in read(path) for path in CSHARP),
+      "step6.ProformaInvoice: the V3 CSV writer must remain dependency-free; CsvHelper is retained only for the imported ADV exporter")
 workbook_source = read(WORKBOOK)
 for token in ("CreateInvoiceWorkbook", "CreateRegisterWorkbook", "Internal P&L",
               "P&L Targets", "WriteProfitLossTargets", "WriteSpecifications", "WriteCharges"):
