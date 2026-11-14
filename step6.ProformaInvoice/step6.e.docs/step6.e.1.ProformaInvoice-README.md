@@ -137,10 +137,10 @@ Four builds, the trade's own vocabulary:
   FANHOLE, CUTOUT, HOLES, SANDBLAST/FROSTED and MITRE/BEVELED when explicitly
   named in the specification; and follow `SamePaneColours` for polishing. Matched double-glass polish uses
   measured W1/H1 and W2/H2 geometry (and counts W1 twice when W2/H2 is absent),
-  rather than multiplying the whole grid length blindly. The legacy's
-  per-edge `PolishSubType` selector is still a parity gap: V3 currently uses
-  full-edge polish length. It never infers drawing-dependent holes/cutouts from
-  dimensions, and delivery remains an operator-entered decision. U-Insert uses the V3 invoice-level
+  rather than multiplying the whole grid length blindly. The per-group `PolishSubType` selector is now ported with all legacy edge
+  formulas, spec-name detection and a Custom/manual option. It never infers
+  drawing-dependent holes/cutouts from dimensions, and delivery remains an
+  operator-entered decision. U-Insert uses the V3 invoice-level
   charge-catalogue rate; the legacy Step 4 per-spec U-Insert rate has not yet
   been added to the V3 pricing-section snapshot.
 - Wastage rows remain aggregated by colour in V3. Clear-glass wastage is marked
@@ -296,7 +296,7 @@ ClosedXML 0.105.0 is the only added spreadsheet dependency. CSV is written by th
 | `step6.d.Views/step6.d.2.ProformaEditorView.xaml` | the editor: heading, lifecycle commands, stage rail, stage host |
 | `step6.d.Views/step6.d.3…d.9` | one view per stage — header, pricing, spec grid, charges, summary, documents, profit |
 | `step6.f.tests/step6.f.1…` | portable source gate |
-| `step6.f.tests/step6.f.2…f.7` | domain, storage, PDF, P&L, import/export and charge-automation regression checks |
+| `step6.f.tests/step6.f.2…f.8` | domain, storage, PDF, P&L, import/export, charge-automation and polish-formula regression checks |
 | `step6.g.Export/step6.g.1.ProformaPdfStyle.cs` | five named print styles, one shared document composition |
 | `step6.g.Export/step6.g.2.ProformaPdfLayout.cs` | QuestPDF invoice rendering, pagination, tables and signatures |
 | `step6.g.Export/step6.g.3.ProformaPdfExporter.cs` | detached-snapshot invoice and dossier PDF export |
