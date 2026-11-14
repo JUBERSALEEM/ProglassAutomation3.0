@@ -64,6 +64,8 @@ IMPORT_PARSER = MODULE / "step6.h.Import/step6.h.1.ProformaGridImportParser.cs"
 IMPORT_SERVICE = MODULE / "step6.h.Import/step6.h.2.ProformaGridImportService.cs"
 FILE_OPERATIONS = MODULE / "step6.c.Presentation/step6.c.10.ProformaWorkspaceViewModel.FileOperations.cs"
 CHARGE_AUTOMATION = MODULE / "step6.a.10.OtherChargeAutomation.cs"
+CHARGE_CATALOG = MODULE / "step6.a.8.ChargeCatalog.cs"
+SPEC_GRID = MODULE / "step6.a.7.SpecGrid.cs"
 CHARGES_MODEL = MODULE / "step6.a.9.OtherCharges.cs"
 CHARGES_VIEW = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml"
 CHARGES_CODE = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml.cs"
@@ -483,6 +485,10 @@ for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
 check("ChargeAutomation();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")
       and CHARGE_TESTS.is_file(),
       "step6.f.7 charge automation regression checks are not wired")
+check("MatchedPolishLm" in read(SPEC_GRID)
+      and "MatchedPolishLm" in read(CHARGE_CATALOG)
+      and "ChargeMetric.MatchedPolishLm" in read(CHARGES_MODEL),
+      "matched double-glass polish must use measured pane geometry, not a fixed multiplier")
 wastage_model = read(CHARGES_MODEL)
 check("IsOptionalSuggestion" in wastage_model and "SuggestionReason" in wastage_model
       and "SheetQuantity = row.SheetQuantity" in wastage_model,
