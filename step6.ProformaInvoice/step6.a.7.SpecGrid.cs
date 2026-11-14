@@ -84,6 +84,8 @@ namespace ProGlassAutomation.Models.Proforma
         /// <summary>SGU / DGU / LAM / DGU+LAM.</summary>
         public string GlassType { get; set; } = GlassBuilds.Sgu;
         public string SpecName { get; set; } = "";
+        /// <summary>Per-group polish edge selection; Auto reads the specification wording.</summary>
+        public PolishSubType PolishSubType { get; set; } = PolishSubType.Auto;
 
         public string OuterGlassColor { get; set; } = "";
         public string InnerGlassColor { get; set; } = "";
@@ -125,44 +127,11 @@ namespace ProGlassAutomation.Models.Proforma
 
         /// <summary>Regular polish excludes matched double-glass groups so two polish rows cannot bill the same unit twice.</summary>
         [JsonIgnore]
-        public decimal PolishLm
-        {
-            get
-            {
-                string build = GlassBuilds.Normalize(GlassType);
-                bool doubleGlass = build == GlassBuilds.Dgu || build == GlassBuilds.Lam
-                    || build == GlassBuilds.DguLam;
-                bool matchedDouble = doubleGlass && IsMatchedSameGlass;
-                bool lamLike = build == GlassBuilds.Lam || build == GlassBuilds.DguLam;
-                bool polishNamed = (SpecName ?? "").IndexOf("POLISH", StringComparison.OrdinalIgnoreCase) >= 0;
-                bool hasPaneColour = !string.IsNullOrWhiteSpace(OuterGlassColor);
-                return !matchedDouble && (lamLike || polishNamed || hasPaneColour) ? TotalLm : 0m;
-            }
-        }
+        public decimal PolishLm => PolishMetricCalculator.CalculateRegular(this);
 
-        /// <summary>Matched double-glass units polish both measured panes; when W2/H2 is absent the same panel is counted twice.</summary>
+        /// <summary>Matched double-glass polish length, using both measured panes.</summary>
         [JsonIgnore]
-        public decimal MatchedPolishLm
-        {
-            get
-            {
-                string build = GlassBuilds.Normalize(GlassType);
-                bool doubleGlass = build == GlassBuilds.Dgu || build == GlassBuilds.Lam
-                    || build == GlassBuilds.DguLam;
-                if (!doubleGlass || !IsMatchedSameGlass) return 0m;
-
-                decimal total = 0m;
-                foreach (SpecRow row in Rows)
-                {
-                    if (row.Qty <= 0 || row.W1 <= 0 || row.H1 <= 0) continue;
-                    decimal first = GlassMeasure.PanelLm(row.W1, row.H1);
-                    decimal second = row.W2 > 0 && row.H2 > 0
-                        ? GlassMeasure.PanelLm(row.W2, row.H2) : first;
-                    total += (first + second) * row.Qty;
-                }
-                return Math.Round(total, 3);
-            }
-        }
+        public decimal MatchedPolishLm => PolishMetricCalculator.CalculateMatched(this);
 
         [JsonIgnore]
         public bool IsMatchedSameGlass
@@ -274,6 +243,7 @@ namespace ProGlassAutomation.Models.Proforma
             GroupName = GroupName,
             GlassType = GlassType,
             SpecName = SpecName,
+            PolishSubType = PolishSubType,
             OuterGlassColor = OuterGlassColor,
             InnerGlassColor = InnerGlassColor,
             ThirdGlassColor = ThirdGlassColor,
