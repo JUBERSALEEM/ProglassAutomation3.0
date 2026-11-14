@@ -47,6 +47,9 @@ namespace ProGlassAutomation.Step6Tests
             Section("Other-charge automation parity");
             ChargeAutomation();
 
+            Section("Per-edge polish subtype formulas");
+            PolishSubtypeChecks();
+
             Section("Summary");
             Summary();
 
