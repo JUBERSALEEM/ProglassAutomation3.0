@@ -510,6 +510,10 @@ check("PolishSubTypeInfo.All" in polish_view
       and "OnPolishSubTypeChanged" in polish_code
       and "OnCustomPolishQuantityChanged" in polish_code,
       "step6.d.5: per-group polish subtype selector is not wired")
+check("DisplayGroupTitle" in read(PDF_LAYOUT)
+      and "DisplaySpecName" in read(WORKBOOK)
+      and "DisplaySpecName" in read(CSV_EXPORT),
+      "PDF/XLSX/CSV exports must disclose a manually selected polish subtype")
 check("SelectedGroup.CustomPolishQuantity" in polish_view
       and "OnCustomPolishQuantityChanged" in polish_code
       and "CustomPolishQuantity = CustomPolishQuantity" in read(SPEC_GRID),
