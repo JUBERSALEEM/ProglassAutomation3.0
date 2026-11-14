@@ -203,6 +203,33 @@
                 </Grid>
             </ContentControl>
 
+            <ContentControl Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
+                <Grid Margin="{DynamicResource PaddingCard}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="FULL DOSSIER" Style="{DynamicResource ProformaFieldLabel}" />
+                        <TextBlock Text="P&amp;L is excluded by default. An internal copy carries a red warning on every page."
+                                   Style="{DynamicResource ProformaFieldHint}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <CheckBox Grid.Column="1" Content="Include internal P&amp;L"
+                              Style="{DynamicResource {x:Type CheckBox}}"
+                              IsChecked="{Binding IncludeProfitLossInDossier, Mode=TwoWay}"
+                              VerticalAlignment="Center"
+                              Margin="{DynamicResource UiGapControlEnd}"
+                              AutomationProperties.Name="Include internal profit and loss in the dossier" />
+                    <Button Grid.Column="2" Style="{DynamicResource SubtleButton}"
+                            Content="EXPORT DOSSIER PDF"
+                            Command="{Binding ExportDossierPdfCommand}"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Export the full proforma dossier as PDF" />
+                </Grid>
+            </ContentControl>
+
             <StackPanel Orientation="Horizontal" Margin="{DynamicResource MarginItem}">
                 <Button Style="{DynamicResource SubtleButton}" Content="RECALCULATE"
                         Command="{Binding RecalculateCommand}"
