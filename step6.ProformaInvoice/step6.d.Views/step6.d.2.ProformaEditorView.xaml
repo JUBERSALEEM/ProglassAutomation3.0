@@ -82,72 +82,45 @@
         <!-- ── Heading, state and lifecycle ──────────────────────────── -->
         <ContentControl Grid.Row="0" Style="{DynamicResource Plate}">
             <Grid Margin="{DynamicResource PaddingCompact}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding EditorHeading}" Style="{DynamicResource SectionHeading}"
-                               VerticalAlignment="Center"
-                               Margin="{DynamicResource MarginInline}"
+                               VerticalAlignment="Center" Margin="{DynamicResource MarginInline}"
                                AutomationProperties.Name="Invoice number" />
                     <Border Style="{DynamicResource StatusBadge}" Tag="{Binding EditorStatusTag}"
-                            VerticalAlignment="Center"
-                            Margin="{DynamicResource MarginInline}">
-                        <TextBlock Text="{Binding EditorStatusText}"
-                                   Style="{DynamicResource StatusText}"
+                            VerticalAlignment="Center" Margin="{DynamicResource MarginInline}">
+                        <TextBlock Text="{Binding EditorStatusText}" Style="{DynamicResource StatusText}"
                                    Tag="{Binding EditorStatusTag}" />
                     </Border>
                     <TextBlock Text="Only a draft can be edited; a revision is a new numbered document."
-                               Style="{DynamicResource Caption}"
-                               VerticalAlignment="Center"
+                               Style="{DynamicResource Caption}" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal"
-                            HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Style="{DynamicResource SubtleButton}" Content="DUPLICATE"
-                            Command="{Binding DuplicateCommand}"
-                            Margin="{DynamicResource UiGapControlEnd}"
-                            AutomationProperties.Name="Copy this invoice into a new draft" />
-                    <Button Style="{DynamicResource SubtleButton}" Content="SEND"
-                            Command="{Binding SendCommand}" IsEnabled="{Binding CanSend}"
-                            Margin="{DynamicResource UiGapControlEnd}"
-                            AutomationProperties.Name="Mark the invoice as sent" />
-                    <Button Style="{DynamicResource SubtleButton}" Content="APPROVE"
-                            Command="{Binding ApproveCommand}" IsEnabled="{Binding CanApprove}"
-                            Margin="{DynamicResource UiGapControlEnd}"
-                            AutomationProperties.Name="Mark the invoice as approved" />
-                    <Button Style="{DynamicResource SubtleButton}" Content="REJECT"
-                            Command="{Binding RejectCommand}" IsEnabled="{Binding CanReject}"
-                            Margin="{DynamicResource UiGapControlEnd}"
-                            AutomationProperties.Name="Mark the invoice as rejected" />
-                    <Button Style="{DynamicResource SubtleButton}" Content="CANCEL DOCUMENT"
-                            Command="{Binding CancelDocumentCommand}" IsEnabled="{Binding CanCancelDocument}"
-                            Margin="{DynamicResource UiGapControlEnd}"
-                            AutomationProperties.Name="Cancel this invoice without deleting it" />
-                    <Button Style="{DynamicResource SubtleButton}" Content="BACK TO REGISTER"
-                            Command="{Binding CloseEditorCommand}"
-                            Margin="{DynamicResource UiGapControlEnd}"
-                            AutomationProperties.Name="Close the editor" />
-                    <Button Style="{DynamicResource PrimaryButton}" Content="SAVE INVOICE"
-                            Command="{Binding SaveCommand}" IsEnabled="{Binding CanEditBody}"
-                            Margin="{DynamicResource UiGapControlEnd}"
-                            AutomationProperties.Name="Save the invoice" />
-                </StackPanel>
+                <WrapPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                           Margin="{DynamicResource MarginItem}">
+                    <Button Style="{DynamicResource SubtleButton}" Content="DUPLICATE" Command="{Binding DuplicateCommand}" Margin="{DynamicResource UiGapControlEnd}" AutomationProperties.Name="Copy this invoice into a new draft" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="SEND" Command="{Binding SendCommand}" IsEnabled="{Binding CanSend}" Margin="{DynamicResource UiGapControlEnd}" AutomationProperties.Name="Mark the invoice as sent" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="APPROVE" Command="{Binding ApproveCommand}" IsEnabled="{Binding CanApprove}" Margin="{DynamicResource UiGapControlEnd}" AutomationProperties.Name="Mark the invoice as approved" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="REJECT" Command="{Binding RejectCommand}" IsEnabled="{Binding CanReject}" Margin="{DynamicResource UiGapControlEnd}" AutomationProperties.Name="Mark the invoice as rejected" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="CANCEL DOCUMENT" Command="{Binding CancelDocumentCommand}" IsEnabled="{Binding CanCancelDocument}" Margin="{DynamicResource UiGapControlEnd}" AutomationProperties.Name="Cancel this invoice without deleting it" />
+                    <Button Style="{DynamicResource SubtleButton}" Content="BACK TO REGISTER" Command="{Binding CloseEditorCommand}" Margin="{DynamicResource UiGapControlEnd}" AutomationProperties.Name="Close the editor" />
+                    <Button Style="{DynamicResource PrimaryButton}" Content="SAVE INVOICE" Command="{Binding SaveCommand}" IsEnabled="{Binding CanEditBody}" Margin="{DynamicResource UiGapControlEnd}" AutomationProperties.Name="Save the invoice" />
+                </WrapPanel>
             </Grid>
         </ContentControl>
 
         <!-- ── The nine stages ──────────────────────────────────────── -->
         <ContentControl Grid.Row="1" Style="{DynamicResource Card}" Margin="{DynamicResource MarginItem}">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Stages}" Focusable="False"
                           Margin="{DynamicResource PaddingControl}"
                           AutomationProperties.Name="Invoice stages">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
+                        <WrapPanel Orientation="Horizontal" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
