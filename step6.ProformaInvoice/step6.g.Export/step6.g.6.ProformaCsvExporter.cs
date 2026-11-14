@@ -31,7 +31,7 @@ namespace ProGlassAutomation.Services.Proforma
                     WriteRow(output, new[]
                     {
                         group.GroupNumber.ToString(CultureInfo.InvariantCulture),
-                        group.SpecName,
+                        PolishSubTypeInfo.DisplaySpecName(group),
                         item.SerialNumber.ToString(CultureInfo.InvariantCulture),
                         item.GlassRef,
                         item.W1.ToString(CultureInfo.InvariantCulture),
