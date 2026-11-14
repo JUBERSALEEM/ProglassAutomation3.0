@@ -41,13 +41,13 @@ namespace ProGlassAutomation.ViewModels.Proforma
             }
             if (SelectedGroup == null)
             {
-                Report("Select the specification group that these cut-list rows belong to.");
+                Report("Select a specification group before importing a cut list.");
                 return;
             }
 
             var dialog = new OpenFileDialog
             {
-                Title = "Import cut list into " + SelectedGroup.DisplayText,
+                Title = "Import cut list into the selected specification groups",
                 Filter = ProformaGridImportService.FileDialogFilter,
                 CheckFileExists = true,
                 Multiselect = false
@@ -64,62 +64,89 @@ namespace ProGlassAutomation.ViewModels.Proforma
                     return;
                 }
 
-                SpecGroup? target = Draft.Groups.FirstOrDefault(
-                    group => group.GroupNumber == SelectedGroup.GroupNumber);
-                if (target == null)
+                SpecGroup selected = Draft.Groups.FirstOrDefault(
+                    group => group.GroupNumber == SelectedGroup.GroupNumber)!;
+                if (selected == null)
                 {
                     Report("The selected specification group is no longer available.");
                     return;
                 }
 
-                string[] importedSpecs = result.Rows.Select(row => row.SpecName.Trim())
-                    .Where(value => value.Length > 0)
-                    .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-                if (importedSpecs.Length > 1
-                    || importedSpecs.Length == 1 && target.SpecName.Length > 0
-                    && !string.Equals(importedSpecs[0], target.SpecName, StringComparison.OrdinalIgnoreCase))
-                {
-                    Report("This file contains a different or multiple specification names. Import one specification group at a time.");
-                    return;
-                }
+                var batches = result.Rows.GroupBy(row =>
+                    row.SpecName.Trim().ToUpperInvariant() + "\u001F"
+                    + row.GlassType.Trim().ToUpperInvariant()).ToList();
+                var plan = new System.Collections.Generic.List<
+                    (SpecGroup Target, System.Collections.Generic.List<ProformaGridImportRow> Rows,
+                     string SpecName, string GlassType)>();
 
-                string[] importedTypes = result.Rows.Select(row => row.GlassType)
-                    .Where(value => value.Length > 0)
-                    .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-                if (importedTypes.Length > 1
-                    || importedTypes.Length == 1
-                    && !string.Equals(importedTypes[0], target.GlassType, StringComparison.OrdinalIgnoreCase))
+                foreach (var batch in batches)
                 {
-                    Report("The imported glass type does not match the selected specification group.");
-                    return;
-                }
+                    ProformaGridImportRow first = batch.First();
+                    string specName = first.SpecName.Trim();
+                    string glassType = first.GlassType.Trim();
+                    List<SpecGroup> candidates = Draft.Groups.Where(group =>
+                        (specName.Length == 0 || string.Equals(group.SpecName, specName, StringComparison.OrdinalIgnoreCase))
+                        && (glassType.Length == 0 || string.Equals(group.GlassType, glassType, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
 
-                if (target.SpecName.Length == 0 && importedSpecs.Length == 1)
-                {
-                    target.SpecName = importedSpecs[0];
-                    target.HasManualSpecOverride = true;
-                }
+                    SpecGroup? target = null;
+                    if (candidates.Count == 1)
+                        target = candidates[0];
+                    else if (candidates.Any(group => group.GroupNumber == selected.GroupNumber))
+                        target = selected;
+                    else if (candidates.Count == 0 && selected.SpecName.Length == 0
+                        && (glassType.Length == 0 || string.Equals(selected.GlassType, glassType, StringComparison.OrdinalIgnoreCase)))
+                        target = selected;
 
-                foreach (ProformaGridImportRow imported in result.Rows)
-                {
-                    target.Rows.Add(new SpecRow
+                    if (target == null)
                     {
-                        SerialNumber = target.Rows.Count + 1,
-                        GlassRef = imported.GlassRef,
-                        W1 = imported.W1,
-                        H1 = imported.H1,
-                        W2 = imported.W2,
-                        H2 = imported.H2,
-                        Qty = imported.Qty
-                    });
+                        Report("Could not map imported specification '" + (specName.Length == 0 ? "(unspecified)" : specName)
+                            + "' / glass type '" + (glassType.Length == 0 ? "(unspecified)" : glassType)
+                            + "' to one existing group. Create or select the matching priced group first; no rows were imported.");
+                        return;
+                    }
+
+                    plan.Add((target, batch.ToList(), specName, glassType));
                 }
 
-                target.Renumber();
+                foreach (var item in plan)
+                {
+                    if (item.Target.SpecName.Length == 0 && item.SpecName.Length > 0)
+                    {
+                        item.Target.SpecName = item.SpecName;
+                        item.Target.HasManualSpecOverride = true;
+                    }
+                    if (item.Target.GlassType.Length == 0 && item.GlassType.Length > 0)
+                    {
+                        item.Target.GlassType = item.GlassType;
+                        item.Target.HasManualGlassTypeOverride = true;
+                    }
+
+                    foreach (ProformaGridImportRow imported in item.Rows)
+                    {
+                        item.Target.Rows.Add(new SpecRow
+                        {
+                            SerialNumber = item.Target.Rows.Count + 1,
+                            GlassRef = imported.GlassRef,
+                            W1 = imported.W1,
+                            H1 = imported.H1,
+                            W2 = imported.W2,
+                            H2 = imported.H2,
+                            Qty = imported.Qty
+                        });
+                    }
+                }
+
+                foreach (SpecGroup group in plan.Select(item => item.Target)
+                    .GroupBy(group => group.GroupNumber).Select(group => group.First()))
+                    group.Renumber();
+
                 Reapply();
                 SyncFromDraft();
                 ClearError();
+                int importedGroups = plan.Select(item => item.Target.GroupNumber).Distinct().Count();
                 SetStatus("Imported " + result.Rows.Count + " cut-list row(s) into "
-                    + target.DisplayText + "."
+                    + importedGroups + " specification group(s)."
                     + (result.Skipped > 0 ? " " + result.Skipped + " invalid row(s) were skipped." : ""));
             }
             catch (Exception error)
