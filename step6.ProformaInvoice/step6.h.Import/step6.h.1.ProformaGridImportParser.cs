@@ -122,8 +122,8 @@ namespace ProGlassAutomation.Services.Proforma
                     int h1 = ReadJsonInt(element, "h1", "height", "h");
                     int w2 = ReadJsonInt(element, "w2");
                     int h2 = ReadJsonInt(element, "h2");
-                    int qty = ReadJsonInt(element, "qty", "quantity", "pieces");
-                    if (qty == 0) qty = 1;
+                    string qtyText = ReadJsonString(element, "qty", "quantity", "pieces");
+                    int qty = qtyText.Length == 0 ? 1 : ReadQuantity(qtyText);
                     if (w1 <= 0 || h1 <= 0 || qty <= 0 || ((w2 > 0) != (h2 > 0)))
                     {
                         result.Skipped++;
@@ -165,37 +165,59 @@ namespace ProGlassAutomation.Services.Proforma
                 w1 = dw;
                 h1 = dh;
             }
-            int qty = ReadQuantity(Read("qty"));
+            string qtyText = Read("qty");
+            int qty = qtyText.Length == 0 ? 1 : ReadQuantity(qtyText);
+            if (qty <= 0) return null;
             return new ProformaGridImportRow
             {
                 GlassRef = Read("ref"),
                 SpecName = Read("spec"),
                 GlassType = GlassBuilds.Normalize(Read("glasstype")),
                 W1 = w1, H1 = h1, W2 = w2, H2 = h2,
-                Qty = qty == 0 ? 1 : qty
+                Qty = qty
             };
         }
 
         private static ProformaGridImportRow? FromPositional(IReadOnlyList<string> cells)
         {
             string At(int index) => index < cells.Count ? cells[index].Trim() : "";
-            int w1 = ReadMillimetres(At(1));
-            int h1 = ReadMillimetres(At(2));
-            if ((w1 <= 0 || h1 <= 0) && TryDimensions(At(1), out int dw, out int dh))
+            int w1;
+            int h1;
+            int w2 = 0;
+            int h2 = 0;
+            int qty;
+            string specName = "";
+            string glassType = "";
+
+            if (TryDimensions(At(1), out int dimensionWidth, out int dimensionHeight))
             {
-                w1 = dw;
-                h1 = dh;
+                w1 = dimensionWidth;
+                h1 = dimensionHeight;
+                string qtyText = At(2);
+                qty = qtyText.Length == 0 ? 1 : ReadQuantity(qtyText);
+                w2 = ReadMillimetres(At(3));
+                h2 = ReadMillimetres(At(4));
+                specName = At(5);
+                glassType = At(6);
             }
-            int qty = ReadQuantity(At(3));
+            else
+            {
+                w1 = ReadMillimetres(At(1));
+                h1 = ReadMillimetres(At(2));
+                string qtyText = At(3);
+                qty = qtyText.Length == 0 ? 1 : ReadQuantity(qtyText);
+                w2 = ReadMillimetres(At(4));
+                h2 = ReadMillimetres(At(5));
+                specName = At(6);
+                glassType = At(7);
+            }
+
+            if (qty <= 0) return null;
             return new ProformaGridImportRow
             {
-                GlassRef = At(0),
-                W1 = w1, H1 = h1,
-                Qty = qty == 0 ? 1 : qty,
-                W2 = ReadMillimetres(At(4)),
-                H2 = ReadMillimetres(At(5)),
-                SpecName = At(6),
-                GlassType = GlassBuilds.Normalize(At(7))
+                GlassRef = At(0), SpecName = specName,
+                GlassType = GlassBuilds.Normalize(glassType),
+                W1 = w1, H1 = h1, W2 = w2, H2 = h2, Qty = qty
             };
         }
 
