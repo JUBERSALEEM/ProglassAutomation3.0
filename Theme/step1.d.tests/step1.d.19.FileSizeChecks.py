@@ -67,6 +67,10 @@ def check(condition, message):
         FAILURES.append(message)
 
 
+LEGACY_VERBATIM_ROOTS = ("Models/ProformaInvoice", "ViewModels/ProformaInvoice",
+                         "Views/ProformaInvoice", "Services/ProformaInvoice")
+
+
 def scan_paths():
     for path in sorted(ROOT.rglob("*")):
         if not path.is_file() or path.suffix not in CAP:
@@ -76,6 +80,9 @@ def scan_paths():
             continue
         if any(part.endswith(".tests") for part in parts):
             continue
+        relative = str(path.relative_to(ROOT)).replace("\\\\", "/")
+        if any(relative == root or relative.startswith(root + "/") for root in LEGACY_VERBATIM_ROOTS):
+            continue  # Legacy ADV source is deliberately preserved verbatim during the port.
         yield path
 
 
