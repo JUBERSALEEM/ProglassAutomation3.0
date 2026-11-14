@@ -32,8 +32,19 @@ namespace ProGlassAutomation.Step6Tests
             string json = ProformaInvoiceJson.Write(draft);
             Check("the body is stored with its format version",
                 json.Contains("\"FormatVersion\":1", StringComparison.Ordinal), json[..Math.Min(120, json.Length)]);
+            Check("discount and VAT inputs are stored",
+                json.Contains("\"DiscountMethod\"", StringComparison.Ordinal)
+                && json.Contains("\"DiscountValue\"", StringComparison.Ordinal)
+                && json.Contains("\"VatPercent\"", StringComparison.Ordinal)
+                && json.Contains("\"IsVatApplicable\"", StringComparison.Ordinal));
             Check("computed totals are not stored",
-                !json.Contains("\"GrandTotal\"", StringComparison.Ordinal)
+                !json.Contains("\"GlassSubtotal\"", StringComparison.Ordinal)
+                && !json.Contains("\"OtherChargesSubtotal\"", StringComparison.Ordinal)
+                && !json.Contains("\"NetSubtotal\"", StringComparison.Ordinal)
+                && !json.Contains("\"DiscountAmount\"", StringComparison.Ordinal)
+                && !json.Contains("\"SubtotalBeforeVat\"", StringComparison.Ordinal)
+                && !json.Contains("\"VatAmount\"", StringComparison.Ordinal)
+                && !json.Contains("\"GrandTotal\"", StringComparison.Ordinal)
                 && !json.Contains("\"TotalSqm\":", StringComparison.Ordinal));
             Check("status is stored by name, not by number",
                 json.Contains("\"Status\":\"Draft\"", StringComparison.Ordinal));
