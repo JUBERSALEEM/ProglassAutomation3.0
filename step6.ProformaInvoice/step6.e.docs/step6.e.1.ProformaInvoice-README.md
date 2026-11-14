@@ -133,11 +133,16 @@ Four builds, the trade's own vocabulary:
   (`TotalSqm`, `TotalLm`, `TotalPieces`, `FixedQuantity`), a stated quantity
   source, and a stored rate.
 - Automation (`UseAdvancedAutomation`) may: switch on argon and the silicon bed
-  for DGU/DGU+LAM, raise a charge when the specification text says U-INSERT,
-  OVERLAP, SANDBLAST or MITRE, and follow `SamePaneColours` for polishing. It
-  never guesses holes, cutouts or delivery — those are the operator's.
-- The sheet quantity entered on the wastage row is read by stage 7 even when the
-  wastage charge itself is inactive: it is a production fact, not a billing one.
+  for DGU/DGU+LAM; detect U-INSERT, OVERLAP (LM or SQM), SHUTTER BONDING,
+  FANHOLE, CUTOUT, HOLES, SANDBLAST/FROSTED and MITRE/BEVELED when explicitly
+  named in the specification; and follow `SamePaneColours` for polishing.
+  It never infers drawing-dependent holes/cutouts from dimensions, and delivery
+  remains an operator-entered decision.
+- Wastage rows remain aggregated by colour in V3. Clear-glass wastage is marked
+  optional with a reason because offcuts may be reusable; coloured/coated glass
+  explains why offcuts are less reusable. The editable sheet quantity is read by
+  stage 7 even when the wastage charge itself is inactive: it is a production
+  fact, not a billing one.
 
 ## 7. Profit & loss (stage 7)
 
@@ -261,7 +266,7 @@ ClosedXML 0.105.0 is the only added spreadsheet dependency. CSV is written by th
 | `step6.a.6.PricingEstimator.cs` | the four formulas, provenance, warnings |
 | `step6.a.7.SpecGrid.cs` | groups, rows, areas, colour areas |
 | `step6.a.8.ChargeCatalog.cs` | the 17 templates and their metrics |
-| `step6.a.9.OtherCharges.cs` | charge sheet, wastage rebuild, metrics, automation |
+| `step6.a.9.OtherCharges.cs` | charge sheet, per-colour wastage rebuild, clear-glass guidance, sheet-cost quantity |
 | `step6.a.10.OtherChargeAutomation.cs` | what may be suggested from the specification |
 | `step6.a.11.InvoiceSummary.cs` | discount, VAT, totals waterfall, target total |
 | `step6.a.12.ProfitLoss.cs` | whole-sheet costing, margin, target KPI |
