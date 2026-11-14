@@ -66,6 +66,8 @@ FILE_OPERATIONS = MODULE / "step6.c.Presentation/step6.c.10.ProformaWorkspaceVie
 CHARGE_AUTOMATION = MODULE / "step6.a.10.OtherChargeAutomation.cs"
 CHARGE_CATALOG = MODULE / "step6.a.8.ChargeCatalog.cs"
 SPEC_GRID = MODULE / "step6.a.7.SpecGrid.cs"
+POLISH_SUBTYPE = MODULE / "step6.a.15.PolishSubType.cs"
+POLISH_TESTS = MODULE / "step6.f.tests/step6.f.8.ProformaPolishSubtypeChecks.cs"
 CHARGES_MODEL = MODULE / "step6.a.9.OtherCharges.cs"
 CHARGES_VIEW = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml"
 CHARGES_CODE = MODULE / "step6.d.Views/step6.d.6.ProformaChargesStage.xaml.cs"
@@ -494,6 +496,21 @@ for token in ("SHUTTER_BONDING", "FAN_HOLES", "CUTOUT", "HOLES",
 check("ChargeAutomation();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")
       and CHARGE_TESTS.is_file(),
       "step6.f.7 charge automation regression checks are not wired")
+polish_source = read(POLISH_SUBTYPE)
+for token in ("AllSidePolish", "BothHeightSide", "BothWidthSide",
+              "BothHeightOneWidth", "OneHeightOneWidth", "OneHeightSide",
+              "OneWidthSide", "Custom", "CalculatePanel", "CalculateMatched"):
+    check(token in polish_source,
+          f"step6.a.15.PolishSubType.cs: legacy polish formula {token} is missing")
+polish_view = read(MODULE / "step6.d.Views/step6.d.5.ProformaGridStage.xaml")
+polish_code = read(MODULE / "step6.d.Views/step6.d.5.ProformaGridStage.xaml.cs")
+check("PolishSubTypeInfo.All" in polish_view
+      and "SelectedGroup.PolishSubType" in polish_view
+      and "OnPolishSubTypeChanged" in polish_code,
+      "step6.d.5: per-group polish subtype selector is not wired")
+check("PolishSubtypeChecks();" in read(MODULE / "step6.f.tests/step6.f.2.ProformaBehaviourChecks.cs")
+      and POLISH_TESTS.is_file(),
+      "step6.f.8 polish subtype regression checks are not wired")
 check("MatchedPolishLm" in read(SPEC_GRID) and "PolishLm" in read(SPEC_GRID)
       and "MatchedPolishLm" in read(CHARGE_CATALOG) and "PolishLm" in read(CHARGE_CATALOG)
       and "ChargeMetric.MatchedPolishLm" in read(CHARGES_MODEL)
@@ -520,6 +537,8 @@ for path in (
     MODULE / "step6.f.tests/step6.f.5.ProformaBehaviourChecks.ProfitAndLoss.cs",
     MODULE / "step6.f.tests/step6.f.6.ProformaImportExportChecks.cs",
     CHARGE_TESTS,
+    POLISH_SUBTYPE,
+    POLISH_TESTS,
 ):
     check(path.is_file() and len(read(path).splitlines()) <= 400,
           f"{path.relative_to(ROOT)}: missing or exceeds the 400-line test-file rule")
