@@ -221,7 +221,9 @@ approved integration adds QuestPDF 2025.12.4 to the existing application
 project. The export service renders a detached invoice snapshot off the UI
 thread, writes the selected PDF path, and reports viewer-launch failures
 separately from file-generation failures. Company logos are resolved through
-the owning Company Profile logo store. No PdfSharp renderer or second PDF
+the owning Company Profile logo store and respect None, LeftPortrait and
+TopPanel placement plus the saved logo size. Company representative details
+are printed from the invoice snapshot. No PdfSharp renderer or second PDF
 engine is introduced.
 
 The package is configured for QuestPDF Community licensing. Confirm the
@@ -288,6 +290,7 @@ ClosedXML 0.105.0 is the only added spreadsheet dependency. CSV is written by th
 | `step6.g.Export/step6.g.2.ProformaPdfLayout.cs` | QuestPDF invoice rendering, pagination, tables and signatures |
 | `step6.g.Export/step6.g.3.ProformaPdfExporter.cs` | detached-snapshot invoice and dossier PDF export |
 | `step6.g.Export/step6.g.4.ProformaDossierPdfLayout.cs` | full dossier; P&L opt-in, internal warning on every page |
+| `step6.g.Export/step6.g.7.ProformaPdfLetterheadRenderer.cs` | profile-owned logo placement and company identity |
 | `step6.g.Export/step6.g.5.ProformaWorkbookExporter.cs` | invoice/dossier workbook and filtered register workbook |
 | `step6.g.Export/step6.g.6.ProformaCsvExporter.cs` | 13-column cut-list CSV |
 | `step6.h.Import/step6.h.1.ProformaGridImportParser.cs` | header-aware CSV/TSV/TXT and scanner JSON parser |
