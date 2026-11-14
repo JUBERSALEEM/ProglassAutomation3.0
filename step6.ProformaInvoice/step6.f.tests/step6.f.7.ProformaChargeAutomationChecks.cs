@@ -56,6 +56,20 @@ namespace ProGlassAutomation.Step6Tests
             Check("SQM overlap uses the area-based catalogue row",
                 sqmKeys.Contains("OVERLAP_SQM") && !sqmKeys.Contains("OVERLAP"));
 
+            var mixedLam = new SpecGroup
+            {
+                GroupNumber = 3,
+                SpecName = "LAM 6+6",
+                GlassType = GlassBuilds.Lam,
+                OuterGlassColor = "Clear",
+                InnerGlassColor = "Grey"
+            };
+            var mixedLamKeys = OtherChargeAutomation.Suggest(mixedLam)
+                .Select(item => item.TemplateKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            Check("unmatched laminate uses the regular polish row",
+                mixedLamKeys.Contains("POLISH") && !mixedLamKeys.Contains("POLISH_MATCHED_LAM"));
+
             var wastage = new OtherChargesSheet();
             wastage.RebuildWastages(new[] { group });
             WastageChargeRow clear = wastage.Wastages.Single(row => row.ColorName == "Clear");
