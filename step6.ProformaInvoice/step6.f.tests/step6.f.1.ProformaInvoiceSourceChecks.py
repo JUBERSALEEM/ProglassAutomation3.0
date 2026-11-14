@@ -52,6 +52,7 @@ CSHARP = sorted(MODULE.glob("*.cs"))
 PDF_STYLES = MODULE / "step6.g.Export/step6.g.1.ProformaPdfStyle.cs"
 PDF_LAYOUT = MODULE / "step6.g.Export/step6.g.2.ProformaPdfLayout.cs"
 PDF_DOSSIER = MODULE / "step6.g.Export/step6.g.4.ProformaDossierPdfLayout.cs"
+PDF_LETTERHEAD = MODULE / "step6.g.Export/step6.g.7.ProformaPdfLetterheadRenderer.cs"
 PDF_EXPORTER = MODULE / "step6.g.Export/step6.g.3.ProformaPdfExporter.cs"
 PDF_VIEWMODEL = MODULE / "step6.c.Presentation/step6.c.9.ProformaWorkspaceViewModel.PdfExport.cs"
 PDF_VIEW = MODULE / "step6.d.Views/step6.d.7.ProformaSummaryStage.xaml"
@@ -405,7 +406,7 @@ check(dossier_source.count("Document.Create(") == 1
       and "includeProfitLoss = false" in dossier_source
       and "INTERNAL COPY" in dossier_source,
       "step6.g.4.ProformaDossierPdfLayout.cs: dossier must be one QuestPDF layout with P&L opt-in and an internal warning")
-for section in ("Letterhead(", "Parties(", "Specifications(", "Charges(", "FinancialSummary(", "Signatures("):
+for section in ("ProformaPdfLetterheadRenderer.Render", "Parties(", "Specifications(", "Charges(", "FinancialSummary(", "Signatures("):
     check(section in layout_source,
           f"step6.g.2.ProformaPdfLayout.cs: PDF section {section} is missing")
 project_source = read(PROJECT)
@@ -425,7 +426,7 @@ check("ExportPdfCommand" in read(PDF_VIEW)
       and "SelectedPdfStyle" in read(PDF_VIEW)
       and "PdfStyles" in read(PDF_VIEW),
       "step6.d.7 summary view: the five-style export controls are not wired")
-for path in (PDF_STYLES, PDF_LAYOUT, PDF_DOSSIER, PDF_EXPORTER, PDF_VIEWMODEL):
+for path in (PDF_STYLES, PDF_LAYOUT, PDF_DOSSIER, PDF_LETTERHEAD, PDF_EXPORTER, PDF_VIEWMODEL):
     check(path.is_file() and len(read(path).splitlines()) <= 400,
           f"{path.relative_to(ROOT)}: missing or exceeds the 400-line file rule")
 
