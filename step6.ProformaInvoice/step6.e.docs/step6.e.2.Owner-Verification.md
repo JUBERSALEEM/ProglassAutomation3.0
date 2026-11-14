@@ -119,3 +119,14 @@ checks above remain mandatory before calling PDF export complete.
 **Known V3 boundary:** PDF/photo OCR is not ported because this repository has no
 Gemini file-AI service/settings integration. Excel, CSV, text and scanner JSON
 are supported without inventing a new external AI dependency.
+
+
+## Other-charge automation and wastage guidance
+
+| # | Step | Expected |
+| --- | --- | --- |
+| 7.1 | Use a DGU spec naming U-Insert, overlap, shutter bonding, fanhole, cutouts/holes, beveling and frosting | each named charge is suggested; DGU argon and silicon-bed suggestions remain available |
+| 7.2 | Use a DGU+LAM spec with three pane colours | the build is recognised and all three pane colours contribute to the V3 per-colour wastage aggregation |
+| 7.3 | Inspect a Clear wastage row | tooltip explains that clear-glass wastage is optional because offcuts may be reusable |
+| 7.4 | Change the wastage SHEETS FOR COST quantity, then turn the wastage charge off | P&L still uses the sheet quantity as production consumption; the billing switch does not erase it |
+| 7.5 | Manually switch a suggested charge off, then recalculate | the manual active override remains off |
