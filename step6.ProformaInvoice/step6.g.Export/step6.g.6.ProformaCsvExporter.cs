@@ -77,7 +77,7 @@ namespace ProGlassAutomation.Services.Proforma
         {
             var cells = new string[Headers.Length];
             cells[Headers.Length - 2] = label;
-            cells[Headers.Length - 1] = Number(value);
+            cells[Headers.Length - 1] = Money(value);
             WriteRow(output, cells);
         }
 
