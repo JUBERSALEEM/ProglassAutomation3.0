@@ -28,7 +28,7 @@ This inventory is a source-based migration record, not a claim that a Windows bu
 | Saved invoice register, lifecycle and duplicate/revision workflow | `step6.a.1.InvoiceLifecycle.cs`; repository/read/lifecycle files; workspace commands | Number uniqueness, valid transitions, terminal cancellation, immutable issued documents, duplicate-as-new-draft, concurrency, read-only enforcement. |
 | Persistence, schema and JSON snapshots | `step6.b.*` schema, JSON, record, repository and context files | Single transaction for row/body; additive migration; schema constraints/indexes; legacy-safe parsing; corrupt body must report rather than become an empty invoice. |
 | Inquiry BOQ conversion and PI link sync | `step6.b.11.InquiryBoqConverter.cs`; Inquiry integration | Preserve inquiry BOQ and unrelated fields; link via Inquiry module's own API; failures after PI commit are surfaced as warnings. |
-| Import/export and cut-list interoperability | Stage 3 and stage 5 services; export layouts | Excel/CSV import parsing, malformed-row feedback, export formulas/layouts, no silent field truncation, round-trip tests. |
+| Import/export and cut-list interoperability | `step6.h.Import` parser/service; `step6.g.Export` workbook/CSV; Grid, Summary and register actions | XLSX/CSV/TXT/scanner-JSON import; invoice/dossier/register XLSX; 13-column CSV; P&L sheets opt-in; PDF/photo OCR remains unavailable because V3 has no AI file service. |
 
 ## 3. Dependencies: do not copy blindly
 
