@@ -92,7 +92,10 @@ the body and the row would then disagree; report it instead.
 | 5.5 | Export an unsaved draft | the UI asks the operator to save first; no unnumbered customer PDF is produced |
 | 5.6 | Inspect the customer PDF for internal P&L values | no internal profit, cost or margin worksheet is disclosed |
 
+5.7 | Export the full dossier without enabling P&L | no cost, profit or margin figures appear |
+| 5.8 | Enable internal P&L and export the dossier | the red internal-only warning appears on every page; cost rows, profit and target analysis are present |
+
 **Not yet verified:** QuestPDF package restore, Windows compilation, actual PDF
-byte generation, page breaks, logo rendering, and visual comparison of all five
-styles. The new automated render checks are in `step6.f.4`; the Windows owner
+byte generation, page breaks, logo rendering, dossier P&L opt-in behaviour, and
+visual comparison of all five styles. The new automated render checks are in `step6.f.4`; the Windows owner
 checks above remain mandatory before calling PDF export complete.
